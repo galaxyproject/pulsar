@@ -1,0 +1,44 @@
+Configuring the LWR Server:
+
+Rename the server.ini.sample file to server.ini, and edit the values
+therein to configure the server. Defaults as specified for all values
+that will likely work for testing.
+
+Running the LWR Server:
+
+Install python setuptools for your platform:
+http://pypi.python.org/pypi/setuptools
+
+The easy_install command line application will be installed as part of
+setuptools. Use easy_install to install the following libraries:
+
+easy_install paste wsgiutils PasteScript PasteDeploy simplejson webob
+
+The paster command line application will be installed as part of the
+previous easy_install command. This application can be used to startup
+an LWR server. Start this up by executing the following command:
+
+paster serve server.ini 
+
+Testing:
+
+A simple sanity test can be run against a running LWR server by
+executing the following command (replace the URL command with the URL
+of your running LWR application):
+
+python run_client_tests.py --url=http://localhost:8913
+
+This project is distributed with unit tests, the following command
+will install the needed python components to run these tests.
+
+easy_install nose coverage webtest
+
+The following command will then run these tests:
+
+nosetests
+
+The following command will then produce a coverage report
+corresponding to this test and place it in the coverage_html_report
+directory.
+
+coverage html
