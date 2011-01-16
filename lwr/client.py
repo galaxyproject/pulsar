@@ -1,9 +1,9 @@
+import os
 import urllib 
 import urllib2
 import httplib
 import mmap 
 import tempfile
-import os
 import time
 
 import simplejson

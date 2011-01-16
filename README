@@ -1,22 +1,58 @@
-Configuring the LWR Server:
+This project is a Python server application and a job runner for
+Galaxy that allows a Galaxy server to run jobs on remote systems
+(including Windows) without requiring a shared mounted file
+systems. Input files, scripts, and config files are transferred to the
+remote LWR system, the job is executed, and the results are
+transferred back. 
+
+Configuring Galaxy: 
+
+The file galaxy_central_lwr.patch contains a mercurial generated patch
+for galaxy-central that enables the LWR job runner. Once the patch has
+been applied, a tool can be configured to be executed remotely via LWR
+by adding a line to the universe.ini file under the
+galaxy:tool_runners section with the format:
+
+<tool_id> = lwr://http://<lwr_host>:<lwr_port>
+
+As an example, if a host named remotehost is running the LWR server
+application on port 8913, then the tool with id test_tool can be
+configured to run remotely on remotehost by adding the following line
+to universe.ini:
+
+test_tool = lwr://http://remotehost:8913
+
+Remember this must be added after the [galaxy:tool_runners] header in
+the universe.ini file.
+
+Configuring the LWR Server Application:
 
 Rename the server.ini.sample file to server.ini, and edit the values
-therein to configure the server. Defaults as specified for all values
-that will likely work for testing.
+therein to configure the server application. Defaults are specified
+for all values that will likely work for testing on the the same
+machine Galaxy is running on. However, the parameter host must be
+specified for remote submissions to this server to run properly. This
+file contains documentation for each configuration parameter you may
+want to set.
 
-Running the LWR Server:
+Several Python packages must be installed to run the LWR server. The
+remainder of this section discusses one possible approach for
+installing these packages.
 
-Install python setuptools for your platform:
-http://pypi.python.org/pypi/setuptools
+Install python setuptools for your platform, more details on how to do
+this can be found at: http://pypi.python.org/pypi/setuptools
 
 The easy_install command line application will be installed as part of
-setuptools. Use easy_install to install the following libraries:
+setuptools. Use the following command to install the needed packages
+via easy_install.
 
 easy_install paste wsgiutils PasteScript PasteDeploy simplejson webob
 
+Running the LWR Server Application:
+
 The paster command line application will be installed as part of the
 previous easy_install command. This application can be used to startup
-an LWR server. Start this up by executing the following command:
+the LWR server. This can be done by executing the following command:
 
 paster serve server.ini 
 
@@ -39,6 +75,6 @@ nosetests
 
 The following command will then produce a coverage report
 corresponding to this test and place it in the coverage_html_report
-directory.
+subdirectory of this project.
 
 coverage html
