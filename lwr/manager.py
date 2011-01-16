@@ -135,12 +135,18 @@ class Manager(object):
         except OSError, e:
             return False
 
+    def is_windows(self):
+        return platform.system() == 'Windows'
+
     def kill(self, job_id):
         pid = self.get_pid(job_id)
         if pid == None:
             return
-        if platform.system() == 'Windows':
-            subprocess.Popen("taskkill /F /T /PID %i" % pid , shell=True)
+        if self.is_windows():
+            try:
+                subprocess.Popen("taskkill /F /T /PID %i" % pid , shell=True)
+            except Exception, e:
+                pass
         else:
             if self.__check_pid(pid):
                 for sig in [ 15, 9 ]:
@@ -152,24 +158,32 @@ class Manager(object):
                     if not self.__check_pid( pid ):
                         return 
 
-    def monitor(self, job_id, proc):
+    def monitor(self, job_id, proc, stdout, stderr):
         try:
-            stdout_contents = proc.stdout.read( 32768 )
-            stderr_contents = proc.stderr.read( 32768 )
+            #stdout_contents = proc.stdout.read( 32768 )
+            #stderr_contents = proc.stderr.read( 32768 )
             proc.wait()
+            stdout.close()
+            stderr.close()
             return_code = proc.returncode
             self.__write_job_file(job_id, 'return_code', str(return_code))
-            self.__write_job_file(job_id, 'stdout', stdout_contents)
-            self.__write_job_file(job_id, 'stderr', stderr_contents)
+            #self.__write_job_file(job_id, 'stdout', stdout_contents)
+            #self.__write_job_file(job_id, 'stderr', stderr_contents)
         finally:
             os.remove(self.__job_file(job_id, 'pid'))
 
     def launch(self, job_id, command_line):
         working_directory = self.working_directory(job_id)
+        preexec_fn = None
+        if not self.is_windows():
+            preexec_fn = os.setpgrp
+        stdout = open(self.__job_file(job_id, 'stdout'), 'w')
+        stderr = open(self.__job_file(job_id, 'stderr'), 'w')
         proc = subprocess.Popen(args = command_line,
                                 shell = True,
                                 cwd = working_directory,
-                                stdout = subprocess.PIPE,
-                                stderr = subprocess.PIPE)
+                                stdout = stdout,
+                                stderr = stderr,
+                                preexec_fn = preexec_fn)
         self.record_pid(job_id, proc.pid)
-        thread.start_new_thread(self.monitor, (job_id, proc))
+        thread.start_new_thread(self.monitor, (job_id, proc, stdout, stderr))

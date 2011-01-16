@@ -55,13 +55,13 @@ class FileStager(object):
             
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:
-            self.file_renames[output_file] = '%s%s%s' % (self.new_outputs_directory, 
+            self.file_renames[output_file] = r'%s%s%s' % (self.new_outputs_directory, 
                                                          self.remote_path_separator, 
                                                          os.path.basename(output_file))
 
     def __initialize_config_file_renames(self):
         for config_file in self.config_files:
-            self.file_renames[config_file] = '%s%s%s' % (self.new_working_directory,
+            self.file_renames[config_file] = r'%s%s%s' % (self.new_working_directory,
                                                          self.remote_path_separator,
                                                          os.path.basename(config_file))
 

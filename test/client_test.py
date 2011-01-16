@@ -92,19 +92,20 @@ def test_launch():
 def __test_upload(upload_type):
     client = TestClient()
 
-    temp_file = tempfile.NamedTemporaryFile()
-    output = open(temp_file.name, 'w')
+    #temp_file = tempfile.NamedTemporaryFile()
+    (temp_fileno, temp_file_path) = tempfile.mkstemp()
+    temp_file = os.fdopen(temp_fileno, 'w')
     try:
-        output.write("Hello World!")
+        temp_file.write("Hello World!")
     finally:
-        output.close()
-    request_checker = RequestChecker("upload_%s" % upload_type, {"name" : os.path.basename(temp_file.name)}, "Hello World!")
+        temp_file.close()
+    request_checker = RequestChecker("upload_%s" % upload_type, {"name" : os.path.basename(temp_file_path)}, "Hello World!")
     client.expect_open(request_checker, '{"path" : "C:\\\\tools\\\\foo"}')
 
     if(upload_type == 'tool_file'):
-        upload_result = client.upload_tool_file(temp_file.name)
+        upload_result = client.upload_tool_file(temp_file_path)
     else:
-        upload_result = client.upload_input(temp_file.name)
+        upload_result = client.upload_input(temp_file_path)
 
     request_checker.assert_called()
     assert upload_result["path"] == "C:\\tools\\foo"
