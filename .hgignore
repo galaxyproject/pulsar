@@ -1,0 +1,7 @@
+syntax: glob
+
+*.pyc
+.coverage
+coverage_html_report
+lwr_staging
+server.ini
