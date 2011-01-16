@@ -28,8 +28,8 @@ def main():
         try:
             temp_input_file.write("Hello world input!!@!")
             temp_tool_file.write("""
-output = open('%s%s%s', 'w')
-input = open('%s', 'r')
+output = open(r'%s%s%s', 'w')
+input = open(r'%s', 'r')
 try:
     contents = input.read(1024)
     output.write(contents)
@@ -49,6 +49,7 @@ finally:
         command = "python %s" % (uploaded_tool_file["path"])
         client.launch(command)
         result = client.wait()
+        print result
         output_path = os.path.join(temp_directory, "output.moo")
         client.download_output(output_path)
         output_file = open(output_path, 'r')

@@ -166,13 +166,10 @@ class Manager(object):
 
     def launch(self, job_id, command_line):
         working_directory = self.working_directory(job_id)
-        env = {}
         proc = subprocess.Popen(args = command_line,
                                 shell = True,
                                 cwd = working_directory,
                                 stdout = subprocess.PIPE,
-                                stderr = subprocess.PIPE,
-                                env = env,
-                                preexec_fn = os.setpgrp )
+                                stderr = subprocess.PIPE)
         self.record_pid(job_id, proc.pid)
         thread.start_new_thread(self.monitor, (job_id, proc))
