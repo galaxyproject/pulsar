@@ -1,18 +1,15 @@
-This project is a Python server application and a job runner for
-Galaxy that allows a Galaxy server to run jobs on remote systems
-(including Windows) without requiring a shared mounted file
-systems. Input files, scripts, and config files are transferred to the
-remote LWR system, the job is executed, and the results are
-transferred back. 
+This project is a Python server application that allows a Galaxy
+server to run jobs on remote systems (including Windows) without
+requiring a shared mounted file systems. Input files, scripts, and
+config files are transferred to the remote system, the job is
+executed, and the results are transferred back to the Galaxy server.
 
 Configuring Galaxy:
 -------------------
 
-The file galaxy_central_lwr.patch contains a mercurial generated patch
-for galaxy-central that enables the LWR job runner. Once the patch has
-been applied, a tool can be configured to be executed remotely via LWR
-by adding a line to the universe.ini file under the
-galaxy:tool_runners section with the format:
+A Galaxy tool can be configured to be executed remotely via LWR by
+adding a line to the universe.ini file under the galaxy:tool_runners
+section with the format:
 
 <tool_id> = lwr://http://<lwr_host>:<lwr_port>
 
