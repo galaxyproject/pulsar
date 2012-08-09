@@ -1,0 +1,7 @@
+paste
+wsgiutils
+PasteScript
+PasteDeploy
+simplejson
+webob
+pyOpenSSL
