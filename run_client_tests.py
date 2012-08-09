@@ -2,6 +2,7 @@ import shutil
 import tempfile
 import os
 import optparse
+import traceback
 
 from lwr.client import Client
 
@@ -11,9 +12,10 @@ def main():
     parser.add_option('--url', dest='url', default='http://localhost:8913')
     (options, args) = parser.parse_args()
 
-    client = Client(options.url, "123456")
-    temp_directory = tempfile.mkdtemp()
     try:
+        client = Client(options.url, "123456")
+        temp_directory = tempfile.mkdtemp()
+
         remote_job_config = client.setup()
         output_directory = remote_job_config['outputs_directory']
         sep = remote_job_config['path_separator']
@@ -57,6 +59,9 @@ finally:
             assert output_file.read() == "hello world output"
         finally:
             output_file.close()
+    except BaseException, e:
+        print "Exception: %s\n" % str(e)
+        traceback.print_exc(e)
     finally:
         shutil.rmtree(temp_directory)
         client.clean()
