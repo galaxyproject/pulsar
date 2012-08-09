@@ -1,14 +1,23 @@
 [server:main]
 use = egg:Paste#http
 
-# The port on which to listen.
+## The port on which to listen.
 port = 8913
-# The hostname or IP address of the server.
+## The hostname or IP address of the server.
 host = localhost
+
+## pem file to use to enable SSL. Set to * to generate one
+## automatically.
+# ssl_pem = host.pem
 
 [app:main]
 paste.app_factory = lwr.app:app_factory
 
-# Directory to stage files to. This should likely be updated to point
-# to an absolute path, such as /tmp/lwr_staging or C:\\lwr_staging
+## Directory to stage files to. This should likely be updated to point
+## to an absolute path, such as /tmp/lwr_staging or C:\\lwr_staging
 staging_directory = lwr_staging
+
+## Private key or password that must be sent as part of the request to
+## authorize use. If security is important, please use this in
+## combination with SSL.
+#private_key = changemeinproduction

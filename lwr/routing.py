@@ -9,13 +9,22 @@ from simplejson import dumps
 class RoutingApp(object):
     def __init__(self):
         self.routes = []
+        self.private_key = None
 
     def add_route(self, route, controller, **args):
         self.routes.append((route, controller, args))
 
+    def _setup_private_key(self, private_key):
+        print "Securing LWR web app with private key, please use HTTPS so key cannot be obtained by monitoring traffic."
+        self.private_key = private_key
+
     def __call__(self, environ, start_response):
         req = Request(environ)
-        for route, controller, args in self.routes:
+        if self.private_key:
+            sent_private_key = req.GET.get("private_key", None)
+            if not (self.private_key == sent_private_key):
+                return exc.HTTPUnauthorized()(environ, start_response)
+        for route, controller, args in self.routes:            
             if route == req.path_info:
                 return controller(environ, start_response, **args)
         return exc.HTTPNotFound()(environ, start_response)

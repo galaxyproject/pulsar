@@ -95,16 +95,19 @@ class FileStager(object):
 class Client(object):
     """    
     """
-    def __init__(self, remote_host, job_id):
+    def __init__(self, remote_host, job_id, private_key=None):
         if not remote_host.endswith("/"):
             remote_host = remote_host + "/"
         self.remote_host = remote_host
         self.job_id = job_id
+        self.private_key = private_key
 
     def url_open(self, request, data):
         return urllib2.urlopen(request, data)
         
     def __build_url(self, command, args):
+        if self.private_key:
+            args["private_key"] = self.private_key
         data = urllib.urlencode(args)
         url = self.remote_host + command + "?" + data
         return url

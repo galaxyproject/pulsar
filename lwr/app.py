@@ -78,6 +78,8 @@ class App(RoutingApp):
 
     def __init__(self, **conf):
         RoutingApp.__init__(self)
+        if "private_key" in conf:
+            self._setup_private_key(conf["private_key"])
 	self.manager = Manager(os.path.abspath(conf['staging_directory']))
         self.add_route_for_function(setup)
         self.add_route_for_function(clean)

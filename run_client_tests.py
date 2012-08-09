@@ -10,10 +10,11 @@ def main():
     """ Exercises a running lwr server application with the lwr client. """
     parser = optparse.OptionParser()
     parser.add_option('--url', dest='url', default='http://localhost:8913')
+    parser.add_option('--private_key', default=None)
     (options, args) = parser.parse_args()
 
     try:
-        client = Client(options.url, "123456")
+        client = Client(options.url, "123456", options.private_key)
         temp_directory = tempfile.mkdtemp()
 
         remote_job_config = client.setup()
