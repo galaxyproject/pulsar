@@ -10,3 +10,5 @@ job_managers.ini
 *.cert
 *.key
 .venv
+paster.log
+paster.pid

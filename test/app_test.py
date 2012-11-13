@@ -69,4 +69,8 @@ def test_app():
         assert os.listdir(staging_directory) == []
 
     finally:
+        try:
+            app.shutdown()
+        except:
+            pass
         shutil.rmtree(staging_directory)

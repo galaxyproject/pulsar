@@ -11,7 +11,7 @@ class Manager(object):
     >>> import tempfile
     >>> staging_directory = tempfile.mkdtemp()
     >>> shutil.rmtree(staging_directory)
-    >>> manager = Manager(staging_directory)
+    >>> manager = Manager('_default_', staging_directory)
     >>> assert os.path.exists(staging_directory)
     >>> command = "python -c \\"import sys; sys.stdout.write('Hello World!'); sys.stderr.write('moo')\\""
     >>> job_id = "123"
@@ -38,7 +38,8 @@ class Manager(object):
     >>> while not manager.check_complete(job_id): pass
     >>> manager.clean_job_directory(job_id)
     """
-    def __init__(self, staging_directory):
+    def __init__(self, name, staging_directory):
+        self.name = name
 	self.setup_staging_directory(staging_directory)
 
     def setup_staging_directory(self, staging_directory):
@@ -67,7 +68,10 @@ class Manager(object):
         finally:
             job_file.close()
 
-    def record_pid(self, job_id, pid):
+    def _record_submission(self, job_id):
+        self.__write_job_file(job_id, 'submitted', 'true')
+
+    def _record_pid(self, job_id, pid):
         self.__write_job_file(job_id, 'pid', str(pid))
 
     def get_pid(self, job_id):
@@ -108,7 +112,7 @@ class Manager(object):
         return os.path.join(self.job_directory(job_id), 'outputs')
 
     def check_complete(self, job_id):
-        return not os.path.exists(self.__job_file(job_id, 'pid'))
+        return not os.path.exists(self.__job_file(job_id, 'submitted'))
 
     def return_code(self, job_id):
         return int(self.__read_job_file(job_id, 'return_code'))
@@ -149,7 +153,7 @@ class Manager(object):
                     if not self.__check_pid( pid ):
                         return 
 
-    def monitor(self, job_id, proc, stdout, stderr):
+    def _monitor_execution(self, job_id, proc, stdout, stderr):
         try:
             proc.wait()
             stdout.close()
@@ -157,9 +161,13 @@ class Manager(object):
             return_code = proc.returncode
             self.__write_job_file(job_id, 'return_code', str(return_code))
         finally:
-            os.remove(self.__job_file(job_id, 'pid'))
+            self._finish_execution(job_id)
 
-    def launch(self, job_id, command_line):
+    def _finish_execution(self, job_id):
+        os.remove(self.__job_file(job_id, 'submitted'))
+        os.remove(self.__job_file(job_id, 'pid'))
+
+    def _run(self, job_id, command_line, async=True):
         working_directory = self.working_directory(job_id)
         preexec_fn = None
         if not self.is_windows():
@@ -172,5 +180,14 @@ class Manager(object):
                                 stdout = stdout,
                                 stderr = stderr,
                                 preexec_fn = preexec_fn)
-        self.record_pid(job_id, proc.pid)
-        thread.start_new_thread(self.monitor, (job_id, proc, stdout, stderr))
+        self._record_pid(job_id, proc.pid)
+        if async:
+            thread.start_new_thread(self._monitor_execution, (job_id, proc, stdout, stderr))
+        else:
+            self._monitor_execution(job_id, proc, stdout, stderr)
+
+    def launch(self, job_id, command_line):
+        self._record_submission(job_id)
+        self._run(job_id, command_line)
+
+    

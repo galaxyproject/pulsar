@@ -5,3 +5,8 @@ PasteDeploy
 simplejson
 webob
 pyOpenSSL
+
+# For testing
+nose
+webtest
+coverage
