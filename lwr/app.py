@@ -16,8 +16,9 @@ class LwrController(Controller):
                 return exc.HTTPUnauthorized()(environ, start_response)
 
     def _prepare_controller_args(self, req, args):
+        managers = req.app.managers
         manager_name = args.get('manager_name', '_default_')
-        args['manager'] = args.get('managers')[manager_name]
+        args['manager'] = managers[manager_name]
 
 @LwrController(response_type='json')
 def setup(manager, job_id):
@@ -92,9 +93,9 @@ class App(RoutingApp):
     """
     def add_route_for_function(self, function):
         route_base = '/%s' % function.__name__
-        self.add_route(route_base, function, managers=self.managers)
-        #queued_route = '/queue/{queue}%s' % route_base
-        #self.add_route(queued_route, function, manager=self.manager)
+        self.add_route(route_base, function)
+        named_manager_route = '/managers/{manager_name}%s' % route_base
+        self.add_route(named_manager_route, function)
 
     def __init__(self, **conf):
         RoutingApp.__init__(self)
