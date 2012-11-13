@@ -21,3 +21,6 @@ staging_directory = lwr_staging
 ## authorize use. If security is important, please use this in
 ## combination with SSL.
 #private_key = changemeinproduction
+
+## Define job managers (setup queues with various settings, etc...).
+#job_managers_config = job_managers.ini

@@ -1,6 +1,7 @@
 from lwr.manager import Manager
 from lwr.routing import *
 
+from ConfigParser import ConfigParser
 import os
 
 class LwrController(Controller):
@@ -13,6 +14,10 @@ class LwrController(Controller):
             sent_private_key = req.GET.get("private_key", None)
             if not (req.app.private_key == sent_private_key):
                 return exc.HTTPUnauthorized()(environ, start_response)
+
+    def _prepare_controller_args(self, req, args):
+        manager_name = args.get('manager_name', '_default_')
+        args['manager'] = args.get('managers')[manager_name]
 
 @LwrController(response_type='json')
 def setup(manager, job_id):
@@ -87,16 +92,17 @@ class App(RoutingApp):
     """
     def add_route_for_function(self, function):
         route_base = '/%s' % function.__name__
-        self.add_route(route_base, function, manager=self.manager)
+        self.add_route(route_base, function, managers=self.managers)
         #queued_route = '/queue/{queue}%s' % route_base
         #self.add_route(queued_route, function, manager=self.manager)
 
     def __init__(self, **conf):
         RoutingApp.__init__(self)
         self.private_key = None
+        self.staging_directory = os.path.abspath(conf['staging_directory'])
         if "private_key" in conf:
             self._setup_private_key(conf["private_key"])
-	self.manager = Manager(os.path.abspath(conf['staging_directory']))
+        self._init_managers(conf.get("job_managers_config", None))
         self.add_route_for_function(setup)
         self.add_route_for_function(clean)
         self.add_route_for_function(launch)
@@ -106,6 +112,21 @@ class App(RoutingApp):
         self.add_route_for_function(upload_tool_file)
         self.add_route_for_function(upload_config_file)
         self.add_route_for_function(download_output)
+
+    def _init_managers(self, config_file):
+        self.managers = {}
+        if not config_file:
+            self.managers['_default_'] = Manager(self.staging_directory)
+        else:
+            config = ConfigParser()
+            config.readfp(open(config_file))
+            for section in config.sections():
+                if not section.startswith('manager:'):
+                    continue
+                self.managers[section[len('manager:'):]] = self._parse_manager(config, section)
+
+    def _parse_manager(self, config, section):
+        return Manager(self.staging_directory)
 
     def _setup_private_key(self, private_key):
         print "Securing LWR web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic."

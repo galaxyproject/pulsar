@@ -1,0 +1,6 @@
+[manager:_default_]
+queued = False
+
+#[manager:example]
+#queued=True
+#max_concurrent_jobs=1

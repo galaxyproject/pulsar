@@ -5,6 +5,7 @@ syntax: glob
 coverage_html_report
 lwr_staging
 server.ini
+job_managers.ini
 *.pem
 *.cert
 *.key
