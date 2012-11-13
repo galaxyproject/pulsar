@@ -110,15 +110,6 @@ class Manager(object):
     def check_complete(self, job_id):
         return not os.path.exists(self.__job_file(job_id, 'pid'))
 
-        #pid = self.get_pid(job_id)
-        #if pid != None:
-        #    try:
-        #        os.waitpid(pid)
-        #    except Exception, e:
-        #        pass
-        #while os.path.exists(self.__job_file(job_id, 'pid')):
-        #    time.sleep(1)
-
     def return_code(self, job_id):
         return int(self.__read_job_file(job_id, 'return_code'))
     
@@ -160,15 +151,11 @@ class Manager(object):
 
     def monitor(self, job_id, proc, stdout, stderr):
         try:
-            #stdout_contents = proc.stdout.read( 32768 )
-            #stderr_contents = proc.stderr.read( 32768 )
             proc.wait()
             stdout.close()
             stderr.close()
             return_code = proc.returncode
             self.__write_job_file(job_id, 'return_code', str(return_code))
-            #self.__write_job_file(job_id, 'stdout', stdout_contents)
-            #self.__write_job_file(job_id, 'stderr', stderr_contents)
         finally:
             os.remove(self.__job_file(job_id, 'pid'))
 
