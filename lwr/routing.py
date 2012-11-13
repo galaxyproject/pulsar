@@ -65,6 +65,13 @@ class Controller(object):
             for func_arg in func_args:
                 if func_arg not in args and func_arg in req.GET:
                     args[func_arg] = req.GET[func_arg]
+
+            self._prepare_controller_args(req, args)
+
+            for key in dict(args):
+                if key not in func_args:
+                    del args[key]
+
             if 'body' in func_args:
                 args['body'] = req.body_file
             try:
@@ -81,6 +88,9 @@ class Controller(object):
             return resp(environ, start_response)
         controller_replacement.__name__ = func.__name__
         return controller_replacement
+
+    def _prepare_controller_args(self, req, args):
+        pass
 
 class FileIterator:
     def __init__(self, path):
