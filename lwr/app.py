@@ -73,11 +73,14 @@ class App(RoutingApp):
     """
     """
     def add_route_for_function(self, function):
-        route = '/%s' % function.__name__
-        self.add_route(route, function, manager = self.manager)
+        route_base = '/%s' % function.__name__
+        self.add_route(route_base, function, manager=self.manager)
+        #queued_route = '/queue/{queue}%s' % route_base
+        #self.add_route(queued_route, function, manager=self.manager)
 
     def __init__(self, **conf):
         RoutingApp.__init__(self)
+        self.private_key = None
         if "private_key" in conf:
             self._setup_private_key(conf["private_key"])
 	self.manager = Manager(os.path.abspath(conf['staging_directory']))
@@ -90,6 +93,11 @@ class App(RoutingApp):
         self.add_route_for_function(upload_tool_file)
         self.add_route_for_function(upload_config_file)
         self.add_route_for_function(download_output)
+
+    def _setup_private_key(self, private_key):
+        print "Securing LWR web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic."
+        self.private_key = private_key
+
 
 
 def app_factory( global_conf, **local_conf ):

@@ -3,31 +3,49 @@ from webob import Response
 from webob import exc
 
 import inspect
+import re
 
 from simplejson import dumps
 
 class RoutingApp(object):
     def __init__(self):
         self.routes = []
-        self.private_key = None
 
     def add_route(self, route, controller, **args):
-        self.routes.append((route, controller, args))
-
-    def _setup_private_key(self, private_key):
-        print "Securing LWR web app with private key, please use HTTPS so key cannot be obtained by monitoring traffic."
-        self.private_key = private_key
+        route_regex = self.__template_to_regex(route)
+        self.routes.append((route_regex, controller, args))
 
     def __call__(self, environ, start_response):
         req = Request(environ)
-        if self.private_key:
-            sent_private_key = req.GET.get("private_key", None)
-            if not (self.private_key == sent_private_key):
-                return exc.HTTPUnauthorized()(environ, start_response)
+        req.app = self
         for route, controller, args in self.routes:            
-            if route == req.path_info:
-                return controller(environ, start_response, **args)
+            match = route.match(req.path_info)
+            if match:
+                request_args = dict(args)
+                route_args = match.groupdict()
+                request_args.update(route_args)
+                return controller(environ, start_response, **request_args)
         return exc.HTTPNotFound()(environ, start_response)
+    
+    def __template_to_regex(self, template):
+        var_regex = re.compile(r'''
+            \{          # The exact character "{"
+            (\w+)       # The variable name (restricted to a-z, 0-9, _)
+            (?::([^}]+))? # The optional :regex part
+            \}          # The exact character "}"
+           ''', re.VERBOSE)
+        regex = ''
+        last_pos = 0
+        for match in var_regex.finditer(template):
+            regex += re.escape(template[last_pos:match.start()])
+            var_name = match.group(1)
+            expr = match.group(2) or '[^/]+'
+            expr = '(?P<%s>%s)' % (var_name, expr)
+            regex += expr
+            last_pos = match.end()
+        regex += re.escape(template[last_pos:])
+        regex = '^%s$' % regex
+        return re.compile(regex)
 
 class Controller:
     
@@ -37,6 +55,11 @@ class Controller:
     def __call__(self, func):
         def controller_replacement(environ, start_response, **args):
             req = Request(environ)
+            if req.app.private_key:
+                sent_private_key = req.GET.get("private_key", None)
+                if not (req.app.private_key == sent_private_key):
+                    return exc.HTTPUnauthorized()(environ, start_response)
+
             func_args = inspect.getargspec(func).args
             for func_arg in func_args:
                 if func_arg not in args and func_arg in req.GET:
