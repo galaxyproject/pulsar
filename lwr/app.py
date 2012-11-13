@@ -104,15 +104,9 @@ class App(RoutingApp):
         if "private_key" in conf:
             self._setup_private_key(conf["private_key"])
         self._init_managers(conf.get("job_managers_config", None))
-        self.add_route_for_function(setup)
-        self.add_route_for_function(clean)
-        self.add_route_for_function(launch)
-        self.add_route_for_function(check_complete)
-        self.add_route_for_function(kill)
-        self.add_route_for_function(upload_input)
-        self.add_route_for_function(upload_tool_file)
-        self.add_route_for_function(upload_config_file)
-        self.add_route_for_function(download_output)
+        for func in [setup, clean, launch, check_complete, kill, upload_input, 
+                     upload_tool_file, upload_config_file, download_output]:
+            self.add_route_for_function(func)
 
     def _init_managers(self, config_file):
         self.managers = {}
@@ -132,7 +126,6 @@ class App(RoutingApp):
     def _setup_private_key(self, private_key):
         print "Securing LWR web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic."
         self.private_key = private_key
-
 
 
 def app_factory( global_conf, **local_conf ):
