@@ -3,24 +3,35 @@ from lwr.routing import *
 
 import os
 
-@Controller(response_type='json')
+class LwrController(Controller):
+
+    def __init__(self, **kwargs):
+        super(LwrController, self).__init__(**kwargs)
+
+    def _check_access(self, req, environ, start_response):
+        if req.app.private_key:
+            sent_private_key = req.GET.get("private_key", None)
+            if not (req.app.private_key == sent_private_key):
+                return exc.HTTPUnauthorized()(environ, start_response)
+
+@LwrController(response_type='json')
 def setup(manager, job_id):
     manager.setup_job_directory(job_id)
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)
-    return {"working_directory" : working_directory, 
-            "outputs_directory" : outputs_directory,
-            "path_separator" : os.sep}
+    return { "working_directory" : working_directory, 
+             "outputs_directory" : outputs_directory,
+             "path_separator" : os.sep }
 
-@Controller()
+@LwrController()
 def clean(manager, job_id):
     manager.clean_job_directory(job_id)
 
-@Controller()
+@LwrController()
 def launch(manager, job_id, command_line):
     manager.launch(job_id, command_line)
 
-@Controller(response_type='json')
+@LwrController(response_type='json')
 def check_complete(manager, job_id):
     if manager.check_complete(job_id):
         return_code = manager.return_code(job_id)
@@ -33,19 +44,19 @@ def check_complete(manager, job_id):
     else:
         return {"complete" : "false"}
 
-@Controller()
+@LwrController()
 def kill(manager, job_id):
     manager.kill(job_id)
 
-@Controller(response_type='json')
+@LwrController(response_type='json')
 def upload_tool_file(manager, job_id, name, body):
     return handle_upload_to_directory(manager.job_directory(job_id), name, body)
 
-@Controller(response_type='json')
+@LwrController(response_type='json')
 def upload_input(manager, job_id, name, body):
     return handle_upload_to_directory(manager.inputs_directory(job_id), name, body)
 
-@Controller(response_type='json')
+@LwrController(response_type='json')
 def upload_config_file(manager, job_id, name, body):
     return handle_upload_to_directory(manager.working_directory(job_id), name, body)
 
@@ -63,11 +74,13 @@ def handle_upload_to_directory(directory, name, body):
         output.close()
     return {"path" : path}
 
-@Controller(response_type='file')
+@LwrController(response_type='file')
 def download_output(manager, job_id, name):
     outputs_directory = manager.outputs_directory(job_id)
     path = os.path.join(outputs_directory, name)
     return path
+
+
 
 class App(RoutingApp):
     """

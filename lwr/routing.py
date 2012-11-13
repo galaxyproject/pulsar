@@ -47,7 +47,7 @@ class RoutingApp(object):
         regex = '^%s$' % regex
         return re.compile(regex)
 
-class Controller:
+class Controller(object):
     
     def __init__(self, response_type = 'OK'):
         self.response_type = response_type
@@ -55,10 +55,11 @@ class Controller:
     def __call__(self, func):
         def controller_replacement(environ, start_response, **args):
             req = Request(environ)
-            if req.app.private_key:
-                sent_private_key = req.GET.get("private_key", None)
-                if not (req.app.private_key == sent_private_key):
-                    return exc.HTTPUnauthorized()(environ, start_response)
+
+            if hasattr(self, '_check_access'):
+                access_response = self._check_access(req, environ, start_response)
+                if access_response:
+                    return access_response
 
             func_args = inspect.getargspec(func).args
             for func_arg in func_args:
