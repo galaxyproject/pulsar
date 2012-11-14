@@ -4,6 +4,7 @@ import shutil
 import thread
 import time
 import platform
+from threading import Lock
 
 
 class Manager(object):
@@ -41,6 +42,7 @@ class Manager(object):
     def __init__(self, name, staging_directory):
         self.name = name
         self.setup_staging_directory(staging_directory)
+        self.job_locks = dict({})
 
     def setup_staging_directory(self, staging_directory):
         assert not staging_directory == None
@@ -71,6 +73,12 @@ class Manager(object):
     def _record_submission(self, job_id):
         self.__write_job_file(job_id, 'submitted', 'true')
 
+    def _record_cancel(self, job_id):
+        self.__write_job_file(job_id, 'cancelled', 'true')
+
+    def _is_cancelled(self, job_id):
+        return os.path.exists(self.__job_file(job_id, 'cancelled'))
+
     def _record_pid(self, job_id, pid):
         self.__write_job_file(job_id, 'pid', str(pid))
 
@@ -85,11 +93,21 @@ class Manager(object):
         return pid
 
     def setup_job_directory(self, job_id):
+        self._register_job(job_id)
         job_directory = self.job_directory(job_id)
         os.mkdir(job_directory)
         os.mkdir(self.inputs_directory(job_id))
         os.mkdir(self.outputs_directory(job_id))
         os.mkdir(self.working_directory(job_id))
+
+    def _register_job(self, job_id):
+        self.job_locks[job_id] = Lock()
+
+    def _unregister_job(self, job_id):
+        del self.job_locks[job_id]
+
+    def _get_job_lock(self, job_id):
+        return self.job_locks[job_id]
 
     def clean_job_directory(self, job_id):
         job_directory = self.job_directory(job_id)
@@ -98,6 +116,7 @@ class Manager(object):
                 shutil.rmtree(job_directory)
             except:
                 pass
+        self._unregister_job(job_id)
 
     def job_directory(self, job_id):
         return os.path.join(self.staging_directory, job_id)
@@ -134,24 +153,17 @@ class Manager(object):
         return platform.system() == 'Windows'
 
     def kill(self, job_id):
-        pid = self.get_pid(job_id)
-        if pid == None:
-            return
-        if self.is_windows():
-            try:
-                subprocess.Popen("taskkill /F /T /PID %i" % pid, shell=True)
-            except Exception:
-                pass
-        else:
-            if self.__check_pid(pid):
-                for sig in [15, 9]:
-                    try:
-                        os.killpg(pid, sig)
-                    except OSError:
-                        return
-                    time.sleep(1)
-                    if not self.__check_pid(pid):
-                        return
+        with self._get_job_lock(job_id):
+            if self.check_complete(job_id):
+                return
+            pid = self.get_pid(job_id)
+            if pid == None:
+                # Either already cancelled or we need to cancel.
+                if not self._is_cancelled(job_id):
+                    self._record_cancel(job_id)
+                    self._attempt_remove_job_file(job_id, 'submitted')
+                return
+        _kill_pid(pid)
 
     def _monitor_execution(self, job_id, proc, stdout, stderr):
         try:
@@ -161,13 +173,23 @@ class Manager(object):
             return_code = proc.returncode
             self.__write_job_file(job_id, 'return_code', str(return_code))
         finally:
-            self._finish_execution(job_id)
+            with self._get_job_lock(job_id):
+                self._finish_execution(job_id)
 
     def _finish_execution(self, job_id):
-        os.remove(self.__job_file(job_id, 'submitted'))
-        os.remove(self.__job_file(job_id, 'pid'))
+        self._attempt_remove_job_file(job_id, 'submitted')
+        self._attempt_remove_job_file(job_id, 'pid')
+
+    def _attempt_remove_job_file(self, job_id, filename):
+        try:
+            os.remove(self.__job_file(job_id, filename))
+        except OSError:
+            pass
 
     def _run(self, job_id, command_line, async=True):
+        with self._get_job_lock(job_id):
+            if self._is_cancelled(job_id):
+                return
         working_directory = self.working_directory(job_id)
         preexec_fn = None
         if not self.is_windows():
@@ -180,7 +202,8 @@ class Manager(object):
                                 stdout=stdout,
                                 stderr=stderr,
                                 preexec_fn=preexec_fn)
-        self._record_pid(job_id, proc.pid)
+        with self._get_job_lock(job_id):
+            self._record_pid(job_id, proc.pid)
         if async:
             thread.start_new_thread(self._monitor_execution, (job_id, proc, stdout, stderr))
         else:
@@ -189,3 +212,30 @@ class Manager(object):
     def launch(self, job_id, command_line):
         self._record_submission(job_id)
         self._run(job_id, command_line)
+
+
+def _kill_pid(pid):
+    def __check_pid():
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+
+    is_windows = platform.system() == 'Windows'
+
+    if is_windows:
+        try:
+            subprocess.Popen("taskkill /F /T /PID %i" % pid, shell=True)
+        except Exception:
+            pass
+    else:
+        if __check_pid():
+            for sig in [15, 9]:
+                try:
+                    os.killpg(pid, sig)
+                except OSError:
+                    return
+                time.sleep(1)
+                if not __check_pid():
+                    return

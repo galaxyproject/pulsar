@@ -17,7 +17,7 @@ class PersistedJobStore:
     def close(self):
         self.shelf.close()
 
-    def queue(self, manager_name, job_id, command_line):
+    def enqueue(self, manager_name, job_id, command_line):
         shelf_id = self._shelf_id(manager_name, job_id)
         if self.shelf is not None:
             shelf = self.shelf

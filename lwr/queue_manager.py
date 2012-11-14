@@ -10,6 +10,9 @@ RUN = object()
 
 
 class QueueManager(Manager):
+    """
+    A job manager that queues up jobs.
+    """
 
     def __init__(self, name, staging_directory, persisted_job_store, num_concurrent_jobs=1):
         super(QueueManager, self).__init__(name, staging_directory)
@@ -28,10 +31,11 @@ class QueueManager(Manager):
     def launch(self, job_id, command_line):
         self._record_submission(job_id)
         self.work_queue.put((RUN, (job_id, command_line)))
-        self.persisted_job_store.queue(self.name, job_id, command_line)
+        self.persisted_job_store.enqueue(self.name, job_id, command_line)
 
     def _recover(self):
         for (job_id, command_line) in self.persisted_job_store.persisted_jobs(self.name):
+            self._register_job(job_id)
             self.work_queue.put((RUN, (job_id, command_line)))
 
     def shutdown(self):
@@ -39,7 +43,7 @@ class QueueManager(Manager):
 
     def run_next(self):
         """
-        Run the next item in the queue (a job waiting to run or finish )
+        Run the next item in the queue (a job waiting to run).
         """
         while 1:
             (op, obj) = self.work_queue.get()

@@ -1,3 +1,7 @@
+"""
+Tiny framework used to power LWR application, nothing in here is specific to running
+or staging jobs. Mostly deals with routing web traffic and parsing parameters.
+"""
 from webob import Request
 from webob import Response
 from webob import exc
@@ -9,6 +13,9 @@ from simplejson import dumps
 
 
 class RoutingApp(object):
+    """
+    Abstract definition for a python web application.
+    """
     def __init__(self):
         self.routes = []
 
@@ -50,6 +57,9 @@ class RoutingApp(object):
 
 
 class Controller(object):
+    """
+    Wraps python functions into controller methods.
+    """
 
     def __init__(self, response_type='OK'):
         self.response_type = response_type
