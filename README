@@ -2,9 +2,10 @@
 LWR
 ===
 
-This project is a Python server application that allows a Galaxy (http://galaxyproject.org)
-server to run jobs on remote systems (including Windows) without
-requiring a shared mounted file systems. Input files, scripts, and
+This project is a Python server application that allows a 
+`Galaxy<http://galaxyproject.org>`_ server to run jobs on remote 
+systems (including Windows) without requiring a shared mounted 
+file systems. Input files, scripts, and
 config files are transferred to the remote system, the job is
 executed, and the results are transferred back to the Galaxy server.
 
@@ -13,20 +14,20 @@ Configuring Galaxy
 ------------------
 
 A Galaxy tool can be configured to be executed remotely via LWR by
-adding a line to the `universe.ini` file under the `galaxy:tool_runners`
+adding a line to the ``universe.ini`` file under the ``galaxy:tool_runners``
 section with the format::
 
     <tool_id> = lwr://http://<lwr_host>:<lwr_port>
 
 As an example, if a host named remotehost is running the LWR server
-application on port `8913`, then the tool with id `test_tool` can be
+application on port ``8913``, then the tool with id ``test_tool`` can be
 configured to run remotely on remotehost by adding the following line
-to `universe.ini`::
+to ``universe.ini``::
 
     test_tool = lwr://http://remotehost:8913
 
-Remember this must be added after the [galaxy:tool_runners] header in
-the universe.ini file.
+Remember this must be added after the ``[galaxy:tool_runners]`` header in
+the ``universe.ini`` file.
 
 ---------------
 Downloading LWR
@@ -38,29 +39,45 @@ command::
 
     hg clone http://bitbucket.org/jmchilton/lwr
 
---------------------------------------
-Configuring the LWR Server Application
---------------------------------------
+----------------
+LWR Dependencies
+----------------
 
-Rename the `server.ini.sample` file distributed with LWR to `server.ini`,
-and edit the values therein to configure the server
-application. Default values are specified for all configuration
-options that will work if LWR is running on the same host as
-Galaxy. However, the parameter "host" must be specified for remote
-submissions to the LWR server to run properly. The `server.ini` file
-contains documentation for many configuration parameters you may want
-to modify.
+Several Python packages must be installed to run the LWR server. These
+can either be installed into a Python ``virtualenv`` or into your system
+wide Python environment using ``easy_install``. Instructions for both are
+outlined below:
 
-Several Python packages must be installed to run the LWR server. The
-remainder of this section discusses one possible approach for
-installing these packages.
+virtualenv
+----------
+
+1. Install `virtualenv <http://www.virtualenv.org/en/latest/#installation>`_::
+
+    pip install virtualenv
+
+2. Create a new Python environment::
+
+    virtualenv -q --no-site-packages .venv
+
+3. Activate environment. On *nix machines::
+
+    . .venv/bin/activate
+
+From a windows terminal::
+
+    .venv\Scripts\activate
+
+The script ``setup_venv.sh`` is a short-cut for *nix machines to setup such environment (including the installation of virtualenv).
+
+easy_install
+------------
 
 Install python setuptools for your platform, more details on how to do
-this can be found at: http://pypi.python.org/pypi/setuptools
+this can be found `here <http://pypi.python.org/pypi/setuptools>`_.
 
-The easy_install command line application will be installed as part of
+The ``easy_install`` command line application will be installed as part of
 setuptools. Use the following command to install the needed packages
-via easy_install.::
+via ``easy_install``::
 
     easy_install paste wsgiutils PasteScript PasteDeploy simplejson webob pyOpenSSL
 
@@ -81,6 +98,53 @@ Alternatively, the server may be ran as a daemon via the command::
 When running as daemon, the server may be stopped with the following command::
 
     paster serve server.ini stop
+
+Remember if you setup a virtual environment for the LWR you will need to 
+ensure that environment is ``activate``d before running these commands.
+
+--------------------------------------
+Configuring the LWR Server Application
+--------------------------------------
+
+Rename the ``server.ini.sample`` file distributed with LWR to ``server.ini``,
+and edit the values therein to configure the server
+application. Default values are specified for all configuration
+options that will work if LWR is running on the same host as
+Galaxy. However, the parameter "host" must be specified for remote
+submissions to the LWR server to run properly. The ``server.ini`` file
+contains documentation for many configuration parameters you may want
+to modify.
+
+Some advanced configuration topics are discussed below.
+
+Securing the LWR
+----------------
+
+Out of the box the LWR essentially allows anyone with network access to the LWR server to execute arbitrary code and read and write any files the web server can. Hence, in most settings steps should be taken to secure the LWR server.
+
+The LWR can be configured to use SSL and to require the client (i.e. Galaxy) to pass along a private token authorizing use. 
+
+To enable SSL, set the option ``ssl_pem`` in ``server.ini``. This parameter should reference an OpenSSL certificate file for use by the Python paste server. This parameter can be set to ``*`` to automatically generate such a certificate. Such a certificate can manually be generated by the following method::
+
+    $ openssl genrsa 1024 > host.key
+    $ chmod 400 host.key
+    $ openssl req -new -x509 -nodes -sha1 -days 365  \
+              -key host.key > host.cert
+    $ cat host.cert host.key > host.pem
+    $ chmod 400 host.pem
+
+More information can be found in the `paste httpserver documentation <http://pythonpaste.org/modules/httpserver.html>`_.
+
+To specify a private token, simply set to ``private_key`` to some long random string in ``server.ini``.
+
+Once SSL has been enabled a private token configured, Galaxy job runners need to be updated to use https and pass along this same token.::
+
+    <tool_id> = lwr://https://<lwr_private_token>@<lwr_host>:<lwr_port>
+
+Multiple Job Managers (Queues)
+------------------------------
+
+TODO.
 
 -------
 Testing
