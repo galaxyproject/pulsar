@@ -63,7 +63,7 @@ virtualenv
 
     . .venv/bin/activate
 
-From a windows terminal::
+  From a windows terminal::
 
     .venv\Scripts\activate
 
