@@ -21,8 +21,10 @@ def test_persistence():
         time.sleep(5)
         assert (not(os.path.exists(touch_file)))
         queue1.shutdown()
+        persisted_job_store.close()
 
-        queue2 = QueueManager('test', staging_directory, persisted_job_store, 1)
+        persisted_job_store2 = PersistedJobStore(**{'shelf_filename': os.path.join(staging_directory, 'persisted_jobs')})
+        queue2 = QueueManager('test', staging_directory, persisted_job_store2, 1)
         time.sleep(5)
         assert os.path.exists(touch_file)
     finally:

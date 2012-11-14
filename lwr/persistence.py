@@ -1,28 +1,36 @@
-from shelve import Shelf
+import shelve
 from threading import Lock
+import traceback
+import sys
 
 
 class PersistedJobStore:
 
     def __init__(self, **conf):
-        shelf_filename = conf.get('shelf_filename', None)
-        shelf_flag = conf.get('shelf_flag', 'c')
-        shelf_protocol = conf.get('shelf_protocol', None)
-        self.shelf = Shelf(shelf_filename, shelf_flag, shelf_protocol) if shelf_filename else None
+        self.shelf_filename = conf.get('shelf_filename', None)
+        self._open_shelf()
         self.shelf_lock = Lock()
+
+    def _open_shelf(self):
+        self.shelf = shelve.open(self.shelf_filename) if self.shelf_filename else None
+
+    def close(self):
+        self.shelf.close()
 
     def queue(self, manager_name, job_id, command_line):
         shelf_id = self._shelf_id(manager_name, job_id)
-        if self.shelf:
+        if self.shelf is not None:
+            shelf = self.shelf
             with self.shelf_lock:
                 try:
-                    self.shelf[shelf_id] = command_line
+                    shelf[shelf_id] = command_line
                 except:
+                    traceback.print_exc(file=sys.stdout)
                     pass
 
     def dequeue(self, manager_name, job_id):
         shelf_id = self._shelf_id(manager_name, job_id)
-        if self.shelf:
+        if self.shelf is not None:
             with self.shelf_lock:
                 try:
                     del self.shelf[shelf_id]
@@ -32,7 +40,7 @@ class PersistedJobStore:
     def persisted_jobs(self, manager_name):
         prefix = '%s:' % manager_name
         jobs = []
-        if self.shelf:
+        if self.shelf is not None:
             with self.shelf_lock:
                 try:
                     shelf_keys = self.shelf.keys()
