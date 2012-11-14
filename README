@@ -1,47 +1,46 @@
-This project is a Python server application that allows a Galaxy
+# LWR
+
+This project is a Python server application that allows a [Galaxy][1]
 server to run jobs on remote systems (including Windows) without
 requiring a shared mounted file systems. Input files, scripts, and
 config files are transferred to the remote system, the job is
 executed, and the results are transferred back to the Galaxy server.
 
-Configuring Galaxy:
--------------------
+## Configuring Galaxy:
 
 A Galaxy tool can be configured to be executed remotely via LWR by
-adding a line to the universe.ini file under the galaxy:tool_runners
+adding a line to the `universe.ini` file under the `galaxy:tool_runners`
 section with the format:
 
-<tool_id> = lwr://http://<lwr_host>:<lwr_port>
+    <tool_id> = lwr://http://<lwr_host>:<lwr_port>
 
 As an example, if a host named remotehost is running the LWR server
-application on port 8913, then the tool with id test_tool can be
+application on port `8913`, then the tool with id `test_tool` can be
 configured to run remotely on remotehost by adding the following line
-to universe.ini:
+to `universe.ini`:
 
-test_tool = lwr://http://remotehost:8913
+    test_tool = lwr://http://remotehost:8913
 
 Remember this must be added after the [galaxy:tool_runners] header in
 the universe.ini file.
 
-Downloading LWR:
-----------------
+## Downloading LWR
 
 The LWR server application is distributed as a Python project and can
 be obtained via mercurial from bitbucket.org using the following
 command:
 
-hg clone http://bitbucket.org/jmchilton/lwr
+    hg clone http://bitbucket.org/jmchilton/lwr
 
-Configuring the LWR Server Application:
----------------------------------------
+## Configuring the LWR Server Application
 
-Rename the server.ini.sample file distributed with LWR to server.ini,
+Rename the `server.ini.sample` file distributed with LWR to `server.ini`,
 and edit the values therein to configure the server
 application. Default values are specified for all configuration
 options that will work if LWR is running on the same host as
 Galaxy. However, the parameter "host" must be specified for remote
-submissions to the LWR server to run properly. The server.ini file
-contains documentation for each configuration parameter you may want
+submissions to the LWR server to run properly. The `server.ini` file
+contains documentation for many configuration parameters you may want
 to modify.
 
 Several Python packages must be installed to run the LWR server. The
@@ -57,35 +56,43 @@ via easy_install.
 
 easy_install paste wsgiutils PasteScript PasteDeploy simplejson webob
 
-Running the LWR Server Application:
------------------------------------
+## Running the LWR Server Application
 
 The paster command line application will be installed as part of the
 previous easy_install command. This application can be used to startup
 the LWR server. This can be done by executing the following command:
 
-paster serve server.ini 
+    paster serve server.ini
 
-Testing:
---------
+Alternatively, the server may be ran as a daemon via the command:
+
+    paster serve server.ini start
+
+When running as daemon, the server may be stopped with the following command:
+
+    paster serve server.ini stop
+
+## Testing
 
 A simple sanity test can be run against a running LWR server by
 executing the following command (replace the URL command with the URL
 of your running LWR application):
 
-python run_client_tests.py --url=http://localhost:8913
+    python run_client_tests.py --url=http://localhost:8913
 
 This project is distributed with unit tests, the following command
 will install the needed python components to run these tests.
 
-easy_install nose coverage webtest
+    easy_install nose coverage webtest
 
 The following command will then run these tests:
 
-nosetests
+    nosetests
 
 The following command will then produce a coverage report
 corresponding to this test and place it in the coverage_html_report
 subdirectory of this project.
 
-coverage html
+    coverage html
+
+[1]: http://galaxyproject.org/

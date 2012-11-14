@@ -117,7 +117,7 @@ def install_dependencies(venv=VENV):
 
 def print_summary():
     summary = """
-galaxy-vm-launcher environment setup is complete.
+lwr environment setup is complete.
 
 To activate the virtualenv for the extent of your current shell session you
 can run:
