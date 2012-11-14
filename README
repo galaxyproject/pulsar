@@ -59,7 +59,7 @@ virtualenv
 
     virtualenv -q --no-site-packages .venv
 
-3. Activate environment. On *nix machines::
+3. Activate environment. On linux machines::
 
     . .venv/bin/activate
 
@@ -67,7 +67,7 @@ From a windows terminal::
 
     .venv\Scripts\activate
 
-The script ``setup_venv.sh`` is a short-cut for *nix machines to setup such environment (including the installation of virtualenv).
+The script ``setup_venv.sh`` is a short-cut for \*nix machines to setup such environment (including the installation of virtualenv).
 
 easy_install
 ------------
@@ -100,7 +100,6 @@ When running as daemon, the server may be stopped with the following command::
     paster serve server.ini stop
 
 Remember if you setup a virtual environment for the LWR you will need to 
-ensure that environment is ``activate``d before running these commands.
 
 --------------------------------------
 Configuring the LWR Server Application
