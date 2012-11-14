@@ -98,16 +98,21 @@ def launch(manager, job_id, command_line):
 
 @LwrController(response_type='json')
 def check_complete(manager, job_id):
-    if manager.check_complete(job_id):
+    status = manager.get_status(job_id)
+    if status == 'complete':
         return_code = manager.return_code(job_id)
         stdout_contents = manager.stdout_contents(job_id)
         stderr_contents = manager.stderr_contents(job_id)
         return {"complete": "true",
+                "status": "status",
                 "returncode": return_code,
                 "stdout": stdout_contents,
                 "stderr": stderr_contents}
+    elif status == 'cancelled':
+        return {"complete": "true",
+                "status": status}
     else:
-        return {"complete": "false"}
+        return {"complete": "false", "status": status}
 
 
 @LwrController()

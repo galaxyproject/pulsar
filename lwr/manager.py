@@ -77,7 +77,10 @@ class Manager(object):
         self.__write_job_file(job_id, 'cancelled', 'true')
 
     def _is_cancelled(self, job_id):
-        return os.path.exists(self.__job_file(job_id, 'cancelled'))
+        return self._has_job_file(job_id, 'cancelled')
+
+    def _has_job_file(self, job_id, filename):
+        return os.path.exists(self.__job_file(job_id, filename))
 
     def _record_pid(self, job_id, pid):
         self.__write_job_file(job_id, 'pid', str(pid))
@@ -142,6 +145,20 @@ class Manager(object):
     def stderr_contents(self, job_id):
         return self.__read_job_file(job_id, 'stderr')
 
+    def get_status(self, job_id):
+        with self._get_job_lock(job_id):
+            return self._get_status(job_id)
+
+    def _get_status(self, job_id):
+        if self._is_cancelled(job_id):
+            return 'cancelled'
+        elif self._has_job_file(job_id, 'pid'):
+            return 'running'
+        elif self._has_job_file(job_id, 'submitted'):
+            return 'queued'
+        else:
+            return 'complete'
+
     def __check_pid(self, pid):
         try:
             os.kill(pid, 0)
@@ -154,16 +171,17 @@ class Manager(object):
 
     def kill(self, job_id):
         with self._get_job_lock(job_id):
-            if self.check_complete(job_id):
+            status = self._get_status(job_id)
+            if status not in ['running', 'queued']:
                 return
+
             pid = self.get_pid(job_id)
             if pid == None:
-                # Either already cancelled or we need to cancel.
-                if not self._is_cancelled(job_id):
-                    self._record_cancel(job_id)
-                    self._attempt_remove_job_file(job_id, 'submitted')
-                return
-        _kill_pid(pid)
+                self._record_cancel(job_id)
+                self._attempt_remove_job_file(job_id, 'submitted')
+
+        if pid:
+            _kill_pid(pid)
 
     def _monitor_execution(self, job_id, proc, stdout, stderr):
         try:
