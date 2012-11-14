@@ -3,7 +3,7 @@ LWR
 ===
 
 This project is a Python server application that allows a 
-`Galaxy<http://galaxyproject.org>`_ server to run jobs on remote 
+`Galaxy <http://galaxyproject.org>`_ server to run jobs on remote 
 systems (including Windows) without requiring a shared mounted 
 file systems. Input files, scripts, and
 config files are transferred to the remote system, the job is
