@@ -1,6 +1,6 @@
-
 from shelve import Shelf
 from threading import Lock
+
 
 class PersistedJobStore:
 
@@ -37,7 +37,7 @@ class PersistedJobStore:
                 try:
                     shelf_keys = self.shelf.keys()
                     persisted_shelf_ids = [shelf_key for shelf_key in shelf_keys if shelf_key.startswith(prefix)]
-                    jobs = [(shelf_id[len(prefix):], shelf[shelf_id]) for shelf_id in persisted_shelf_ids]
+                    jobs = [(shelf_id[len(prefix):], self.shelf[shelf_id]) for shelf_id in persisted_shelf_ids]
                 except:
                     pass
         return jobs

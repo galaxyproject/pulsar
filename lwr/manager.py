@@ -1,10 +1,10 @@
-import sys
 import subprocess
 import os
 import shutil
 import thread
 import time
 import platform
+
 
 class Manager(object):
     """
@@ -40,13 +40,13 @@ class Manager(object):
     """
     def __init__(self, name, staging_directory):
         self.name = name
-	self.setup_staging_directory(staging_directory)
+        self.setup_staging_directory(staging_directory)
 
     def setup_staging_directory(self, staging_directory):
         assert not staging_directory == None
         if not os.path.exists(staging_directory):
             os.makedirs(staging_directory)
-        assert os.path.isdir(staging_directory)        
+        assert os.path.isdir(staging_directory)
         self.staging_directory = staging_directory
 
     def __job_file(self, job_id, name):
@@ -80,7 +80,7 @@ class Manager(object):
             pid = self.__read_job_file(job_id, 'pid')
             if pid != None:
                 pid = int(pid)
-        except Exception, e:
+        except:
             pass
         return pid
 
@@ -98,7 +98,7 @@ class Manager(object):
                 shutil.rmtree(job_directory)
             except:
                 pass
-        
+
     def job_directory(self, job_id):
         return os.path.join(self.staging_directory, job_id)
 
@@ -116,7 +116,7 @@ class Manager(object):
 
     def return_code(self, job_id):
         return int(self.__read_job_file(job_id, 'return_code'))
-    
+
     def stdout_contents(self, job_id):
         return self.__read_job_file(job_id, 'stdout')
 
@@ -127,7 +127,7 @@ class Manager(object):
         try:
             os.kill(pid, 0)
             return True
-        except OSError, e:
+        except OSError:
             return False
 
     def is_windows(self):
@@ -139,19 +139,19 @@ class Manager(object):
             return
         if self.is_windows():
             try:
-                subprocess.Popen("taskkill /F /T /PID %i" % pid , shell=True)
-            except Exception, e:
+                subprocess.Popen("taskkill /F /T /PID %i" % pid, shell=True)
+            except Exception:
                 pass
         else:
             if self.__check_pid(pid):
-                for sig in [ 15, 9 ]:
+                for sig in [15, 9]:
                     try:
-                        os.killpg( pid, sig )
-                    except OSError, e:
+                        os.killpg(pid, sig)
+                    except OSError:
                         return
                     time.sleep(1)
-                    if not self.__check_pid( pid ):
-                        return 
+                    if not self.__check_pid(pid):
+                        return
 
     def _monitor_execution(self, job_id, proc, stdout, stderr):
         try:
@@ -174,12 +174,12 @@ class Manager(object):
             preexec_fn = os.setpgrp
         stdout = open(self.__job_file(job_id, 'stdout'), 'w')
         stderr = open(self.__job_file(job_id, 'stderr'), 'w')
-        proc = subprocess.Popen(args = command_line,
-                                shell = True,
-                                cwd = working_directory,
-                                stdout = stdout,
-                                stderr = stderr,
-                                preexec_fn = preexec_fn)
+        proc = subprocess.Popen(args=command_line,
+                                shell=True,
+                                cwd=working_directory,
+                                stdout=stdout,
+                                stderr=stderr,
+                                preexec_fn=preexec_fn)
         self._record_pid(job_id, proc.pid)
         if async:
             thread.start_new_thread(self._monitor_execution, (job_id, proc, stdout, stderr))
@@ -189,5 +189,3 @@ class Manager(object):
     def launch(self, job_id, command_line):
         self._record_submission(job_id)
         self._run(job_id, command_line)
-
-    

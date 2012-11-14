@@ -1,13 +1,12 @@
 from webtest import TestApp
-from webob import Request, Response
 from lwr.app import app_factory
-from lwr.manager import Manager
 import tempfile
 import os
 import shutil
 import simplejson
 import urllib
 import time
+
 
 def test_app():
     """ Tests all of the app controller methods. These tests should be
@@ -16,9 +15,9 @@ def test_app():
 
     staging_directory = tempfile.mkdtemp()
     try:
-        app = app_factory({}, staging_directory = staging_directory)
+        app = app_factory({}, staging_directory=staging_directory)
         test_app = TestApp(app)
-        
+
         job_id = "12345"
 
         setup_response = test_app.get("/setup?job_id=%s" % job_id)
@@ -37,7 +36,7 @@ def test_app():
             try:
                 assert staged_input.read() == "Test Contents"
             finally:
-                staged_input.close()            
+                staged_input.close()
         test_upload("input")
         test_upload("tool_file")
 
@@ -52,7 +51,7 @@ def test_app():
         command_line = urllib.quote("""python -c "import sys; sys.stdout.write('test_out')" """)
         launch_response = test_app.get("/launch?job_id=%s&command_line=%s" % (job_id, command_line))
         assert launch_response.body == 'OK'
-        
+
         time.sleep(5)
 
         check_response = test_app.get("/check_complete?job_id=%s" % job_id)
@@ -60,7 +59,7 @@ def test_app():
         assert check_config['returncode'] == 0
         assert check_config['stdout'] == "test_out"
         assert check_config['stderr'] == ""
-        
+
         kill_response = test_app.get("/kill?job_id=%s" % job_id)
         assert kill_response.body == 'OK'
 

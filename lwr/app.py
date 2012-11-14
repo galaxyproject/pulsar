@@ -1,11 +1,14 @@
+import atexit
+from ConfigParser import ConfigParser, NoOptionError
+import os
+import multiprocessing
+
+from webob import exc
+
 from lwr.manager import Manager
 from lwr.queue_manager import QueueManager
 from lwr.persistence import PersistedJobStore
 from lwr.routing import Controller, RoutingApp
-
-import atexit
-from ConfigParser import ConfigParser, NoOptionError
-import os
 
 
 class LwrController(Controller):
@@ -24,18 +27,21 @@ class LwrController(Controller):
         manager_name = args.get('manager_name', '_default_')
         args['manager'] = managers[manager_name]
 
+
 @LwrController(response_type='json')
 def setup(manager, job_id):
     manager.setup_job_directory(job_id)
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)
-    return { "working_directory" : working_directory, 
-             "outputs_directory" : outputs_directory,
-             "path_separator" : os.sep }
+    return {"working_directory": working_directory,
+            "outputs_directory": outputs_directory,
+            "path_separator": os.sep}
+
 
 @LwrController()
 def clean(manager, job_id):
     manager.clean_job_directory(job_id)
+
 
 @LwrController()
 def launch(manager, job_id, command_line):
@@ -48,28 +54,33 @@ def check_complete(manager, job_id):
         return_code = manager.return_code(job_id)
         stdout_contents = manager.stdout_contents(job_id)
         stderr_contents = manager.stderr_contents(job_id)
-        return {"complete" : "true", 
-                "returncode" : return_code, 
-                "stdout" : stdout_contents, 
-                "stderr" : stderr_contents}
+        return {"complete": "true",
+                "returncode": return_code,
+                "stdout": stdout_contents,
+                "stderr": stderr_contents}
     else:
-        return {"complete" : "false"}
+        return {"complete": "false"}
+
 
 @LwrController()
 def kill(manager, job_id):
     manager.kill(job_id)
 
+
 @LwrController(response_type='json')
 def upload_tool_file(manager, job_id, name, body):
     return handle_upload_to_directory(manager.job_directory(job_id), name, body)
+
 
 @LwrController(response_type='json')
 def upload_input(manager, job_id, name, body):
     return handle_upload_to_directory(manager.inputs_directory(job_id), name, body)
 
+
 @LwrController(response_type='json')
 def upload_config_file(manager, job_id, name, body):
     return handle_upload_to_directory(manager.working_directory(job_id), name, body)
+
 
 def handle_upload_to_directory(directory, name, body):
     name = os.path.basename(name)
@@ -83,7 +94,7 @@ def handle_upload_to_directory(directory, name, body):
             output.write(buffer)
     finally:
         output.close()
-    return {"path" : path}
+    return {"path": path}
 
 
 @LwrController(response_type='file')
@@ -162,10 +173,10 @@ class App(RoutingApp):
         self.private_key = private_key
 
 
-def app_factory( global_conf, **local_conf ):
+def app_factory(global_conf, **local_conf):
     """
     Returns the lwr wsgi application.
     """
-    webapp = App(global_conf = global_conf, **local_conf)
-    atexit.register( webapp.shutdown )
+    webapp = App(global_conf=global_conf, **local_conf)
+    atexit.register(webapp.shutdown)
     return webapp

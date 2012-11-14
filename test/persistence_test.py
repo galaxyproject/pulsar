@@ -3,7 +3,6 @@ import shutil
 import tempfile
 import time
 
-
 from lwr.persistence import PersistedJobStore
 from lwr.queue_manager import QueueManager
 
@@ -22,7 +21,7 @@ def test_persistence():
         time.sleep(5)
         assert (not(os.path.exists(touch_file)))
         queue1.shutdown()
-        
+
         queue2 = QueueManager('test', staging_directory, persisted_job_store, 1)
         time.sleep(5)
         assert os.path.exists(touch_file)
@@ -32,6 +31,3 @@ def test_persistence():
             queue2.shutdown()
         except:
             pass
-
-            
-    

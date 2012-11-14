@@ -1,13 +1,12 @@
 import os
-import urllib 
+import urllib
 import urllib2
-import httplib
-import mmap 
-import tempfile
+import mmap
 import time
 import re
 
 import simplejson
+
 
 class FileStager(object):
     

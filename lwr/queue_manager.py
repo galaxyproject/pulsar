@@ -1,5 +1,4 @@
-
-from Queue import Queue, Empty
+from Queue import Queue
 import sys
 import threading
 import traceback
@@ -25,7 +24,7 @@ class QueueManager(Manager):
             worker = threading.Thread(target=self.run_next)
             worker.start()
             self.work_threads.append(worker)
-        
+
     def launch(self, job_id, command_line):
         self._record_submission(job_id)
         self.work_queue.put((RUN, (job_id, command_line)))
@@ -43,7 +42,7 @@ class QueueManager(Manager):
         Run the next item in the queue (a job waiting to run or finish )
         """
         while 1:
-            ( op, obj ) = self.work_queue.get()
+            (op, obj) = self.work_queue.get()
             if op is STOP_SIGNAL:
                 return
             try:
