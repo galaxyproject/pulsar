@@ -49,7 +49,8 @@ class LwrApp(RoutingApp):
 
     def _setup_routes(self):
         for func in [setup, clean, launch, check_complete, kill, upload_input,
-                     upload_tool_file, upload_config_file, download_output]:
+                     upload_tool_file, upload_config_file, upload_working_directory_file,
+                     get_output_type, download_output]:
             self.add_route_for_function(func)
 
     def _setup_private_key(self, private_key):
@@ -135,11 +136,30 @@ def upload_config_file(manager, job_id, name, body):
     return _handle_upload_to_directory(manager.working_directory(job_id), name, body)
 
 
+@LwrController(response_type='json')
+def upload_working_directory_file(manager, job_id, name, body):
+    return _handle_upload_to_directory(manager.working_directory(job_id), name, body)
+
+
 @LwrController(response_type='file')
-def download_output(manager, job_id, name):
-    outputs_directory = manager.outputs_directory(job_id)
-    path = os.path.join(outputs_directory, name)
+def download_output(manager, job_id, name, output_type="direct"):
+    directory = manager.outputs_directory(job_id)
+    if output_type == "task":
+        directory = manager.working_directory(job_id)
+    path = os.path.join(directory, name)
     return path
+
+
+@LwrController(response_type='json')
+def get_output_type(manager, job_id, name):
+    outputs_directory = manager.outputs_directory(job_id)
+    working_directory = manager.working_directory(job_id)
+    if os.path.exists(os.path.join(outputs_directory, name)):
+        return "direct"
+    elif os.path.exists(os.path.join(working_directory, name)):
+        return "task"
+    else:
+        return "none"
 
 
 def _handle_upload_to_directory(directory, name, body):
