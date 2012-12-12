@@ -2,9 +2,10 @@ import subprocess
 import os
 import shutil
 import thread
-import time
 import platform
 from threading import Lock
+
+from lwr.util import kill_pid
 
 
 class Manager(object):
@@ -181,7 +182,7 @@ class Manager(object):
                 self._attempt_remove_job_file(job_id, 'submitted')
 
         if pid:
-            _kill_pid(pid)
+            kill_pid(pid)
 
     def _monitor_execution(self, job_id, proc, stdout, stderr):
         try:
@@ -230,30 +231,3 @@ class Manager(object):
     def launch(self, job_id, command_line):
         self._record_submission(job_id)
         self._run(job_id, command_line)
-
-
-def _kill_pid(pid):
-    def __check_pid():
-        try:
-            os.kill(pid, 0)
-            return True
-        except OSError:
-            return False
-
-    is_windows = platform.system() == 'Windows'
-
-    if is_windows:
-        try:
-            subprocess.Popen("taskkill /F /T /PID %i" % pid, shell=True)
-        except Exception:
-            pass
-    else:
-        if __check_pid():
-            for sig in [15, 9]:
-                try:
-                    os.killpg(pid, sig)
-                except OSError:
-                    return
-                time.sleep(1)
-                if not __check_pid():
-                    return

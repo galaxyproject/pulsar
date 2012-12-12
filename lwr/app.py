@@ -6,6 +6,7 @@ from webob import exc
 from lwr.manager_factory import build_managers, DEFAULT_MANAGER_NAME
 from lwr.persistence import PersistedJobStore
 from lwr.framework import Controller, RoutingApp
+from lwr.util import get_mapped_file, copy_to_path
 
 
 def app_factory(global_conf, **local_conf):
@@ -48,7 +49,8 @@ class LwrApp(RoutingApp):
                 pass
 
     def _setup_routes(self):
-        for func in [setup, clean, launch, check_complete, kill, upload_input,
+        for func in [setup, clean, launch, check_complete, kill,
+                     upload_input, upload_extra_input,
                      upload_tool_file, upload_config_file, upload_working_directory_file,
                      get_output_type, download_output]:
             self.add_route_for_function(func)
@@ -132,6 +134,11 @@ def upload_input(manager, job_id, name, body):
 
 
 @LwrController(response_type='json')
+def upload_extra_input(manager, job_id, name, body):
+    return _handle_upload_to_directory(manager.inputs_directory(job_id), name, body, allow_nested_files=True)
+
+
+@LwrController(response_type='json')
 def upload_config_file(manager, job_id, name, body):
     return _handle_upload_to_directory(manager.working_directory(job_id), name, body)
 
@@ -162,16 +169,7 @@ def get_output_type(manager, job_id, name):
         return "none"
 
 
-def _handle_upload_to_directory(directory, name, body):
-    name = os.path.basename(name)
-    path = os.path.join(directory, name)
-    output = open(path, 'wb')
-    try:
-        while True:
-            buffer = body.read(1024)
-            if buffer == "":
-                break
-            output.write(buffer)
-    finally:
-        output.close()
+def _handle_upload_to_directory(directory, remote_path, body, allow_nested_files=False):
+    path = get_mapped_file(directory, remote_path, allow_nested_files=allow_nested_files)
+    copy_to_path(body, path)
     return {"path": path}
