@@ -128,6 +128,7 @@ to modify.
 
 Some advanced configuration topics are discussed below.
 
+
 Securing the LWR
 ----------------
 
@@ -163,6 +164,7 @@ runners need to be updated to use https and pass along this same
 token.::
 
     <tool_id> = lwr://https://<lwr_private_token>@<lwr_host>:<lwr_port>
+
 
 
 Multiple Job Managers (Queues)
