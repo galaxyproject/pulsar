@@ -4,7 +4,7 @@ import tempfile
 import time
 
 from lwr.persistence import PersistedJobStore
-from lwr.queue_manager import QueueManager
+from lwr.managers.queued import QueueManager
 
 
 def test_persistence():

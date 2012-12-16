@@ -11,7 +11,8 @@ RUN = object()
 
 class QueueManager(Manager):
     """
-    A job manager that queues up jobs.
+    A job manager that queues up jobs directly (i.e. does not use an
+    external queuing software such PBS, SGE, etc...).
     """
 
     def __init__(self, name, staging_directory, persisted_job_store, num_concurrent_jobs=1):

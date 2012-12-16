@@ -1,7 +1,7 @@
 import multiprocessing
 
-from queue_manager import QueueManager
-from manager import Manager
+from lwr.managers import Manager
+from lwr.managers.queued import QueueManager
 from ConfigParser import ConfigParser, NoOptionError
 
 MANAGER_PREFIX = 'manager:'

@@ -10,6 +10,11 @@ from lwr.util import kill_pid
 
 class Manager(object):
     """
+    A simple job manager that just directly runs jobs as given (no
+    queueing). Preserved for compatibilty with older versions of LWR
+    client code where Galaxy is used to maintain queue (like Galaxy's
+    local job runner).
+
     >>> import tempfile
     >>> staging_directory = tempfile.mkdtemp()
     >>> shutil.rmtree(staging_directory)
