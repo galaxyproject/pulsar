@@ -44,12 +44,17 @@ LWR Dependencies
 ----------------
 
 Several Python packages must be installed to run the LWR server. These
-can either be installed into a Python ``virtualenv`` or into your system
-wide Python environment using ``easy_install``. Instructions for both are
-outlined below:
+can either be installed into a Python ``virtualenv`` or into your
+system wide Python environment using ``easy_install``. Instructions
+for both are outlined below:
 
 virtualenv
 ----------
+
+The script ``setup_venv.sh`` distributed with the LWR server is a
+short-cut for \*nix machines to setup a Python environment (including
+the installation of virtualenv). Full details for installation
+suitable for \*nix or Windows are as follows.
 
 1. Install `virtualenv <http://www.virtualenv.org/en/latest/#installation>`_::
 
@@ -59,15 +64,19 @@ virtualenv
 
     virtualenv -q --no-site-packages .venv
 
-3. Activate environment. On linux machines::
+3. Activate environment (varies by OS). 
+
+From a Linux or MacOS terminal::
 
     . .venv/bin/activate
 
-  From a windows terminal::
+From a Windows terminal::
 
     .venv\Scripts\activate
 
-The script ``setup_venv.sh`` is a short-cut for \*nix machines to setup such environment (including the installation of virtualenv).
+4. Install required dependencies into this virtual environment::
+
+    pip install -r tools/pip-requires
 
 easy_install
 ------------
@@ -80,6 +89,8 @@ setuptools. Use the following command to install the needed packages
 via ``easy_install``::
 
     easy_install paste wsgiutils PasteScript PasteDeploy simplejson webob pyOpenSSL
+
+``pyOpenSSL`` is only required if LWR is configured to use HTTPS/SSL.
 
 ----------------------------------
 Running the LWR Server Application
@@ -99,7 +110,8 @@ When running as daemon, the server may be stopped with the following command::
 
     paster serve server.ini stop
 
-Remember if you setup a virtual environment for the LWR you will need to 
+Remember if you setup a virtual environment for the LWR you will need
+to activate this before executing these commands.
 
 --------------------------------------
 Configuring the LWR Server Application
@@ -156,7 +168,12 @@ token.::
 Multiple Job Managers (Queues)
 ------------------------------
 
-TODO.
+An LWR server can be configured for multiple queues with different
+properties (e.g. maximum number of concurrent jobs).
+
+To configure queues, rename the file ``job_managers.ini.sample``
+distributed with the LWR to ``job_managers.ini``. And comment the line
+``#job_managers_config = job_managers.ini`` in ``server.ini``.
 
 -------
 Testing

@@ -1,6 +1,15 @@
+## Default job manager is queued and runs 1 concurrent job.
 [manager:_default_]
-queued = False
+queued = True
+max_concurrent_jobs=1
 
+## Create a named queued (example) and run as many concurrent jobs as
+## server has cores.
 #[manager:example]
 #queued=True
-#max_concurrent_jobs=1
+#max_concurrent_jobs=*
+
+## Disable server-side LWR queuing (suitable for older style LWR use
+## when queues were maintained in Galaxy.)
+#[manager:_default_]
+#queued = False
