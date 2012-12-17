@@ -5,6 +5,7 @@ import time
 
 from lwr.persistence import PersistedJobStore
 from lwr.managers.queued import QueueManager
+from lwr.util import Bunch
 
 
 def test_persistence():
@@ -14,7 +15,8 @@ def test_persistence():
     staging_directory = tempfile.mkdtemp()
     try:
         persisted_job_store = PersistedJobStore(**{'shelf_filename': os.path.join(staging_directory, 'persisted_jobs')})
-        queue1 = QueueManager('test', staging_directory, persisted_job_store, 0)
+        app = Bunch(persisted_job_store=persisted_job_store, staging_directory=staging_directory)
+        queue1 = QueueManager('test', app, num_concurrent_jobs=0)
         queue1.setup_job_directory('4')
         touch_file = os.path.join(staging_directory, 'ran')
         queue1.launch('4', 'touch %s' % touch_file)
@@ -24,7 +26,8 @@ def test_persistence():
         persisted_job_store.close()
 
         persisted_job_store2 = PersistedJobStore(**{'shelf_filename': os.path.join(staging_directory, 'persisted_jobs')})
-        queue2 = QueueManager('test', staging_directory, persisted_job_store2, 1)
+        app.persisted_job_store = persisted_job_store2
+        queue2 = QueueManager('test', app, num_concurrent_jobs=1)
         time.sleep(5)
         assert os.path.exists(touch_file)
     finally:

@@ -3,7 +3,7 @@ import sys
 import threading
 import traceback
 
-from lwr.manager import Manager
+from lwr.managers import Manager
 
 STOP_SIGNAL = object()
 RUN = object()
@@ -15,9 +15,10 @@ class QueueManager(Manager):
     external queuing software such PBS, SGE, etc...).
     """
 
-    def __init__(self, name, staging_directory, persisted_job_store, num_concurrent_jobs=1):
-        super(QueueManager, self).__init__(name, staging_directory)
-        self.persisted_job_store = persisted_job_store
+    def __init__(self, name, app, **kwds):
+        super(QueueManager, self).__init__(name, app, **kwds)
+        self.persisted_job_store = app.persisted_job_store
+        num_concurrent_jobs = kwds.get('num_concurrent_jobs', 1)
         self._init_worker_threads(num_concurrent_jobs)
         self._recover()
 

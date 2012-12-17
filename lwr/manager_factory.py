@@ -44,13 +44,11 @@ def _parse_manager(app, manager_name, config):
 
 
 def _build_manager(app, name=DEFAULT_MANAGER_NAME, queued=True, num_concurrent_jobs=1):
-    if num_concurrent_jobs == '*':
-        num_concurrent_jobs = multiprocessing.cpu_count()
-    else:
-        num_concurrent_jobs = int(num_concurrent_jobs)
     if queued:
-        return QueueManager(name, app.staging_directory,
-                            app.persisted_job_store,
-                            num_concurrent_jobs)
+        if num_concurrent_jobs == '*':
+            num_concurrent_jobs = multiprocessing.cpu_count()
+        else:
+            num_concurrent_jobs = int(num_concurrent_jobs)
+        return QueueManager(name, app, **{"num_concurrent_jobs": num_concurrent_jobs})
     else:
-        return Manager(name, app.staging_directory)
+        return Manager(name, app)

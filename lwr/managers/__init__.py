@@ -16,9 +16,11 @@ class Manager(object):
     local job runner).
 
     >>> import tempfile
+    >>> from lwr.util import Bunch
     >>> staging_directory = tempfile.mkdtemp()
     >>> shutil.rmtree(staging_directory)
-    >>> manager = Manager('_default_', staging_directory)
+    >>> app = Bunch(staging_directory=staging_directory)
+    >>> manager = Manager('_default_', app)
     >>> assert os.path.exists(staging_directory)
     >>> command = "python -c \\"import sys; sys.stdout.write('Hello World!'); sys.stderr.write('moo')\\""
     >>> job_id = "123"
@@ -45,9 +47,9 @@ class Manager(object):
     >>> while not manager.check_complete(job_id): pass
     >>> manager.clean_job_directory(job_id)
     """
-    def __init__(self, name, staging_directory):
+    def __init__(self, name, app, **kwds):
         self.name = name
-        self.setup_staging_directory(staging_directory)
+        self.setup_staging_directory(app.staging_directory)
         self.job_locks = dict({})
 
     def setup_staging_directory(self, staging_directory):
