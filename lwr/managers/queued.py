@@ -8,6 +8,9 @@ from lwr.managers.base import Manager
 
 STOP_SIGNAL = object()
 RUN = object()
+# Number of concurrent jobs used by default for
+# QueueManager.
+DEFAULT_NUM_CONCURRENT_JOBS = 1
 
 
 class QueueManager(Manager):
@@ -21,7 +24,7 @@ class QueueManager(Manager):
         super(QueueManager, self).__init__(name, app, **kwds)
         self.persisted_job_store = app.persisted_job_store
 
-        num_concurrent_jobs = kwds.get('num_concurrent_jobs', 1)
+        num_concurrent_jobs = kwds.get('num_concurrent_jobs', DEFAULT_NUM_CONCURRENT_JOBS)
         if num_concurrent_jobs == '*':
             num_concurrent_jobs = multiprocessing.cpu_count()
         else:

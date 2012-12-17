@@ -11,9 +11,6 @@ log = logging.getLogger(__name__)
 
 MANAGER_PREFIX = 'manager:'
 DEFAULT_MANAGER_NAME = '_default_'
-# Number of concurrent jobs used by default for
-# QueueManager.
-DEFAULT_NUM_CONCURRENT_JOBS = 1
 
 
 def build_managers(app, config_file):
