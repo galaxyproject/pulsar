@@ -1,8 +1,13 @@
-import multiprocessing
+import inspect
+import logging
+import os
 
-from lwr.managers import Manager
+import lwr.managers
 from lwr.managers.queued import QueueManager
-from ConfigParser import ConfigParser, NoOptionError
+from ConfigParser import ConfigParser
+
+log = logging.getLogger(__name__)
+
 
 MANAGER_PREFIX = 'manager:'
 DEFAULT_MANAGER_NAME = '_default_'
@@ -16,9 +21,11 @@ def build_managers(app, config_file):
     Takes in a config file as outlined in job_managers.ini.sample and builds
     a dictionary of job manager objects from them.
     """
+    manager_classes = _get_managers_dict()
     managers = {}
+
     if not config_file:
-        managers[DEFAULT_MANAGER_NAME] = _build_manager(app)
+        managers[DEFAULT_MANAGER_NAME] = _build_manager(QueueManager, app)
     else:
         config = ConfigParser()
         config.readfp(open(config_file))
@@ -26,29 +33,70 @@ def build_managers(app, config_file):
             if not section.startswith(MANAGER_PREFIX):
                 continue
             manager_name = section[len(MANAGER_PREFIX):]
-            managers[manager_name] = _parse_manager(app, manager_name, config)
+            managers[manager_name] = _parse_manager(manager_classes, app, manager_name, config)
+
     return managers
 
 
-def _parse_manager(app, manager_name, config):
+def _parse_manager(manager_classes, app, manager_name, config):
     section_name = '%s%s' % (MANAGER_PREFIX, manager_name)
     try:
-        queued = config.getboolean(section_name, 'queued')
+        manager_type = config.getboolean(section_name, 'type')
     except ValueError:
-        queued = True
-    try:
-        num_concurrent_jobs = config.get(section_name, 'num_concurrent_jobs')
-    except NoOptionError:
-        num_concurrent_jobs = 1
-    return _build_manager(app, manager_name, queued, num_concurrent_jobs)
+        manager_type = 'queued_python'
+
+    manager_class = manager_classes[manager_type]
+    manager_options = dict(config.items(section_name))
+    return _build_manager(manager_class, app, manager_name, manager_options)
 
 
-def _build_manager(app, name=DEFAULT_MANAGER_NAME, queued=True, num_concurrent_jobs=1):
-    if queued:
-        if num_concurrent_jobs == '*':
-            num_concurrent_jobs = multiprocessing.cpu_count()
-        else:
-            num_concurrent_jobs = int(num_concurrent_jobs)
-        return QueueManager(name, app, **{"num_concurrent_jobs": num_concurrent_jobs})
-    else:
-        return Manager(name, app)
+def _build_manager(manager_class, app, name=DEFAULT_MANAGER_NAME, manager_options={}):
+    return manager_class(name, app, **manager_options)
+
+
+def _get_manager_modules():
+    """
+
+    >>> 'lwr.managers.pbs' in _get_manager_modules()
+    True
+    """
+    managers_dir = lwr.managers.__path__[0]
+    module_names = []
+    for fname in os.listdir(managers_dir):
+        if not(fname.startswith("_")) and fname.endswith(".py"):
+            manager_module_name = "lwr.managers.%s" % fname[:-len(".py")]
+            module_names.append(manager_module_name)
+    return module_names
+
+
+def _load_manager_modules():
+    modules = []
+    for manager_module_name in _get_manager_modules():
+        try:
+            module = __import__(manager_module_name)
+            for comp in manager_module_name.split(".")[1:]:
+                module = getattr(module, comp)
+            modules.append(module)
+        except BaseException, exception:
+            exception_str = str(exception)
+            message = "%s manager module could not be loaded: %s" % (manager_module_name, exception_str)
+            log.warn(message)
+            continue
+
+    return modules
+
+
+def _get_managers_dict():
+    """
+
+    >>> from lwr.managers.pbs import PbsQueueManager
+    >>> _get_managers_dict()['queued_pbs'] == PbsQueueManager
+    True
+    """
+    managers = {}
+    for manager_module in _load_manager_modules():
+        for _, obj in inspect.getmembers(manager_module):
+            if inspect.isclass(obj) and hasattr(obj, 'manager_type'):
+                managers[getattr(obj, 'manager_type')] = obj
+
+    return managers

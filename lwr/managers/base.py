@@ -47,6 +47,8 @@ class Manager(object):
     >>> while not manager.check_complete(job_id): pass
     >>> manager.clean_job_directory(job_id)
     """
+    manager_type = "unqueued"
+
     def __init__(self, name, app, **kwds):
         self.name = name
         self.setup_staging_directory(app.staging_directory)

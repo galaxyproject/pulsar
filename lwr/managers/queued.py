@@ -1,9 +1,10 @@
+import multiprocessing
 from Queue import Queue
 import sys
 import threading
 import traceback
 
-from lwr.managers import Manager
+from lwr.managers.base import Manager
 
 STOP_SIGNAL = object()
 RUN = object()
@@ -14,11 +15,18 @@ class QueueManager(Manager):
     A job manager that queues up jobs directly (i.e. does not use an
     external queuing software such PBS, SGE, etc...).
     """
+    manager_type = "queued_python"
 
     def __init__(self, name, app, **kwds):
         super(QueueManager, self).__init__(name, app, **kwds)
         self.persisted_job_store = app.persisted_job_store
+
         num_concurrent_jobs = kwds.get('num_concurrent_jobs', 1)
+        if num_concurrent_jobs == '*':
+            num_concurrent_jobs = multiprocessing.cpu_count()
+        else:
+            num_concurrent_jobs = int(num_concurrent_jobs)
+
         self._init_worker_threads(num_concurrent_jobs)
         self._recover()
 

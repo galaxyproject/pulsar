@@ -51,15 +51,15 @@ def copy_to_path(object, path):
         output.close()
 
 
-def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path):
+def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):
     """
 
     >>> import ntpath
-    >>> get_mapped_file(r'C:\\lwr\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=True, local_path_module=ntpath)
+    >>> get_mapped_file(r'C:\\lwr\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
     'C:\\\\lwr\\\\staging\\\\101\\\\dataset_1_files\\\\moo\\\\cow'
     >>> get_mapped_file(r'C:\\lwr\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=False, local_path_module=ntpath)
     'C:\\\\lwr\\\\staging\\\\101\\\\cow'
-    >>> get_mapped_file(r'C:\\lwr\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath)
+    >>> get_mapped_file(r'C:\\lwr\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
     Traceback (most recent call last):
     Exception: Invalid remote_path attempt to write files outside valid directory.
     """
@@ -72,7 +72,7 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
         if not __is_in_directory(local_path, directory, local_path_module=local_path_module):
             raise Exception("Invalid remote_path attempt to write files outside valid directory.")
         local_directory = local_path_module.dirname(local_path)
-        if not local_path_module.exists(local_directory):
+        if mkdir and not local_path_module.exists(local_directory):
             os.makedirs(local_directory)
         path = local_path
     return path
