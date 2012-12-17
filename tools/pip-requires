@@ -10,3 +10,6 @@ pyOpenSSL
 nose
 webtest
 coverage
+
+# For dev
+sphinx

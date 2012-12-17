@@ -9,6 +9,7 @@ file systems. Input files, scripts, and
 config files are transferred to the remote system, the job is
 executed, and the results are transferred back to the Galaxy server.
 
+
 ------------------
 Configuring Galaxy
 ------------------
