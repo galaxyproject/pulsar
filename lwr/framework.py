@@ -99,6 +99,7 @@ class Controller(object):
                 resp = Response(body='OK')
             return resp(environ, start_response)
         controller_replacement.__name__ = func.__name__
+        controller_replacement.__controller__ = True
         return controller_replacement
 
     def _prepare_controller_args(self, req, args):
