@@ -4,7 +4,8 @@ import os
 import optparse
 import traceback
 
-from lwr.client import Client
+from lwr.lwr_client import Client
+
 
 def main():
     """ Exercises a running lwr server application with the lwr client. """
@@ -20,7 +21,7 @@ def main():
         remote_job_config = client.setup()
         output_directory = remote_job_config['outputs_directory']
         sep = remote_job_config['path_separator']
-        
+
         temp_input_path = os.path.join(temp_directory, "input.txt")
         temp_config_path = os.path.join(temp_directory, "config.txt")
         temp_tool_path = os.path.join(temp_directory, "script.py")
@@ -44,20 +45,22 @@ finally:
             temp_input_file.close()
             temp_tool_file.close()
             temp_config_file.close()
-            
+
         uploaded_input = client.upload_input(temp_input_path)
+        assert 'path' in uploaded_input
         uploaded_tool_file = client.upload_tool_file(temp_tool_path)
         uploaded_config = client.upload_config_file(temp_config_path, "hello world output")
+        assert 'path' in uploaded_config
 
         command = "python %s" % (uploaded_tool_file["path"])
         client.launch(command)
-        result = client.wait()
-        print result
+        client.wait()
         output_path = os.path.join(temp_directory, "output.moo")
-        client.download_output(output_path)
+        client.download_output(output_path, temp_directory)
         output_file = open(output_path, 'r')
         try:
             assert output_file.read() == "hello world output"
+            print 'Test Successful!'
         finally:
             output_file.close()
     except BaseException, e:

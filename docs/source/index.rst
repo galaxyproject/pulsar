@@ -6,15 +6,23 @@
 
 .. include:: ../../README.rst
 
-----
-Code
-----
+-----------
+Server Code
+-----------
 
 .. toctree::
    :maxdepth: 5
 
-   code
+   server_code
 
+-----------
+Client Code
+-----------
+
+.. toctree::
+   :maxdepth: 5
+
+   client_code
 
 ------------------
 Indices and tables

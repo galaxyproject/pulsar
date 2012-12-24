@@ -43,7 +43,7 @@
 :mod:`lwr.util` Module
 -----------------------------
 
-.. automodule:: lwr.persistence
+.. automodule:: lwr.util
     :members:
     :undoc-members:
     :show-inheritance:

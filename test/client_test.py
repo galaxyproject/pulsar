@@ -1,7 +1,8 @@
+from collections import deque
 import tempfile
 import os
 
-from lwr.client import Client
+from lwr.lwr_client import Client
 
 
 class FakeResponse(object):
@@ -27,14 +28,15 @@ class TestClient(Client):
 
     def __init__(self):
         Client.__init__(self, "http://test:803/", "543")
+        self.expects = deque([])
 
     def expect_open(self, checker, response):
-        self.checker = checker
-        self.response = response
+        self.expects.appendleft((checker, response))
 
-    def url_open(self, request, data):
-        self.checker(request, data)
-        return FakeResponse(self.response)
+    def _url_open(self, request, data):
+        (checker, response) = self.expects.pop()
+        checker(request, data)
+        return FakeResponse(response)
 
 
 class RequestChecker(object):
@@ -127,9 +129,11 @@ def test_download_output():
     client = TestClient()
     temp_file = tempfile.NamedTemporaryFile()
     temp_file.close()
-    request_checker = RequestChecker("download_output", {"name": os.path.basename(temp_file.name)})
+    request_checker = RequestChecker("get_output_type", {"name": os.path.basename(temp_file.name)})
+    client.expect_open(request_checker, '"direct"')
+    request_checker = RequestChecker("download_output", {"name": os.path.basename(temp_file.name), "output_type": "direct"})
     client.expect_open(request_checker, "test output contents")
-    client.download_output(temp_file.name)
+    client.download_output(temp_file.name, ".")
 
     contents = open(temp_file.name, "r")
     try:
@@ -140,11 +144,6 @@ def test_download_output():
 
 def test_wait():
     client = TestClient()
-    #request_checker = RequestChecker("check_complete")
-    #client.expect_open(request_checker, '{"complete": "false"}')
-    #wait_response = client.wait()
-    #request_checker.assert_called()
-
     request_checker = RequestChecker("check_complete")
     client.expect_open(request_checker, '{"complete": "true", "stdout" : "output"}')
     wait_response = client.wait()
