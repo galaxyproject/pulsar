@@ -41,13 +41,19 @@ class JobInputs(object):
     >>> inputs.rewritten_config_files[tf.name]
     'world C:\\\\input the rest'
     >>> tf.close()
-
     >>> tf = tempfile.NamedTemporaryFile()
     >>> inputs = setup_inputs(tf)
     >>> inputs.find_referenced_subfiles('/path/to')
     ['/path/to/input']
+    >>> inputs.path_referenced('/path/to')
+    True
+    >>> inputs.path_referenced('/path/to/input')
+    True
+    >>> inputs.path_referenced('/path/to/notinput')
+    False
     >>> tf.close()
     """
+
     def __init__(self, command_line, config_files):
         self.rewritten_command_line = command_line
         self.rewritten_config_files = {}
@@ -69,10 +75,18 @@ class JobInputs(object):
         """
         pattern = r"(%s%s\S+)" % (directory, os.sep)
         referenced_files = set()
-        referenced_files.update(re.findall(pattern, self.rewritten_command_line))
-        for config_file, rewritten_contents in self.rewritten_config_files.iteritems():
-            referenced_files.update(re.findall(pattern, rewritten_contents))
+        for input_contents in self.__items():
+            referenced_files.update(re.findall(pattern, input_contents))
         return list(referenced_files)
+
+    def path_referenced(self, path):
+        pattern = r"%s" % path
+        found = False
+        for input_contents in self.__items():
+            if re.find(pattern, input_contents):
+                found = True
+                break
+        return found
 
     def rewrite_paths(self, local_path, remote_path):
         """
@@ -87,6 +101,11 @@ class JobInputs(object):
     def __rewrite_config_files(self, local_path, remote_path):
         for config_file, rewritten_contents in self.rewritten_config_files.iteritems():
             self.rewritten_config_files[config_file] = rewritten_contents.replace(local_path, remote_path)
+
+    def __items(self):
+        items = [self.rewritten_command_line]
+        items.extend(self.rewritten_config_files.values())
+        return items
 
 
 class FileStager(object):
@@ -156,18 +175,25 @@ class FileStager(object):
 
     def __upload_input_files(self):
         for input_file in self.input_files:
+            self.__upload_input_file(input_file)
+            self.__upload_input_extra_files(input_file)
+
+    def __upload_input_file(self, input_file):
+        if self.job_inputs.path_referenced(input_file):
             input_upload_response = self.client.upload_input(input_file)
             self.file_renames[input_file] = input_upload_response['path']
-            # TODO: Determine if this is object store safe and what needs to be
-            # done if it is not.
-            files_path = "%s_files" % input_file[0:-len(".dat")]
-            if os.path.exists(files_path):
-                for extra_file in os.listdir(files_path):
-                    extra_file_path = os.path.join(files_path, extra_file)
-                    relative_path = os.path.basename(files_path)
-                    extra_file_relative_path = os.path.join(relative_path, extra_file)
-                    response = self.client.upload_extra_input(extra_file_path, extra_file_relative_path)
-                    self.file_renames[extra_file_path] = response['path']
+
+    def __upload_input_extra_files(self, input_file):
+        # TODO: Determine if this is object store safe and what needs to be
+        # done if it is not.
+        files_path = "%s_files" % input_file[0:-len(".dat")]
+        if os.path.exists(files_path) and self.job_inputs.path_referenced(files_path):
+            for extra_file in os.listdir(files_path):
+                extra_file_path = os.path.join(files_path, extra_file)
+                relative_path = os.path.basename(files_path)
+                extra_file_relative_path = os.path.join(relative_path, extra_file)
+                response = self.client.upload_extra_input(extra_file_path, extra_file_relative_path)
+                self.file_renames[extra_file_path] = response['path']
 
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
@@ -454,6 +480,10 @@ class Client(object):
 
 
 def _read(path):
+    """
+    Utility method to quickly read small files (config files and tool
+    wrappers) into memory as strings.
+    """
     input = open(path, "r")
     try:
         return input.read()
