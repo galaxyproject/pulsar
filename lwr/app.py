@@ -153,7 +153,7 @@ def upload_working_directory_file(manager, job_id, name, body):
 @LwrController(response_type='file')
 def download_output(manager, job_id, name, output_type="direct"):
     directory = manager.outputs_directory(job_id)
-    if output_type == "task":
+    if output_type == "task" or output_type == "work_dir":
         directory = manager.working_directory(job_id)
     path = os.path.join(directory, name)
     return path
