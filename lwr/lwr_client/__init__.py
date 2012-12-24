@@ -83,7 +83,7 @@ class JobInputs(object):
         pattern = r"%s" % path
         found = False
         for input_contents in self.__items():
-            if re.find(pattern, input_contents):
+            if re.findall(pattern, input_contents):
                 found = True
                 break
         return found
