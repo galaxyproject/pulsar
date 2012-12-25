@@ -29,7 +29,8 @@ def setup(manager, job_id):
     outputs_directory = manager.outputs_directory(job_id)
     return {"working_directory": working_directory,
             "outputs_directory": outputs_directory,
-            "path_separator": os.sep}
+            "path_separator": os.sep,
+            "job_id": job_id}
 
 
 @LwrController()
