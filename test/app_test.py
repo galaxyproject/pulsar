@@ -17,15 +17,13 @@ def test_app():
     try:
         app = app_factory({}, staging_directory=staging_directory)
         test_app = TestApp(app)
-
-        job_id = "12345"
-
-        setup_response = test_app.get("/setup?job_id=%s" % job_id)
+        setup_response = test_app.get("/setup?job_id=12345")
         setup_config = simplejson.loads(setup_response.body)
         assert setup_config["working_directory"].startswith(staging_directory)
         outputs_directory = setup_config["outputs_directory"]
         assert outputs_directory.startswith(staging_directory)
         assert setup_config["path_separator"] == os.sep
+        job_id = setup_config["job_id"]
 
         def test_upload(upload_type):
             url = "/upload_%s?job_id=%s&name=input1" % (upload_type, job_id)
@@ -52,7 +50,7 @@ def test_app():
         launch_response = test_app.get("/launch?job_id=%s&command_line=%s" % (job_id, command_line))
         assert launch_response.body == 'OK'
 
-        time.sleep(5)
+        time.sleep(2)
 
         check_response = test_app.get("/check_complete?job_id=%s" % job_id)
         check_config = simplejson.loads(check_response.body)

@@ -19,12 +19,15 @@ class Manager(object):
     >>> from lwr.util import Bunch
     >>> staging_directory = tempfile.mkdtemp()
     >>> shutil.rmtree(staging_directory)
-    >>> app = Bunch(staging_directory=staging_directory)
+    >>> class PersistedJobStore:
+    ...     def next_id(self):
+    ...         yield 1
+    ...         yield 2
+    >>> app = Bunch(staging_directory=staging_directory, persisted_job_store=PersistedJobStore())
     >>> manager = Manager('_default_', app)
     >>> assert os.path.exists(staging_directory)
     >>> command = "python -c \\"import sys; sys.stdout.write('Hello World!'); sys.stderr.write('moo')\\""
-    >>> job_id = "123"
-    >>> manager.setup_job_directory(job_id)
+    >>> job_id = manager.setup_job_directory("123")
     >>> manager.launch(job_id, command)
     >>> while not manager.check_complete(job_id): pass
     >>> manager.return_code(job_id)
@@ -36,8 +39,7 @@ class Manager(object):
     >>> manager.clean_job_directory(job_id)
     >>> os.listdir(staging_directory)
     []
-    >>> job_id = "234"
-    >>> manager.setup_job_directory(job_id)
+    >>> job_id = manager.setup_job_directory("124")
     >>> command = "python -c \\"import time; time.sleep(10000)\\""
     >>> manager.launch(job_id, command)
     >>> import time
@@ -105,16 +107,24 @@ class Manager(object):
             pass
         return pid
 
-    def setup_job_directory(self, job_id):
-        self._register_job(job_id)
+    def setup_job_directory(self, input_job_id):
+        job_id = self._register_job(input_job_id, True)
         job_directory = self.job_directory(job_id)
         os.mkdir(job_directory)
         os.mkdir(self.inputs_directory(job_id))
         os.mkdir(self.outputs_directory(job_id))
         os.mkdir(self.working_directory(job_id))
+        return job_id
 
-    def _register_job(self, job_id):
+    def _get_job_id(self, galaxy_job_id):
+        return str(galaxy_job_id)
+
+    def _register_job(self, job_id, new=True):
+        if new:
+            galaxy_job_id = job_id
+            job_id = self._get_job_id(galaxy_job_id)
         self.job_locks[job_id] = Lock()
+        return job_id
 
     def _unregister_job(self, job_id):
         del self.job_locks[job_id]

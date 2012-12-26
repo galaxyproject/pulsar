@@ -41,6 +41,12 @@ class QueueManager(Manager):
             worker.start()
             self.work_threads.append(worker)
 
+    ## Uncommenting this override allows multiple galaxy instances to submit
+    ## to same LWR server. Not compatible with older client code so will leave
+    ## it commented out for now, hopefully galaxy-central catches up soon.
+    #def _get_job_id(self, galaxy_job_id):
+    #    return str(self.persisted_job_store.next_id())
+
     def launch(self, job_id, command_line):
         self._record_submission(job_id)
         self.work_queue.put((RUN, (job_id, command_line)))
@@ -48,7 +54,7 @@ class QueueManager(Manager):
 
     def _recover(self):
         for (job_id, command_line) in self.persisted_job_store.persisted_jobs(self.name):
-            self._register_job(job_id)
+            self._register_job(job_id, new=False)
             self.work_queue.put((RUN, (job_id, command_line)))
 
     def shutdown(self):
