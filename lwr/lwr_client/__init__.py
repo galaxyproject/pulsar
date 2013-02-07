@@ -5,14 +5,14 @@ lwr_client
 This module contains logic for interfacing with an external LWR server.
 
 """
-import mmap
 import os
 import re
 import time
 import urllib
-import urllib2
 
 import simplejson
+
+from transport import Urllib2Transport
 
 
 class JobInputs(object):
@@ -254,17 +254,6 @@ class FileStager(object):
         return self.job_inputs.rewritten_command_line
 
 
-class Transport(object):
-
-    def _url_open(self, request, data):
-        return urllib2.urlopen(request, data)
-
-    def execute(self, url, data):
-        request = urllib2.Request(url=url, data=data)
-        response = self._url_open(request, data)
-        return response
-
-
 class parseJson(object):
 
     def __init__(self):
@@ -306,10 +295,7 @@ class Client(object):
         self.remote_host = remote_host
         self.job_id = job_id
         self.private_key = private_key
-        self.transport = Transport()
-
-    def _url_open(self, request, data):
-        return urllib2.urlopen(request, data)
+        self.transport = Urllib2Transport()
 
     def __build_url(self, command, args):
         if self.private_key:
@@ -320,22 +306,7 @@ class Client(object):
 
     def __raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
         url = self.__build_url(command, args)
-        input = None
-        try:
-            if input_path:
-                input = open(input_path, 'rb')
-                data = mmap.mmap(input.fileno(), 0, access=mmap.ACCESS_READ)
-            response = self.transport.execute(url, data)
-        finally:
-            if input:
-                input.close()
-        if output_path:
-            with open(output_path, 'wb') as output:
-                while True:
-                    buffer = response.read(1024)
-                    if buffer == "":
-                        break
-                    output.write(buffer)
+        response = self.transport.execute(url, data=data, input_path=input_path, output_path=output_path)
         return response
 
     @parseJson()

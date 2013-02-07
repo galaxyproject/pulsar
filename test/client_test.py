@@ -2,7 +2,8 @@ from collections import deque
 import tempfile
 import os
 
-from lwr.lwr_client import Client, Transport
+from lwr.lwr_client import Client
+from lwr.lwr_client.transport import Urllib2Transport
 
 
 class FakeResponse(object):
@@ -22,7 +23,7 @@ class FakeResponse(object):
         return result
 
 
-class TestTransport(Transport):
+class TestTransport(Urllib2Transport):
     """ Implements mock of HTTP transport layer for TestClient tests."""
 
     def __init__(self, test_client):
