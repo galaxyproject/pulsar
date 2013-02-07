@@ -1,5 +1,5 @@
 """
-LWR HTTP Layer based on Python Standard Library (urllib2)
+LWR HTTP Client layer based on Python Standard Library (urllib2)
 """
 import mmap
 import urllib2
@@ -28,4 +28,6 @@ class Urllib2Transport(object):
                     if buffer == "":
                         break
                     output.write(buffer)
-        return response
+            return response
+        else:
+            return response.read()

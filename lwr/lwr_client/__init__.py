@@ -262,7 +262,7 @@ class parseJson(object):
     def __call__(self, func):
         def replacement(*args, **kwargs):
             response = func(*args, **kwargs)
-            return simplejson.loads(response.read())
+            return simplejson.loads(response)
         return replacement
 
 
