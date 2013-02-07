@@ -265,6 +265,18 @@ class Transport(object):
         return response
 
 
+class parseJson(object):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, func):
+        def replacement(*args, **kwargs):
+            response = func(*args, **kwargs)
+            return simplejson.loads(response.read())
+        return replacement
+
+
 class Client(object):
     """
     Objects of this client class perform low-level communication with a remote LWR server.
@@ -310,10 +322,7 @@ class Client(object):
         url = self.__build_url(command, args)
         return self.transport.execute(url, data)
 
-    def __raw_execute_and_parse(self, command, args={}, data=None):
-        response = self.__raw_execute(command, args, data)
-        return simplejson.loads(response.read())
-
+    @parseJson()
     def __upload_file(self, action, path, name=None, contents=None):
         if not name:
             name = os.path.basename(path)
@@ -322,11 +331,11 @@ class Client(object):
             input = open(path, 'rb')
             try:
                 mmapped_input = mmap.mmap(input.fileno(), 0, access=mmap.ACCESS_READ)
-                return self.__raw_execute_and_parse(action, args, mmapped_input)
+                return self.__raw_execute(action, args, mmapped_input)
             finally:
                 input.close()
         else:
-            return self.__raw_execute_and_parse(action, args, contents)
+            return self.__raw_execute(action, args, contents)
 
     def upload_tool_file(self, path):
         """
@@ -388,9 +397,10 @@ class Client(object):
         """
         return self.__upload_file("upload_working_directory_file", path)
 
+    @parseJson()
     def _get_output_type(self, name):
-        return self.__raw_execute_and_parse("get_output_type", {"name": name,
-                                                                "job_id": self.job_id})
+        return self.__raw_execute("get_output_type", {"name": name,
+                                                      "job_id": self.job_id})
 
     def download_work_dir_output(self, source, working_directory, output_path):
         """
@@ -473,11 +483,12 @@ class Client(object):
                 return complete_response
             time.sleep(1)
 
+    @parseJson()
     def raw_check_complete(self):
         """
         Get check_complete response from the remote server.
         """
-        check_complete_response = self.__raw_execute_and_parse("check_complete", {"job_id": self.job_id})
+        check_complete_response = self.__raw_execute("check_complete", {"job_id": self.job_id})
         return check_complete_response
 
     def check_complete(self):
@@ -492,11 +503,12 @@ class Client(object):
         """
         self.__raw_execute("clean", {"job_id": self.job_id})
 
+    @parseJson()
     def setup(self):
         """
         Setup remote LWR server to run this job.
         """
-        return self.__raw_execute_and_parse("setup", {"job_id": self.job_id})
+        return self.__raw_execute("setup", {"job_id": self.job_id})
 
 
 def _read(path):
