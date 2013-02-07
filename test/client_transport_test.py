@@ -14,14 +14,14 @@ def test_pycurl_transport():
 
 def _test_transport(transport):
     ## Testing simple get
-    response = transport.execute("http://www.google.com", data=None)
+    response = transport.execute(u"http://www.google.com", data=None)
     assert response.find("<title>Google</title>") > 0
 
     ## Testing writing to output file
     temp_file = NamedTemporaryFile(delete=True)
     output_path = temp_file.name
     temp_file.close()
-    response = transport.execute("http://www.google.com", data=None, output_path=output_path)
+    response = transport.execute(u"http://www.google.com", data=None, output_path=output_path)
     assert open(output_path, 'r').read().find("<title>Google</title>") > 0
 
 

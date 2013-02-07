@@ -16,7 +16,7 @@ class PycurlTransport(object):
         buf = self._open_output(output_path)
         try:
             c = self._new_curl_object()
-            c.setopt(c.URL, url)
+            c.setopt(c.URL, url.encode('ascii'))
             c.setopt(c.WRITEFUNCTION, buf.write)
             if input_path:
                 c.setopt(c.UPLOAD, 1)
