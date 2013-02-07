@@ -315,18 +315,18 @@ class Client(object):
         return simplejson.loads(response.read())
 
     def __upload_file(self, action, path, name=None, contents=None):
-        input = open(path, 'rb')
-        try:
-            mmapped_input = mmap.mmap(input.fileno(), 0, access=mmap.ACCESS_READ)
-            return self.__upload_contents(action, path, mmapped_input, name)
-        finally:
-            input.close()
-
-    def __upload_contents(self, action, path, contents, name=None):
         if not name:
             name = os.path.basename(path)
         args = {"job_id": self.job_id, "name": name}
-        return self.__raw_execute_and_parse(action, args, contents)
+        if contents == None:
+            input = open(path, 'rb')
+            try:
+                mmapped_input = mmap.mmap(input.fileno(), 0, access=mmap.ACCESS_READ)
+                return self.__raw_execute_and_parse(action, args, mmapped_input)
+            finally:
+                input.close()
+        else:
+            return self.__raw_execute_and_parse(action, args, contents)
 
     def upload_tool_file(self, path):
         """
@@ -374,7 +374,7 @@ class Client(object):
         contents : str
             Rewritten contents of the config file to upload.
         """
-        return self.__upload_contents("upload_config_file", path, contents)
+        return self.__upload_file("upload_config_file", path, contents=contents)
 
     def upload_working_directory_file(self, path):
         """
