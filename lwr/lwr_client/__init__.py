@@ -254,6 +254,17 @@ class FileStager(object):
         return self.job_inputs.rewritten_command_line
 
 
+class Transport(object):
+
+    def _url_open(self, request, data):
+        return urllib2.urlopen(request, data)
+
+    def execute(self, url, data):
+        request = urllib2.Request(url=url, data=data)
+        response = self._url_open(request, data)
+        return response
+
+
 class Client(object):
     """
     Objects of this client class perform low-level communication with a remote LWR server.
@@ -283,6 +294,7 @@ class Client(object):
         self.remote_host = remote_host
         self.job_id = job_id
         self.private_key = private_key
+        self.transport = Transport()
 
     def _url_open(self, request, data):
         return urllib2.urlopen(request, data)
@@ -296,9 +308,7 @@ class Client(object):
 
     def __raw_execute(self, command, args={}, data=None):
         url = self.__build_url(command, args)
-        request = urllib2.Request(url=url, data=data)
-        response = self._url_open(request, data)
-        return response
+        return self.transport.execute(url, data)
 
     def __raw_execute_and_parse(self, command, args={}, data=None):
         response = self.__raw_execute(command, args, data)

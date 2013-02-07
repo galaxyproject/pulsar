@@ -2,7 +2,7 @@ from collections import deque
 import tempfile
 import os
 
-from lwr.lwr_client import Client
+from lwr.lwr_client import Client, Transport
 
 
 class FakeResponse(object):
@@ -22,21 +22,29 @@ class FakeResponse(object):
         return result
 
 
+class TestTransport(Transport):
+    """ Implements mock of HTTP transport layer for TestClient tests."""
+
+    def __init__(self, test_client):
+        self.test_client = test_client
+
+    def _url_open(self, request, data):
+        (checker, response) = self.test_client.expects.pop()
+        checker(request, data)
+        return FakeResponse(response)
+
+
 class TestClient(Client):
     """ A dervative of the Client class that replaces the url_open
     method so that requests can be inspected and responses faked."""
 
     def __init__(self):
         Client.__init__(self, "http://test:803/", "543")
+        self.transport = TestTransport(self)
         self.expects = deque([])
 
     def expect_open(self, checker, response):
         self.expects.appendleft((checker, response))
-
-    def _url_open(self, request, data):
-        (checker, response) = self.expects.pop()
-        checker(request, data)
-        return FakeResponse(response)
 
 
 class RequestChecker(object):
