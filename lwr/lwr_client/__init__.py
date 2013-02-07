@@ -12,7 +12,7 @@ import urllib
 
 import simplejson
 
-from transport import Urllib2Transport
+from transport import Urllib2Transport, PycurlTransport
 
 
 class JobInputs(object):
