@@ -12,7 +12,7 @@ import urllib
 
 import simplejson
 
-from transport import Urllib2Transport, PycurlTransport
+from transport import get_transport
 
 
 class JobInputs(object):
@@ -295,7 +295,7 @@ class Client(object):
         self.remote_host = remote_host
         self.job_id = job_id
         self.private_key = private_key
-        self.transport = Urllib2Transport()
+        self.transport = get_transport()
 
     def __build_url(self, command, args):
         if self.private_key:
