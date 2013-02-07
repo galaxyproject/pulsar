@@ -68,6 +68,8 @@ class RequestChecker(object):
     def check_data(self, data):
         if data == None:
             assert self.data == None
+        elif type(data) == str:
+            assert self.data == data
         else:
             assert data.read(1024) == self.data
 
@@ -104,8 +106,6 @@ def test_launch():
 
 def __test_upload(upload_type):
     client = TestClient()
-
-    #temp_file = tempfile.NamedTemporaryFile()
     (temp_fileno, temp_file_path) = tempfile.mkstemp()
     temp_file = os.fdopen(temp_fileno, 'w')
     try:
@@ -130,6 +130,22 @@ def test_upload_tool():
 
 def test_upload_input():
     __test_upload("input")
+
+
+def test_upload_config():
+    client = TestClient()
+    (temp_fileno, temp_file_path) = tempfile.mkstemp()
+    temp_file = os.fdopen(temp_fileno, 'w')
+    try:
+        temp_file.write("Hello World!")
+    finally:
+        temp_file.close()
+    modified_contents = "Hello World! <Modified>"
+    request_checker = RequestChecker("upload_config_file", {"name": os.path.basename(temp_file_path)}, modified_contents)
+    client.expect_open(request_checker, '{"path" : "C:\\\\tools\\\\foo"}')
+    upload_result = client.upload_config_file(temp_file_path, modified_contents)
+    request_checker.assert_called()
+    assert upload_result["path"] == "C:\\tools\\foo"
 
 
 def test_download_output():
