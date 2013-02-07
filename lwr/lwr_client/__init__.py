@@ -318,24 +318,35 @@ class Client(object):
         url = self.remote_host + command + "?" + data
         return url
 
-    def __raw_execute(self, command, args={}, data=None):
+    def __raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
         url = self.__build_url(command, args)
-        return self.transport.execute(url, data)
+        input = None
+        try:
+            if input_path:
+                input = open(input_path, 'rb')
+                data = mmap.mmap(input.fileno(), 0, access=mmap.ACCESS_READ)
+            response = self.transport.execute(url, data)
+        finally:
+            if input:
+                input.close()
+        if output_path:
+            with open(output_path, 'wb') as output:
+                while True:
+                    buffer = response.read(1024)
+                    if buffer == "":
+                        break
+                    output.write(buffer)
+        return response
 
     @parseJson()
     def __upload_file(self, action, path, name=None, contents=None):
         if not name:
             name = os.path.basename(path)
         args = {"job_id": self.job_id, "name": name}
-        if contents == None:
-            input = open(path, 'rb')
-            try:
-                mmapped_input = mmap.mmap(input.fileno(), 0, access=mmap.ACCESS_READ)
-                return self.__raw_execute(action, args, mmapped_input)
-            finally:
-                input.close()
-        else:
-            return self.__raw_execute(action, args, contents)
+        input_path = path
+        if contents:
+            input_path = None
+        return self.__raw_execute(action, args, contents, input_path)
 
     def upload_tool_file(self, path):
         """
@@ -434,25 +445,19 @@ class Client(object):
         name = os.path.basename(path)
         output_type = self._get_output_type(name)
         if output_type == "direct":
-            output = open(path, "wb")
+            output_path = path
         elif output_type == "task":
-            output = open(os.path.join(working_directory, name), "wb")
+            output_path = os.path.join(working_directory, name)
         else:
             raise Exception("No remote output found for dataset with path %s" % path)
-        self.__raw_download_output(name, self.job_id, output_type, output)
+        self.__raw_download_output(name, self.job_id, output_type, output_path)
 
-    def __raw_download_output(self, name, job_id, output_type, output_file):
-        response = self.__raw_execute("download_output", {"name": name,
-                                                          "job_id": self.job_id,
-                                                          "output_type": output_type})
-        try:
-            while True:
-                buffer = response.read(1024)
-                if buffer == "":
-                    break
-                output_file.write(buffer)
-        finally:
-            output_file.close()
+    def __raw_download_output(self, name, job_id, output_type, output_path):
+        self.__raw_execute("download_output",
+                           {"name": name,
+                            "job_id": self.job_id,
+                            "output_type": output_type},
+                           output_path=output_path)
 
     def launch(self, command_line):
         """
