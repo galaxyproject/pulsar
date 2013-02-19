@@ -179,6 +179,12 @@ To configure queues, rename the file ``job_managers.ini.sample``
 distributed with the LWR to ``job_managers.ini``. And comment the line
 ``#job_managers_config = job_managers.ini`` in ``server.ini``.
 
+Puppet
+------
+
+A puppet module for automating the configuration an LWR server can be
+found `here <https://github.com/jmchilton/puppet-lwr>`_.
+
 -------
 Testing
 -------
