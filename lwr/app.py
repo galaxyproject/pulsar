@@ -27,7 +27,7 @@ class LwrApp(RoutingApp):
     def __init__(self, **conf):
         RoutingApp.__init__(self)
         self.private_key = None
-        self.staging_directory = os.path.abspath(conf['staging_directory'])
+        self.staging_directory = os.path.abspath(conf.get('staging_directory', "lwr_staging"))
         self.__setup_private_key(conf.get("private_key", None))
         self.persisted_job_store = PersistedJobStore(**conf)
         self.managers = build_managers(self, conf.get("job_managers_config", None))
