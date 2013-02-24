@@ -69,8 +69,7 @@ def kill(manager, job_id):
 
 @LwrController(response_type='json')
 def upload_tool_file(manager, job_id, name, body):
-    response = _handle_upload_to_directory(manager.job_directory(job_id), name, body)
-    return response
+    return _handle_upload_to_directory(manager.job_directory(job_id), name, body)
 
 
 @LwrController(response_type='json')
@@ -85,12 +84,12 @@ def upload_extra_input(manager, job_id, name, body):
 
 @LwrController(response_type='json')
 def upload_config_file(manager, job_id, name, body):
-    return _handle_upload_to_directory(manager.working_directory(job_id), name, body)
+    return _handle_upload_to_directory(manager.configs_directory(job_id), name, body)
 
 
 @LwrController(response_type='json')
 def upload_working_directory_file(manager, job_id, name, body):
-    return _handle_upload_to_directory(manager.working_directory(job_id), name, body)
+    return _handle_upload_to_directory(manager.tool_files_directory(job_id), name, body)
 
 
 @LwrController(response_type='file')
