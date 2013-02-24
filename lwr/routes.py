@@ -1,6 +1,6 @@
 import os
 from webob import exc
-from lwr.util import get_mapped_file, copy_to_path
+from lwr.util import get_mapped_file, copy_to_path, verify_is_in_directory
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 
@@ -94,10 +94,17 @@ def upload_working_directory_file(manager, job_id, name, body):
 
 @LwrController(response_type='file')
 def download_output(manager, job_id, name, output_type="direct"):
+    return _output_path(manager, job_id, name, output_type)
+
+
+def _output_path(manager, job_id, name, output_type):
+    """
+    """
     directory = manager.outputs_directory(job_id)
     if output_type == "task" or output_type == "work_dir":
         directory = manager.working_directory(job_id)
     path = os.path.join(directory, name)
+    verify_is_in_directory(path, directory)
     return path
 
 

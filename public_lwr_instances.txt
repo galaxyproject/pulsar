@@ -1,0 +1,17 @@
+# Public LWR Instances:
+
+## Most Serious Possible Attack Vectors:
+
+Write files outside valid directories.
+
++ get_mapped_file used to build directories, ensures valid directory. Unit test in place.
+
+Read files outside valid directories.
+
++ _output_path in routes checks directory is valid. Unit test in place.
+
+Execute unauthorized commands.
+
++ TODO, enable whitelist of commands.
+
+

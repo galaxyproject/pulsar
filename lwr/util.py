@@ -5,6 +5,8 @@ import time
 import posixpath
 from collections import deque
 
+from logging import getLogger
+log = getLogger(__name__)
 
 BUFFER_SIZE = 4096
 
@@ -51,6 +53,26 @@ def copy_to_path(object, path):
         output.close()
 
 
+class JobDirectory(object):
+
+    def __init__(self, staging_directory, job_id):
+        # Make sure job_id is clean, not a path hacking attempt
+        assert job_id == os.path.basename(job_id)
+        self.job_directory = os.path.join(staging_directory, job_id)
+
+    def _sub_dir(self, name):
+        return os.path.join(self.job_directory, name)
+
+    def working_directory(self):
+        return self._sub_dir('working')
+
+    def inputs_directory(self):
+        return self._sub_dir('inputs')
+
+    def outputs_directory(self):
+        return self._sub_dir('outputs')
+
+
 def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):
     """
 
@@ -61,7 +83,7 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
     'C:\\\\lwr\\\\staging\\\\101\\\\cow'
     >>> get_mapped_file(r'C:\\lwr\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
     Traceback (most recent call last):
-    Exception: Invalid remote_path attempt to write files outside valid directory.
+    Exception: Attempt to read or write file outside an authorized directory.
     """
     if not allow_nested_files:
         name = local_path_module.basename(remote_path)
@@ -69,13 +91,19 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
     else:
         local_rel_path = __posix_to_local_path(remote_path, local_path_module=local_path_module)
         local_path = local_path_module.join(directory, local_rel_path)
-        if not __is_in_directory(local_path, directory, local_path_module=local_path_module):
-            raise Exception("Invalid remote_path attempt to write files outside valid directory.")
+        verify_is_in_directory(local_path, directory, local_path_module=local_path_module)
         local_directory = local_path_module.dirname(local_path)
         if mkdir and not local_path_module.exists(local_directory):
             os.makedirs(local_directory)
         path = local_path
     return path
+
+
+def verify_is_in_directory(path, directory, local_path_module=os.path):
+    if not __is_in_directory(path, directory, local_path_module):
+        msg = "Attempt to read or write file outside an authorized directory."
+        log.warn("%s Attempted path: %s, valid directory: %s" % (msg, path, directory))
+        raise Exception(msg)
 
 
 def __posix_to_local_path(path, local_path_module=os.path):
