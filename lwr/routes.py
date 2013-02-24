@@ -23,8 +23,8 @@ class LwrController(Controller):
 
 
 @LwrController(response_type='json')
-def setup(manager, job_id):
-    job_id = manager.setup_job_directory(job_id)
+def setup(manager, job_id, tool_id=None, tool_version=None):
+    job_id = manager.setup_job(job_id, tool_id, tool_version)
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)
     return {"working_directory": working_directory,
