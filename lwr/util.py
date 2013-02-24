@@ -72,6 +72,47 @@ class JobDirectory(object):
     def outputs_directory(self):
         return self._sub_dir('outputs')
 
+    def __job_file(self, name):
+        return os.path.join(self.job_directory, name)
+
+    def read_file(self, name):
+        path = self.__job_file(name)
+        job_file = open(path, 'r')
+        try:
+            return job_file.read()
+        finally:
+            job_file.close()
+
+    def write_file(self, name, contents):
+        path = self.__job_file(name)
+        job_file = open(path, 'w')
+        try:
+            job_file.write(contents)
+        finally:
+            job_file.close()
+
+    def remove_file(self, name):
+        """
+        Quietly remove a job file.
+        """
+        try:
+            os.remove(self.__job_file(name))
+        except OSError:
+            pass
+
+    def contains_file(self, name):
+        return os.path.exists(self.__job_file(name))
+
+    def open_file(self, name, mode='w'):
+        return open(self.__job_file(name), mode)
+
+    def setup(self):
+        os.mkdir(self.job_directory)
+
+    def make_directory(self, name):
+        path = self.__job_file(name)
+        os.mkdir(path)
+
 
 def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):
     """

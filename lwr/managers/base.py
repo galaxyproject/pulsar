@@ -5,7 +5,20 @@ import thread
 import platform
 from threading import Lock
 
-from lwr.util import kill_pid
+from lwr.util import kill_pid, JobDirectory
+
+JOB_FILE_SUBMITTED = "submitted"
+JOB_FILE_CANCELLED = "cancelled"
+JOB_FILE_PID = "pid"
+JOB_FILE_RETURN_CODE = "return_code"
+JOB_FILE_STANDARD_OUTPUT = "stdout"
+JOB_FILE_STANDARD_ERROR = "stderr"
+JOB_FILE_TOOL_ID = "tool_id"
+JOB_FILE_TOOL_VERSION = "tool_version"
+
+JOB_DIRECTORY_INPUTS = "inputs"
+JOB_DIRECTORY_OUTPUTS = "outputs"
+JOB_DIRECTORY_WORKING = "working"
 
 
 class Manager(object):
@@ -17,13 +30,14 @@ class Manager(object):
 
     >>> import tempfile
     >>> from lwr.util import Bunch
+    >>> from lwr.tools.authorization import get_authorizer
     >>> staging_directory = tempfile.mkdtemp()
     >>> shutil.rmtree(staging_directory)
     >>> class PersistedJobStore:
     ...     def next_id(self):
     ...         yield 1
     ...         yield 2
-    >>> app = Bunch(staging_directory=staging_directory, persisted_job_store=PersistedJobStore())
+    >>> app = Bunch(staging_directory=staging_directory, persisted_job_store=PersistedJobStore(), authorizer=get_authorizer(None))
     >>> manager = Manager('_default_', app)
     >>> assert os.path.exists(staging_directory)
     >>> command = "python -c \\"import sys; sys.stdout.write('Hello World!'); sys.stderr.write('moo')\\""
@@ -45,7 +59,7 @@ class Manager(object):
     >>> import time
     >>> time.sleep(0.1)
     >>> manager.kill(job_id)
-    >>> manager.kill(job_id) # Make sure kill doesn't choke if pid doesn't exist
+    >>> manager.kill(job_id)  # Make sure kill doesn't choke if pid doesn't exist
     >>> while not manager.check_complete(job_id): pass
     >>> manager.clean_job_directory(job_id)
     """
@@ -55,6 +69,7 @@ class Manager(object):
         self.name = name
         self.setup_staging_directory(app.staging_directory)
         self.job_locks = dict({})
+        self.authorizer = app.authorizer
 
     def setup_staging_directory(self, staging_directory):
         assert not staging_directory == None
@@ -63,57 +78,61 @@ class Manager(object):
         assert os.path.isdir(staging_directory)
         self.staging_directory = staging_directory
 
-    def __job_file(self, job_id, name):
-        return os.path.join(self.job_directory(job_id), name)
+    def __job_directory(self, job_id):
+        return JobDirectory(self.staging_directory, job_id)
 
     def __read_job_file(self, job_id, name):
-        path = self.__job_file(job_id, name)
-        job_file = open(path, 'r')
-        try:
-            return job_file.read()
-        finally:
-            job_file.close()
+        return self.__job_directory(job_id).read_file(name)
 
     def __write_job_file(self, job_id, name, contents):
-        path = self.__job_file(job_id, name)
-        job_file = open(path, 'w')
-        try:
-            job_file.write(contents)
-        finally:
-            job_file.close()
+        self.__job_directory(job_id).write_file(name, contents)
 
     def _record_submission(self, job_id):
-        self.__write_job_file(job_id, 'submitted', 'true')
+        self.__write_job_file(job_id, JOB_FILE_SUBMITTED, 'true')
 
     def _record_cancel(self, job_id):
-        self.__write_job_file(job_id, 'cancelled', 'true')
+        self.__write_job_file(job_id, JOB_FILE_CANCELLED, 'true')
 
     def _is_cancelled(self, job_id):
-        return self._has_job_file(job_id, 'cancelled')
-
-    def _has_job_file(self, job_id, filename):
-        return os.path.exists(self.__job_file(job_id, filename))
+        return self.__job_directory(job_id).contains_file(JOB_FILE_CANCELLED)
 
     def _record_pid(self, job_id, pid):
-        self.__write_job_file(job_id, 'pid', str(pid))
+        self.__write_job_file(job_id, JOB_FILE_PID, str(pid))
 
     def get_pid(self, job_id):
         pid = None
         try:
-            pid = self.__read_job_file(job_id, 'pid')
+            pid = self.__read_job_file(job_id, JOB_FILE_PID)
             if pid != None:
                 pid = int(pid)
         except:
             pass
         return pid
 
+    def __get_authorization(self, job_id, tool_id=None):
+        job_directory = self.__job_directory(job_id)
+        if tool_id is None and job_directory.contains_file(JOB_FILE_TOOL_ID):
+            tool_id = job_directory.read_file(JOB_FILE_TOOL_ID)
+        return self.authorizer.get_authorization(tool_id)
+
+    def __unauthorized(self, msg):
+        raise Exception("Unauthorized action attempted: %s" % msg)
+
     def setup_job(self, input_job_id, tool_id, tool_version):
         job_id = self._register_job(input_job_id, True)
-        job_directory = self.job_directory(job_id)
-        os.mkdir(job_directory)
-        os.mkdir(self.inputs_directory(job_id))
-        os.mkdir(self.outputs_directory(job_id))
-        os.mkdir(self.working_directory(job_id))
+        authorization = self.__get_authorization(job_id, tool_id)
+        if not authorization.can_setup():
+            self.__unauthorized("Cannot submit tool with id '%s'" % tool_id)
+        job_directory = self.__job_directory(job_id)
+        job_directory.setup()
+        for directory in [JOB_DIRECTORY_INPUTS, JOB_DIRECTORY_WORKING, JOB_DIRECTORY_OUTPUTS]:
+            job_directory.make_directory(directory)
+
+        tool_id = str(tool_id) if tool_id else ""
+        tool_version = str(tool_version) if tool_version else ""
+
+        job_directory.write_file(JOB_FILE_TOOL_ID, tool_id)
+        job_directory.write_file(JOB_FILE_TOOL_VERSION, tool_version)
         return job_id
 
     def _get_job_id(self, galaxy_job_id):
@@ -145,36 +164,37 @@ class Manager(object):
         return os.path.join(self.staging_directory, job_id)
 
     def working_directory(self, job_id):
-        return os.path.join(self.job_directory(job_id), 'working')
+        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_WORKING)
 
     def inputs_directory(self, job_id):
-        return os.path.join(self.job_directory(job_id), 'inputs')
+        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_INPUTS)
 
     def outputs_directory(self, job_id):
-        return os.path.join(self.job_directory(job_id), 'outputs')
+        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_OUTPUTS)
 
     def check_complete(self, job_id):
-        return not os.path.exists(self.__job_file(job_id, 'submitted'))
+        return not self.__job_directory(job_id).contains_file(JOB_FILE_SUBMITTED)
 
     def return_code(self, job_id):
-        return int(self.__read_job_file(job_id, 'return_code'))
+        return int(self.__read_job_file(job_id, JOB_FILE_RETURN_CODE))
 
     def stdout_contents(self, job_id):
-        return self.__read_job_file(job_id, 'stdout')
+        return self.__read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT)
 
     def stderr_contents(self, job_id):
-        return self.__read_job_file(job_id, 'stderr')
+        return self.__read_job_file(job_id, JOB_FILE_STANDARD_ERROR)
 
     def get_status(self, job_id):
         with self._get_job_lock(job_id):
             return self._get_status(job_id)
 
     def _get_status(self, job_id):
+        job_directory = self.__job_directory(job_id)
         if self._is_cancelled(job_id):
             return 'cancelled'
-        elif self._has_job_file(job_id, 'pid'):
+        elif job_directory.contains_file(JOB_FILE_PID):
             return 'running'
-        elif self._has_job_file(job_id, 'submitted'):
+        elif job_directory.contains_file(JOB_FILE_SUBMITTED):
             return 'queued'
         else:
             return 'complete'
@@ -198,7 +218,7 @@ class Manager(object):
             pid = self.get_pid(job_id)
             if pid == None:
                 self._record_cancel(job_id)
-                self._attempt_remove_job_file(job_id, 'submitted')
+                self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
 
         if pid:
             kill_pid(pid)
@@ -209,20 +229,14 @@ class Manager(object):
             stdout.close()
             stderr.close()
             return_code = proc.returncode
-            self.__write_job_file(job_id, 'return_code', str(return_code))
+            self.__write_job_file(job_id, JOB_FILE_RETURN_CODE, str(return_code))
         finally:
             with self._get_job_lock(job_id):
                 self._finish_execution(job_id)
 
     def _finish_execution(self, job_id):
-        self._attempt_remove_job_file(job_id, 'submitted')
-        self._attempt_remove_job_file(job_id, 'pid')
-
-    def _attempt_remove_job_file(self, job_id, filename):
-        try:
-            os.remove(self.__job_file(job_id, filename))
-        except OSError:
-            pass
+        self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
+        self.__job_directory(job_id).remove_file(JOB_FILE_PID)
 
     def _run(self, job_id, command_line, async=True):
         with self._get_job_lock(job_id):
@@ -232,8 +246,8 @@ class Manager(object):
         preexec_fn = None
         if not self.is_windows():
             preexec_fn = os.setpgrp
-        stdout = open(self.__job_file(job_id, 'stdout'), 'w')
-        stderr = open(self.__job_file(job_id, 'stderr'), 'w')
+        stdout = self.__job_directory(job_id).open_file(JOB_FILE_STANDARD_OUTPUT, 'w')
+        stderr = self.__job_directory(job_id).open_file(JOB_FILE_STANDARD_ERROR, 'w')
         proc = subprocess.Popen(args=command_line,
                                 shell=True,
                                 cwd=working_directory,
@@ -250,3 +264,5 @@ class Manager(object):
     def launch(self, job_id, command_line):
         self._record_submission(job_id)
         self._run(job_id, command_line)
+
+__all__ = [Manager]

@@ -6,6 +6,7 @@ import time
 from lwr.persistence import PersistedJobStore
 from lwr.managers.queued import QueueManager
 from lwr.util import Bunch
+from lwr.tools.authorization import get_authorizer
 
 
 def test_persistence():
@@ -15,7 +16,9 @@ def test_persistence():
     staging_directory = tempfile.mkdtemp()
     try:
         persisted_job_store = PersistedJobStore(**{'shelf_filename': os.path.join(staging_directory, 'persisted_jobs')})
-        app = Bunch(persisted_job_store=persisted_job_store, staging_directory=staging_directory)
+        app = Bunch(persisted_job_store=persisted_job_store,
+                    staging_directory=staging_directory,
+                    authorizer=get_authorizer(None))
         queue1 = QueueManager('test', app, num_concurrent_jobs=0)
         job_id = queue1.setup_job('4', 'tool1', '1.0.0')
         touch_file = os.path.join(staging_directory, 'ran')
