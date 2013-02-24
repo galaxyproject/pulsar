@@ -46,6 +46,19 @@ class ToolBox(object):
         """
         return join(self.tool_path, relative_path)
 
+    def get_tool(self, id):
+        # Need to handle multiple tools per id someday, but
+        # starting simple.
+        tools = self.__find_tools_by_id(id)
+        if not tools:
+            raise KeyError("Failed to find tool with id '%s'" % id)
+        if len(tools) > 1:
+            log.warn("Found multiple tools with id '%s', returning first." % id)
+        return tools[0]
+
+    def __find_tools_by_id(self, id):
+        return [tool for tool in self.tool_configs if tool.id == id]
+
 
 class ToolConfig(object):
     """
