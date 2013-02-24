@@ -37,7 +37,7 @@ X Point LWR at a toolbox.
 X Obtain GUID/tool id from client. X Find file corresponding to GUID. 
 
  X Verify tool_id is in toolbox when submitting.
- _ When wrappers sent, verify contents against tool directory.
+ X When wrappers sent, verify contents against tool directory.
  _ When commands sent, check command against regular expression(?) syntax embedded in file.
  
 
