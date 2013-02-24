@@ -19,6 +19,8 @@ JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_DIRECTORY_INPUTS = "inputs"
 JOB_DIRECTORY_OUTPUTS = "outputs"
 JOB_DIRECTORY_WORKING = "working"
+JOB_DIRECTORY_CONFIGS = "configs"
+JOB_DIRECTORY_TOOL_FILES = "tool"
 
 
 class Manager(object):
@@ -123,7 +125,11 @@ class Manager(object):
 
         job_directory = self.__job_directory(job_id)
         job_directory.setup()
-        for directory in [JOB_DIRECTORY_INPUTS, JOB_DIRECTORY_WORKING, JOB_DIRECTORY_OUTPUTS]:
+        for directory in [JOB_DIRECTORY_INPUTS,
+                          JOB_DIRECTORY_WORKING,
+                          JOB_DIRECTORY_OUTPUTS,
+                          JOB_DIRECTORY_CONFIGS,
+                          JOB_DIRECTORY_TOOL_FILES]:
             job_directory.make_directory(directory)
 
         tool_id = str(tool_id) if tool_id else ""
@@ -169,6 +175,12 @@ class Manager(object):
 
     def outputs_directory(self, job_id):
         return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_OUTPUTS)
+
+    def configs_directory(self, job_id):
+        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_CONFIGS)
+
+    def tool_files_directory(self, job_id):
+        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_TOOL_FILES)
 
     def check_complete(self, job_id):
         return not self.__job_directory(job_id).contains_file(JOB_FILE_SUBMITTED)

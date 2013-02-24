@@ -32,15 +32,16 @@ def main():
         try:
             temp_input_file.write("Hello world input!!@!")
             temp_tool_file.write("""
+import sys
 output = open(r'%s%s%s', 'w')
-input = open(r'%s', 'r')
+input = open(sys.argv[1], 'r')
 try:
     contents = input.read(1024)
     output.write(contents)
 finally:
     output.close()
     input.close()
-""" % (output_directory, sep, "output.moo", "config.txt"))
+""" % (output_directory, sep, "output.moo"))
         finally:
             temp_input_file.close()
             temp_tool_file.close()
@@ -50,16 +51,16 @@ finally:
         assert 'path' in uploaded_input
         uploaded_tool_file = client.upload_tool_file(temp_tool_path)
         uploaded_config = client.upload_config_file(temp_config_path, "hello world output")
-        assert 'path' in uploaded_config
 
-        command = "python %s" % (uploaded_tool_file["path"])
+        command = "python '%s' '%s'" % (uploaded_tool_file["path"], uploaded_config['path'])
         client.launch(command)
         client.wait()
         output_path = os.path.join(temp_directory, "output.moo")
         client.download_output(output_path, temp_directory)
         output_file = open(output_path, 'r')
         try:
-            assert output_file.read() == "hello world output"
+            output_contents = output_file.read()
+            assert output_contents == "hello world output", "Invalid output_contents: %s" % output_contents
             print 'Test Successful!'
         finally:
             output_file.close()
@@ -68,7 +69,7 @@ finally:
         traceback.print_exc(e)
     finally:
         shutil.rmtree(temp_directory)
-        client.clean()
+        # client.clean()
 
 if __name__ == "__main__":
     main()
