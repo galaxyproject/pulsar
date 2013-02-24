@@ -4,17 +4,17 @@
 
 Write files outside valid directories.
 
-+ get_mapped_file used to build directories, ensures valid directory. Unit test in place.
+X get_mapped_file used to build directories, ensures valid directory. Unit test in place.
 
 Read files outside valid directories.
 
-+ _output_path in routes checks directory is valid. Unit test in place.
+X _output_path in routes checks directory is valid. Unit test in place.
 
 Execute unauthorized commands.
 
 TODO, enable whitelist of commands.
 
-Point LWR at a toolbox. 
+X Point LWR at a toolbox. 
 
     <?xml version="1.0"?>
     <toolbox tool_path="lwr_shed_tools">
@@ -28,17 +28,18 @@ Point LWR at a toolbox.
         </tool>
     </toolbox>
 
-    Add extension for simple tools as well:
+    X Add extension for simple tools as well:
 
     <toolbox..>
         <simple_tool file="/path/to/file.xml" />
     </toolbox>
 
-Obtain GUID/tool id from client. Find file corresponding to GUID. 
+X Obtain GUID/tool id from client. X Find file corresponding to GUID. 
 
-When wrappers sent, verify against contents of this directory.
-
-When commands sent, check command.
+ X Verify tool_id is in toolbox when submitting.
+ _ When wrappers sent, verify contents against tool directory.
+ _ When commands sent, check command against regular expression(?) syntax embedded in file.
+ 
 
 
 

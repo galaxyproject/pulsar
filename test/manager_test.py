@@ -34,10 +34,15 @@ class TestAuthorization(object):
 
     def __init__(self):
         self.allow_setup = True
+        self.allow_tool_file = True
 
-    def can_setup(self):
-        return self.allow_setup
+    def authorize_setup(self):
+        if not self.allow_setup:
+            raise Exception
 
+    def authorize_tool_file(self, name, contents):
+        if not self.allow_tool_file:
+            raise Exception
 
 class TestAuthorizer(object):
 

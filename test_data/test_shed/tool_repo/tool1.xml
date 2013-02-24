@@ -1,2 +1,8 @@
 <tool id="tool1" version="0.1">
+  <configfiles>
+    <configfile name="config1">
+      --option1='Hello'
+    </configfile>
+  </configfiles>
+  <command interpretr="python">tool1_wrapper.py --config $config1</command>
 </tool>

@@ -69,7 +69,8 @@ def kill(manager, job_id):
 
 @LwrController(response_type='json')
 def upload_tool_file(manager, job_id, name, body):
-    return _handle_upload_to_directory(manager.job_directory(job_id), name, body)
+    response = _handle_upload_to_directory(manager.job_directory(job_id), name, body)
+    return response
 
 
 @LwrController(response_type='json')

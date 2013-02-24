@@ -1,6 +1,6 @@
 
 from xml.etree import ElementTree
-from os.path import join
+from os.path import join, abspath, dirname
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -69,6 +69,9 @@ class ToolConfig(object):
         super(ToolConfig, self).__init__()
         self.toolbox = toolbox
 
+    def get_tool_dir(self):
+        return abspath(dirname(self.path))
+
 
 class SimpleToolConfig(ToolConfig):
     """
@@ -79,8 +82,9 @@ class SimpleToolConfig(ToolConfig):
 
     def __init__(self, toolbox, simple_tool_el):
         super(SimpleToolConfig, self).__init__(toolbox)
-        self.path = simple_tool_el.get('file')
-        resolved_path = toolbox.get_path(self.path)
+        rel_path = simple_tool_el.get('file')
+        resolved_path = toolbox.get_path(rel_path)
+        self.path = resolved_path
         tool_el = ElementTree.parse(resolved_path)
         self.id = tool_el.getroot().get('id')
         self.version = tool_el.getroot().get('version', '1.0.0')

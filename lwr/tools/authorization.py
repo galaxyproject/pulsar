@@ -1,9 +1,13 @@
+from os.path import basename, join
 
 
 class AllowAnyAuthorization(object):
 
-    def can_setup(self):
-        return True
+    def authorize_setup(self):
+        pass
+
+    def authorize_tool_file(self, name, contents):
+        pass
 
 
 class AllowAnyAuthorizer(object):
@@ -22,8 +26,22 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
     def __init__(self, tool):
         self.tool = tool
 
-    def can_setup(self):
-        return self.tool is not None
+    def __unauthorized(self, msg):
+        raise Exception("Unauthorized action attempted: %s" % msg)
+
+    def authorize_setup(self):
+        if self.tool is None:
+            self.__unauthorized("Attempt to setup a tool with id not registered with LWR toolbox.")
+
+    def authorize_tool_file(self, name, contents):
+        if name != basename(name):  # May be verified elsewhere, but this is important.
+            self.__unauthorized("Attempt to write tool file outside of valid directory.")
+        tool = self.tool
+        tool_dir = tool.get_tool_dir()
+        tool_dir_file = join(tool_dir, name)
+        allowed_contents = open(tool_dir_file).read()
+        if contents != allowed_contents:
+            self.__unauthorized("Attempt to write tool file with contents differing from LWR copy of tool file.")
 
 
 class ToolBasedAuthorizer(object):
@@ -36,7 +54,11 @@ class ToolBasedAuthorizer(object):
         self.toolbox = toolbox
 
     def get_authorization(self, tool_id):
-        tool = self.toolbox.get_tool(tool_id)
+        tool = None
+        try:
+            tool = self.toolbox.get_tool(tool_id)
+        except:
+            pass
         return ToolBasedAuthorization(tool)
 
 

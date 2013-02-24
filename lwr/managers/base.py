@@ -115,14 +115,12 @@ class Manager(object):
             tool_id = job_directory.read_file(JOB_FILE_TOOL_ID)
         return self.authorizer.get_authorization(tool_id)
 
-    def __unauthorized(self, msg):
-        raise Exception("Unauthorized action attempted: %s" % msg)
-
     def setup_job(self, input_job_id, tool_id, tool_version):
         job_id = self._register_job(input_job_id, True)
+
         authorization = self.__get_authorization(job_id, tool_id)
-        if not authorization.can_setup():
-            self.__unauthorized("Cannot submit tool with id '%s'" % tool_id)
+        authorization.authorize_setup()
+
         job_directory = self.__job_directory(job_id)
         job_directory.setup()
         for directory in [JOB_DIRECTORY_INPUTS, JOB_DIRECTORY_WORKING, JOB_DIRECTORY_OUTPUTS]:
