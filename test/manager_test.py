@@ -6,6 +6,8 @@ from lwr.util import Bunch
 from unittest import TestCase
 from shutil import rmtree
 
+from os.path import join
+
 
 class ManagerTest(TestCase):
 
@@ -29,6 +31,15 @@ class ManagerTest(TestCase):
         with self.assertRaises(Exception):
             self.manager.setup_job("123", "tool1", "1.0.0")
 
+    def test_unauthorized_tool_file(self):
+        self.authorizer.authorization.allow_tool_file = False
+        job_id = self.manager.setup_job("123", "tool1", "1.0.0")
+        tool_directory = self.manager.tool_files_directory(job_id)
+        open(join(tool_directory, "test.sh"), "w") \
+            .write("#!/bin/sh\ncat /etc/top_secret_passwords.txt")
+        with self.assertRaises(Exception):
+            self.manager.launch(job_id, 'python')
+
 
 class TestAuthorization(object):
 
@@ -44,12 +55,13 @@ class TestAuthorization(object):
         if not self.allow_tool_file:
             raise Exception
 
+
 class TestAuthorizer(object):
 
     def __init__(self):
         self.authorization = TestAuthorization()
 
-    def get_authorization(self):
+    def get_authorization(self, tool_id):
         return self.authorization
 
 

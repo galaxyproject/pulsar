@@ -272,7 +272,15 @@ class Manager(object):
             self._monitor_execution(job_id, proc, stdout, stderr)
 
     def launch(self, job_id, command_line):
+        self.__check_tool_files(job_id)
         self._record_submission(job_id)
         self._run(job_id, command_line)
+
+    def __check_tool_files(self, job_id):
+        authorization = self.__get_authorization(job_id)
+        tool_files_dir = self.tool_files_directory(job_id)
+        for file in os.listdir(tool_files_dir):
+            contents = open(os.path.join(tool_files_dir, file), 'r').read()
+            authorization.authorize_tool_file(os.path.basename(file), contents)
 
 __all__ = [Manager]
