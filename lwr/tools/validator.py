@@ -18,7 +18,8 @@ class ExpressionValidator(object):
         validated = match is not None
         if validated:
             for group in match.groups():
-                if not is_in_directory(group, join(job_directory.path, "inputs")):
+                if not is_in_directory(group, join(job_directory.path, "inputs")) \
+                  and not is_in_directory(group, join(job_directory.path, "outputs")):
                     validated = False
                     break
         return validated
@@ -62,6 +63,9 @@ class ExpressionValidator(object):
 
     def _input_to_regex(self, element, job_directory):
         return r"(%s.*)" % escape(join(job_directory.path, "inputs"))
+
+    def _output_to_regex(self, element, job_directory):
+        return r"(%s.*)" % escape(join(job_directory.path, "outputs"))
 
     def __value_or_text(self, element, attribute="value"):
         value = element.get(attribute, None)
