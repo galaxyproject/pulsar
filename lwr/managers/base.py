@@ -1,11 +1,9 @@
-import subprocess
 import os
 import shutil
 import thread
-import platform
 from threading import Lock
 
-from lwr.util import kill_pid, JobDirectory
+from lwr.util import kill_pid, JobDirectory, execute
 
 JOB_FILE_SUBMITTED = "submitted"
 JOB_FILE_CANCELLED = "cancelled"
@@ -216,9 +214,6 @@ class Manager(object):
         except OSError:
             return False
 
-    def is_windows(self):
-        return platform.system() == 'Windows'
-
     def kill(self, job_id):
         with self._get_job_lock(job_id):
             status = self._get_status(job_id)
@@ -253,17 +248,12 @@ class Manager(object):
             if self._is_cancelled(job_id):
                 return
         working_directory = self.working_directory(job_id)
-        preexec_fn = None
-        if not self.is_windows():
-            preexec_fn = os.setpgrp
         stdout = self.__job_directory(job_id).open_file(JOB_FILE_STANDARD_OUTPUT, 'w')
         stderr = self.__job_directory(job_id).open_file(JOB_FILE_STANDARD_ERROR, 'w')
-        proc = subprocess.Popen(args=command_line,
-                                shell=True,
-                                cwd=working_directory,
-                                stdout=stdout,
-                                stderr=stderr,
-                                preexec_fn=preexec_fn)
+        proc = execute(command_line=command_line,
+                       working_directory=working_directory,
+                       stdout=stdout,
+                       stderr=stderr)
         with self._get_job_lock(job_id):
             self._record_pid(job_id, proc.pid)
         if async:

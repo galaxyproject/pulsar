@@ -3,6 +3,7 @@ import platform
 import subprocess
 import time
 import posixpath
+from subprocess import Popen
 from collections import deque
 
 from logging import getLogger
@@ -112,6 +113,19 @@ class JobDirectory(object):
     def make_directory(self, name):
         path = self.__job_file(name)
         os.mkdir(path)
+
+
+def execute(command_line, working_directory, stdout, stderr):
+    preexec_fn = None
+    if not (platform.system() == 'Windows'):
+        preexec_fn = os.setpgrp
+    proc = subprocess.Popen(args=command_line,
+                            shell=True,
+                            cwd=working_directory,
+                            stdout=stdout,
+                            stderr=stderr,
+                            preexec_fn=preexec_fn)
+    return proc
 
 
 def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):
