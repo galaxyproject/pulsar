@@ -9,6 +9,9 @@ class AllowAnyAuthorization(object):
     def authorize_tool_file(self, name, contents):
         pass
 
+    def authorize_execution(self, command_line):
+        pass
+
 
 class AllowAnyAuthorizer(object):
     """
@@ -42,6 +45,10 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
         allowed_contents = open(tool_dir_file).read()
         if contents != allowed_contents:
             self.__unauthorized("Attempt to write tool file with contents differing from LWR copy of tool file.")
+
+    def authorize_execution(self, command_line):
+        # TODO: Implement
+        pass
 
 
 class ToolBasedAuthorizer(object):

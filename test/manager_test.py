@@ -42,6 +42,12 @@ class ManagerTest(TestCase):
         with self.assertRaises(Exception):
             self.manager.launch(job_id, 'python')
 
+    def test_unauthorized_command_line(self):
+        self.authorizer.authorization.allow_execution = False
+        job_id = self.manager.setup_job("123", "tool1", "1.0.0")
+        with self.assertRaises(Exception):
+            self.manager.launch(job_id, 'python')
+
     def test_simple_execution(self):
         manager = self.manager
         command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stderr.write(\'moo\')" """
@@ -73,6 +79,7 @@ class TestAuthorization(object):
     def __init__(self):
         self.allow_setup = True
         self.allow_tool_file = True
+        self.allow_execution = True
 
     def authorize_setup(self):
         if not self.allow_setup:
@@ -80,6 +87,10 @@ class TestAuthorization(object):
 
     def authorize_tool_file(self, name, contents):
         if not self.allow_tool_file:
+            raise Exception
+
+    def authorize_execution(self, command_line):
+        if not self.allow_execution:
             raise Exception
 
 
