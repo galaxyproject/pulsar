@@ -138,6 +138,84 @@ class ValidatorTest(TempDirectoryTestCase):
         self.__assertInvalid(xml, "tophat2 %s ../%s" % (self.__job_file("outputs", "dataset_23412.dat"),
                                                         self.__job_file("working", "..", "junctions.bed")))
 
+    def test_single_quotes(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <parameter name="--mate-std-dev">
+                <literal value="4" single_quote="true" />
+            </parameter>
+        </expression>"""
+        self.__assertValid(xml, "tophat2 --mate-std-dev '4'")
+        self.__assertValid(xml, "tophat2 --mate-std-dev='4'")
+        self.__assertInvalid(xml, "tophat2 --mate-std-dev=4")
+        self.__assertInvalid(xml, "tophat2 --mate-std-dev=\"4\"")
+
+    def test_double_quotes(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <parameter name="--mate-std-dev">
+                <literal value="4" double_quote="true" />
+            </parameter>
+        </expression>"""
+        self.__assertValid(xml, "tophat2 --mate-std-dev \"4\"")
+        self.__assertValid(xml, "tophat2 --mate-std-dev=\"4\"")
+        self.__assertInvalid(xml, "tophat2 --mate-std-dev=4")
+        self.__assertInvalid(xml, "tophat2 --mate-std-dev='4'")
+
+    def test_min(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <parameter name="--mate-std-dev" min="0">
+                <literal value="4" double_quote="true" />
+            </parameter>
+        </expression>"""
+        self.__assertValid(xml, "tophat2 --mate-std-dev \"4\"")
+        self.__assertValid(xml, "tophat2 ")
+        self.__assertInvalid(xml, "tophat2 --mate-std-dev=5")
+
+    def test_max(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <regex value="[a-z]" max="2"/>
+        </expression>"""
+        self.__assertValid(xml, "tophat2 a")
+        self.__assertValid(xml, "tophat2 a b")
+        self.__assertInvalid(xml, "tophat2 a b c")
+
+    def test_group(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <group>
+                <literal value="a" />
+                <regex value="[b-z]+" />
+                <literal value="a" />
+            </group>
+        </expression>"""
+        self.__assertValid(xml, "tophat2 aba")
+        self.__assertValid(xml, "tophat2 abba")
+        self.__assertInvalid(xml, "tophat2 abbbaa")
+        self.__assertInvalid(xml, "tophat2 abb")
+
+    def test_group_separate_by(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <group separate_by="x">
+                <literal value="a" />
+                <regex value="[b-z]+" />
+                <literal value="a" />
+            </group>
+        </expression>"""
+        self.__assertValid(xml, "tophat2 axbxa")
+        self.__assertValid(xml, "tophat2 axbxbxa")
+        self.__assertInvalid(xml, "tophat2 abba")
+        self.__assertInvalid(xml, "tophat2 axbxbxbxaxa")
+
     def __job_file(self, *args):
         return join(self.temp_directory, '1', *args)
 

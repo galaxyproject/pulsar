@@ -24,20 +24,46 @@ class ExpressionValidator(object):
                     break
         return validated
 
-    def _expression_to_regex(self, job_directory, element):
-        return r"\s+".join([self._element_to_regex(child, job_directory) for child in list(element)])
+    def _expression_to_regex(self, job_directory, element, default_sep="*spaces*"):
+        sep = element.get("separate_by", default_sep)
+        if sep == "*spaces*":
+            join_on = r" +"
+        elif sep == "*whitespace*":
+            join_on = r"\s+"
+        else:
+            join_on = escape(sep)
+        return join_on.join([self._element_to_regex(child, job_directory, join_on) for child in list(element)])
 
-    def _element_to_regex(self, element, job_directory):
+    def _element_to_regex(self, element, job_directory, join_on):
         tag = element.tag
         method_name = "_%s_to_regex" % tag
         try:
             method = getattr(self, method_name)
         except NameError:
             raise NameError("Unknown XML validation tag [%s]" % tag)
-        return method(element, job_directory)
+        regex = method(element, job_directory)
+        if self.__is_true(element.get("single_quote", "false")):
+            regex = r"'%s'" % regex
+        if self.__is_true(element.get("double_quote", "false")):
+            regex = r'"%s"' % regex
+        min_count = int(element.get("min", "1"))
+        max_count = int(element.get("max", "1"))
+        assert max_count > 0
+        if min_count != 1 or max_count != 1:
+            single_regex = r"(?:%s)" % regex
+            first = "%s%s" % (single_regex, "?" if min_count == 0 else "")
+            rest = r"(?:%s%s){%d,%d}" % (join_on, regex, max(min_count - 1, 0), max_count - 1)
+            regex = "%s%s" % (first, rest)
+        return regex
+
+    def __is_true(self, str):
+        return str and str.lower() == "true"
 
     def _literal_to_regex(self, element, job_directory):
         return escape(self.__value_or_text(element))
+
+    def _regex_to_regex(self, element, job_directory):
+        return self.__value_or_text(element)
 
     def _parameter_to_regex(self, element, job_directory):
         parameter_name = element.get('name')
@@ -70,6 +96,9 @@ class ExpressionValidator(object):
         if work_dir_file:
             regex = r"%s" % escape(join(job_directory.path, "working", work_dir_file))
         return regex
+
+    def _group_to_regex(self, element, job_directory):
+        return self._expression_to_regex(job_directory, element, default_sep="")
 
     def __value_or_text(self, element, attribute="value"):
         value = element.get(attribute, None)
