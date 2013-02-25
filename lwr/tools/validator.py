@@ -65,7 +65,11 @@ class ExpressionValidator(object):
         return r"(%s.*)" % escape(join(job_directory.path, "inputs"))
 
     def _output_to_regex(self, element, job_directory):
-        return r"(%s.*)" % escape(join(job_directory.path, "outputs"))
+        work_dir_file = element.get("from_work_dir", None)
+        regex = r"(%s.*)" % escape(join(job_directory.path, "outputs"))
+        if work_dir_file:
+            regex = r"%s" % escape(join(job_directory.path, "working", work_dir_file))
+        return regex
 
     def __value_or_text(self, element, attribute="value"):
         value = element.get(attribute, None)

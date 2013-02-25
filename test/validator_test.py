@@ -124,6 +124,20 @@ class ValidatorTest(TempDirectoryTestCase):
         self.__assertInvalid(xml, "tophat2 %s ../%s" % (self.__job_file("outputs", "dataset_23412.dat"),
                                                         self.__job_file("outputs", "dataset_1.dat")))
 
+    def test_outputs_from_work_dir(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <output />
+            <output from_work_dir="junctions.bed" />
+        </expression>
+        """
+        self.__assertValid(xml, "tophat2 %s %s" % (self.__job_file("outputs", "dataset_23412.dat"),
+                                                   self.__job_file("working", "junctions.bed")))
+
+        self.__assertInvalid(xml, "tophat2 %s ../%s" % (self.__job_file("outputs", "dataset_23412.dat"),
+                                                        self.__job_file("working", "..", "junctions.bed")))
+
     def __job_file(self, *args):
         return join(self.temp_directory, '1', *args)
 
