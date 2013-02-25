@@ -18,7 +18,7 @@ JOB_DIRECTORY_INPUTS = "inputs"
 JOB_DIRECTORY_OUTPUTS = "outputs"
 JOB_DIRECTORY_WORKING = "working"
 JOB_DIRECTORY_CONFIGS = "configs"
-JOB_DIRECTORY_TOOL_FILES = "tool"
+JOB_DIRECTORY_TOOL_FILES = "tool_files"
 
 
 class Manager(object):
