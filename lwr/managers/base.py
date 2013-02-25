@@ -28,40 +28,6 @@ class Manager(object):
     client code where Galaxy is used to maintain queue (like Galaxy's
     local job runner).
 
-    >>> import tempfile
-    >>> from lwr.util import Bunch
-    >>> from lwr.tools.authorization import get_authorizer
-    >>> staging_directory = tempfile.mkdtemp()
-    >>> shutil.rmtree(staging_directory)
-    >>> class PersistedJobStore:
-    ...     def next_id(self):
-    ...         yield 1
-    ...         yield 2
-    >>> app = Bunch(staging_directory=staging_directory, persisted_job_store=PersistedJobStore(), authorizer=get_authorizer(None))
-    >>> manager = Manager('_default_', app)
-    >>> assert os.path.exists(staging_directory)
-    >>> command = "python -c \\"import sys; sys.stdout.write('Hello World!'); sys.stderr.write('moo')\\""
-    >>> job_id = manager.setup_job("123", "tool1", "1.0.0")
-    >>> manager.launch(job_id, command)
-    >>> while not manager.check_complete(job_id): pass
-    >>> manager.return_code(job_id)
-    0
-    >>> manager.stdout_contents(job_id)
-    'Hello World!'
-    >>> manager.stderr_contents(job_id)
-    'moo'
-    >>> manager.clean_job_directory(job_id)
-    >>> os.listdir(staging_directory)
-    []
-    >>> job_id = manager.setup_job("124", "tool1", "1.0.0")
-    >>> command = "python -c \\"import time; time.sleep(10000)\\""
-    >>> manager.launch(job_id, command)
-    >>> import time
-    >>> time.sleep(0.1)
-    >>> manager.kill(job_id)
-    >>> manager.kill(job_id)  # Make sure kill doesn't choke if pid doesn't exist
-    >>> while not manager.check_complete(job_id): pass
-    >>> manager.clean_job_directory(job_id)
     """
     manager_type = "unqueued"
 

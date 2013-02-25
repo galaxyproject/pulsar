@@ -1,4 +1,5 @@
 import tempfile
+from time import sleep
 
 from lwr.managers.base import Manager
 from lwr.util import Bunch
@@ -6,6 +7,7 @@ from lwr.util import Bunch
 from unittest import TestCase
 from shutil import rmtree
 
+from os import listdir
 from os.path import join
 
 
@@ -39,6 +41,31 @@ class ManagerTest(TestCase):
             .write("#!/bin/sh\ncat /etc/top_secret_passwords.txt")
         with self.assertRaises(Exception):
             self.manager.launch(job_id, 'python')
+
+    def test_simple_execution(self):
+        manager = self.manager
+        command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stderr.write(\'moo\')" """
+        job_id = manager.setup_job("123", "tool1", "1.0.0")
+        manager.launch(job_id, command)
+        while not manager.check_complete(job_id):
+            pass
+        self.assertEquals(manager.stderr_contents(job_id), 'moo')
+        self.assertEquals(manager.stdout_contents(job_id), 'Hello World!')
+        self.assertEquals(manager.return_code(job_id), 0)
+        manager.clean_job_directory(job_id)
+        self.assertEquals(len(listdir(self.staging_directory)), 0)
+
+    def test_kill(self):
+        manager = self.manager
+        job_id = manager.setup_job("124", "tool1", "1.0.0")
+        command = """python -c "import time; time.sleep(10000)" """
+        manager.launch(job_id, command)
+        sleep(0.1)
+        manager.kill(job_id)
+        manager.kill(job_id)  # Make sure kill doesn't choke if pid doesn't exist
+        while not manager.check_complete(job_id):
+            pass
+        manager.clean_job_directory(job_id)
 
 
 class TestAuthorization(object):
