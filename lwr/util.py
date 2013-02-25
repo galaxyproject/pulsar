@@ -24,7 +24,7 @@ def kill_pid(pid):
 
     if is_windows:
         try:
-            subprocess.Popen("taskkill /F /T /PID %i" % pid, shell=True)
+            Popen("taskkill /F /T /PID %i" % pid, shell=True)
         except Exception:
             pass
     else:
@@ -76,6 +76,10 @@ class JobDirectory(object):
     def __job_file(self, name):
         return os.path.join(self.job_directory, name)
 
+    @property
+    def path(self):
+        return self.job_directory
+
     def read_file(self, name):
         path = self.__job_file(name)
         job_file = open(path, 'r')
@@ -119,12 +123,12 @@ def execute(command_line, working_directory, stdout, stderr):
     preexec_fn = None
     if not (platform.system() == 'Windows'):
         preexec_fn = os.setpgrp
-    proc = subprocess.Popen(args=command_line,
-                            shell=True,
-                            cwd=working_directory,
-                            stdout=stdout,
-                            stderr=stderr,
-                            preexec_fn=preexec_fn)
+    proc = Popen(args=command_line,
+                 shell=True,
+                 cwd=working_directory,
+                 stdout=stdout,
+                 stderr=stderr,
+                 preexec_fn=preexec_fn)
     return proc
 
 
