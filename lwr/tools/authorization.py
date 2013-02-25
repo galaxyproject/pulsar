@@ -37,8 +37,6 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
             self.__unauthorized("Attempt to setup a tool with id not registered with LWR toolbox.")
 
     def authorize_tool_file(self, name, contents):
-        if name != basename(name):  # May be verified elsewhere, but this is important.
-            self.__unauthorized("Attempt to write tool file outside of valid directory.")
         tool = self.tool
         tool_dir = tool.get_tool_dir()
         tool_dir_file = join(tool_dir, name)
@@ -47,7 +45,8 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
             self.__unauthorized("Attempt to write tool file with contents differing from LWR copy of tool file.")
 
     def authorize_execution(self, command_line):
-        # TODO: Implement
+
+        # TODO: Implement.
         pass
 
 
