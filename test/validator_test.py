@@ -71,7 +71,7 @@ class ValidatorTest(TempDirectoryTestCase):
             <tool_wrapper name="tool1_wrapper.py" />
         </expression>
         """
-        self.__assertValid(xml, "%s" % join(self.temp_directory, '1', 'tool_files', 'tool1_wrapper.py'))
+        self.__assertValid(xml, "%s" % self.__job_file('tool_files', 'tool1_wrapper.py'))
         self.__assertInvalid(xml, "tool1_wrapper.py")
 
     def test_config_file(self):
@@ -81,9 +81,37 @@ class ValidatorTest(TempDirectoryTestCase):
             <configfile name="top_opts" />
         </expression>
         """
-        self.__assertValid(xml, "tophat2 %s" % join(self.temp_directory, '1', 'configs', 'top_opts'))
-        self.__assertInvalid(xml, "tophat2 ../%s" % join(self.temp_directory, '1', 'configs', 'top_opts'))
-        self.__assertInvalid(xml, "tophat2 %s" % join(self.temp_directory, '1', 'configs', 'top_optsX'))
+        self.__assertValid(xml, "tophat2 %s" % self.__job_file('configs', 'top_opts'))
+        self.__assertInvalid(xml, "tophat2 ../%s" % self.__job_file('configs', 'top_opts'))
+        self.__assertInvalid(xml, "tophat2 %s" % self.__job_file('configs', 'top_optsX'))
+
+    def test_input_file(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <input />
+        </expression>
+        """
+        self.__assertValid(xml, "tophat2 %s" % self.__job_file("inputs", "dataset_23412.dat"))
+        self.__assertInvalid(xml, "tophat2 %s/../../../dataset23412.dat" % self.__job_file("inputs", "dataset_23412.dat"))
+        self.__assertInvalid(xml, "tophat2 ../%s" % self.__job_file("inputs", "dataset_23412.dat"))
+
+    def test_two_inputs(self):
+        xml = """
+        <expression>
+            <literal value="tophat2" />
+            <input />
+            <input />
+        </expression>
+        """
+        self.__assertValid(xml, "tophat2 %s %s" % (self.__job_file("inputs", "dataset_23412.dat"),
+                                                   self.__job_file("inputs", "dataset_1.dat")))
+
+        self.__assertInvalid(xml, "tophat2 %s ../%s" % (self.__job_file("inputs", "dataset_23412.dat"),
+                                                        self.__job_file("inputs", "dataset_1.dat")))
+
+    def __job_file(self, *args):
+        return join(self.temp_directory, '1', *args)
 
     def __validator(self, xml):
         return ExpressionValidator(xml)

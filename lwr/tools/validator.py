@@ -2,6 +2,7 @@ from xml.etree.ElementTree import fromstring
 from re import escape, compile
 
 from os.path import join
+from lwr.util import is_in_directory
 
 
 class ExpressionValidator(object):
@@ -13,7 +14,14 @@ class ExpressionValidator(object):
 
     def validate(self, job_directory, string):
         regex = "^%s$" % self._expression_to_regex(job_directory, self.xml_el)
-        return compile(regex).match(string) is not None
+        match = compile(regex).match(string)
+        validated = match is not None
+        if validated:
+            for group in match.groups():
+                if not is_in_directory(group, join(job_directory.path, "inputs")):
+                    validated = False
+                    break
+        return validated
 
     def _expression_to_regex(self, job_directory, element):
         return r"\s+".join([self._element_to_regex(child, job_directory) for child in list(element)])
@@ -51,6 +59,9 @@ class ExpressionValidator(object):
         wrapper_name = self.__value_or_text(element, "name")
         path = join(job_directory.path, "configs", wrapper_name)
         return escape(path)
+
+    def _input_to_regex(self, element, job_directory):
+        return r"(%s.*)" % escape(join(job_directory.path, "inputs"))
 
     def __value_or_text(self, element, attribute="value"):
         value = element.get(attribute, None)

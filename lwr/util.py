@@ -159,7 +159,7 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
 
 
 def verify_is_in_directory(path, directory, local_path_module=os.path):
-    if not __is_in_directory(path, directory, local_path_module):
+    if not is_in_directory(path, directory, local_path_module):
         msg = "Attempt to read or write file outside an authorized directory."
         log.warn("%s Attempted path: %s, valid directory: %s" % (msg, path, directory))
         raise Exception(msg)
@@ -185,7 +185,7 @@ def __posix_to_local_path(path, local_path_module=os.path):
     return local_path_module.join(*partial_path)
 
 
-def __is_in_directory(file, directory, local_path_module=os.path):
+def is_in_directory(file, directory, local_path_module=os.path):
     """
     Return true, if the common prefix of both is equal to directory
     e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
