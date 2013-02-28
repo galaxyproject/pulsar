@@ -21,19 +21,16 @@ class ToolBox(object):
         toolbox_tree = ElementTree.parse(path)
         toolbox_root = toolbox_tree.getroot()
         self.tool_path = toolbox_root.get('tool_path')
-        self.__load_simple_tools(toolbox_root)
-        self.__load_toolshed_tools(toolbox_root)
+        self.__load_tools_from_els(toolbox_root)
 
-    def __load_toolshed_tools(self, toolbox_root):
-        self.__load_tools_from_els(toolbox_root, 'tool', ToolShedToolConfig)
-
-    def __load_simple_tools(self, toolbox_root):
-        self.__load_tools_from_els(toolbox_root, 'simple_tool', SimpleToolConfig)
-
-    def __load_tools_from_els(self, toolbox_root, el_name, tool_cls):
-        els = toolbox_root.findall(el_name)
+    def __load_tools_from_els(self, toolbox_root):
+        els = toolbox_root.findall('tool')
         for el in els:
             try:
+                if 'guid' in el.attrib:
+                    tool_cls = ToolShedToolConfig
+                else:
+                    tool_cls = SimpleToolConfig
                 tool = tool_cls(self, el)
                 self.tool_configs.append(tool)
             except Exception, e:
@@ -113,13 +110,13 @@ class ToolConfig(object):
 class SimpleToolConfig(ToolConfig):
     """
     Abstract description of a Galaxy tool loaded from a
-    toolbox with the `simple_tool` tag, i.e. one not from
-    the toolshed.
+    toolbox with the `tool` tag not containing a guid, i.e.
+    one not from the toolshed.
     """
 
-    def __init__(self, toolbox, simple_tool_el):
+    def __init__(self, toolbox, tool_el):
         super(SimpleToolConfig, self).__init__(toolbox)
-        rel_path = simple_tool_el.get('file')
+        rel_path = tool_el.get('file')
         resolved_path = toolbox.get_path(rel_path)
         self.path = resolved_path
         root = self._root()
@@ -127,12 +124,25 @@ class SimpleToolConfig(ToolConfig):
         self.version = root.get('version', '1.0.0')
 
 
-class ToolShedToolConfig(ToolConfig):
+class ToolShedToolConfig(SimpleToolConfig):
     """
     Abstract description of a Galaxy tool loaded from a
     toolbox with the `tool` tag, i.e. one from the
     toolshed.
+
+    <tool file="../shed_tools/gvk.bx.psu.edu/repos/test/column_maker/f06aa1bf1e8a/column_maker/column_maker.xml" guid\
+="gvk.bx.psu.edu:9009/repos/test/column_maker/Add_a_column1/1.1.0">
+        <tool_shed>gvk.bx.psu.edu:9009</tool_shed>
+        <repository_name>column_maker</repository_name>
+        <repository_owner>test</repository_owner>
+        <installed_changeset_revision>f06aa1bf1e8a</installed_changeset_revision
+        <id>gvk.bx.psu.edu:9009/repos/test/column_maker/Add_a_column1/1.1.0</id>
+        <version>1.1.0</version>
+    </tool>
     """
 
-    def __init__(self, toolbox, simple_tool_el):
+    def __init__(self, toolbox, tool_el):
         super(ToolShedToolConfig, self).__init__(toolbox)
+        self.guid = tool_el.get("guid")
+        # Override id in file for tool shed tools. Use GUID instead.
+        self.id = self.guid
