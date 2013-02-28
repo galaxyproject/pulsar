@@ -1,6 +1,5 @@
 import os
 import platform
-import subprocess
 import time
 import posixpath
 from subprocess import Popen
@@ -72,6 +71,12 @@ class JobDirectory(object):
 
     def outputs_directory(self):
         return self._sub_dir('outputs')
+
+    def configs_directory(self):
+        return self._sub_dir('configs')
+
+    def tool_files_directory(self):
+        return self._sub_dir('tool_files')
 
     def __job_file(self, name):
         return os.path.join(self.job_directory, name)

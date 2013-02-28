@@ -10,6 +10,8 @@ from shutil import rmtree
 from os import listdir
 from os.path import join
 
+from test_utils import TestAuthorizer, TestPersistedJobStore
+
 
 class ManagerTest(TestCase):
 
@@ -48,6 +50,17 @@ class ManagerTest(TestCase):
         with self.assertRaises(Exception):
             self.manager.launch(job_id, 'python')
 
+    def test_unauthorized_config_file(self):
+        self.authorizer.authorization.allow_config = False
+        job_id = self.manager.setup_job("123", "tool1", "1.0.0")
+
+        config_directory = self.manager.configs_directory(job_id)
+        open(join(config_directory, "config1"), "w") \
+            .write("#!/bin/sh\ncat /etc/top_secret_passwords.txt")
+
+        with self.assertRaises(Exception):
+            self.manager.launch(job_id, 'python')
+
     def test_simple_execution(self):
         manager = self.manager
         command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stderr.write(\'moo\')" """
@@ -72,40 +85,3 @@ class ManagerTest(TestCase):
         while not manager.check_complete(job_id):
             pass
         manager.clean_job_directory(job_id)
-
-
-class TestAuthorization(object):
-
-    def __init__(self):
-        self.allow_setup = True
-        self.allow_tool_file = True
-        self.allow_execution = True
-
-    def authorize_setup(self):
-        if not self.allow_setup:
-            raise Exception
-
-    def authorize_tool_file(self, name, contents):
-        if not self.allow_tool_file:
-            raise Exception
-
-    def authorize_execution(self, command_line):
-        if not self.allow_execution:
-            raise Exception
-
-
-class TestAuthorizer(object):
-
-    def __init__(self):
-        self.authorization = TestAuthorization()
-
-    def get_authorization(self, tool_id):
-        return self.authorization
-
-
-class TestPersistedJobStore:
-
-    def next_id(self):
-        yield 1
-        yield 2
-        yield 3

@@ -1,4 +1,4 @@
-from os.path import basename, join
+from os.path import join
 
 
 class AllowAnyAuthorization(object):
@@ -9,7 +9,10 @@ class AllowAnyAuthorization(object):
     def authorize_tool_file(self, name, contents):
         pass
 
-    def authorize_execution(self, command_line):
+    def authorize_execution(self, job_directory, command_line):
+        pass
+
+    def authorize_config_file(self, job_directory, name, path):
         pass
 
 
@@ -44,10 +47,17 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
         if contents != allowed_contents:
             self.__unauthorized("Attempt to write tool file with contents differing from LWR copy of tool file.")
 
-    def authorize_execution(self, command_line):
+    def authorize_config_file(self, job_directory, name, path):
+        if not self.__inputs_validator.validate_configfile(job_directory, name, path):
+            self.__unauthorized("Attempt to utilize unauthorized configfile.")
 
-        # TODO: Implement.
-        pass
+    def authorize_execution(self, job_directory, command_line):
+        if not self.__inputs_validator.validate_command(job_directory, command_line):
+            self.__unauthorized("Attempt to execute unauthorized command.")
+
+    @property
+    def __inputs_validator(self):
+        return self.tool.inputs_validator
 
 
 class ToolBasedAuthorizer(object):

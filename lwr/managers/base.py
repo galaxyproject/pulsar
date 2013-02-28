@@ -234,10 +234,15 @@ class Manager(object):
 
     def __check_execution(self, job_id, command_line):
         authorization = self.__get_authorization(job_id)
+        job_directory = self.__job_directory(job_id)
         tool_files_dir = self.tool_files_directory(job_id)
         for file in os.listdir(tool_files_dir):
             contents = open(os.path.join(tool_files_dir, file), 'r').read()
             authorization.authorize_tool_file(os.path.basename(file), contents)
-        authorization.authorize_execution(command_line)
+        config_files_dir = self.configs_directory(job_id)
+        for file in os.listdir(config_files_dir):
+            path = os.path.join(config_files_dir, file)
+            authorization.authorize_config_file(job_directory, file, path)
+        authorization.authorize_execution(job_directory, command_line)
 
 __all__ = [Manager]

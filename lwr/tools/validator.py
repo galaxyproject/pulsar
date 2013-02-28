@@ -79,6 +79,8 @@ class ExpressionValidator(object):
 
     def _tool_wrapper_to_regex(self, element, job_directory):
         wrapper_name = self.__value_or_text(element, "name")
+        if not wrapper_name:
+            raise Exception("Invalid validator - found tool_wrapper element without name.")
         path = join(job_directory.path, "tool_files", wrapper_name)
         return escape(path)
 

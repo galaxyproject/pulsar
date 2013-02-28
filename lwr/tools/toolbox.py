@@ -1,4 +1,5 @@
 
+from lwr.tools.validator import ExpressionValidator
 from xml.etree import ElementTree
 from os.path import join, abspath, dirname
 
@@ -60,6 +61,24 @@ class ToolBox(object):
         return [tool for tool in self.tool_configs if tool.id == id]
 
 
+class InputsValidator(object):
+
+    def __init__(self, command_validator, config_validators):
+        self.command_validator = command_validator
+        self.config_validators = config_validators
+
+    def validate_command(self, job_directory, command):
+        return self.command_validator.validate(job_directory, command)
+
+    def validate_config(self, job_directory, name, path):
+        config_validator = self.config_validators.get(name, None)
+        valid = True
+        if config_validator:
+            contents = open(path, "r").read()
+            valid = config_validator.validate(job_directory, contents)
+        return valid
+
+
 class ToolConfig(object):
     """
     Abstract description of a Galaxy tool.
@@ -71,6 +90,24 @@ class ToolConfig(object):
 
     def get_tool_dir(self):
         return abspath(dirname(self.path))
+
+    @property
+    def inputs_validator(self):
+        if not hasattr(self, "_inputs_validator"):
+            command_el = self._root().find("./validators/command_validator")
+            command_validator = ExpressionValidator(command_el)
+            config_validators = {}
+            for config_el in self._root().findall("./validators/configfile_validator"):
+                name = config_el.get("name")
+                config_validators[name] = ExpressionValidator(config_el)
+            self._inputs_validator = InputsValidator(command_validator, config_validators)
+        return self._inputs_validator
+
+    def _root(self):
+        return self._el().getroot()
+
+    def _el(self):
+        return ElementTree.parse(self.path)
 
 
 class SimpleToolConfig(ToolConfig):
@@ -85,9 +122,9 @@ class SimpleToolConfig(ToolConfig):
         rel_path = simple_tool_el.get('file')
         resolved_path = toolbox.get_path(rel_path)
         self.path = resolved_path
-        tool_el = ElementTree.parse(resolved_path)
-        self.id = tool_el.getroot().get('id')
-        self.version = tool_el.getroot().get('version', '1.0.0')
+        root = self._root()
+        self.id = root.get('id')
+        self.version = root.get('version', '1.0.0')
 
 
 class ToolShedToolConfig(ToolConfig):
