@@ -26,4 +26,16 @@ staging_directory = lwr_staging
 #job_managers_config = job_managers.ini
 
 ## Uncomment to enable job persistence
-# shelf_filename = persisted_jobs
+#shelf_filename = persisted_jobs
+
+## How are ids assigned. galaxy (default) just passes through ids as
+## is. Setting this uuid assigns each job a UUID, this is strongly
+## encouraged if multiple Galaxy servers are targetting one LWR server.
+#assign_ids = uuid
+
+## Comma separated list of paths to toolbox files. If this is set, LWR
+## will use the information contained in the tools to lock down what
+## the LWR can execute. This absolutely *SHOULD* be enabled if the LWR
+## server is being opened to the world. See the documentation
+## (lwr.readthedocs.org) for more information about securing LWR.
+# tool_config_files = toolbox/conf.xml

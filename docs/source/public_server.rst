@@ -24,7 +24,7 @@ public `LWR` server.
   being assigned a UUID, ensuring different clients will not and
   cannot interfer with each other.
 
-- ``toolbox_path=/path/to/tools.xml`` - As noted above, this is used to
+- ``tool_config_files=/path/to/tools.xml`` - As noted above, this is used to
   restrict what tools clients can run. All tools on public LWR servers
   should have validators for commands (and optionally for configfiles)
   defined. The syntax for these elements can be found in the
