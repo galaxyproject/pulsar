@@ -13,29 +13,43 @@ MANAGER_PREFIX = 'manager:'
 DEFAULT_MANAGER_NAME = '_default_'
 
 
-def build_managers(app, config_file):
+def build_managers(app, conf):
     """
     Takes in a config file as outlined in job_managers.ini.sample and builds
     a dictionary of job manager objects from them.
     """
+    job_managers_config = conf.get("job_managers_config", None)
+
+    # Load default options from config file that apply to all
+    # managers.
+    default_options = _get_default_options(conf)
+
     manager_classes = _get_managers_dict()
     managers = {}
 
-    if not config_file:
+    if not job_managers_config:
         managers[DEFAULT_MANAGER_NAME] = _build_manager(QueueManager, app)
     else:
         config = ConfigParser()
-        config.readfp(open(config_file))
+        config.readfp(open(job_managers_config))
         for section in config.sections():
             if not section.startswith(MANAGER_PREFIX):
                 continue
             manager_name = section[len(MANAGER_PREFIX):]
-            managers[manager_name] = _parse_manager(manager_classes, app, manager_name, config)
+            managers[manager_name] = \
+                _parse_manager(manager_classes, app, manager_name, config, default_options)
 
     return managers
 
 
-def _parse_manager(manager_classes, app, manager_name, config):
+def _get_default_options(conf):
+    options = {}
+    if "assign_ids" in conf:
+        options["assign_ids"] = conf["assign_ids"]
+    return options
+
+
+def _parse_manager(manager_classes, app, manager_name, config, default_options):
     section_name = '%s%s' % (MANAGER_PREFIX, manager_name)
     try:
         manager_type = config.getboolean(section_name, 'type')
@@ -43,7 +57,11 @@ def _parse_manager(manager_classes, app, manager_name, config):
         manager_type = 'queued_python'
 
     manager_class = manager_classes[manager_type]
-    manager_options = dict(config.items(section_name))
+
+    # Merge default and specific manager options.
+    manager_options = dict(default_options)
+    manager_options.update(dict(config.items(section_name)))
+
     return _build_manager(manager_class, app, manager_name, manager_options)
 
 

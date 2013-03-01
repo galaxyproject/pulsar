@@ -30,12 +30,14 @@ class LwrApp(RoutingApp):
     """
 
     def __init__(self, **conf):
+        if conf == None:
+            conf = {}
         RoutingApp.__init__(self)
         self.__setup_staging_directory(conf.get('staging_directory', "lwr_staging"))
         self.__setup_private_key(conf.get("private_key", None))
         self.__setup_persisted_job_store(conf)
         self.__setup_tool_config(conf.get("toolbox_path", None))
-        self.__setup_managers(conf.get("job_managers_config", None))
+        self.__setup_managers(conf)
         self.__setup_routes()
 
     def shutdown(self):
@@ -64,8 +66,8 @@ class LwrApp(RoutingApp):
     def __setup_persisted_job_store(self, conf):
         self.persisted_job_store = PersistedJobStore(**conf)
 
-    def __setup_managers(self, job_managers_config):
-        self.managers = build_managers(self, job_managers_config)
+    def __setup_managers(self, conf):
+        self.managers = build_managers(self, conf)
 
     def __setup_private_key(self, private_key):
         self.private_key = private_key

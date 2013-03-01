@@ -25,7 +25,10 @@ class ManagerTest(TestCase):
                          persisted_job_store=TestPersistedJobStore(),
                          authorizer=self.authorizer)
 
-        self.manager = Manager('_default_', self.app)
+        self._set_manager()
+
+    def _set_manager(self, **kwds):
+        self.manager = Manager('_default_', self.app, **kwds)
 
     def tearDown(self):
         rmtree(self.staging_directory)
@@ -49,6 +52,15 @@ class ManagerTest(TestCase):
         job_id = self.manager.setup_job("123", "tool1", "1.0.0")
         with self.assertRaises(Exception):
             self.manager.launch(job_id, 'python')
+
+    def test_id_assigners(self):
+        self._set_manager(assign_ids="galaxy")
+        job_id = self.manager.setup_job("123", "tool1", "1.0.0")
+        self.assertEqual(job_id, "123")
+
+        self._set_manager(assign_ids="uuid")
+        job_id = self.manager.setup_job("124", "tool1", "1.0.0")
+        self.assertNotEqual(job_id, "124")
 
     def test_unauthorized_config_file(self):
         self.authorizer.authorization.allow_config = False

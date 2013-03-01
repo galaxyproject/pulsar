@@ -2,6 +2,7 @@ import os
 import shutil
 import thread
 from threading import Lock
+from uuid import uuid4
 
 from lwr.util import kill_pid, JobDirectory, execute
 
@@ -20,6 +21,22 @@ JOB_DIRECTORY_WORKING = "working"
 JOB_DIRECTORY_CONFIGS = "configs"
 JOB_DIRECTORY_TOOL_FILES = "tool_files"
 
+DEFAULT_ID_ASSIGNER = "galaxy"
+
+ID_ASSIGNER = {
+    # Generate a random id, needed if multiple
+    # Galaxy instances submitting to same LWR.
+    'uuid': lambda galaxy_job_id: uuid4().hex,
+    # Pass galaxy id through, default for single
+    # Galaxy LWR instance.
+    'galaxy': lambda galaxy_job_id: galaxy_job_id
+}
+
+
+def get_id_assigner(assign_ids):
+    default_id_assigner = ID_ASSIGNER[DEFAULT_ID_ASSIGNER]
+    return ID_ASSIGNER.get(assign_ids, default_id_assigner)
+
 
 class Manager(object):
     """
@@ -34,6 +51,7 @@ class Manager(object):
     def __init__(self, name, app, **kwds):
         self.name = name
         self.setup_staging_directory(app.staging_directory)
+        self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
         self.job_locks = dict({})
         self.authorizer = app.authorizer
 
@@ -104,7 +122,7 @@ class Manager(object):
         return job_id
 
     def _get_job_id(self, galaxy_job_id):
-        return str(galaxy_job_id)
+        return str(self.id_assigner(galaxy_job_id))
 
     def _register_job(self, job_id, new=True):
         if new:
