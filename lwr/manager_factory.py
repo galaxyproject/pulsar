@@ -28,7 +28,7 @@ def build_managers(app, conf):
     managers = {}
 
     if not job_managers_config:
-        managers[DEFAULT_MANAGER_NAME] = _build_manager(QueueManager, app)
+        managers[DEFAULT_MANAGER_NAME] = _build_manager(QueueManager, app, DEFAULT_MANAGER_NAME, default_options)
     else:
         config = ConfigParser()
         config.readfp(open(job_managers_config))
