@@ -15,15 +15,16 @@ class ToolBox(object):
     to support simple, non-toolshed based tool setups.
     """
 
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, path_string):
         self.tool_configs = []
-        toolbox_tree = ElementTree.parse(path)
-        toolbox_root = toolbox_tree.getroot()
-        self.tool_path = toolbox_root.get('tool_path')
-        self.__load_tools_from_els(toolbox_root)
+        paths = [path.strip() for path in path_string.split(",")]
+        for path in paths:
+            toolbox_tree = ElementTree.parse(path)
+            toolbox_root = toolbox_tree.getroot()
+            tool_path = toolbox_root.get('tool_path')
+            self.__load_tools_from_els(toolbox_root, tool_path)
 
-    def __load_tools_from_els(self, toolbox_root):
+    def __load_tools_from_els(self, toolbox_root, tool_path):
         els = toolbox_root.findall('tool')
         for el in els:
             try:
@@ -31,18 +32,11 @@ class ToolBox(object):
                     tool_cls = ToolShedToolConfig
                 else:
                     tool_cls = SimpleToolConfig
-                tool = tool_cls(self, el)
+                tool = tool_cls(el, tool_path)
                 self.tool_configs.append(tool)
             except Exception, e:
                 print str(e)
                 log.exception('Failed to load tool.')
-
-    def get_path(self, relative_path):
-        """
-        Resolve relative paths defined in toolbox XML using
-        self.path as a base.
-        """
-        return join(self.tool_path, relative_path)
 
     def get_tool(self, id):
         # Need to handle multiple tools per id someday, but
@@ -81,9 +75,8 @@ class ToolConfig(object):
     Abstract description of a Galaxy tool.
     """
 
-    def __init__(self, toolbox):
+    def __init__(self):
         super(ToolConfig, self).__init__()
-        self.toolbox = toolbox
 
     def get_tool_dir(self):
         return abspath(dirname(self.path))
@@ -114,10 +107,10 @@ class SimpleToolConfig(ToolConfig):
     one not from the toolshed.
     """
 
-    def __init__(self, toolbox, tool_el):
-        super(SimpleToolConfig, self).__init__(toolbox)
+    def __init__(self, tool_el, tool_path):
+        super(SimpleToolConfig, self).__init__()
         rel_path = tool_el.get('file')
-        resolved_path = toolbox.get_path(rel_path)
+        resolved_path = join(tool_path, rel_path)
         self.path = resolved_path
         root = self._root()
         self.id = root.get('id')
@@ -141,8 +134,8 @@ class ToolShedToolConfig(SimpleToolConfig):
     </tool>
     """
 
-    def __init__(self, toolbox, tool_el):
-        super(ToolShedToolConfig, self).__init__(toolbox)
+    def __init__(self, tool_el, tool_path):
+        super(ToolShedToolConfig, self).__init__(tool_el, tool_path)
         self.guid = tool_el.get("guid")
         # Override id in file for tool shed tools. Use GUID instead.
         self.id = self.guid
