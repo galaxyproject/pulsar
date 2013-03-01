@@ -36,7 +36,7 @@ class LwrApp(RoutingApp):
         self.__setup_staging_directory(conf.get('staging_directory', "lwr_staging"))
         self.__setup_private_key(conf.get("private_key", None))
         self.__setup_persisted_job_store(conf)
-        self.__setup_tool_config(conf.get("toolbox_path", None))
+        self.__setup_tool_config(conf)
         self.__setup_managers(conf)
         self.__setup_routes()
 
@@ -47,16 +47,21 @@ class LwrApp(RoutingApp):
             except:
                 pass
 
-    def __setup_tool_config(self, toolbox_path):
+    def __setup_tool_config(self, conf):
         """
         Setups toolbox object and authorization mechanism based
         on supplied toolbox_path.
         """
+        tool_config_files = conf.get("tool_config_files", None)
+        if not tool_config_files:
+            # For compatibity with Galaxy, allow tool_config_file
+            # option name.
+            tool_config_files = conf.get("tool_config_file", None)
         toolbox = None
-        if toolbox_path:
-            toolbox = ToolBox(toolbox_path)
+        if tool_config_files:
+            toolbox = ToolBox(tool_config_files)
         else:
-            log.info("Starting the LWR without a toolbox to white-list tools with, please ensure this application is protected by firewall or a configured private token.")
+            log.info("Starting the LWR without a toolbox to white-list tools with, ensure this application is protected by firewall or a configured private token.")
         self.toolbox = toolbox
         self.authorizer = get_authorizer(toolbox)
 
