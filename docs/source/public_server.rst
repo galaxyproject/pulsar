@@ -10,7 +10,7 @@ to restrict what what the LWR will run.
 This can be sort of thought of as web services defined by Galaxy tool
 files - with all the advantages (dead simple configuration for
 clients, ability to hide details related date and computation) and
-disadvantages (lack or reproducibility if the LWR server goes away,
+disadvantages (lack of reproducibility if the LWR server goes away,
 potential lack of transparency).
 
 Securing a Public LWR
