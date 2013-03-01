@@ -110,6 +110,8 @@ class SimpleToolConfig(ToolConfig):
     def __init__(self, tool_el, tool_path):
         super(SimpleToolConfig, self).__init__()
         rel_path = tool_el.get('file')
+        assert tool_path, "tool_path not set, toolbox XML files must be configured with a tool_path directory."
+        assert rel_path, "file not set on tool, each tool element must define a file attribute pointing to a valid tool XML file."
         resolved_path = join(tool_path, rel_path)
         self.path = resolved_path
         root = self._root()
