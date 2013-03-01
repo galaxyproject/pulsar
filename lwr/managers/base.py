@@ -6,6 +6,9 @@ from uuid import uuid4
 
 from lwr.util import kill_pid, JobDirectory, execute
 
+from logging import getLogger
+log = getLogger(__name__)
+
 JOB_FILE_SUBMITTED = "submitted"
 JOB_FILE_CANCELLED = "cancelled"
 JOB_FILE_PID = "pid"
@@ -246,16 +249,21 @@ class Manager(object):
             self._monitor_execution(job_id, proc, stdout, stderr)
 
     def launch(self, job_id, command_line):
-        self.__check_execution(job_id, command_line)
-        self._record_submission(job_id)
+        self._prepare_run(job_id, command_line)
         self._run(job_id, command_line)
 
+    def _prepare_run(self, job_id, command_line):
+        self.__check_execution(job_id, command_line)
+        self._record_submission(job_id)
+
     def __check_execution(self, job_id, command_line):
+        log.debug("job_id: %s - Checking authorization of command_line [%s]" % (job_id, command_line))
         authorization = self.__get_authorization(job_id)
         job_directory = self.__job_directory(job_id)
         tool_files_dir = self.tool_files_directory(job_id)
         for file in os.listdir(tool_files_dir):
             contents = open(os.path.join(tool_files_dir, file), 'r').read()
+            log.debug("job_id: %s - checking tool file %s" % (job_id, file))
             authorization.authorize_tool_file(os.path.basename(file), contents)
         config_files_dir = self.configs_directory(job_id)
         for file in os.listdir(config_files_dir):

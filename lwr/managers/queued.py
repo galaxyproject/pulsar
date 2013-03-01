@@ -48,7 +48,7 @@ class QueueManager(Manager):
     #    return str(self.persisted_job_store.next_id())
 
     def launch(self, job_id, command_line):
-        self._record_submission(job_id)
+        self._prepare_run(job_id, command_line)
         self.work_queue.put((RUN, (job_id, command_line)))
         self.persisted_job_store.enqueue(self.name, job_id, command_line)
 
