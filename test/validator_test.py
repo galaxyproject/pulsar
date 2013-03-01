@@ -10,53 +10,53 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_literal(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2")
         self.__assertInvalid(xml, "bowtie")
 
     def test_two_literals(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="python" />
             <literal value="setup.py" />
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "python setup.py")
         self.__assertInvalid(xml, "pythonsetup.py")
 
     def test_parameter(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <parameter name="--mate-std-dev">
                 <literal value="4" />
             </parameter>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 --mate-std-dev 4")
         self.__assertValid(xml, "tophat2 --mate-std-dev=4")
         self.__assertInvalid(xml, "tophat2 --mate-std-dev=5")
 
     def test_integer(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <parameter name="--mate-std-dev">
                 <integer />
             </parameter>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 --mate-std-dev 4")
         self.__assertValid(xml, "tophat2 --mate-std-dev=4")
         self.__assertInvalid(xml, "tophat2 --mate-std-dev=5.0")
 
     def test_float(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <parameter name="--mate-std-dev">
                 <float />
             </parameter>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 --mate-std-dev 4")
         self.__assertValid(xml, "tophat2 --mate-std-dev=4")
         self.__assertValid(xml, "tophat2 --mate-std-dev=5.0")
@@ -67,19 +67,19 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_tool_wrapper(self):
         xml = """
-        <expression>
+        <command_validator>
             <tool_wrapper name="tool1_wrapper.py" />
-        </expression>
+        </command_validator>
         """
         self.__assertValid(xml, "%s" % self.__job_file('tool_files', 'tool1_wrapper.py'))
         self.__assertInvalid(xml, "tool1_wrapper.py")
 
     def test_config_file(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <configfile name="top_opts" />
-        </expression>
+        </command_validator>
         """
         self.__assertValid(xml, "tophat2 %s" % self.__job_file('configs', 'top_opts'))
         self.__assertInvalid(xml, "tophat2 ../%s" % self.__job_file('configs', 'top_opts'))
@@ -87,10 +87,10 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_input_file(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <input />
-        </expression>
+        </command_validator>
         """
         self.__assertValid(xml, "tophat2 %s" % self.__job_file("inputs", "dataset_23412.dat"))
         self.__assertInvalid(xml, "tophat2 %s/../../../dataset23412.dat" % self.__job_file("inputs", "dataset_23412.dat"))
@@ -98,11 +98,11 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_two_inputs(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <input />
             <input />
-        </expression>
+        </command_validator>
         """
         self.__assertValid(xml, "tophat2 %s %s" % (self.__job_file("inputs", "dataset_23412.dat"),
                                                    self.__job_file("inputs", "dataset_1.dat")))
@@ -112,11 +112,11 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_outputs_file(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <output />
             <output />
-        </expression>
+        </command_validator>
         """
         self.__assertValid(xml, "tophat2 %s %s" % (self.__job_file("outputs", "dataset_23412.dat"),
                                                    self.__job_file("outputs", "dataset_1.dat")))
@@ -126,11 +126,11 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_outputs_from_work_dir(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <output />
             <output from_work_dir="junctions.bed" />
-        </expression>
+        </command_validator>
         """
         self.__assertValid(xml, "tophat2 %s %s" % (self.__job_file("outputs", "dataset_23412.dat"),
                                                    self.__job_file("working", "junctions.bed")))
@@ -140,12 +140,12 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_single_quotes(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <parameter name="--mate-std-dev">
                 <literal value="4" single_quote="true" />
             </parameter>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 --mate-std-dev '4'")
         self.__assertValid(xml, "tophat2 --mate-std-dev='4'")
         self.__assertInvalid(xml, "tophat2 --mate-std-dev=4")
@@ -153,12 +153,12 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_double_quotes(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <parameter name="--mate-std-dev">
                 <literal value="4" double_quote="true" />
             </parameter>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 --mate-std-dev \"4\"")
         self.__assertValid(xml, "tophat2 --mate-std-dev=\"4\"")
         self.__assertInvalid(xml, "tophat2 --mate-std-dev=4")
@@ -166,36 +166,36 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_min(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <parameter name="--mate-std-dev" min="0">
                 <literal value="4" double_quote="true" />
             </parameter>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 --mate-std-dev \"4\"")
         self.__assertValid(xml, "tophat2 ")
         self.__assertInvalid(xml, "tophat2 --mate-std-dev=5")
 
     def test_max(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <regex value="[a-z]" max="2"/>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 a")
         self.__assertValid(xml, "tophat2 a b")
         self.__assertInvalid(xml, "tophat2 a b c")
 
     def test_group(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <group>
                 <literal value="a" />
                 <regex value="[b-z]+" />
                 <literal value="a" />
             </group>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 aba")
         self.__assertValid(xml, "tophat2 abba")
         self.__assertInvalid(xml, "tophat2 abbbaa")
@@ -203,14 +203,14 @@ class ValidatorTest(TempDirectoryTestCase):
 
     def test_group_separate_by(self):
         xml = """
-        <expression>
+        <command_validator>
             <literal value="tophat2" />
             <group separate_by="x">
                 <literal value="a" />
                 <regex value="[b-z]+" />
                 <literal value="a" />
             </group>
-        </expression>"""
+        </command_validator>"""
         self.__assertValid(xml, "tophat2 axbxa")
         self.__assertValid(xml, "tophat2 axbxbxa")
         self.__assertInvalid(xml, "tophat2 abba")

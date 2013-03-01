@@ -40,6 +40,14 @@
     :undoc-members:
     :show-inheritance:
 
+:mod:`lwr.tools` Module
+-----------------------
+
+.. automodule:: lwr.tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`lwr.util` Module
 -----------------------------
 

@@ -6,6 +6,8 @@
 
 .. include:: ../../README.rst
 
+.. include:: public_server.rst
+
 -----------
 Server Code
 -----------
