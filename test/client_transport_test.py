@@ -26,9 +26,11 @@ def _test_transport(transport):
 
 
 def test_get_transport():
-    assert type(get_transport(FakeOsModule("1"))) == PycurlTransport
-    assert type(get_transport(FakeOsModule("TRUE"))) == PycurlTransport
-    assert type(get_transport(FakeOsModule("0"))) == Urllib2Transport
+    assert type(get_transport(None, FakeOsModule("1"))) == PycurlTransport
+    assert type(get_transport(None, FakeOsModule("TRUE"))) == PycurlTransport
+    assert type(get_transport(None, FakeOsModule("0"))) == Urllib2Transport
+    assert type(get_transport('urllib', FakeOsModule("TRUE"))) == Urllib2Transport
+    assert type(get_transport('curl', FakeOsModule("TRUE"))) == PycurlTransport
 
 
 class FakeOsModule(object):
