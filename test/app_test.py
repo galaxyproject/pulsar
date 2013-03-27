@@ -9,7 +9,7 @@ import time
 
 
 def test_app():
-    """ Tests all of the app controller methods. These tests should be
+    """ Tests app controller methods. These tests should be
     compartmentalized. Also these methods should be made to not retest
     the behavior of the associated Manager class. """
 
