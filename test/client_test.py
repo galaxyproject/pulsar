@@ -176,6 +176,39 @@ def test_wait():
     assert wait_response['stdout'] == "output"
 
 
+def test_get_status_complete_legacy():
+    client = TestClient()
+    request_checker = RequestChecker("check_complete")
+    client.expect_open(request_checker, '{"complete": "true", "stdout" : "output"}')
+    assert client.get_status() == "complete"
+    request_checker.assert_called()
+
+
+def test_get_status_running_legacy():
+    client = TestClient()
+    request_checker = RequestChecker("check_complete")
+    client.expect_open(request_checker, '{"complete": "false"}')
+    assert client.get_status() == "running"
+    request_checker.assert_called()
+
+
+def test_get_status_queued():
+    client = TestClient()
+    request_checker = RequestChecker("check_complete")
+    client.expect_open(request_checker, '{"complete": "false", "status" : "queued"}')
+    assert client.get_status() == "queued"
+    request_checker.assert_called()
+
+
+def test_get_status_invalid():
+    client = TestClient()
+    request_checker = RequestChecker("check_complete")
+    # Mimic bug in specific older LWR instances.
+    client.expect_open(request_checker, '{"complete": "false", "status" : "status"}')
+    assert client.get_status() == "running"
+    request_checker.assert_called()
+
+
 def test_kill():
     client = TestClient()
     request_checker = RequestChecker("kill")
