@@ -53,7 +53,7 @@ def check_complete(manager, job_id):
         stdout_contents = manager.stdout_contents(job_id)
         stderr_contents = manager.stderr_contents(job_id)
         return {"complete": "true",
-                "status": "status",
+                "status": status,
                 "returncode": return_code,
                 "stdout": stdout_contents,
                 "stderr": stderr_contents}
