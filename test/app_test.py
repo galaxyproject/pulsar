@@ -46,6 +46,12 @@ def test_app():
         download_response = test_app.get("/download_output?job_id=%s&name=test_output" % job_id)
         assert download_response.body == "Hello World!"
 
+        try:
+            test_app.get("/download_output?job_id=%s&name=test_output2" % job_id)
+            assert False  # Should throw exception
+        except:
+            pass
+
         command_line = urllib.quote("""python -c "import sys; sys.stdout.write('test_out')" """)
         launch_response = test_app.get("/launch?job_id=%s&command_line=%s" % (job_id, command_line))
         assert launch_response.body == 'OK'

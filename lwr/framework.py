@@ -7,6 +7,7 @@ from webob import Response
 from webob import exc
 
 import inspect
+from os.path import exists
 import re
 
 from simplejson import dumps
@@ -94,7 +95,11 @@ class Controller(object):
                 resp = Response(body=dumps(result))
             elif self.response_type == 'file':
                 resp = Response()
-                resp.app_iter = FileIterator(result)
+                path = result
+                if exists(path):
+                    resp.app_iter = FileIterator(path)
+                else:
+                    raise exc.HTTPNotFound("No file found with path %s." % path)
             else:
                 resp = Response(body='OK')
             return resp(environ, start_response)

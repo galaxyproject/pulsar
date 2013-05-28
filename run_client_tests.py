@@ -21,6 +21,7 @@ def main():
     parser = optparse.OptionParser()
     parser.add_option('--url', dest='url', default='http://localhost:8913/')
     parser.add_option('--private_token', default=None)
+    parser.add_option('--test_errors', default=False, action="store_true")
     (options, args) = parser.parse_args()
 
     try:
@@ -70,6 +71,11 @@ finally:
         client.launch(new_command)
         client.wait()
         client.download_output(temp_output_path, temp_directory)
+        if options.test_errors:
+            try:
+                client.download_output(temp_output_path + "x", temp_directory)
+            except BaseException, e:
+                traceback.print_exc(e)
         output_file = open(temp_output_path, 'r')
         try:
             output_contents = output_file.read()
