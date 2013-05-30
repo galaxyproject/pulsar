@@ -39,3 +39,33 @@ staging_directory = lwr_staging
 ## server is being opened to the world. See the documentation
 ## (lwr.readthedocs.org) for more information about securing LWR.
 # tool_config_files = toolbox/conf.xml
+
+
+## Configure Python loggers.
+[loggers]
+keys = root,lwr
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = INFO
+handlers = console
+
+[logger_lwr]
+level = DEBUG
+handlers = console
+qualname = lwr
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = DEBUG
+formatter = generic
+
+[formatter_generic]
+format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s
+
