@@ -172,7 +172,7 @@ class Client(object):
         elif output_type == "task":
             output_path = os.path.join(working_directory, name)
         else:
-            raise OutputNotFoundException("No remote output found for dataset with path %s" % path)
+            raise OutputNotFoundException(path)
         self.__raw_download_output(name, self.job_id, output_type, output_path)
 
     def __raw_download_output(self, name, job_id, output_type, output_path):
