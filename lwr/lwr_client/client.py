@@ -3,7 +3,6 @@ import time
 import urllib
 import simplejson
 
-from .transport import get_transport
 from .destination import url_to_destination_params
 
 
@@ -40,14 +39,14 @@ class Client(object):
         Galaxy job/task id.
     """
 
-    def __init__(self, destination_params, job_id, transport_type=None):
+    def __init__(self, destination_params, job_id, transport):
         if isinstance(destination_params, str) or isinstance(destination_params, unicode):
             destination_params = url_to_destination_params(destination_params)
         self.remote_host = destination_params.get("url")
         assert self.remote_host != None, "Failed to determine url for LWR client."
         self.private_key = destination_params.get("private_token", None)
         self.job_id = job_id
-        self.transport = get_transport(transport_type)
+        self.transport = transport
 
     def __build_url(self, command, args):
         if self.private_key:

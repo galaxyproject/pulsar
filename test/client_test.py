@@ -2,7 +2,7 @@ from collections import deque
 import tempfile
 import os
 
-from lwr.lwr_client import Client
+from lwr.lwr_client.client import Client
 from lwr.lwr_client.transport import Urllib2Transport
 
 
@@ -40,8 +40,7 @@ class TestClient(Client):
     method so that requests can be inspected and responses faked."""
 
     def __init__(self):
-        Client.__init__(self, "http://test:803/", "543")
-        self.transport = TestTransport(self)
+        Client.__init__(self, "http://test:803/", "543", TestTransport(self))
         self.expects = deque([])
 
     def expect_open(self, checker, response):

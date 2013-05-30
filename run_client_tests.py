@@ -4,7 +4,7 @@ import os
 import optparse
 import traceback
 
-from lwr.lwr_client import Client
+from lwr.lwr_client import ClientManager
 from lwr.lwr_client import FileStager
 
 class MockTool(object):
@@ -65,7 +65,8 @@ finally:
         input_files = [temp_input_path]
         output_files = [temp_output_path]
 
-        client = Client({"url": options.url, "private_token": options.private_token}, "123456")
+
+        client = ClientManager.get_client({"url": options.url, "private_token": options.private_token}, "123456")
         stager = FileStager(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         new_command = stager.get_rewritten_command_line()
         client.launch(new_command)
