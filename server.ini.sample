@@ -59,6 +59,7 @@ handlers = console
 level = DEBUG
 handlers = console
 qualname = lwr
+propagate = 0
 
 [handler_console]
 class = StreamHandler
