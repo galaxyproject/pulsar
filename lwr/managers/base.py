@@ -137,10 +137,17 @@ class Manager(object):
         return job_id
 
     def _unregister_job(self, job_id):
+        log.debug("Unregistering job with job_id %s" % job_id)
         del self.job_locks[job_id]
 
-    def _get_job_lock(self, job_id):
-        return self.job_locks[job_id]
+    def _get_job_lock(self, job_id, allow_none=False):
+        try:
+            return self.job_locks[job_id]
+        except:
+            if allow_none:
+                return None
+            else:
+                raise
 
     def clean_job_directory(self, job_id):
         job_directory = self.job_directory(job_id)
@@ -205,16 +212,20 @@ class Manager(object):
             return False
 
     def kill(self, job_id):
-        with self._get_job_lock(job_id):
-            status = self._get_status(job_id)
-            if status not in ['running', 'queued']:
-                return
+        log.info("Attempting to kill job with job_id %s" % job_id)
+        job_lock = self._get_job_lock(job_id, allow_none=True)
+        if job_lock:
+            with job_lock:
+                status = self._get_status(job_id)
+                if status not in ['running', 'queued']:
+                    return
 
-            pid = self.get_pid(job_id)
-            if pid == None:
-                self._record_cancel(job_id)
-                self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
-
+                pid = self.get_pid(job_id)
+                if pid == None:
+                    self._record_cancel(job_id)
+                    self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
+        else:
+            log.info("Attempt to kill job with job_id %s, but no job_lock could be obtained." % job_id)
         if pid:
             kill_pid(pid)
 
