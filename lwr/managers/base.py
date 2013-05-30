@@ -26,6 +26,8 @@ JOB_DIRECTORY_TOOL_FILES = "tool_files"
 
 DEFAULT_ID_ASSIGNER = "galaxy"
 
+LWR_UNKNOWN_RETURN_CODE = None
+
 ID_ASSIGNER = {
     # Generate a random id, needed if multiple
     # Galaxy instances submitting to same LWR.
@@ -68,8 +70,8 @@ class Manager(object):
     def __job_directory(self, job_id):
         return JobDirectory(self.staging_directory, job_id)
 
-    def __read_job_file(self, job_id, name):
-        return self.__job_directory(job_id).read_file(name)
+    def __read_job_file(self, job_id, name, **kwds):
+        return self.__job_directory(job_id).read_file(name, **kwds)
 
     def __write_job_file(self, job_id, name, contents):
         self.__job_directory(job_id).write_file(name, contents)
@@ -171,13 +173,14 @@ class Manager(object):
         return not self.__job_directory(job_id).contains_file(JOB_FILE_SUBMITTED)
 
     def return_code(self, job_id):
-        return int(self.__read_job_file(job_id, JOB_FILE_RETURN_CODE))
+        return_code_str = self.__read_job_file(job_id, JOB_FILE_RETURN_CODE, default=LWR_UNKNOWN_RETURN_CODE)
+        return int(return_code_str) if return_code_str else return_code_str
 
     def stdout_contents(self, job_id):
-        return self.__read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT)
+        return self.__read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT, default="")
 
     def stderr_contents(self, job_id):
-        return self.__read_job_file(job_id, JOB_FILE_STANDARD_ERROR)
+        return self.__read_job_file(job_id, JOB_FILE_STANDARD_ERROR, default="")
 
     def get_status(self, job_id):
         with self._get_job_lock(job_id):

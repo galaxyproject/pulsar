@@ -4,6 +4,9 @@ from lwr.util import get_mapped_file, copy_to_path, verify_is_in_directory
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class LwrController(Controller):
 
@@ -28,11 +31,13 @@ def setup(manager, job_id, tool_id=None, tool_version=None):
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)
     configs_directory = manager.configs_directory(job_id)
-    return {"working_directory": working_directory,
-            "outputs_directory": outputs_directory,
-            "configs_directory": configs_directory,
-            "path_separator": os.sep,
-            "job_id": job_id}
+    response = {"working_directory": working_directory,
+                "outputs_directory": outputs_directory,
+                "configs_directory": configs_directory,
+                "path_separator": os.sep,
+                "job_id": job_id}
+    log.debug("Setup job with configuration: %s" % response)
+    return response
 
 
 @LwrController()
@@ -48,18 +53,17 @@ def launch(manager, job_id, command_line):
 @LwrController(response_type='json')
 def check_complete(manager, job_id):
     status = manager.get_status(job_id)
-    if status == 'complete':
+    if status in ['complete', 'cancelled']:
         return_code = manager.return_code(job_id)
         stdout_contents = manager.stdout_contents(job_id)
         stderr_contents = manager.stderr_contents(job_id)
-        return {"complete": "true",
-                "status": status,
-                "returncode": return_code,
-                "stdout": stdout_contents,
-                "stderr": stderr_contents}
-    elif status == 'cancelled':
-        return {"complete": "true",
-                "status": status}
+        response = {"complete": "true",
+                    "status": status,
+                    "returncode": return_code,
+                    "stdout": stdout_contents,
+                    "stderr": stderr_contents}
+        log.debug("Returning job complete response: %s" % response)
+        return response
     else:
         return {"complete": "false", "status": status}
 

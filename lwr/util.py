@@ -85,11 +85,16 @@ class JobDirectory(object):
     def path(self):
         return self.job_directory
 
-    def read_file(self, name):
+    def read_file(self, name, default=None):
         path = self.__job_file(name)
         job_file = open(path, 'r')
         try:
             return job_file.read()
+        except:
+            if default is not None:
+                return default
+            else:
+                raise
         finally:
             job_file.close()
 
