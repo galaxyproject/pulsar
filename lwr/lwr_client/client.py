@@ -279,7 +279,6 @@ class InputCachingClient(Client):
             return self._raw_execute(action, args, contents, input_path)
         else:
             cache_required = self.cache_required(input_path)
-            print cache_required
             if cache_required:
                 self.cache_insert(input_path)
             while True:
