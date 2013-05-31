@@ -6,7 +6,7 @@ from time import sleep
 
 from .destination import url_to_destination_params
 
-CACHE_WAIT_SECONDS = 15
+CACHE_WAIT_SECONDS = 3
 
 
 class parseJson(object):
@@ -280,7 +280,7 @@ class InputCachingClient(Client):
         else:
             cache_required = self.cache_required(input_path)
             if cache_required:
-                self.cache_insert(input_path)
+                self.client_manager.queue_transfer(self, input_path)
             while True:
                 available = self.file_available(input_path)
                 if available['ready']:
