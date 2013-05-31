@@ -2,6 +2,7 @@ import os
 import platform
 import time
 import posixpath
+from shutil import move
 from subprocess import Popen
 from collections import deque
 
@@ -51,6 +52,30 @@ def copy_to_path(object, path):
             output.write(buffer)
     finally:
         output.close()
+
+
+def atomicish_move(source, destination, tmp_suffix="_TMP"):
+    """
+    Move source to destination without copying to directly to destination
+    there is never a partial file.
+
+    > from tempfile import mkdtemp
+    > from os.path import join, exists
+    > temp_dir = mkdtemp()
+    > source = join(temp_dir, "the_source")
+    > destination = join(temp_dir, "the_dest")
+    > open(source, "w").write("Hello World!")
+    > assert exists(source)
+    > assert not exists(destination)
+    > atomicish_move(source, destination)
+    > assert not exists(source)
+    > assert exists(destination)
+    """
+    destination_dir = os.path.dirname(destination)
+    destination_name = os.path.basename(destination)
+    temp_destination = os.path.join(destination_dir, "%s%s" % (destination_name, tmp_suffix))
+    move(source, temp_destination)
+    os.rename(temp_destination, destination)
 
 
 class JobDirectory(object):
