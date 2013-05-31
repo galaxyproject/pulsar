@@ -12,4 +12,4 @@ class ClientManager(object):
         self.client_class = InputCachingClient if kwds.get('cache', False) else Client
 
     def get_client(self, destination_params, job_id):
-        return self.client_class(destination_params, job_id, transport=self.transport)
+        return self.client_class(destination_params, job_id, self)

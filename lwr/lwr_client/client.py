@@ -42,14 +42,14 @@ class Client(object):
         Galaxy job/task id.
     """
 
-    def __init__(self, destination_params, job_id, transport):
+    def __init__(self, destination_params, job_id, client_manager):
         if isinstance(destination_params, str) or isinstance(destination_params, unicode):
             destination_params = url_to_destination_params(destination_params)
         self.remote_host = destination_params.get("url")
         assert self.remote_host != None, "Failed to determine url for LWR client."
         self.private_key = destination_params.get("private_token", None)
         self.job_id = job_id
-        self.transport = transport
+        self.client_manager = client_manager
 
     def __build_url(self, command, args):
         if self.private_key:
@@ -60,7 +60,7 @@ class Client(object):
 
     def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
         url = self.__build_url(command, args)
-        response = self.transport.execute(url, data=data, input_path=input_path, output_path=output_path)
+        response = self.client_manager.transport.execute(url, data=data, input_path=input_path, output_path=output_path)
         return response
 
     @parseJson()
@@ -265,8 +265,8 @@ class InputCachingClient(Client):
     Beta client that cache's staged files to prevent duplication.
     """
 
-    def __init__(self, destination_params, job_id, transport):
-        super(InputCachingClient, self).__init__(destination_params, job_id, transport)
+    def __init__(self, destination_params, job_id, client_manager):
+        super(InputCachingClient, self).__init__(destination_params, job_id, client_manager)
 
     @parseJson()
     def _upload_file(self, action, path, name=None, contents=None):
