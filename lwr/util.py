@@ -5,6 +5,8 @@ import posixpath
 from shutil import move
 from subprocess import Popen
 from collections import deque
+from tempfile import NamedTemporaryFile
+
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -44,6 +46,10 @@ def copy_to_path(object, path):
     Copy file-like object to path.
     """
     output = open(path, 'wb')
+    _copy_and_close(object, output)
+
+
+def _copy_and_close(object, output):
     try:
         while True:
             buffer = object.read(BUFFER_SIZE)
@@ -52,6 +58,16 @@ def copy_to_path(object, path):
             output.write(buffer)
     finally:
         output.close()
+
+
+def copy_to_temp(object):
+    """
+    Copy file-like object to temp file and return
+    path.
+    """
+    temp_file = NamedTemporaryFile(delete=False)
+    _copy_and_close(object, temp_file)
+    return temp_file.name
 
 
 def atomicish_move(source, destination, tmp_suffix="_TMP"):

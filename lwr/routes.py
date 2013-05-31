@@ -1,6 +1,6 @@
 import os
 from webob import exc
-from lwr.util import get_mapped_file, copy_to_path, verify_is_in_directory
+from lwr.util import get_mapped_file, copy_to_path, copy_to_temp, verify_is_in_directory
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 
@@ -19,14 +19,18 @@ class LwrController(Controller):
             if not (req.app.private_key == sent_private_key):
                 return exc.HTTPUnauthorized()(environ, start_response)
 
-    def _prepare_controller_args(self, req, args):
-        managers = req.app.managers
+    def _app_args(self, args, req):
+        app = req.app
+        managers = app.managers
         manager_name = args.get('manager_name', DEFAULT_MANAGER_NAME)
-        args['manager'] = managers[manager_name]
+        app_args = {}
+        app_args['manager'] = managers[manager_name]
+        app_args['file_cache'] = app.file_cache
+        return app_args
 
 
 @LwrController(response_type='json')
-def setup(manager, job_id, tool_id=None, tool_version=None):
+def setup(manager, job_id, ip, tool_id=None, tool_version=None):
     job_id = manager.setup_job(job_id, tool_id, tool_version)
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)
@@ -74,28 +78,28 @@ def kill(manager, job_id):
 
 
 @LwrController(response_type='json')
-def upload_tool_file(manager, job_id, name, body):
-    return _handle_upload_to_directory(manager.tool_files_directory(job_id), name, body)
+def upload_tool_file(manager, file_cache, job_id, name, body, cache_token=None):
+    return _handle_upload_to_directory(file_cache, manager.tool_files_directory(job_id), name, body, cache_token=cache_token)
 
 
 @LwrController(response_type='json')
-def upload_input(manager, job_id, name, body):
-    return _handle_upload_to_directory(manager.inputs_directory(job_id), name, body)
+def upload_input(manager, file_cache, job_id, name, body, cache_token=None):
+    return _handle_upload_to_directory(file_cache, manager.inputs_directory(job_id), name, body, cache_token=cache_token)
 
 
 @LwrController(response_type='json')
-def upload_extra_input(manager, job_id, name, body):
-    return _handle_upload_to_directory(manager.inputs_directory(job_id), name, body, allow_nested_files=True)
+def upload_extra_input(manager, file_cache, job_id, name, body, cache_token=None):
+    return _handle_upload_to_directory(file_cache, manager.inputs_directory(job_id), name, body, cache_token=cache_token, allow_nested_files=True)
 
 
 @LwrController(response_type='json')
-def upload_config_file(manager, job_id, name, body):
-    return _handle_upload_to_directory(manager.configs_directory(job_id), name, body)
+def upload_config_file(manager, file_cache, job_id, name, body, cache_token=None):
+    return _handle_upload_to_directory(file_cache, manager.configs_directory(job_id), name, body, cache_token=cache_token)
 
 
 @LwrController(response_type='json')
-def upload_working_directory_file(manager, job_id, name, body):
-    return _handle_upload_to_directory(manager.tool_files_directory(job_id), name, body)
+def upload_working_directory_file(manager, file_cache, job_id, name, body, cache_token=None):
+    return _handle_upload_to_directory(file_cache, manager.tool_files_directory(job_id), name, body, cache_token=cache_token)
 
 
 @LwrController(response_type='file')
@@ -126,7 +130,28 @@ def get_output_type(manager, job_id, name):
         return "none"
 
 
-def _handle_upload_to_directory(directory, remote_path, body, allow_nested_files=False):
+@LwrController(response_type='json')
+def file_available(file_cache, ip, path):
+    return file_cache.file_available(ip, path)
+
+
+@LwrController(response_type='json')
+def cache_required(file_cache, ip, path):
+    return file_cache.cache_required(ip, path)
+
+
+@LwrController(response_type='json')
+def cache_insert(file_cache, ip, path, body):
+    temp_path = copy_to_temp(body)
+    file_cache.cache_file(temp_path, ip, path)
+
+
+def _handle_upload_to_directory(file_cache, directory, remote_path, body, cache_token=None, allow_nested_files=False):
     path = get_mapped_file(directory, remote_path, allow_nested_files=allow_nested_files)
-    copy_to_path(body, path)
+    source = body
+    if cache_token:
+        cached_file = file_cache.destination(cache_token)
+        source = open(cached_file, 'r')
+        log.info("Copying cached file %s to %s" % (cached_file, path))
+    copy_to_path(source, path)
     return {"path": path}

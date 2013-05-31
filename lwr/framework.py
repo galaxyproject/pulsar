@@ -65,6 +65,20 @@ class Controller(object):
     def __init__(self, response_type='OK'):
         self.response_type = response_type
 
+    def __get_client_address(self, environ):
+        """
+        http://stackoverflow.com/questions/7835030/obtaining-client-ip-address-from-a-wsgi-app-using-eventlet
+        """
+        try:
+            return environ['HTTP_X_FORWARDED_FOR'].split(',')[-1].strip()
+        except KeyError:
+            return environ['REMOTE_ADDR']
+
+    def __add_args(self, args, func_args, arg_values):
+        for func_arg in func_args:
+            if func_arg not in args and func_arg in arg_values:
+                args[func_arg] = arg_values[func_arg]
+
     def __call__(self, func):
         def controller_replacement(environ, start_response, **args):
             req = Request(environ)
@@ -75,11 +89,11 @@ class Controller(object):
                     return access_response
 
             func_args = inspect.getargspec(func).args
+            self.__add_args(args, func_args, req.GET)
+            self.__add_args(args, func_args, self._app_args(args, req))
             for func_arg in func_args:
-                if func_arg not in args and func_arg in req.GET:
-                    args[func_arg] = req.GET[func_arg]
-
-            self._prepare_controller_args(req, args)
+                if func_arg == "ip":
+                    args[func_arg] = self.__get_client_address(environ)
 
             for key in dict(args):
                 if key not in func_args:

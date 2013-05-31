@@ -6,6 +6,7 @@ import os
 
 from lwr.manager_factory import build_managers
 from lwr.persistence import PersistedJobStore
+from lwr.cache import Cache
 from lwr.framework import RoutingApp
 from lwr.tools import ToolBox
 from lwr.tools.authorization import get_authorizer
@@ -38,6 +39,7 @@ class LwrApp(RoutingApp):
         self.__setup_persisted_job_store(conf)
         self.__setup_tool_config(conf)
         self.__setup_managers(conf)
+        self.__setup_file_cache(conf)
         self.__setup_routes()
 
     def shutdown(self):
@@ -82,6 +84,10 @@ class LwrApp(RoutingApp):
     def __setup_routes(self):
         for func_name, func in inspect.getmembers(lwr.routes, lambda x: getattr(x, '__controller__', False)):
             self.__add_route_for_function(func)
+
+    def __setup_file_cache(self, conf):
+        file_cache_dir = conf.get('file_cache_dir', None)
+        self.file_cache = Cache(file_cache_dir) if file_cache_dir else None
 
     def __add_route_for_function(self, function):
         route_suffix = '/%s' % function.__name__

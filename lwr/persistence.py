@@ -4,7 +4,34 @@ import traceback
 import sys
 
 
-class PersistedJobStore:
+class PersistenceStore(object):
+
+    def __init__(self, filename):
+        self.shelf_filename = filename
+        self.__open_shelf()
+        self.__shelf_lock = Lock()
+
+    def __open_shelf(self):
+        self.shelf = shelve.open(self.shelf_filename) if self.shelf_filename else None
+
+    def close(self):
+        self.shelf.close()
+
+    def _lock(self):
+        return self.__shelf_lock
+
+    def _with_lock(self, func, suppress_exception=True):
+        if self.shelf is not None:
+            with self._lock():
+                try:
+                    return func()
+                except:
+                    traceback.print_exc(file=sys.stdout)
+                    if not suppress_exception:
+                        raise
+
+
+class PersistedJobStore(PersistenceStore):
     """
 
     >>> import tempfile
@@ -29,26 +56,8 @@ class PersistedJobStore:
     """
 
     def __init__(self, **conf):
-        self.shelf_filename = conf.get('shelf_filename', None)
-        self.__open_shelf()
+        super(PersistedJobStore, self).__init__(conf.get('shelf_filename', None))
         self.id = 0
-        self.shelf_lock = Lock()
-
-    def __open_shelf(self):
-        self.shelf = shelve.open(self.shelf_filename) if self.shelf_filename else None
-
-    def close(self):
-        self.shelf.close()
-
-    def __with_lock(self, func, suppress_exception=True):
-        if self.shelf is not None:
-            with self.shelf_lock:
-                try:
-                    return func()
-                except:
-                    traceback.print_exc(file=sys.stdout)
-                    if not suppress_exception:
-                        raise
 
     def enqueue(self, manager_name, job_id, command_line):
         shelf_id = self.__shelf_id(manager_name, job_id)
@@ -56,7 +65,7 @@ class PersistedJobStore:
         def set_command_line():
             self.shelf[shelf_id] = command_line
 
-        self.__with_lock(set_command_line)
+        self._with_lock(set_command_line)
 
     def dequeue(self, manager_name, job_id):
         shelf_id = self.__shelf_id(manager_name, job_id)
@@ -64,7 +73,7 @@ class PersistedJobStore:
         def delete():
             del self.shelf[shelf_id]
 
-        self.__with_lock(delete)
+        self._with_lock(delete)
 
     def persisted_jobs(self, manager_name):
         prefix = '%s:' % manager_name
@@ -75,11 +84,11 @@ class PersistedJobStore:
             persisted_shelf_ids = [shelf_key for shelf_key in shelf_keys if shelf_key.startswith(prefix)]
             jobs.extend([(shelf_id[len(prefix):], self.shelf[shelf_id]) for shelf_id in persisted_shelf_ids])
 
-        self.__with_lock(set_jobs)
+        self._with_lock(set_jobs)
         return jobs
 
     def next_id(self):
-        with self.shelf_lock:
+        with self._lock():
             if self.id == 0 and self.shelf is not None:
                 self.id = self.shelf.get("*id*", 0)
             self.id += 1

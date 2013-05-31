@@ -7,6 +7,7 @@ import traceback
 from lwr.lwr_client import ClientManager
 from lwr.lwr_client import FileStager
 
+
 class MockTool(object):
 
     def __init__(self, tool_dir):
@@ -15,12 +16,13 @@ class MockTool(object):
         self.tool_dir = tool_dir
 
 
-
 def main():
     """ Exercises a running lwr server application with the lwr client. """
     parser = optparse.OptionParser()
     parser.add_option('--url', dest='url', default='http://localhost:8913/')
     parser.add_option('--private_token', default=None)
+    parser.add_option('--transport', default=None)  # set to curl to use pycurl
+    parser.add_option('--cache', default=False, action="store_true")
     parser.add_option('--test_errors', default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -65,8 +67,13 @@ finally:
         input_files = [temp_input_path]
         output_files = [temp_output_path]
 
+        manager_args = {}
+        if options.cache:
+            manager_args['cache'] = True
+        if options.transport:
+            manager_args['transport'] = options.transport
 
-        client = ClientManager.get_client({"url": options.url, "private_token": options.private_token}, "123456")
+        client = ClientManager(**manager_args).get_client({"url": options.url, "private_token": options.private_token}, "123456")
         stager = FileStager(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         new_command = stager.get_rewritten_command_line()
         client.launch(new_command)
