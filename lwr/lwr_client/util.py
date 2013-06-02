@@ -1,10 +1,11 @@
 from threading import Lock, Event
+from weakref import WeakValueDictionary
 
 
 class TransferEventManager(object):
 
     def __init__(self):
-        self.events = dict()
+        self.events = WeakValueDictionary(dict())
         self.events_lock = Lock()
 
     def acquire_event(self, path, force_clear=False):
@@ -18,10 +19,6 @@ class TransferEventManager(object):
             event_holder.event.clear()
         return event_holder
 
-    def free_event(self, path):
-        with self.events_lock:
-            del self.events[path]
-
 
 class EventHolder(object):
 
@@ -32,6 +29,3 @@ class EventHolder(object):
 
     def release(self):
         self.event.set()
-
-    def __del__(self):
-        self.condition_manager.free_event(self.path)
