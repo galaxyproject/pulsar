@@ -278,17 +278,17 @@ class InputCachingClient(Client):
             input_path = None
             return self._raw_execute(action, args, contents, input_path)
         else:
+            event_holder = self.client_manager.event_manager.acquire_event(input_path)
             cache_required = self.cache_required(input_path)
             if cache_required:
                 self.client_manager.queue_transfer(self, input_path)
             while True:
-                # Use Conditions to make sleep a timed wait.
                 available = self.file_available(input_path)
                 if available['ready']:
                     token = available['token']
                     args["cache_token"] = token
                     return self._raw_execute(action, args)
-                sleep(CACHE_WAIT_SECONDS)
+                event_holder.event.wait(30)
 
     @parseJson()
     def cache_required(self, path):

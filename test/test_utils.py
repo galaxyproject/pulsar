@@ -1,14 +1,18 @@
+from contextlib import contextmanager
 from os import pardir
 from os.path import join, dirname
-
-from unittest import TestCase
 from tempfile import mkdtemp
 from shutil import rmtree
+from unittest import TestCase
 
-from contextlib import contextmanager
+from webtest import TestApp
+from webtest.http import StopableWSGIServer
 
 from lwr.tools import ToolBox
 from lwr.util import JobDirectory
+
+TEST_DIR = dirname(__file__)
+ROOT_DIR = join(TEST_DIR, pardir)
 
 
 class TempDirectoryTestCase(TestCase):
@@ -78,6 +82,43 @@ class TestAuthorization(object):
     def authorize_config_file(self, job_directory, name, path):
         if not self.allow_config:
             raise Exception
+
+
+@contextmanager
+def test_server(global_conf={}, app_conf={}, test_conf={}):
+    with test_app(global_conf, app_conf, test_conf) as app:
+        from paste.exceptions.errormiddleware import ErrorMiddleware
+        error_app = ErrorMiddleware(app.app, debug=True, error_log="errors")
+        server = StopableWSGIServer.create(error_app)
+        try:
+            server.wait()
+            yield server
+        finally:
+            server.shutdown()
+
+
+@contextmanager
+def test_app(global_conf={}, app_conf={}, test_conf={}):
+    staging_directory = mkdtemp()
+    cache_directory = mkdtemp()
+    try:
+        app_conf["staging_directory"] = staging_directory
+        app_conf["file_cache_dir"] = cache_directory
+        from lwr.app import app_factory
+
+        app = app_factory(global_conf, **app_conf)
+        test_app = TestApp(app, **test_conf)
+        yield test_app
+    finally:
+        try:
+            app.shutdown()
+        except:
+            pass
+        for directory in [staging_directory, cache_directory]:
+            try:
+                rmtree(directory)
+            except:
+                pass
 
 
 class TestAuthorizer(object):

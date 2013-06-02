@@ -1,40 +1,37 @@
-from threading import Lock, Condition
+from threading import Lock, Event
 
 
-class ConditionManager(object):
+class TransferEventManager(object):
 
     def __init__(self):
-        self.__conditions = dict()
-        self.__conditions_count = dict()
-        self.__conditions_lock = Lock()
+        self.events = dict()
+        self.events_lock = Lock()
 
-    def acquire_condition(self, path):
-        with self.__conditions_lock:
-            if path in self.__conditions:
-                condition = self.__conditions[path]
-                cur_count = self.__conditions_count[path]
-                self.__conditions_count[path] = cur_count + 1
+    def acquire_event(self, path, force_clear=False):
+        with self.events_lock:
+            if path in self.events:
+                event_holder = self.events[path]
             else:
-                condition = Condition()
-                self.__conditions[path] = condition
-                self.__conditions_count[path] = 1
-        return condition
+                event_holder = EventHolder(Event(), path, self)
+                self.events[path] = event_holder
+        if force_clear:
+            event_holder.event.clear()
+        return event_holder
 
-    def release_condition(self, path):
-        with self.__conditions_lock:
-            cur_count = self.__conditions_count[path]
-            self.__conditions_count[path] = cur_count - 1
-            if cur_count == 0:
-                del self.__conditions_count[path]
-                del self.__conditions[path]
+    def free_event(self, path):
+        with self.events_lock:
+            del self.events[path]
 
 
-class ConditionHolder(object):
+class EventHolder(object):
 
-    def __init__(self, condition, path, condition_manager):
-        self.condition = condition
+    def __init__(self, event, path, condition_manager):
+        self.event = event
         self.path = path
         self.condition_manager = condition_manager
 
+    def release(self):
+        self.event.set()
+
     def __del__(self):
-        self.condition_manager.release_condition(self.path)
+        self.condition_manager.free_event(self.path)

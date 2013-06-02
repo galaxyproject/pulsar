@@ -1,23 +1,17 @@
-from webtest import TestApp
-from lwr.app import app_factory
-import tempfile
 import os
-import shutil
 import simplejson
 import urllib
 import time
 
 
-def test_app():
+def test_standard_requests():
     """ Tests app controller methods. These tests should be
     compartmentalized. Also these methods should be made to not retest
     the behavior of the associated Manager class. """
-
-    staging_directory = tempfile.mkdtemp()
-    try:
-        app = app_factory({}, staging_directory=staging_directory)
-        test_app = TestApp(app, extra_environ={"REMOTE_ADDR": "127.101.101.98"})
-        setup_response = test_app.get("/setup?job_id=12345")
+    from test_utils import test_app
+    with test_app(test_conf={"extra_environ": {"REMOTE_ADDR": "127.101.101.98"}}) as app:
+        staging_directory = app.app.staging_directory
+        setup_response = app.get("/setup?job_id=12345")
         setup_config = simplejson.loads(setup_response.body)
         assert setup_config["working_directory"].startswith(staging_directory)
         outputs_directory = setup_config["outputs_directory"]
@@ -27,7 +21,7 @@ def test_app():
 
         def test_upload(upload_type):
             url = "/upload_%s?job_id=%s&name=input1" % (upload_type, job_id)
-            upload_input_response = test_app.post(url, "Test Contents")
+            upload_input_response = app.post(url, "Test Contents")
             upload_input_config = simplejson.loads(upload_input_response.body)
             staged_input_path = upload_input_config["path"]
             staged_input = open(staged_input_path, "r")
@@ -43,37 +37,30 @@ def test_app():
             test_output.write("Hello World!")
         finally:
             test_output.close()
-        download_response = test_app.get("/download_output?job_id=%s&name=test_output" % job_id)
+        download_response = app.get("/download_output?job_id=%s&name=test_output" % job_id)
         assert download_response.body == "Hello World!"
 
         try:
-            test_app.get("/download_output?job_id=%s&name=test_output2" % job_id)
+            app.get("/download_output?job_id=%s&name=test_output2" % job_id)
             assert False  # Should throw exception
         except:
             pass
 
         command_line = urllib.quote("""python -c "import sys; sys.stdout.write('test_out')" """)
-        launch_response = test_app.get("/launch?job_id=%s&command_line=%s" % (job_id, command_line))
+        launch_response = app.get("/launch?job_id=%s&command_line=%s" % (job_id, command_line))
         assert launch_response.body == 'OK'
 
-        time.sleep(2)
+        time.sleep(1)
 
-        check_response = test_app.get("/check_complete?job_id=%s" % job_id)
+        check_response = app.get("/check_complete?job_id=%s" % job_id)
         check_config = simplejson.loads(check_response.body)
         assert check_config['returncode'] == 0
         assert check_config['stdout'] == "test_out"
         assert check_config['stderr'] == ""
 
-        kill_response = test_app.get("/kill?job_id=%s" % job_id)
+        kill_response = app.get("/kill?job_id=%s" % job_id)
         assert kill_response.body == 'OK'
 
-        clean_response = test_app.get("/clean?job_id=%s" % job_id)
+        clean_response = app.get("/clean?job_id=%s" % job_id)
         assert clean_response.body == 'OK'
         assert os.listdir(staging_directory) == []
-
-    finally:
-        try:
-            app.shutdown()
-        except:
-            pass
-        shutil.rmtree(staging_directory)
