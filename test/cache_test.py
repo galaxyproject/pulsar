@@ -21,21 +21,16 @@ class CacheTest(TestCase):
         if exists(self.temp_file.name):
             remove(self.temp_file.name)
 
-    def test_same_token_for_same_inputs(self):
-        cache = self.cache
-        cache_response_1 = cache.get_cache_token("127.0.0.2", "/galaxy/dataset10000.dat")
-        cache_response_2 = cache.get_cache_token("127.0.0.2", "/galaxy/dataset10000.dat")
-        assert cache_response_1["token"] == cache_response_2["token"]
-
     def test_inserted_only_once(self):
         cache = self.cache
-        cache_response_1 = cache.get_cache_token("127.0.0.2", "/galaxy/dataset10001.dat")
-        cache_response_2 = cache.get_cache_token("127.0.0.2", "/galaxy/dataset10001.dat")
-        assert cache_response_1["inserted"]
-        assert not cache_response_2["inserted"]
+        cache_response_1 = cache.cache_required("127.0.0.2", "/galaxy/dataset10001.dat")
+        cache_response_2 = cache.cache_required("127.0.0.2", "/galaxy/dataset10001.dat")
+        assert cache_response_1
+        assert not cache_response_2
 
     def test_making_file_available(self):
         cache = self.cache
-        assert not cache.file_available("127.0.0.2", "/galaxy/dataset10001.dat")
+        assert cache.cache_required("127.0.0.2", "/galaxy/dataset10001.dat")
+        assert not cache.file_available("127.0.0.2", "/galaxy/dataset10001.dat")["ready"]
         cache.cache_file(self.temp_file.name, "127.0.0.2", "/galaxy/dataset10001.dat")
-        assert cache.file_available("127.0.0.2", "/galaxy/dataset10001.dat")
+        assert cache.file_available("127.0.0.2", "/galaxy/dataset10001.dat")["ready"]

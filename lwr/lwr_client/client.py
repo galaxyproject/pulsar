@@ -282,6 +282,7 @@ class InputCachingClient(Client):
             if cache_required:
                 self.client_manager.queue_transfer(self, input_path)
             while True:
+                # Use Conditions to make sleep a timed wait.
                 available = self.file_available(input_path)
                 if available['ready']:
                     token = available['token']

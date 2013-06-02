@@ -6,7 +6,7 @@ from shutil import move
 from subprocess import Popen
 from collections import deque
 from tempfile import NamedTemporaryFile
-
+from datetime import datetime
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -277,3 +277,11 @@ class Bunch(object):
 
     def __setitem__(self, k, v):
         self.__dict__.__setitem__(k, v)
+
+
+class Time:
+    """ Time utilities of now that can be instrumented for testing."""
+
+    @classmethod
+    def now(cls):
+        return datetime.utcnow()

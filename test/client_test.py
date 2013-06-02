@@ -4,6 +4,7 @@ import os
 
 from lwr.lwr_client.client import Client
 from lwr.lwr_client.transport import Urllib2Transport
+from lwr.util import Bunch
 
 
 class FakeResponse(object):
@@ -40,7 +41,8 @@ class TestClient(Client):
     method so that requests can be inspected and responses faked."""
 
     def __init__(self):
-        Client.__init__(self, "http://test:803/", "543", TestTransport(self))
+        client_manager = Bunch(transport = TestTransport(self))
+        Client.__init__(self, "http://test:803/", "543", client_manager)
         self.expects = deque([])
 
     def expect_open(self, checker, response):

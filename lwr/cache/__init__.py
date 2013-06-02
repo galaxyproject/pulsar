@@ -3,7 +3,7 @@ from os.path import join, exists
 from hashlib import sha256
 
 from lwr.persistence import PersistenceStore
-from lwr.util import atomicish_move
+from lwr.util import atomicish_move, Time
 
 
 class CacheFileMapper(object):
@@ -23,6 +23,7 @@ class Cache(PersistenceStore):
     def __init__(self, cache_directory="file_cache"):
         super(Cache, self).__init__(join(cache_directory, "cache_shelf"))
         self.file_mapper = CacheFileMapper(cache_directory)
+        self.time = Time
 
     def cache_required(self, ip, path):
         token = self.__token(ip, path)
@@ -30,7 +31,7 @@ class Cache(PersistenceStore):
         def get_token():
             inserted = False
             if token not in self.shelf:
-                self.shelf[token] = "cache/%s" % token
+                self.shelf[token] = self.time.now()
                 inserted = True
             return inserted
 

@@ -16,7 +16,7 @@ def test_app():
     staging_directory = tempfile.mkdtemp()
     try:
         app = app_factory({}, staging_directory=staging_directory)
-        test_app = TestApp(app)
+        test_app = TestApp(app, extra_environ={"REMOTE_ADDR": "127.101.101.98"})
         setup_response = test_app.get("/setup?job_id=12345")
         setup_config = simplejson.loads(setup_response.body)
         assert setup_config["working_directory"].startswith(staging_directory)
