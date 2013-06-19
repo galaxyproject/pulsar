@@ -40,4 +40,12 @@ then
     fi
 fi
 
+# Setup default configuration files (if needed).
+for file in 'server.ini'; do
+    if [ ! -f "$file" -a -f "$file.sample" ]; then
+        echo "Initializing $file from `basename $file.sample`"
+        cp "$file.sample" "$file"
+    fi
+done
+
 paster serve server.ini "$@"
