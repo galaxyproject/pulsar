@@ -1,5 +1,6 @@
 from Queue import Queue
 from threading import Thread
+from os import getenv
 
 from .client import Client, InputCachingClient
 from .transport import get_transport
@@ -16,10 +17,10 @@ class ClientManager(object):
     def __init__(self, **kwds):
         self.transport = get_transport(kwds.get('transport_type', None))
         self.event_manager = TransferEventManager()
-        cache = kwds.get('cache', False)
+        cache = kwds.get('cache', _environ_default_int('LWR_CACHE_TRANSFERS'))
         if cache:
             self.client_class = InputCachingClient
-            num_transfer_threads = int(kwds.get('transfer_threads', DEFAULT_TRANSFER_THREADS))
+            num_transfer_threads = int(kwds.get('transfer_threads', _environ_default_int('LWR_CACHE_TRANSFERS', DEFAULT_TRANSFER_THREADS)))
             self.__init_transfer_threads(num_transfer_threads)
         else:
             self.client_class = Client
@@ -51,3 +52,11 @@ class ClientManager(object):
 
     def get_client(self, destination_params, job_id):
         return self.client_class(destination_params, job_id, self)
+
+
+def _environ_default_int(variable, default="0"):
+    val = getenv(variable, default)
+    int_val = int(default)
+    if str(val).isdigit():
+        int_val = int(val)
+    return int_val
