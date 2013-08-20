@@ -5,6 +5,7 @@ PasteDeploy
 simplejson
 webob
 pyOpenSSL
+psutil
 
 # For testing
 nose

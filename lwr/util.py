@@ -7,6 +7,11 @@ from subprocess import Popen
 from collections import deque
 from tempfile import NamedTemporaryFile
 from datetime import datetime
+try:
+    from psutil import Process, NoSuchProcess
+except NameError:
+    """ Don't make psutil a strict requirement, but use if available. """
+    Process = None
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -14,7 +19,28 @@ log = getLogger(__name__)
 BUFFER_SIZE = 4096
 
 
-def kill_pid(pid):
+def kill_pid(pid, use_psutil=True):
+    if use_psutil and Process:
+        _psutil_kill_pid(pid)
+    else:
+        _stock_kill_pid(pid)
+
+
+def _psutil_kill_pid(pid, including_parent=True):
+    """
+    http://stackoverflow.com/questions/1230669/subprocess-deleting-child-processes-in-windows
+    """
+    try:
+        parent = Process(pid)
+    except NoSuchProcess:
+        return
+    for child in parent.get_children(recursive=True):
+        child.kill()
+    if including_parent:
+        parent.kill()
+
+
+def _stock_kill_pid(pid):
     def __check_pid():
         try:
             os.kill(pid, 0)

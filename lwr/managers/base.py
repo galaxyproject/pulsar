@@ -227,6 +227,7 @@ class Manager(object):
         else:
             log.info("Attempt to kill job with job_id %s, but no job_lock could be obtained." % job_id)
         if pid:
+            log.info("Attempting to kill pid %s" % pid)
             kill_pid(pid)
 
     def _monitor_execution(self, job_id, proc, stdout, stderr):
