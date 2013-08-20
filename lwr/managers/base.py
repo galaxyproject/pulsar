@@ -190,8 +190,12 @@ class Manager(object):
         return self.__read_job_file(job_id, JOB_FILE_STANDARD_ERROR, default="")
 
     def get_status(self, job_id):
-        with self._get_job_lock(job_id):
-            return self._get_status(job_id)
+        try:
+            with self._get_job_lock(job_id):
+                return self._get_status(job_id)
+        except KeyError:
+            log.warn("Attempted to call get_status for job_id %s, but no such id exists." % job_id)
+            raise
 
     def _get_status(self, job_id):
         job_directory = self.__job_directory(job_id)
