@@ -1,5 +1,4 @@
 import os
-import time
 import urllib
 import simplejson
 from time import sleep
@@ -211,7 +210,7 @@ class Client(object):
             complete_response = self.raw_check_complete()
             if complete_response["complete"] == "true":
                 return complete_response
-            time.sleep(1)
+            sleep(1)
 
     @parseJson()
     def raw_check_complete(self):
