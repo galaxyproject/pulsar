@@ -1,0 +1,12 @@
+## Add to .hg/hgrc to enable bitbucket pushes to push to github as well.
+# [hooks]  
+# outgoing = hg push git+ssh://git@github.com/jmchilton/lwr.git || true
+language: python
+python:
+  - 2.6
+  - 2.7
+  - 3.3
+install:
+  - sudo apt-get install libxml2-dev libxslt1-dev
+  - pip install -r tools/pip-requires --use-mirrors 
+script: nosetests
