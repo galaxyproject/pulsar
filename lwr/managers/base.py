@@ -4,6 +4,7 @@ try:
     import thread
 except ImportError:
     import _thread as thread  # Py3K changed it.from threading import Lock
+from threading import Lock
 from uuid import uuid4
 
 from lwr.util import kill_pid, JobDirectory, execute
