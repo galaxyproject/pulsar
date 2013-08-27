@@ -1,6 +1,9 @@
 # Optional requirements used by test cases
 pycurl
 
+# For Python 2.6 tests 
+unittest2
+
 # For testing
 nose
 webtest

@@ -3,7 +3,12 @@ from os import pardir
 from os.path import join, dirname
 from tempfile import mkdtemp
 from shutil import rmtree
-from unittest import TestCase
+
+from sys import version_info
+if version_info < (2, 7):
+    from unittest2 import TestCase
+else:
+    from unittest import TestCase
 
 from webtest import TestApp
 from webtest.http import StopableWSGIServer

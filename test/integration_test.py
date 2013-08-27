@@ -1,4 +1,4 @@
-from unittest import TestCase
+from test_utils import TestCase
 
 from lwr.util import Bunch
 from .check import run

@@ -4,12 +4,12 @@ from time import sleep
 from lwr.managers.base import Manager
 from lwr.util import Bunch
 
-from unittest import TestCase
 from shutil import rmtree
 
 from os import listdir
 from os.path import join
 
+from test_utils import TestCase
 from test_utils import TestAuthorizer, TestPersistedJobStore
 
 
