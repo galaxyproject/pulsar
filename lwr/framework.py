@@ -103,7 +103,7 @@ class Controller(object):
                 args['body'] = req.body_file
             try:
                 result = func(**args)
-            except exc.HTTPException, e:
+            except exc.HTTPException as e:
                 result = e
             if self.response_type == 'json':
                 resp = Response(body=dumps(result))

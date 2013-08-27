@@ -34,8 +34,7 @@ class ToolBox(object):
                     tool_cls = SimpleToolConfig
                 tool = tool_cls(el, tool_path)
                 self.tool_configs.append(tool)
-            except Exception, e:
-                print str(e)
+            except Exception:
                 log.exception('Failed to load tool.')
 
     def get_tool(self, id):

@@ -74,7 +74,7 @@ finally:
         if options.test_errors:
             try:
                 client.download_output(temp_output_path + "x", temp_directory)
-            except BaseException, e:
+            except BaseException as e:
                 traceback.print_exc(e)
         output_file = open(temp_output_path, 'r')
         try:
@@ -87,7 +87,7 @@ finally:
         #    os.remove("workdir_output")
         #client.download_work_dir_output("workdir_output")
         #assert os.path.exists("workdir_output")
-    except BaseException, e:
+    except BaseException as e:
         print "Exception: %s\n" % str(e)
         traceback.print_exc(e)
         raise e

@@ -6,6 +6,9 @@ import traceback
 
 from lwr.managers.base import Manager
 
+from logging import getLogger
+log = getLogger(__name__)
+
 STOP_SIGNAL = object()
 RUN = object()
 # Number of concurrent jobs used by default for
@@ -73,5 +76,5 @@ class QueueManager(Manager):
                 self.persisted_job_store.dequeue(self.name, job_id)
                 self._run(job_id, command_line, async=False)
             except:
-                print "Uncaught exception running job with job_id %s" % job_id
+                log.warn("Uncaught exception running job with job_id %s" % job_id)
                 traceback.print_exc(file=sys.stdout)

@@ -92,7 +92,7 @@ def _load_manager_modules():
             for comp in manager_module_name.split(".")[1:]:
                 module = getattr(module, comp)
             modules.append(module)
-        except BaseException, exception:
+        except BaseException as exception:
             exception_str = str(exception)
             message = "%s manager module could not be loaded: %s" % (manager_module_name, exception_str)
             log.warn(message)

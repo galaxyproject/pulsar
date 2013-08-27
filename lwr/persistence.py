@@ -53,9 +53,10 @@ class PersistedJobStore(PersistenceStore):
     >>> store.next_id()
     3
     >>> try:
-    >>>     tf.close()
-    >>> except:
-    >>>     pass
+    ...     tf.close()
+    ... except:
+    ...     pass
+    >>>
     """
 
     def __init__(self, **conf):

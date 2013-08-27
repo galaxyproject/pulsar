@@ -79,7 +79,7 @@ class LwrApp(RoutingApp):
     def __setup_private_key(self, private_key):
         self.private_key = private_key
         if private_key:
-            print "Securing LWR web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic."
+            log.info("Securing LWR web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic.")
 
     def __setup_routes(self):
         for func_name, func in inspect.getmembers(lwr.routes, lambda x: getattr(x, '__controller__', False)):
