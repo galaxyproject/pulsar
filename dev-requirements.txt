@@ -2,9 +2,6 @@
 ## pycurl (Latest released version does not work with Python 3)
 git+git://github.com/pycurl-devs/pycurl
 
-# For Python 2.6 tests 
-unittest2
-
 # For testing
 nose
 webtest
@@ -12,3 +9,6 @@ coverage
 
 # For dev
 sphinx
+
+# For Python 2.6 tests
+unittest2
