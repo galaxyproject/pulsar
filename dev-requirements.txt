@@ -1,0 +1,10 @@
+# Optional requirements used by test cases
+pycurl
+
+# For testing
+nose
+webtest
+coverage
+
+# For dev
+sphinx

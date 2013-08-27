@@ -78,7 +78,7 @@ From a Windows terminal::
 
 4. Install required dependencies into this virtual environment::
 
-    pip install -r tools/pip-requires
+    pip install -r requirements.txt
 
 easy_install
 ------------
@@ -198,7 +198,7 @@ of your running LWR application)::
 This project is distributed with unit tests, the following command
 will install the needed python components to run these tests.::
 
-    easy_install nose coverage webtest
+    pip install -r dev-requirements.txt
 
 The following command will then run these tests::
 

@@ -6,11 +6,3 @@ simplejson
 webob
 pyOpenSSL
 psutil
-
-# For testing
-nose
-webtest
-coverage
-
-# For dev
-sphinx
