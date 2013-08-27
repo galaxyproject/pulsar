@@ -52,7 +52,10 @@ class PersistedJobStore(PersistenceStore):
     >>> store = PersistedJobStore(shelf_filename=tf.name)
     >>> store.next_id()
     3
-    >>> tf.close()
+    >>> try:
+    >>>     tf.close()
+    >>> except:
+    >>>     pass
     """
 
     def __init__(self, **conf):
