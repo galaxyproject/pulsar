@@ -8,7 +8,7 @@ python:
   - 3.3
 install:
   - sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl
-  - pip install -r requirements.txt --use-mirrors
+  - pip install -r requirements.txt --use-mirrors || true
   - pip install -r dev-requirements.txt --use-mirrors
 script: nosetests
 

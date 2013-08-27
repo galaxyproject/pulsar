@@ -1,8 +1,11 @@
-paste
 wsgiutils
-PasteScript
-PasteDeploy
 simplejson
 webob
 pyOpenSSL
 psutil
+PasteDeploy
+
+# Problematic for Python 3.
+paste
+PasteScript
+
