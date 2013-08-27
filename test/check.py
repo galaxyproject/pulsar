@@ -80,7 +80,6 @@ finally:
         try:
             output_contents = output_file.read()
             assert output_contents == "hello world output", "Invalid output_contents: %s" % output_contents
-            print 'Test Successful!'
         finally:
             output_file.close()
         #if os.path.exists("workdir_output"):
@@ -88,7 +87,6 @@ finally:
         #client.download_work_dir_output("workdir_output")
         #assert os.path.exists("workdir_output")
     except BaseException as e:
-        print "Exception: %s\n" % str(e)
         traceback.print_exc(e)
         raise e
     finally:

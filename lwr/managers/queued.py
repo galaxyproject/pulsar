@@ -1,5 +1,8 @@
 import multiprocessing
-from Queue import Queue
+try:
+    from Queue import Queue
+except ImportError:
+    from queue import Queue
 import sys
 import threading
 import traceback
