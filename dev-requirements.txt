@@ -1,5 +1,6 @@
 # Optional requirements used by test cases
-pycurl
+## pycurl (Latest released version does not work with Python 3)
+git+git://github.com/pycurl-devs/pycurl
 
 # For Python 2.6 tests 
 unittest2
