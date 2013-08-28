@@ -4,6 +4,8 @@
 
 [server:main]
 use = egg:Paste#http
+## To use chaussette w/paster deploy (no circus), use follwoing: 
+# use = egg:chaussette#main
 
 ## The port on which to listen.
 port = 8913
