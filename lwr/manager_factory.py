@@ -4,7 +4,10 @@ import os
 
 import lwr.managers
 from lwr.managers.queued import QueueManager
-from ConfigParser import ConfigParser
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
 
 log = logging.getLogger(__name__)
 
