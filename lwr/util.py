@@ -32,12 +32,12 @@ def _psutil_kill_pid(pid, including_parent=True):
     """
     try:
         parent = Process(pid)
+        for child in parent.get_children(recursive=True):
+            child.kill()
+        if including_parent:
+            parent.kill()
     except NoSuchProcess:
         return
-    for child in parent.get_children(recursive=True):
-        child.kill()
-    if including_parent:
-        parent.kill()
 
 
 def _stock_kill_pid(pid):
