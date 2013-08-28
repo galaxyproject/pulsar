@@ -53,6 +53,8 @@ done
 
 if hash circusd 2>/dev/null; then
     circusd server.ini "$@"
+elif hash chaussette 2>/dev/null; then
+    chaussette paste:server.ini "$@"
 else
     paster serve server.ini "$@"
 fi
