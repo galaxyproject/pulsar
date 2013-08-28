@@ -1,3 +1,7 @@
+### server:main section used by paster web server. More advanced,
+### Python3 compatible circus setup configured using sections after
+### app:main (circus, watcher:web, socket:web).
+
 [server:main]
 use = egg:Paste#http
 
@@ -39,6 +43,23 @@ staging_directory = lwr_staging
 ## server is being opened to the world. See the documentation
 ## (lwr.readthedocs.org) for more information about securing LWR.
 # tool_config_files = toolbox/conf.xml
+
+
+## Configure circus and chaussette (if used).
+[circus]
+endpoint = tcp://127.0.0.1:5555
+pubsub_endpoint = tcp://127.0.0.1:5556
+#stats_endpoint = tcp://127.0.0.1:5557                                                                                    
+
+[watcher:web]
+cmd = chaussette --fd $(circus.sockets.web) paste:server.ini
+use_sockets = True
+numprocesses = 1  # LWR must be single-process for now.
+
+[socket:web]
+host = localhost
+port = 8913
+
 
 
 ## Configure Python loggers.

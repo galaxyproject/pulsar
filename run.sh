@@ -1,10 +1,13 @@
 #!/bin/bash
 
 ## Usage:
-## Start LWR server as daemon process:
+## Start LWR server as daemon process (paster or circus):
 ##   run.sh --daemon   
-## Stop LWR daemon process:
+## Stop LWR daemon process (paster):
 ##   run.sh --stop-daemon
+## Stop LWR daemon process (circusd):
+##   circusctl quit
+
 
 # Ensure working directory is lwr project. 
 PROJECT_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -48,4 +51,8 @@ for file in 'server.ini'; do
     fi
 done
 
-paster serve server.ini "$@"
+if hash circusd 2>/dev/null; then
+    circusd server.ini "$@"
+else
+    paster serve server.ini "$@"
+fi

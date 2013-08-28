@@ -2,6 +2,6 @@ simplejson
 webob
 pyOpenSSL
 psutil
-PasteDeploy
 
-
+circus
+chaussette
