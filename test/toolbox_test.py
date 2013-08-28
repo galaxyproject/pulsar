@@ -1,4 +1,4 @@
-from test_utils import get_test_toolbox, test_job_directory
+from .test_utils import get_test_toolbox, test_job_directory
 from os.path import join
 from os import makedirs
 

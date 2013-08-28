@@ -1,4 +1,4 @@
-from test_utils import TempDirectoryTestCase
+from .test_utils import TempDirectoryTestCase
 
 from lwr.util import JobDirectory
 from lwr.tools.validator import ExpressionValidator

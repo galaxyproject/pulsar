@@ -1,7 +1,7 @@
 from os.path import join
 
 from lwr.routes import _output_path
-from test_utils import test_manager
+from .test_utils import test_manager
 
 
 def test_output_path():

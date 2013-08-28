@@ -1,7 +1,7 @@
 from os import remove
 from os.path import exists
 from tempfile import mkdtemp, NamedTemporaryFile
-from test_utils import TestCase
+from .test_utils import TestCase
 
 from lwr.cache import Cache
 from shutil import rmtree

@@ -9,8 +9,8 @@ from shutil import rmtree
 from os import listdir
 from os.path import join
 
-from test_utils import TestCase
-from test_utils import TestAuthorizer, TestPersistedJobStore
+from .test_utils import TestCase
+from .test_utils import TestAuthorizer, TestPersistedJobStore
 
 
 class ManagerTest(TestCase):
