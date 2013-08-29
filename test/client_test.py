@@ -5,6 +5,23 @@ import os
 from lwr.lwr_client.client import Client
 from lwr.lwr_client.transport import Urllib2Transport
 from lwr.util import Bunch
+from lwr.lwr_client.client import retry, MAX_RETRY_COUNT
+
+
+def test_with_retry():
+    i = []
+
+    @retry()
+    def func():
+        i.append(0)
+        raise Exception
+    exception_raised = False
+    try:
+        func()
+    except Exception:
+        exception_raised = True
+    assert exception_raised
+    assert len(i) == MAX_RETRY_COUNT, len(i)
 
 
 class FakeResponse(object):
