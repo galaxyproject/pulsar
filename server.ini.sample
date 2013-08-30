@@ -46,6 +46,8 @@ staging_directory = lwr_staging
 ## (lwr.readthedocs.org) for more information about securing LWR.
 # tool_config_files = toolbox/conf.xml
 
+## Directory used to store incoming file cache.
+# file_cache_dir = cache
 
 ## Configure circus and chaussette (if used).
 [circus]
