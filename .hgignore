@@ -1,6 +1,7 @@
 syntax: glob
 
 docs/_build
+cache
 *.pyc
 .coverage
 coverage_html_report
