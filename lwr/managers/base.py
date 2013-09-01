@@ -46,6 +46,13 @@ def get_id_assigner(assign_ids):
     return ID_ASSIGNER.get(assign_ids, default_id_assigner)
 
 
+## Job Locks (for status updates). Following methods are locked.
+##    _finish_execution(self, job_id)
+##    _get_status(self, job_id)
+##    _is_cancelled(self, job_id)
+##    _record_pid(self, job_id, pid)
+##    _get_pid_for_killing_or_cancel(self, job_id)
+##
 class Manager(object):
     """
     A simple job manager that just directly runs jobs as given (no
@@ -84,12 +91,6 @@ class Manager(object):
 
     def _record_cancel(self, job_id):
         self.__write_job_file(job_id, JOB_FILE_CANCELLED, 'true')
-
-    def _is_cancelled(self, job_id):
-        return self.__job_directory(job_id).contains_file(JOB_FILE_CANCELLED)
-
-    def _record_pid(self, job_id, pid):
-        self.__write_job_file(job_id, JOB_FILE_PID, str(pid))
 
     def get_pid(self, job_id):
         pid = None
@@ -200,37 +201,12 @@ class Manager(object):
             log.warn("Attempted to call get_status for job_id %s, but no such id exists." % job_id)
             raise
 
-    def _get_status(self, job_id):
-        job_directory = self.__job_directory(job_id)
-        if self._is_cancelled(job_id):
-            return 'cancelled'
-        elif job_directory.contains_file(JOB_FILE_PID):
-            return 'running'
-        elif job_directory.contains_file(JOB_FILE_SUBMITTED):
-            return 'queued'
-        else:
-            return 'complete'
-
-    def __check_pid(self, pid):
-        try:
-            os.kill(pid, 0)
-            return True
-        except OSError:
-            return False
-
     def kill(self, job_id):
         log.info("Attempting to kill job with job_id %s" % job_id)
         job_lock = self._get_job_lock(job_id, allow_none=True)
         if job_lock:
             with job_lock:
-                status = self._get_status(job_id)
-                if status not in ['running', 'queued']:
-                    return
-
-                pid = self.get_pid(job_id)
-                if pid == None:
-                    self._record_cancel(job_id)
-                    self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
+                pid = self._get_pid_for_killing_or_cancel(job_id)
         else:
             log.info("Attempt to kill job with job_id %s, but no job_lock could be obtained." % job_id)
         if pid:
@@ -248,9 +224,42 @@ class Manager(object):
             with self._get_job_lock(job_id):
                 self._finish_execution(job_id)
 
+    # with job lock
     def _finish_execution(self, job_id):
         self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
         self.__job_directory(job_id).remove_file(JOB_FILE_PID)
+
+    # with job lock
+    def _get_status(self, job_id):
+        job_directory = self.__job_directory(job_id)
+        if self._is_cancelled(job_id):
+            return 'cancelled'
+        elif job_directory.contains_file(JOB_FILE_PID):
+            return 'running'
+        elif job_directory.contains_file(JOB_FILE_SUBMITTED):
+            return 'queued'
+        else:
+            return 'complete'
+
+    # with job lock
+    def _is_cancelled(self, job_id):
+        return self.__job_directory(job_id).contains_file(JOB_FILE_CANCELLED)
+
+    # with job lock
+    def _record_pid(self, job_id, pid):
+        self.__write_job_file(job_id, JOB_FILE_PID, str(pid))
+
+    # with job lock
+    def _get_pid_for_killing_or_cancel(self, job_id):
+        status = self._get_status(job_id)
+        if status not in ['running', 'queued']:
+            return
+
+        pid = self.get_pid(job_id)
+        if pid == None:
+            self._record_cancel(job_id)
+            self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
+        return pid
 
     def _run(self, job_id, command_line, async=True):
         with self._get_job_lock(job_id):
