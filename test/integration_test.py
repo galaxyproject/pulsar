@@ -22,7 +22,10 @@ class IntegrationTest(TestCase):
         self.__run(app_conf={"private_key": "testtoken"}, private_token="testtoken", transport="curl", cache=False, test_errors=True)
 
     def __run(self, app_conf={}, **kwds):
+        kwds["suppress_output"] = True
         from .test_utils import test_server
         with test_server(app_conf=app_conf) as server:
             options = Bunch(url=server.application_url, **kwds)
+            print "Running"
             run(options)
+            print "DoneRunning"

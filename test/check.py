@@ -75,7 +75,8 @@ finally:
             try:
                 client.download_output(temp_output_path + "x", temp_directory)
             except BaseException as e:
-                traceback.print_exc(e)
+                if not options.suppress_output:
+                    traceback.print_exc(e)
         output_file = open(temp_output_path, 'r')
         try:
             output_contents = output_file.read()
@@ -87,7 +88,8 @@ finally:
         #client.download_work_dir_output("workdir_output")
         #assert os.path.exists("workdir_output")
     except BaseException as e:
-        traceback.print_exc(e)
+        if not options.suppress_output:
+            traceback.print_exc(e)
         raise e
     finally:
         shutil.rmtree(temp_directory)
@@ -102,6 +104,7 @@ def main():
     parser.add_option('--transport', default=None)  # set to curl to use pycurl
     parser.add_option('--cache', default=False, action="store_true")
     parser.add_option('--test_errors', default=False, action="store_true")
+    parser.add_option('--suppress_output', default=False, action="store_true")
     (options, args) = parser.parse_args()
     run(options)
 
