@@ -1,7 +1,7 @@
 import tempfile
 from time import sleep
 
-from lwr.managers.base import Manager
+from lwr.managers.unqueued import Manager
 from lwr.util import Bunch
 
 from shutil import rmtree
