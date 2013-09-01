@@ -39,19 +39,13 @@ class PersistedJobStore(PersistenceStore):
     >>> tf = tempfile.NamedTemporaryFile()
     >>> os.remove(tf.name)
     >>> store = PersistedJobStore(shelf_filename=tf.name)
-    >>> store.next_id()
-    1
     >>> store.enqueue("moo", "1234", "/bin/ls")
     >>> jobs = store.persisted_jobs("moo")
     >>> jobs[0][0]
     '1234'
     >>> jobs[0][1]
     '/bin/ls'
-    >>> store.next_id()
-    2
     >>> store = PersistedJobStore(shelf_filename=tf.name)
-    >>> store.next_id()
-    3
     >>> try:
     ...     tf.close()
     ... except:
@@ -61,7 +55,6 @@ class PersistedJobStore(PersistenceStore):
 
     def __init__(self, **conf):
         super(PersistedJobStore, self).__init__(conf.get('shelf_filename', None))
-        self.id = 0
 
     def enqueue(self, manager_name, job_id, command_line):
         shelf_id = self.__shelf_id(manager_name, job_id)
@@ -90,16 +83,6 @@ class PersistedJobStore(PersistenceStore):
 
         self._with_lock(set_jobs)
         return jobs
-
-    def next_id(self):
-        with self._lock():
-            if self.id == 0 and self.shelf is not None:
-                self.id = self.shelf.get("*id*", 0)
-            self.id += 1
-            if self.shelf is not None:
-                self.shelf["*id*"] = self.id
-            id = self.id
-        return id
 
     def __shelf_id(self, manager_name, job_id):
         return '%s:%s' % (manager_name, str(job_id))
