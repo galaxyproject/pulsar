@@ -2,7 +2,7 @@ import os
 import platform
 import time
 import posixpath
-from shutil import move
+from shutil import move, rmtree
 from subprocess import Popen
 from collections import deque
 from tempfile import NamedTemporaryFile
@@ -187,6 +187,12 @@ class JobDirectory(object):
 
     def open_file(self, name, mode='w'):
         return open(self.__job_file(name), mode)
+
+    def exists(self):
+        return os.path.exists(self.path)
+
+    def delete(self):
+        return rmtree(self.path)
 
     def setup(self):
         os.mkdir(self.job_directory)

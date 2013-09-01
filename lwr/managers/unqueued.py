@@ -1,14 +1,13 @@
 import os
-import shutil
 try:
     import thread
 except ImportError:
     import _thread as thread  # Py3K changed it.from threading import Lock
 from threading import Lock
-from uuid import uuid4
 
-from lwr.util import kill_pid, JobDirectory, execute
-from lwr.managers.base import ManagerInterface, LWR_UNKNOWN_RETURN_CODE
+from lwr.util import kill_pid, execute
+from lwr.managers.base import BaseManager
+from lwr.managers import LWR_UNKNOWN_RETURN_CODE
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -22,28 +21,6 @@ JOB_FILE_STANDARD_ERROR = "stderr"
 JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
 
-JOB_DIRECTORY_INPUTS = "inputs"
-JOB_DIRECTORY_OUTPUTS = "outputs"
-JOB_DIRECTORY_WORKING = "working"
-JOB_DIRECTORY_CONFIGS = "configs"
-JOB_DIRECTORY_TOOL_FILES = "tool_files"
-
-DEFAULT_ID_ASSIGNER = "galaxy"
-
-ID_ASSIGNER = {
-    # Generate a random id, needed if multiple
-    # Galaxy instances submitting to same LWR.
-    'uuid': lambda galaxy_job_id: uuid4().hex,
-    # Pass galaxy id through, default for single
-    # Galaxy LWR instance.
-    'galaxy': lambda galaxy_job_id: galaxy_job_id
-}
-
-
-def get_id_assigner(assign_ids):
-    default_id_assigner = ID_ASSIGNER[DEFAULT_ID_ASSIGNER]
-    return ID_ASSIGNER.get(assign_ids, default_id_assigner)
-
 
 ## Job Locks (for status updates). Following methods are locked.
 ##    _finish_execution(self, job_id)
@@ -52,7 +29,7 @@ def get_id_assigner(assign_ids):
 ##    _record_pid(self, job_id, pid)
 ##    _get_pid_for_killing_or_cancel(self, job_id)
 ##
-class Manager(ManagerInterface):
+class Manager(BaseManager):
     """
     A simple job manager that just directly runs jobs as given (no
     queueing). Preserved for compatibilty with older versions of LWR
@@ -63,27 +40,14 @@ class Manager(ManagerInterface):
     manager_type = "unqueued"
 
     def __init__(self, name, app, **kwds):
-        self.name = name
-        self.setup_staging_directory(app.staging_directory)
-        self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
+        super(Manager, self).__init__(name, app, **kwds)
         self.job_locks = dict({})
-        self.authorizer = app.authorizer
-
-    def setup_staging_directory(self, staging_directory):
-        assert not staging_directory == None
-        if not os.path.exists(staging_directory):
-            os.makedirs(staging_directory)
-        assert os.path.isdir(staging_directory)
-        self.staging_directory = staging_directory
-
-    def __job_directory(self, job_id):
-        return JobDirectory(self.staging_directory, job_id)
 
     def __read_job_file(self, job_id, name, **kwds):
-        return self.__job_directory(job_id).read_file(name, **kwds)
+        return self._job_directory(job_id).read_file(name, **kwds)
 
     def __write_job_file(self, job_id, name, contents):
-        self.__job_directory(job_id).write_file(name, contents)
+        self._job_directory(job_id).write_file(name, contents)
 
     def _record_submission(self, job_id):
         self.__write_job_file(job_id, JOB_FILE_SUBMITTED, 'true')
@@ -91,7 +55,7 @@ class Manager(ManagerInterface):
     def _record_cancel(self, job_id):
         self.__write_job_file(job_id, JOB_FILE_CANCELLED, 'true')
 
-    def get_pid(self, job_id):
+    def __get_pid(self, job_id):
         pid = None
         try:
             pid = self.__read_job_file(job_id, JOB_FILE_PID)
@@ -101,29 +65,16 @@ class Manager(ManagerInterface):
             pass
         return pid
 
-    def __get_authorization(self, job_id, tool_id=None):
-        job_directory = self.__job_directory(job_id)
-        if tool_id is None and job_directory.contains_file(JOB_FILE_TOOL_ID):
-            tool_id = job_directory.read_file(JOB_FILE_TOOL_ID)
-        return self.authorizer.get_authorization(tool_id)
-
     def setup_job(self, input_job_id, tool_id, tool_version):
         job_id = self._register_job(input_job_id, True)
 
-        authorization = self.__get_authorization(job_id, tool_id)
-        authorization.authorize_setup()
-
-        job_directory = self.__job_directory(job_id)
-        job_directory.setup()
-        for directory in [JOB_DIRECTORY_INPUTS,
-                          JOB_DIRECTORY_WORKING,
-                          JOB_DIRECTORY_OUTPUTS,
-                          JOB_DIRECTORY_CONFIGS,
-                          JOB_DIRECTORY_TOOL_FILES]:
-            job_directory.make_directory(directory)
+        job_directory = super(Manager, self)._setup_job_directory(job_id)
 
         tool_id = str(tool_id) if tool_id else ""
         tool_version = str(tool_version) if tool_version else ""
+
+        authorization = self._get_authorization(job_id, tool_id)
+        authorization.authorize_setup()
 
         job_directory.write_file(JOB_FILE_TOOL_ID, tool_id)
         job_directory.write_file(JOB_FILE_TOOL_VERSION, tool_version)
@@ -153,34 +104,11 @@ class Manager(ManagerInterface):
                 raise
 
     def clean_job_directory(self, job_id):
-        job_directory = self.job_directory(job_id)
-        if os.path.exists(job_directory):
-            try:
-                shutil.rmtree(job_directory)
-            except:
-                pass
+        super(Manager, self).clean_job_directory(job_id)
         self._unregister_job(job_id)
 
-    def job_directory(self, job_id):
-        return os.path.join(self.staging_directory, job_id)
-
-    def working_directory(self, job_id):
-        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_WORKING)
-
-    def inputs_directory(self, job_id):
-        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_INPUTS)
-
-    def outputs_directory(self, job_id):
-        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_OUTPUTS)
-
-    def configs_directory(self, job_id):
-        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_CONFIGS)
-
-    def tool_files_directory(self, job_id):
-        return os.path.join(self.job_directory(job_id), JOB_DIRECTORY_TOOL_FILES)
-
     def check_complete(self, job_id):
-        return not self.__job_directory(job_id).contains_file(JOB_FILE_SUBMITTED)
+        return not super(Manager, self)._job_directory(job_id).contains_file(JOB_FILE_SUBMITTED)
 
     def return_code(self, job_id):
         return_code_str = self.__read_job_file(job_id, JOB_FILE_RETURN_CODE, default=LWR_UNKNOWN_RETURN_CODE)
@@ -225,12 +153,12 @@ class Manager(ManagerInterface):
 
     # with job lock
     def _finish_execution(self, job_id):
-        self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
-        self.__job_directory(job_id).remove_file(JOB_FILE_PID)
+        self._job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
+        self._job_directory(job_id).remove_file(JOB_FILE_PID)
 
     # with job lock
     def _get_status(self, job_id):
-        job_directory = self.__job_directory(job_id)
+        job_directory = self._job_directory(job_id)
         if self._is_cancelled(job_id):
             return 'cancelled'
         elif job_directory.contains_file(JOB_FILE_PID):
@@ -242,7 +170,7 @@ class Manager(ManagerInterface):
 
     # with job lock
     def _is_cancelled(self, job_id):
-        return self.__job_directory(job_id).contains_file(JOB_FILE_CANCELLED)
+        return self._job_directory(job_id).contains_file(JOB_FILE_CANCELLED)
 
     # with job lock
     def _record_pid(self, job_id, pid):
@@ -254,10 +182,10 @@ class Manager(ManagerInterface):
         if status not in ['running', 'queued']:
             return
 
-        pid = self.get_pid(job_id)
+        pid = self.__get_pid(job_id)
         if pid == None:
             self._record_cancel(job_id)
-            self.__job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
+            self._job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
         return pid
 
     def _run(self, job_id, command_line, async=True):
@@ -265,8 +193,8 @@ class Manager(ManagerInterface):
             if self._is_cancelled(job_id):
                 return
         working_directory = self.working_directory(job_id)
-        stdout = self.__job_directory(job_id).open_file(JOB_FILE_STANDARD_OUTPUT, 'w')
-        stderr = self.__job_directory(job_id).open_file(JOB_FILE_STANDARD_ERROR, 'w')
+        stdout = self._job_directory(job_id).open_file(JOB_FILE_STANDARD_OUTPUT, 'w')
+        stderr = self._job_directory(job_id).open_file(JOB_FILE_STANDARD_ERROR, 'w')
         proc = execute(command_line=command_line,
                        working_directory=working_directory,
                        stdout=stdout,
@@ -283,22 +211,11 @@ class Manager(ManagerInterface):
         self._run(job_id, command_line)
 
     def _prepare_run(self, job_id, command_line):
-        self.__check_execution(job_id, command_line)
+        job_directory = self._job_directory(job_id)
+        tool_id = None
+        if job_directory.contains_file(JOB_FILE_TOOL_ID):
+            tool_id = job_directory.read_file(JOB_FILE_TOOL_ID)
+        self._check_execution(job_id, tool_id, command_line)
         self._record_submission(job_id)
-
-    def __check_execution(self, job_id, command_line):
-        log.debug("job_id: %s - Checking authorization of command_line [%s]" % (job_id, command_line))
-        authorization = self.__get_authorization(job_id)
-        job_directory = self.__job_directory(job_id)
-        tool_files_dir = self.tool_files_directory(job_id)
-        for file in os.listdir(tool_files_dir):
-            contents = open(os.path.join(tool_files_dir, file), 'r').read()
-            log.debug("job_id: %s - checking tool file %s" % (job_id, file))
-            authorization.authorize_tool_file(os.path.basename(file), contents)
-        config_files_dir = self.configs_directory(job_id)
-        for file in os.listdir(config_files_dir):
-            path = os.path.join(config_files_dir, file)
-            authorization.authorize_config_file(job_directory, file, path)
-        authorization.authorize_execution(job_directory, command_line)
 
 __all__ = [Manager]
