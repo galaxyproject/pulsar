@@ -1,8 +1,13 @@
 
-from lwr.managers.base import ManagerInterface
+from lwr.managers.base import BaseManager
+
+try:
+    import pbs
+except ImportError:
+    pass
 
 
-class PbsQueueManager(ManagerInterface):
+class PbsQueueManager(BaseManager):
     """
     Placeholder for DRMAA backed queue manager. Not yet implemented.
     """

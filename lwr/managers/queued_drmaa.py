@@ -1,8 +1,8 @@
+from lwr.managers.base import BaseManager
+from lwr.drmaa import DrmaaSessionFactory
 
-from lwr.managers.base import ManagerInterface
 
-
-class DrmaaQueueManager(ManagerInterface):
+class DrmaaQueueManager(BaseManager):
     """
     Placeholder for DRMAA backed queue manager. Not yet implemented.
     """
@@ -10,4 +10,4 @@ class DrmaaQueueManager(ManagerInterface):
 
     def __init__(self, name, app, **kwds):
         super(DrmaaQueueManager, self).__init__(name, app, **kwds)
-        raise NotImplementedError()
+        self.drmaa_session_factory = DrmaaSessionFactory()
