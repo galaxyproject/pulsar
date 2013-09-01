@@ -8,6 +8,7 @@ from threading import Lock
 from uuid import uuid4
 
 from lwr.util import kill_pid, JobDirectory, execute
+from lwr.managers.base import ManagerInterface, LWR_UNKNOWN_RETURN_CODE
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -28,8 +29,6 @@ JOB_DIRECTORY_CONFIGS = "configs"
 JOB_DIRECTORY_TOOL_FILES = "tool_files"
 
 DEFAULT_ID_ASSIGNER = "galaxy"
-
-LWR_UNKNOWN_RETURN_CODE = None
 
 ID_ASSIGNER = {
     # Generate a random id, needed if multiple
@@ -53,7 +52,7 @@ def get_id_assigner(assign_ids):
 ##    _record_pid(self, job_id, pid)
 ##    _get_pid_for_killing_or_cancel(self, job_id)
 ##
-class Manager(object):
+class Manager(ManagerInterface):
     """
     A simple job manager that just directly runs jobs as given (no
     queueing). Preserved for compatibilty with older versions of LWR

@@ -7,7 +7,7 @@ import sys
 import threading
 import traceback
 
-from lwr.managers.base import Manager
+from lwr.managers.unqueued import Manager
 
 from logging import getLogger
 log = getLogger(__name__)
