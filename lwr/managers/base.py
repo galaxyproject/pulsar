@@ -185,6 +185,12 @@ from string import Template
 
 DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
 
+DEFAULT_JOB_FILE_TEMPLATE = """#!/bin/sh
+cd $working_directory
+$command_line
+echo $? > $return_code_path
+"""
+
 
 class ExternalBaseManager(DirectoryBaseManager):
 
@@ -207,6 +213,12 @@ class ExternalBaseManager(DirectoryBaseManager):
         if not external_id:
             raise KeyError
         return self._get_status_external(external_id)
+
+    def _setup_job_file(self, job_id, command_line, file_template=DEFAULT_JOB_FILE_TEMPLATE):
+        script_env = self._job_template_env(job_id, command_line=command_line)
+        template = Template(file_template)
+        script_contents = template.safe_substitute(**script_env)
+        return self._write_job_script(job_id, script_contents)
 
     def _get_job_id(self, input_job_id):
         return str(self.id_assigner(input_job_id))

@@ -47,7 +47,7 @@ class DrmaaQueueManager(ExternalBaseManager):
             attributes["nativeSpecification"] = self.native_specification
         return attributes
 
-    def __setup_job_file(self, job_id, command_line):
+    def _setup_job_file(self, job_id, command_line):
         script_env = self._job_template_env(job_id, command_line=command_line)
         template = Template(JOB_FILE_TEMPLATE)
         script_contents = template.safe_substitute(**script_env)
