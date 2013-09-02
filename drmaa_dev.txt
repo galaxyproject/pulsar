@@ -1,0 +1,24 @@
+Quick instructions for setting an environment for testing drmaa on
+Ubuntu:
+
+sudo apt-get install slurm-llnl slurm-drmaa1 slurm-drmaa-dev 
+sudo /usr/sbin/create-munge-key 
+sudo service munge start
+
+Make config file: https://computing.llnl.gov/linux/slurm/configurator.html 
+Put config file in: /etc/slurm-llnl/slurm.conf 
+
+sudo slurmctld 
+sudo slurmd 
+
+Test:
+srun -N1 /bin/hostname 
+
+export DRMAA_LIBRARY_PATH=/usr/lib/libdrmaa.so 
+-or-
+export DRMAA_LIBRARY_PATH=/usr/lib/slurm-drmaa/lib/libdrmaa.so
+python -c "import drmaa" 
+
+
+
+

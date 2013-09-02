@@ -55,7 +55,7 @@ def _get_default_options(conf):
 def _parse_manager(manager_classes, app, manager_name, config, default_options):
     section_name = '%s%s' % (MANAGER_PREFIX, manager_name)
     try:
-        manager_type = config.getboolean(section_name, 'type')
+        manager_type = config.get(section_name, 'type')
     except ValueError:
         manager_type = 'queued_python'
 
@@ -75,7 +75,9 @@ def _build_manager(manager_class, app, name=DEFAULT_MANAGER_NAME, manager_option
 def _get_manager_modules():
     """
 
-    >>> 'lwr.managers.pbs' in _get_manager_modules()
+    >>> 'lwr.managers.queued_pbs' in _get_manager_modules()
+    True
+    >>> 'lwr.managers.queued_drmaa' in _get_manager_modules()
     True
     """
     managers_dir = lwr.managers.__path__[0]
@@ -107,8 +109,11 @@ def _load_manager_modules():
 def _get_managers_dict():
     """
 
-    >>> from lwr.managers.pbs import PbsQueueManager
+    >>> from lwr.managers.queued_pbs import PbsQueueManager
     >>> _get_managers_dict()['queued_pbs'] == PbsQueueManager
+    True
+    >>> from lwr.managers.queued_drmaa import DrmaaQueueManager
+    >>> _get_managers_dict()['queued_drmaa'] == DrmaaQueueManager
     True
     """
     managers = {}

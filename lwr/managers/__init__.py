@@ -38,7 +38,7 @@ Managers
 """
 from abc import ABCMeta, abstractmethod
 
-LWR_UNKNOWN_RETURN_CODE = None
+LWR_UNKNOWN_RETURN_CODE = '__unknown__'
 
 
 class ManagerInterface(object):

@@ -78,7 +78,7 @@ class ManagerTest(TestCase):
         command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stderr.write(\'moo\')" """
         job_id = manager.setup_job("123", "tool1", "1.0.0")
         manager.launch(job_id, command)
-        while not manager.check_complete(job_id):
+        while manager.get_status(job_id) not in ['complete', 'cancelled']:
             pass
         self.assertEquals(manager.stderr_contents(job_id), 'moo')
         self.assertEquals(manager.stdout_contents(job_id), 'Hello World!')
@@ -94,6 +94,6 @@ class ManagerTest(TestCase):
         sleep(0.1)
         manager.kill(job_id)
         manager.kill(job_id)  # Make sure kill doesn't choke if pid doesn't exist
-        while not manager.check_complete(job_id):
+        while manager.get_status(job_id) not in ['complete', 'cancelled']:
             pass
         manager.clean_job_directory(job_id)

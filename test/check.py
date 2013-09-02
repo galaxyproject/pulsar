@@ -69,12 +69,13 @@ finally:
         stager = FileStager(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         new_command = stager.get_rewritten_command_line()
         client.launch(new_command)
-        client.wait()
+        response = client.wait()
         client.download_output(temp_output_path, temp_directory)
         if options.test_errors:
             try:
                 client.download_output(temp_output_path + "x", temp_directory)
             except BaseException as e:
+                print response
                 if not options.suppress_output:
                     traceback.print_exc(e)
         output_file = open(temp_output_path, 'r')

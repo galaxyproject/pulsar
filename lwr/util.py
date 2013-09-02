@@ -145,7 +145,7 @@ class JobDirectory(object):
     def tool_files_directory(self):
         return self._sub_dir('tool_files')
 
-    def __job_file(self, name):
+    def _job_file(self, name):
         return os.path.join(self.job_directory, name)
 
     @property
@@ -153,9 +153,10 @@ class JobDirectory(object):
         return self.job_directory
 
     def read_file(self, name, default=None):
-        path = self.__job_file(name)
-        job_file = open(path, 'r')
+        path = self._job_file(name)
+        job_file = None
         try:
+            job_file = open(path, 'r')
             return job_file.read()
         except:
             if default is not None:
@@ -163,10 +164,11 @@ class JobDirectory(object):
             else:
                 raise
         finally:
-            job_file.close()
+            if job_file:
+                job_file.close()
 
     def write_file(self, name, contents):
-        path = self.__job_file(name)
+        path = self._job_file(name)
         job_file = open(path, 'w')
         try:
             job_file.write(contents)
@@ -178,15 +180,15 @@ class JobDirectory(object):
         Quietly remove a job file.
         """
         try:
-            os.remove(self.__job_file(name))
+            os.remove(self._job_file(name))
         except OSError:
             pass
 
     def contains_file(self, name):
-        return os.path.exists(self.__job_file(name))
+        return os.path.exists(self._job_file(name))
 
     def open_file(self, name, mode='w'):
-        return open(self.__job_file(name), mode)
+        return open(self._job_file(name), mode)
 
     def exists(self):
         return os.path.exists(self.path)
@@ -198,7 +200,7 @@ class JobDirectory(object):
         os.mkdir(self.job_directory)
 
     def make_directory(self, name):
-        path = self.__job_file(name)
+        path = self._job_file(name)
         os.mkdir(path)
 
 
