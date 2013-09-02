@@ -38,7 +38,7 @@ class DrmaaQueueManager(ExternalBaseManager):
         stderr_path = self._stderr_path(job_id)
 
         attributes = {
-            "remoteCommand": self.__setup_job_file(job_id, command_line),
+            "remoteCommand": self._setup_job_file(job_id, command_line),
             "jobName": self._job_name(job_id),
             "outputPath": ":%s" % stdout_path,
             "errorPath": ":%s" % stderr_path,
@@ -46,12 +46,6 @@ class DrmaaQueueManager(ExternalBaseManager):
         if self.native_specification:
             attributes["nativeSpecification"] = self.native_specification
         return attributes
-
-    def _setup_job_file(self, job_id, command_line):
-        script_env = self._job_template_env(job_id, command_line=command_line)
-        template = Template(JOB_FILE_TEMPLATE)
-        script_contents = template.safe_substitute(**script_env)
-        return self._write_job_script(job_id, script_contents)
 
     def _kill_external(self, external_id):
         self.drmaa_session.kill(external_id)
