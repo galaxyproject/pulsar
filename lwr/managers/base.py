@@ -178,3 +178,64 @@ class DirectoryBaseManager(BaseManager):
         if job_directory.contains_file(JOB_FILE_TOOL_ID):
             tool_id = job_directory.read_file(JOB_FILE_TOOL_ID)
         return tool_id
+
+from os import chmod
+from stat import S_IEXEC, S_IWRITE, S_IREAD
+from string import Template
+
+DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
+
+
+class ExternalBaseManager(DirectoryBaseManager):
+
+    def __init__(self, name, app, **kwds):
+        super(ExternalBaseManager, self).__init__(name, app, **kwds)
+        self.external_ids = {}
+        self.job_name_template = kwds.get('job_name_template', DEFAULT_JOB_NAME_TEMPLATE)
+
+    def setup_job(self, input_job_id, tool_id, tool_version):
+        job_id = self._get_job_id(input_job_id)
+        return self._setup_job_for_job_id(job_id, tool_id, tool_version)
+
+    def kill(self, job_id):
+        external_id = self._external_id(job_id)
+        if external_id:
+            self._kill_external(external_id)
+
+    def get_status(self, job_id):
+        external_id = self._external_id(job_id)
+        if not external_id:
+            raise KeyError
+        return self._get_status_external(external_id)
+
+    def _get_job_id(self, input_job_id):
+        return str(self.id_assigner(input_job_id))
+
+    def _register_external_id(self, job_id, external_id):
+        self.external_ids[job_id] = external_id
+        return external_id
+
+    def _external_id(self, job_id):
+        return self.external_ids.get(job_id, None)
+
+    def _job_template_env(self, job_id, command_line=None):
+        return_code_path = self._return_code_path(job_id)
+        job_template_env = {
+            'return_code_path': return_code_path,
+            'working_directory': self.working_directory(job_id),
+            'job_id': job_id,
+        }
+        if command_line:
+            job_template_env['command_line'] = command_line
+
+        return job_template_env
+
+    def _write_job_script(self, job_id, contents):
+        self._write_job_file(job_id, "command.sh", contents)
+        script_path = self._job_file(job_id, "command.sh")
+        chmod(script_path, S_IEXEC | S_IWRITE | S_IREAD)
+        return script_path
+
+    def _job_name(self, job_id):
+        env = self._job_template_env(job_id)
+        return Template(self.job_name_template).safe_substitute(env)
