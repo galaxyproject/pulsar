@@ -29,6 +29,15 @@ max_concurrent_jobs=1
 ## more information on condor submission files see the following link:
 ## http://research.cs.wisc.edu/htcondor/quick-start.html.
 
+## CLI Manager
+## Manage jobs via qsub, qdel, qstat on remote host `queuemanager` as
+## Unix user `queueuser`.
+#[manager:_default_]
+#type=queued_cli
+#job_plugin=Torque
+#shell_plugin=SecureShell
+#shell_hostname=queuemanager
+#shell_username=queueuser
 
 ## NOT YET IMPLEMENTED. PBS backed manager.
 #[manager:_default_]
