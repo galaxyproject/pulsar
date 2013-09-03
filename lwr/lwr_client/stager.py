@@ -96,6 +96,28 @@ class JobInputs(object):
         return items
 
 
+class TransferTracker(object):
+
+    def __init__(self, client, job_inputs):
+        self.client = client
+        self.job_inputs = job_inputs
+        self.file_renames = {}
+
+    def action(self, path, type):
+        return ('transfer',)
+
+    def register_rewrite(self, local_path, remote_path):
+        self.file_renames[local_path] = remote_path
+
+    def rewrite_input_paths(self):
+        """
+        For each file that has been transferred and renamed, updated
+        command_line and configfiles to reflect that rewrite.
+        """
+        for local_path, remote_path in self.file_renames.iteritems():
+            self.job_inputs.rewrite_paths(local_path, remote_path)
+
+
 class FileStager(object):
     """
     Objects of the FileStager class interact with an LWR client object to
@@ -137,7 +159,7 @@ class FileStager(object):
         # shipping off to remote LWR server.
         self.job_inputs = JobInputs(self.command_line, self.config_files)
 
-        self.file_renames = {}
+        self.transfer_tracker = TransferTracker(client, self.job_inputs)
 
         self.__handle_setup()
         self.__initialize_referenced_tool_files()
@@ -173,8 +195,10 @@ class FileStager(object):
 
     def __upload_tool_files(self):
         for referenced_tool_file in self.referenced_tool_files:
-            tool_upload_response = self.client.upload_tool_file(referenced_tool_file)
-            self.file_renames[referenced_tool_file] = tool_upload_response['path']
+            action = self.transfer_tracker.action(referenced_tool_file, 'tool_file')
+            if action[0] == 'transfer':
+                tool_upload_response = self.client.upload_tool_file(referenced_tool_file)
+                self.transfer_tracker.register_rewrite(referenced_tool_file, tool_upload_response['path'])
 
     def __upload_input_files(self):
         for input_file in self.input_files:
@@ -183,8 +207,10 @@ class FileStager(object):
 
     def __upload_input_file(self, input_file):
         if self.job_inputs.path_referenced(input_file):
-            input_upload_response = self.client.upload_input(input_file)
-            self.file_renames[input_file] = input_upload_response['path']
+            action = self.transfer_tracker.action(input_file, 'input')
+            if action[0] == 'transfer':
+                input_upload_response = self.client.upload_input(input_file)
+                self.transfer_tracker.register_rewrite(input_file, input_upload_response['path'])
 
     def __upload_input_extra_files(self, input_file):
         # TODO: Determine if this is object store safe and what needs to be
@@ -195,45 +221,47 @@ class FileStager(object):
                 extra_file_path = os.path.join(files_path, extra_file)
                 relative_path = os.path.basename(files_path)
                 extra_file_relative_path = os.path.join(relative_path, extra_file)
-                response = self.client.upload_extra_input(extra_file_path, extra_file_relative_path)
-                self.file_renames[extra_file_path] = response['path']
+                action = self.transfer_tracker.action(input_file, 'input_extra')
+                if action[0] == 'transfer':
+                    response = self.client.upload_extra_input(extra_file_path, extra_file_relative_path)
+                    self.transfer_tracker.register_rewrite(extra_file_path, response['path'])
 
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
         # uploaded if present.
         for working_directory_file in os.listdir(self.working_directory):
             path = os.path.join(self.working_directory, working_directory_file)
-            working_file_response = self.client.upload_working_directory_file(path)
-            self.file_renames[path] = working_file_response['path']
+            action = self.transfer_tracker.action(path, 'working')
+            if action[0] == 'transfer':
+                working_file_response = self.client.upload_working_directory_file(path)
+                self.transfer_tracker.register_rewrite(path, working_file_response['path'])
 
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:
-            self.file_renames[output_file] = r'%s%s%s' % (self.new_outputs_directory,
-                                                         self.remote_path_separator,
-                                                         os.path.basename(output_file))
+            self.transfer_tracker.register_rewrite(output_file, r'%s%s%s' % (self.new_outputs_directory,
+                                                                             self.remote_path_separator,
+                                                                             os.path.basename(output_file)))
 
     def __initialize_task_output_file_renames(self):
         for output_file in self.output_files:
             name = os.path.basename(output_file)
-            self.file_renames[os.path.join(self.working_directory, name)] = r'%s%s%s' % (self.new_working_directory,
-                                                                                         self.remote_path_separator,
-                                                                                         name)
+            task_file = os.path.join(self.working_directory, name)
+            self.transfer_tracker.register_rewrite(task_file, r'%s%s%s' % (self.new_working_directory,
+                                                                           self.remote_path_separator,
+                                                                           name))
 
     def __initialize_config_file_renames(self):
         for config_file in self.config_files:
-            self.file_renames[config_file] = r'%s%s%s' % (self.new_configs_drectory,
-                                                         self.remote_path_separator,
-                                                         os.path.basename(config_file))
-
-    def __rewrite_paths(self, contents):
-        new_contents = contents
-        for local_path, remote_path in self.file_renames.iteritems():
-            new_contents = new_contents.replace(local_path, remote_path)
-        return new_contents
+            self.transfer_tracker.register_rewrite(config_file, r'%s%s%s' % (self.new_configs_drectory,
+                                                                             self.remote_path_separator,
+                                                                             os.path.basename(config_file)))
 
     def __handle_rewrites(self):
-        for local_path, remote_path in self.file_renames.iteritems():
-            self.job_inputs.rewrite_paths(local_path, remote_path)
+        """
+        For each file that has been transferred and renamed, updated
+        command_line and configfiles to reflect that rewrite.
+        """
+        self.transfer_tracker.rewrite_input_paths()
 
     def __upload_rewritten_config_files(self):
         for config_file, new_config_contents in self.job_inputs.rewritten_config_files.iteritems():
