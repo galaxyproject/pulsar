@@ -27,7 +27,10 @@ class IntegrationTest(TempDirectoryTestCase):
         self.__run(app_conf={"private_key": "testtoken"}, private_token="testtoken", transport="curl", cache=False, test_errors=True)
 
     def test_integration_drmaa(self):
-        self.__run(job_conf_props={'type': 'queued_drmaa'}, private_token=None, transport=None, cache=False, test_errors=False)
+        self.__run(app_conf={}, job_conf_props={'type': 'queued_drmaa'}, private_token=None, transport=None, cache=False, test_errors=False)
+
+    def test_integration_condor(self):
+        self.__run(app_conf={}, job_conf_props={'type': 'queued_condor'}, private_token=None, transport=None, cache=False, test_errors=False)
 
     def __run(self, app_conf={}, job_conf_props={}, **kwds):
         kwds["suppress_output"] = True

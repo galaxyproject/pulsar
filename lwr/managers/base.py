@@ -152,7 +152,7 @@ class DirectoryBaseManager(BaseManager):
         return self._job_directory(job_id).read_file(name, **kwds)
 
     def _write_job_file(self, job_id, name, contents):
-        self._job_directory(job_id).write_file(name, contents)
+        return self._job_directory(job_id).write_file(name, contents)
 
     def _write_return_code(self, job_id, return_code):
         self._write_job_file(job_id, JOB_FILE_RETURN_CODE, str(return_code))

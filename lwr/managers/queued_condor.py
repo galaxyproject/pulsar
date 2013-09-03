@@ -52,6 +52,8 @@ class CondorQueueManager(ExternalBaseManager):
                 s_out = 'Failed to find job id from condor_submit'
             else:
                 external_id = match.group(1)
+        else:
+            raise Exception("condor_submit failed - %s" % s_out)
         self._register_external_id(job_id, external_id)
 
     def __condor_user_log(self, job_id):
@@ -64,8 +66,10 @@ class CondorQueueManager(ExternalBaseManager):
             pass
 
     def get_status(self, job_id):
-        external_id = self._get_external_id(job_id)
-        log_path = self.__condor_user_log(id)
+        external_id = self._external_id(job_id)
+        if not external_id:
+            raise Exception("Failed to obtain external_id for job_id %s, cannot determine status." % job_id)
+        log_path = self.__condor_user_log(job_id)
         if not exists(log_path):
             return 'complete'
         if external_id not in self.user_log_sizes:

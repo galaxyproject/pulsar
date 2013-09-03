@@ -174,6 +174,7 @@ class JobDirectory(object):
             job_file.write(contents)
         finally:
             job_file.close()
+        return path
 
     def remove_file(self, name):
         """
