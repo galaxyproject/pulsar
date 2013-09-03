@@ -33,7 +33,7 @@ class IntegrationTest(TempDirectoryTestCase):
         self.__run(app_conf={}, job_conf_props={'type': 'queued_condor'}, private_token=None, transport=None, cache=False, test_errors=False)
 
     def test_integration_cli(self):
-        self.__run(app_conf={}, job_conf_props={'type': 'queued_cli', 'shell_plugin': 'SecureShell', 'job_plugin': 'Torque'}, private_token=None, transport=None, cache=False, test_errors=False)
+        self.__run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Torque'}, private_token=None, transport=None, cache=False, test_errors=False)
 
     def __run(self, app_conf={}, job_conf_props={}, **kwds):
         kwds["suppress_output"] = True

@@ -10,6 +10,7 @@ from tempfile import TemporaryFile
 from subprocess import Popen, PIPE
 
 from lwr.util import Bunch, kill_pid
+from lwr.cli.shell import BaseShellExec
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -17,7 +18,7 @@ log = getLogger(__name__)
 __all__ = ('RemoteShell', 'SecureShell', 'GlobusSecureShell')
 
 
-class RemoteShell(object):
+class RemoteShell(BaseShellExec):
 
     def __init__(self, rsh='rsh', rcp='rcp', hostname='localhost', username=None, **kwargs):
         self.rsh = rsh

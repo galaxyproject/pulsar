@@ -13,6 +13,8 @@ from lwr.managers.external import parse_external_id
 from logging import getLogger
 log = getLogger(__name__)
 
+DEFAULT_SHELL_PLUGIN = 'LocalShell'
+
 
 class CliQueueManager(ExternalBaseManager):
     manager_type = "queued_cli"
@@ -21,6 +23,8 @@ class CliQueueManager(ExternalBaseManager):
         super(CliQueueManager, self).__init__(name, app, **kwds)
         self.__load_cli_plugins()
         self.shell_params = dict((k.replace('shell_', '', 1), v) for k, v in kwds.iteritems() if k.startswith('shell_'))
+        if 'plugin' not in self.shell_params:
+            self.shell_params['plugin'] = 'LocalShell'
         self.job_params = dict((k.replace('job_', '', 1), v) for k, v in kwds.iteritems() if k.startswith('job_'))
 
     def __load_cli_plugins(self):
