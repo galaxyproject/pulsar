@@ -10,6 +10,8 @@ try:
 except:
     import xml.etree.ElementTree as et
 
+__all__ = ('Torque',)
+
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -114,13 +116,15 @@ class Torque(object):
         for line in status.splitlines():
             line = line.split(' = ')
             if line[0] == 'job_state':
-                return line[1]
+                return self.__get_job_state(line[1].strip())
         # no state found, job has exited
         return 'complete'
 
     def __get_job_state(self, state):
-        return {'E': 'running',
-                'R': 'running',
-                'Q': 'queued'}.get(state, state)
-
-__all__ = [Torque]
+        try:
+            return {'E': 'running',
+                    'R': 'running',
+                    'Q': 'queued',
+                   }.get(state)
+        except KeyError:
+            raise KeyError("Failed to map torque status code [%s] to job state." % state)

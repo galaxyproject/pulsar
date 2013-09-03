@@ -19,7 +19,7 @@ __all__ = ('RemoteShell', 'SecureShell', 'GlobusSecureShell')
 
 class RemoteShell(object):
 
-    def __init__(self, rsh='rsh', rcp='rcp', hostname=None, username=None, **kwargs):
+    def __init__(self, rsh='rsh', rcp='rcp', hostname='localhost', username=None, **kwargs):
         self.rsh = rsh
         self.rcp = rcp
         self.hostname = hostname

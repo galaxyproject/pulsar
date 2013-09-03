@@ -211,7 +211,7 @@ class ExternalBaseManager(DirectoryBaseManager):
     def get_status(self, job_id):
         external_id = self._external_id(job_id)
         if not external_id:
-            raise KeyError
+            raise KeyError("Failed to find external id for job_id %s" % job_id)
         return self._get_status_external(external_id)
 
     def _setup_job_file(self, job_id, command_line, file_template=DEFAULT_JOB_FILE_TEMPLATE):

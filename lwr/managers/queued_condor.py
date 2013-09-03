@@ -3,6 +3,7 @@ from os.path import exists
 from os import stat
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError, check_call
 
+from lwr.managers.external import parse_external_id
 from lwr.managers.base import ExternalBaseManager
 
 JOB_FILE_TEMPLATE = """#!/bin/sh
@@ -61,11 +62,9 @@ class CondorQueueManager(ExternalBaseManager):
         submit = Popen(('condor_submit', submit_file), stdout=PIPE, stderr=STDOUT)
         s_out, s_err = submit.communicate()
         if submit.returncode == 0:
-            match = search('submitted to cluster (\\d+).', s_out)
-            if match is None:
-                s_out = 'Failed to find job id from condor_submit'
-            else:
-                external_id = match.group(1)
+            external_id = parse_external_id(s_out, type='condor')
+            if not external_id:
+                raise Exception('Failed to find job id from condor_submit')
         else:
             raise Exception("condor_submit failed - %s" % s_out)
         self._register_external_id(job_id, external_id)
