@@ -15,6 +15,21 @@ max_concurrent_jobs=1
 #[manager:_default_]
 #type=queued_drmaa
 
+## Condor backed manager.
+#[manager:_default_]
+#type=queued_condor
+## Optionally, additional condor submission parameters can be 
+## set as follows:
+#submit_universe=vanilla
+#submit_request_memory=32
+#submit_requirements=OpSys == "LINUX" && Arch =="INTEL"
+#submit_rank=Memory >= 64
+## These would set universe, request_memory, requirements, and rank
+## in the condor submission file to the specified values. For
+## more information on condor submission files see the following link:
+## http://research.cs.wisc.edu/htcondor/quick-start.html.
+
+
 ## NOT YET IMPLEMENTED. PBS backed manager.
 #[manager:_default_]
 #type=queued_pbs

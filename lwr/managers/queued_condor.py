@@ -16,22 +16,36 @@ DEFAULT_QUERY_CLASSAD = dict(
     getenv='true',
     notification='NEVER',
 )
+SUBMIT_PARAM_PREFIX = "submit_"
 
 
+## TODO:
+##  - user_log_sizes and state_cache never expire
+##    elements never expire. This is a small memory
+##    whole that should be fixed.
 class CondorQueueManager(ExternalBaseManager):
     """
+    Job manager backend that plugs into Condor.
+
     """
     manager_type = "queued_condor"
 
     def __init__(self, name, app, **kwds):
         super(CondorQueueManager, self).__init__(name, app, **kwds)
+        default_submission_params = DEFAULT_QUERY_CLASSAD.copy()
+        for key, value in kwds.iteritems():
+            key = key.lower()
+            if key.startswith(SUBMIT_PARAM_PREFIX):
+                condor_key = key[len(SUBMIT_PARAM_PREFIX):]
+                default_submission_params[condor_key] = value
+        self.default_submission_params = default_submission_params
         self.user_log_sizes = {}
         self.state_cache = {}
 
     def launch(self, job_id, command_line):
         self._check_execution_with_tool_file(job_id, command_line)
         job_file_path = self._setup_job_file(job_id, command_line)
-        query_params = DEFAULT_QUERY_CLASSAD.copy()
+        query_params = self.default_submission_params.copy()
         submit_desc = []
         for k, v in query_params.items():
             submit_desc.append('%s = %s' % (k, v))
