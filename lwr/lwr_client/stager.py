@@ -103,8 +103,11 @@ class TransferTracker(object):
         self.job_inputs = job_inputs
         self.file_renames = {}
 
-    def action(self, path, type):
-        return ('transfer',)
+    def handle_transfer(self, path, type, transfer_action):
+        action = self.__action(path, type)
+        if action[0] == 'transfer':
+            response = transfer_action(path)
+            self.register_rewrite(path, response['path'])
 
     def register_rewrite(self, local_path, remote_path):
         self.file_renames[local_path] = remote_path
@@ -116,6 +119,9 @@ class TransferTracker(object):
         """
         for local_path, remote_path in self.file_renames.iteritems():
             self.job_inputs.rewrite_paths(local_path, remote_path)
+
+    def __action(self, path, type):
+        return ('transfer',)
 
 
 class FileStager(object):
@@ -195,10 +201,7 @@ class FileStager(object):
 
     def __upload_tool_files(self):
         for referenced_tool_file in self.referenced_tool_files:
-            action = self.transfer_tracker.action(referenced_tool_file, 'tool_file')
-            if action[0] == 'transfer':
-                tool_upload_response = self.client.upload_tool_file(referenced_tool_file)
-                self.transfer_tracker.register_rewrite(referenced_tool_file, tool_upload_response['path'])
+            self.transfer_tracker.handle_transfer(referenced_tool_file, 'tool_file', self.client.upload_tool_file)
 
     def __upload_input_files(self):
         for input_file in self.input_files:
@@ -207,10 +210,7 @@ class FileStager(object):
 
     def __upload_input_file(self, input_file):
         if self.job_inputs.path_referenced(input_file):
-            action = self.transfer_tracker.action(input_file, 'input')
-            if action[0] == 'transfer':
-                input_upload_response = self.client.upload_input(input_file)
-                self.transfer_tracker.register_rewrite(input_file, input_upload_response['path'])
+            self.transfer_tracker.handle_transfer(input_file, 'input', self.client.upload_input)
 
     def __upload_input_extra_files(self, input_file):
         # TODO: Determine if this is object store safe and what needs to be
@@ -221,20 +221,15 @@ class FileStager(object):
                 extra_file_path = join(files_path, extra_file)
                 relative_path = basename(files_path)
                 extra_file_relative_path = join(relative_path, extra_file)
-                action = self.transfer_tracker.action(input_file, 'input_extra')
-                if action[0] == 'transfer':
-                    response = self.client.upload_extra_input(extra_file_path, extra_file_relative_path)
-                    self.transfer_tracker.register_rewrite(extra_file_path, response['path'])
+                transfer_action = lambda extra_file_path: self.client.upload_extra_input(extra_file_path, extra_file_relative_path)
+                self.transfer_tracker.handle_transfer(extra_file_path, 'input_extra', transfer_action)
 
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
         # uploaded if present.
         for working_directory_file in listdir(self.working_directory):
             path = join(self.working_directory, working_directory_file)
-            action = self.transfer_tracker.action(path, 'working')
-            if action[0] == 'transfer':
-                working_file_response = self.client.upload_working_directory_file(path)
-                self.transfer_tracker.register_rewrite(path, working_file_response['path'])
+            self.transfer_tracker.handle_transfer(path, 'working', self.client.upload_working_directory_file)
 
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:
