@@ -4,6 +4,7 @@ docs/_build
 cache
 *.pyc
 .coverage
+local_env.sh
 coverage_html_report
 lwr_staging
 server.ini

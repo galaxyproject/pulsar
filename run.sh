@@ -13,6 +13,11 @@
 PROJECT_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $PROJECT_DIRECTORY
 
+if [ -e $PROJECT_DIRECTORY/local_env.sh ];
+then 
+    . $PROJECT_DIRECTORY/local_env.sh
+fi
+
 if [ -d .venv ]; 
 then
     . .venv/bin/activate
