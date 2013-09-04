@@ -135,9 +135,9 @@ def __test_upload(upload_type):
     client.expect_open(request_checker, '{"path" : "C:\\\\tools\\\\foo"}')
 
     if(upload_type == 'tool_file'):
-        upload_result = client.upload_tool_file(temp_file_path)
+        upload_result = client.put_file(temp_file_path, 'tool')
     else:
-        upload_result = client.upload_input(temp_file_path)
+        upload_result = client.put_file(temp_file_path, 'input')
 
     request_checker.assert_called()
     assert upload_result["path"] == "C:\\tools\\foo"
@@ -162,7 +162,7 @@ def test_upload_config():
     modified_contents = "Hello World! <Modified>"
     request_checker = RequestChecker("upload_config_file", {"name": os.path.basename(temp_file_path)}, modified_contents)
     client.expect_open(request_checker, '{"path" : "C:\\\\tools\\\\foo"}')
-    upload_result = client.upload_config_file(temp_file_path, modified_contents)
+    upload_result = client.put_file(temp_file_path, 'config', contents=modified_contents)
     request_checker.assert_called()
     assert upload_result["path"] == "C:\\tools\\foo"
 
@@ -176,7 +176,7 @@ def test_download_output():
     client.expect_open(request_checker, '"direct"')
     request_checker = RequestChecker("download_output", {"name": os.path.basename(temp_file.name), "output_type": "direct"})
     client.expect_open(request_checker, "test output contents")
-    client.download_output(temp_file.name, ".")
+    client.fetch_output(temp_file.name, ".")
 
     contents = open(temp_file.name, "r")
     try:

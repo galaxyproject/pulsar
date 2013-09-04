@@ -118,6 +118,7 @@ class Client(object):
             'work_dir': 'upload_working_directory_file',
             'tool': 'upload_tool_file'
         }[input_type]
+        del args['input_type']
         return action
 
     @parseJson()
@@ -142,10 +143,17 @@ class Client(object):
             output_path = path
         elif output_type == "task":
             output_path = os.path.join(working_directory, name)
+        elif output_type == "none":
+            if action == "transfer":
+                raise OutputNotFoundException(path)
         else:
-            raise OutputNotFoundException(path)
+            raise Exception("Unknown output_type returned from LWR server %s" % output_type)
         if action == 'transfer':
             self.__raw_download_output(name, self.job_id, output_type, output_path)
+        elif output_type == 'none':
+            # Just make sure the file was created.
+            if not os.path.exists(path):
+                raise OutputNotFoundException(path)
         elif action == 'copy':
             lwr_path = self._output_path(name, self.job_id, output_type)['path']
             self._copy(lwr_path, output_path)
