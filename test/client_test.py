@@ -58,7 +58,7 @@ class TestClient(Client):
     method so that requests can be inspected and responses faked."""
 
     def __init__(self):
-        client_manager = Bunch(transport = TestTransport(self))
+        client_manager = Bunch(transport=TestTransport(self))
         Client.__init__(self, "http://test:803/", "543", client_manager)
         self.expects = deque([])
 

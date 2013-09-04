@@ -1,4 +1,3 @@
-from re import search
 from os.path import exists
 from os import stat
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError, check_call
