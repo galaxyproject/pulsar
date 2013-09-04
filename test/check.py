@@ -64,7 +64,7 @@ finally:
         if options.transport:
             manager_args['transport_type'] = options.transport
         client_options = {"url": options.url, "private_token": options.private_token}
-        if "default_file_action" in options:
+        if hasattr(options, "default_file_action"):
             client_options["default_file_action"] = getattr(options, "default_file_action")
         client = ClientManager(**manager_args).get_client(client_options, "123456")
         stager = FileStager(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
