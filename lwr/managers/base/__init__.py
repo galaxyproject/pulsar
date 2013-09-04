@@ -43,9 +43,14 @@ class BaseManager(ManagerInterface):
         self.name = name
         self._setup_staging_directory(app.staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
+        self.debug = kwds.get("debug", False)
         self.authorizer = app.authorizer
 
     def clean_job_directory(self, job_id):
+        if self.debug:
+            # In debug mode skip cleaning job directories.
+            return
+
         job_directory = self._job_directory(job_id)
         if job_directory.exists():
             try:

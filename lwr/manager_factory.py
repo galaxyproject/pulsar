@@ -49,6 +49,7 @@ def _get_default_options(conf):
     options = {}
     if "assign_ids" in conf:
         options["assign_ids"] = conf["assign_ids"]
+    options["debug"] = conf.get("debug", False)
     return options
 
 
