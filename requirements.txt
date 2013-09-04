@@ -8,7 +8,11 @@ PasteDeploy
 paste
 PasteScript
 
-# circus
-# chaussette
+## Uncomment if using DRMAA queue manager.
+#drmaa
+
+## To use alternative Python web servers.
+#circus
+#chaussette
 # -or-
-# git+git://github.com/mozilla-services/chaussette.git
+#git+git://github.com/mozilla-services/chaussette.git
