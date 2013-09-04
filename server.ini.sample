@@ -58,7 +58,9 @@ pubsub_endpoint = tcp://127.0.0.1:5556
 [watcher:web]
 cmd = chaussette --fd $(circus.sockets.web) paste:server.ini
 use_sockets = True
-numprocesses = 1  # LWR must be single-process for now.
+# LWR must be single-process for now...
+numprocesses = 1
+
 
 [socket:web]
 host = localhost
