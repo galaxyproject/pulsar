@@ -1,11 +1,13 @@
 ## Place local configuration variables used by the LWR and run.sh in here. For example
 
-## If using the drmaa queue manager, you will need to set the DRMAA_LIBRARY_PATH variable.
-# DRMAA_LIBRARY_PATH=/path/to/libdrmaa.so
+## If using the drmaa queue manager, you will need to set the DRMAA_LIBRARY_PATH variable,
+## you may also need to update LD_LIBRARY_PATH for underlying library as well. 
+#export DRMAA_LIBRARY_PATH=/path/to/libdrmaa.so
+
 
 ## If you wish to use a variety of Galaxy tools that depend on galaxy.eggs being defined, 
 ## set GALAXY_HOME to point to a copy of Galaxy.
-# GALAXY_HOME=/path/to/galaxy-dist
+#export GALAXY_HOME=/path/to/galaxy-dist
 
 ## Uncomment to verify GALAXY_HOME is set properly before starting the LWR.
-# TEST_GALAXY_LIBS=1
+#export TEST_GALAXY_LIBS=1
