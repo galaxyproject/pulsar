@@ -43,7 +43,7 @@ class BaseManager(ManagerInterface):
         self.name = name
         self._setup_staging_directory(app.staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
-        self.debug = kwds.get("debug", False)
+        self.debug = str(kwds.get("debug", False)).lower() == "true"
         self.authorizer = app.authorizer
 
     def clean_job_directory(self, job_id):
