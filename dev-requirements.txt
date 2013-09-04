@@ -1,6 +1,5 @@
 # Optional requirements used by test cases
-## pycurl (Latest released version does not work with Python 3)
-git+git://github.com/pycurl-devs/pycurl
+pycurl
 
 # For testing
 nose

@@ -10,4 +10,5 @@ PasteScript
 
 # circus
 # chaussette
-
+# -or-
+# git+git://github.com/mozilla-services/chaussette.git
