@@ -77,6 +77,8 @@ def kill(manager, job_id):
     manager.kill(job_id)
 
 
+## Following routes allow older clients to talk to new LWR, should be considered
+## deprecated in favor of generic upload_file route.
 @LwrController(response_type='json')
 def upload_tool_file(manager, file_cache, job_id, name, body, cache_token=None):
     return _handle_upload_to_directory(file_cache, manager.tool_files_directory(job_id), name, body, cache_token=cache_token)
@@ -102,9 +104,28 @@ def upload_working_directory_file(manager, file_cache, job_id, name, body, cache
     return _handle_upload_to_directory(file_cache, manager.tool_files_directory(job_id), name, body, cache_token=cache_token)
 
 
+@LwrController(response_type='json')
+def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
+    ## Input type should be one of input, input_extra, config, work_dir, or tool.
+    directory, allow_nested_files = _input_path_params(manager, input_type, job_id)
+    return _handle_upload_to_directory(file_cache, directory, name, body, cache_token=cache_token, allow_nested_files=allow_nested_files)
+
+
+@LwrController(response_type='json')
+def input_path(manager, input_type, job_id, name):
+    directory, allow_nested_files = _input_path_params(manager, input_type, job_id)
+    return {'path': get_mapped_file(directory, name, allow_nested_files=allow_nested_files)}
+
+
 @LwrController(response_type='file')
 def download_output(manager, job_id, name, output_type="direct"):
     return _output_path(manager, job_id, name, output_type)
+
+
+@LwrController(response_type='json')
+def output_path(manager, job_id, name, output_type="directory"):
+    ## Added for non-transfer downloading.
+    return {"path": _output_path(manager, job_id, name, output_type)}
 
 
 def _output_path(manager, job_id, name, output_type):
@@ -155,3 +176,18 @@ def _handle_upload_to_directory(file_cache, directory, remote_path, body, cache_
         log.info("Copying cached file %s to %s" % (cached_file, path))
     copy_to_path(source, path)
     return {"path": path}
+
+
+def _input_path_params(manager, input_type, job_id):
+    allow_nested_files = input_type in ['input_extra']
+    if input_type in ['input', 'input_extra']:
+        directory = manager.inputs_directory(job_id)
+    elif input_type == 'config':
+        directory = manager.configs_directory(job_id)
+    elif input_type == 'tool':
+        directory = manager.tool_files_directory(job_id)
+    elif input_type == 'work_dir':
+        directory = manager.working_directory(job_id)
+    else:
+        raise Exception("Unknown input_type specified %s" % input_type)
+    return directory, allow_nested_files

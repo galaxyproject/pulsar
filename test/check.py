@@ -4,8 +4,7 @@ import os
 import optparse
 import traceback
 
-from lwr.lwr_client import ClientManager
-from lwr.lwr_client import FileStager
+from lwr.lwr_client import FileStager, finish_job, ClientManager
 
 
 class MockTool(object):
@@ -64,26 +63,36 @@ finally:
             manager_args['cache'] = True
         if options.transport:
             manager_args['transport_type'] = options.transport
-
-        client = ClientManager(**manager_args).get_client({"url": options.url, "private_token": options.private_token}, "123456")
+        client_options = {"url": options.url, "private_token": options.private_token}
+        if "default_file_action" in options:
+            client_options["default_file_action"] = getattr(options, "default_file_action")
+        client = ClientManager(**manager_args).get_client(client_options, "123456")
         stager = FileStager(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         new_command = stager.get_rewritten_command_line()
         client.launch(new_command)
         response = client.wait()
-        client.download_output(temp_output_path, temp_directory)
-        if options.test_errors:
-            try:
-                client.download_output(temp_output_path + "x", temp_directory)
-            except BaseException as e:
-                print response
-                if not options.suppress_output:
-                    traceback.print_exc(e)
+
+        finish_args = dict(client=client,
+                           working_directory=temp_work_dir,
+                           job_completed_normally=True,
+                           cleanup_job='never',
+                           work_dir_outputs=[],
+                           output_files=[temp_output_path])
+        finish_job(**finish_args)
+        #client.download_output(temp_output_path, temp_directory)
         output_file = open(temp_output_path, 'r')
         try:
             output_contents = output_file.read()
             assert output_contents == "hello world output", "Invalid output_contents: %s" % output_contents
         finally:
             output_file.close()
+        if options.test_errors:
+            try:
+                client.fetch_output(temp_output_path + "x", temp_directory)
+            except BaseException as e:
+                print response
+                if not options.suppress_output:
+                    traceback.print_exc(e)
         #if os.path.exists("workdir_output"):
         #    os.remove("workdir_output")
         #client.download_work_dir_output("workdir_output")
