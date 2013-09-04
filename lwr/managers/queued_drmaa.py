@@ -7,12 +7,6 @@ try:
 except ImportError:
     JobState = None
 
-JOB_FILE_TEMPLATE = """#!/bin/sh
-cd $working_directory
-$command_line
-echo $? > $return_code_path
-"""
-
 
 class DrmaaQueueManager(ExternalBaseManager):
     """

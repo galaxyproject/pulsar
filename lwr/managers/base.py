@@ -179,17 +179,28 @@ class DirectoryBaseManager(BaseManager):
             tool_id = job_directory.read_file(JOB_FILE_TOOL_ID)
         return tool_id
 
-from os import chmod
+from os import chmod, getenv
 from stat import S_IEXEC, S_IWRITE, S_IREAD
 from string import Template
 
 DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
 
 DEFAULT_JOB_FILE_TEMPLATE = """#!/bin/sh
+$galaxy_lib_export
 cd $working_directory
 $command_line
 echo $? > $return_code_path
 """
+
+GALAXY_LIB_EXPORT_TEMPLATE = '''
+GALAXY_LIB='%s'
+if [ -n "$PYTHONPATH" ]; then
+    PYTHONPATH="$GALAXY_LIB:$PYTHONPATH"
+else
+    PYTHONPATH="$GALAXY_LIB"
+fi
+export PYTHONPATH
+'''
 
 
 class ExternalBaseManager(DirectoryBaseManager):
@@ -197,6 +208,7 @@ class ExternalBaseManager(DirectoryBaseManager):
     def __init__(self, name, app, **kwds):
         super(ExternalBaseManager, self).__init__(name, app, **kwds)
         self.external_ids = {}
+        self.galaxy_home = kwds.get('galaxy_home', None)
         self.job_name_template = kwds.get('job_name_template', DEFAULT_JOB_NAME_TEMPLATE)
 
     def setup_job(self, input_job_id, tool_id, tool_version):
@@ -213,6 +225,13 @@ class ExternalBaseManager(DirectoryBaseManager):
         if not external_id:
             raise KeyError("Failed to find external id for job_id %s" % job_id)
         return self._get_status_external(external_id)
+
+    def _galaxy_lib_export(self):
+        galaxy_home = self.galaxy_home or getenv('GALAXY_HOME', None)
+        export = ''
+        if galaxy_home and galaxy_home.lower() != 'none':
+            export = GALAXY_LIB_EXPORT_TEMPLATE % join(galaxy_home, 'lib')
+        return export
 
     def _setup_job_file(self, job_id, command_line, file_template=DEFAULT_JOB_FILE_TEMPLATE):
         script_env = self._job_template_env(job_id, command_line=command_line)
@@ -233,6 +252,7 @@ class ExternalBaseManager(DirectoryBaseManager):
     def _job_template_env(self, job_id, command_line=None):
         return_code_path = self._return_code_path(job_id)
         job_template_env = {
+            'galaxy_lib_export': self._galaxy_lib_export(),
             'return_code_path': return_code_path,
             'working_directory': self.working_directory(job_id),
             'job_id': job_id,

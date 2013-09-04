@@ -6,12 +6,6 @@ from subprocess import Popen, PIPE, STDOUT, CalledProcessError, check_call
 from lwr.managers.external import parse_external_id
 from lwr.managers.base import ExternalBaseManager
 
-JOB_FILE_TEMPLATE = """#!/bin/sh
-cd $working_directory
-$command_line
-echo $? > $return_code_path
-"""
-
 DEFAULT_QUERY_CLASSAD = dict(
     universe='vanilla',
     getenv='true',
