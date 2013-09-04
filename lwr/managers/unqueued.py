@@ -5,7 +5,7 @@ except ImportError:
 from threading import Lock
 
 from lwr.util import kill_pid, execute
-from lwr.managers.base import DirectoryBaseManager
+from lwr.managers.base.directory import DirectoryBaseManager
 
 from logging import getLogger
 log = getLogger(__name__)

@@ -4,7 +4,7 @@ from os import stat
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError, check_call
 
 from lwr.managers.external import parse_external_id
-from lwr.managers.base import ExternalBaseManager
+from lwr.managers.base.external import ExternalBaseManager
 
 DEFAULT_QUERY_CLASSAD = dict(
     universe='vanilla',

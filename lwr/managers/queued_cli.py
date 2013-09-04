@@ -7,7 +7,7 @@ from os import getcwd
 from os.path import join, basename
 from glob import glob
 
-from lwr.managers.base import ExternalBaseManager
+from lwr.managers.base.external import ExternalBaseManager
 from lwr.managers.external import parse_external_id
 
 from logging import getLogger

@@ -1,4 +1,4 @@
-from lwr.managers.base import ExternalBaseManager
+from lwr.managers.base.external import ExternalBaseManager
 from lwr.drmaa import DrmaaSessionFactory
 from string import Template
 
