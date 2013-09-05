@@ -1,8 +1,8 @@
 from os.path import exists
 from os import stat
-from subprocess import CalledProcessError, check_call
 
-from .util.condor import build_submit_description, condor_submit, condor_stop
+from .util.condor import build_submit_description
+from .util.condor import condor_submit, condor_stop, summarize_condor_log
 from .base.external import ExternalBaseManager
 
 from logging import getLogger
@@ -76,21 +76,13 @@ class CondorQueueManager(ExternalBaseManager):
         return self.__get_state_from_log(external_id, log_path)
 
     def __get_state_from_log(self, external_id, log_file):
-        log_job_id = external_id.zfill(3)
-        state = 'queued'
-        with open(log_file, 'r') as fh:
-            for line in fh:
-                if '001 (' + log_job_id + '.' in line:
-                    state = 'running'
-                if '004 (' + log_job_id + '.' in line:
-                    state = 'running'
-                if '007 (' + log_job_id + '.' in line:
-                    state = 'running'
-                if '005 (' + log_job_id + '.' in line:
-                    state = 'complete'
-                if '009 (' + log_job_id + '.' in line:
-                    state = 'complete'
-            log_size = fh.tell()
+        s1, s4, s7, s5, s9, log_size = summarize_condor_log(log_file, external_id)
+        if s5 or s9:
+            state = 'complete'
+        elif s1 or s4 or s7:
+            state = 'running'
+        else:
+            state = 'queued'
         self.user_log_sizes[external_id] = log_size
         self.state_cache[external_id] = state
         return state

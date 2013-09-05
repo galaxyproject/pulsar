@@ -79,3 +79,24 @@ def condor_stop(external_id):
     except Exception as e:
         "error encountered calling condor_rm: %s" % e
     return failure_message
+
+
+def summarize_condor_log(log_file, external_id):
+    """
+    """
+    log_job_id = external_id.zfill(3)
+    s1 = s4 = s7 = s5 = s9 = False
+    with open(log_file, 'r') as log_handle:
+        for line in log_handle:
+            if '001 (' + log_job_id + '.' in line:
+                s1 = True
+            if '004 (' + log_job_id + '.' in line:
+                s4 = True
+            if '007 (' + log_job_id + '.' in line:
+                s7 = True
+            if '005 (' + log_job_id + '.' in line:
+                s5 = True
+            if '009 (' + log_job_id + '.' in line:
+                s9 = True
+        file_size = log_handle.tell()
+    return s1, s4, s7, s5, s9, file_size
