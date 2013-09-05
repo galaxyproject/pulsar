@@ -4,23 +4,9 @@ from stat import S_IEXEC, S_IWRITE, S_IREAD
 from string import Template
 
 from .directory import DirectoryBaseManager
+from ..util.job_script import job_script
 
 DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
-
-DEFAULT_JOB_FILE_TEMPLATE = """#!/bin/sh
-GALAXY_LIB="$galaxy_lib"
-if [ "$GALAXY_LIB" != "None" ]; then
-    if [ -n "$PYTHONPATH" ]; then
-        PYTHONPATH="$GALAXY_LIB:$PYTHONPATH"
-    else
-        PYTHONPATH="$GALAXY_LIB"
-    fi
-    export PYTHONPATH
-fi
-cd $working_directory
-$command_line
-echo $? > $return_code_path
-"""
 
 
 class ExternalBaseManager(DirectoryBaseManager):
@@ -53,11 +39,10 @@ class ExternalBaseManager(DirectoryBaseManager):
             galaxy_lib = join(galaxy_home, 'lib')
         return galaxy_lib
 
-    def _setup_job_file(self, job_id, command_line, file_template=DEFAULT_JOB_FILE_TEMPLATE):
+    def _setup_job_file(self, job_id, command_line):
         script_env = self._job_template_env(job_id, command_line=command_line)
-        template = Template(file_template)
-        script_contents = template.safe_substitute(**script_env)
-        return self._write_job_script(job_id, script_contents)
+        script = job_script(**script_env)
+        return self._write_job_script(job_id, script)
 
     def _get_job_id(self, input_job_id):
         return str(self.id_assigner(input_job_id))
@@ -72,13 +57,13 @@ class ExternalBaseManager(DirectoryBaseManager):
     def _job_template_env(self, job_id, command_line=None):
         return_code_path = self._return_code_path(job_id)
         job_template_env = {
-            'galaxy_lib': self._galaxy_lib_export(),
-            'return_code_path': return_code_path,
+            'galaxy_lib': self._galaxy_lib(),
+            'exit_code_path': return_code_path,
             'working_directory': self.working_directory(job_id),
             'job_id': job_id,
         }
         if command_line:
-            job_template_env['command_line'] = command_line
+            job_template_env['command'] = command_line
 
         return job_template_env
 
