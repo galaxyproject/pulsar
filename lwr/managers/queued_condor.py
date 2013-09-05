@@ -1,9 +1,8 @@
 from os.path import exists
 from os import stat
-from subprocess import Popen, PIPE, STDOUT, CalledProcessError, check_call
+from subprocess import CalledProcessError, check_call
 
-from .util.external import parse_external_id
-from .util.condor import build_submit_description
+from .util.condor import build_submit_description, condor_submit
 from .base.external import ExternalBaseManager
 
 SUBMIT_PARAM_PREFIX = "submit_"
@@ -45,14 +44,9 @@ class CondorQueueManager(ExternalBaseManager):
         )
         submit_file_contents = build_submit_description(**build_submit_params)
         submit_file = self._write_job_file(job_id, "job.condor.submit", submit_file_contents)
-        submit = Popen(('condor_submit', submit_file), stdout=PIPE, stderr=STDOUT)
-        s_out, s_err = submit.communicate()
-        if submit.returncode == 0:
-            external_id = parse_external_id(s_out, type='condor')
-            if not external_id:
-                raise Exception('Failed to find job id from condor_submit')
-        else:
-            raise Exception("condor_submit failed - %s" % s_out)
+        external_id, message = condor_submit(submit_file)
+        if not external_id:
+            raise Exception(message)
         self._register_external_id(job_id, external_id)
 
     def __condor_user_log(self, job_id):

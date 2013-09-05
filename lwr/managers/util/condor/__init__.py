@@ -1,12 +1,19 @@
 """
 Condor helper utilities.
 """
+from subprocess import Popen, PIPE, STDOUT
+from ..external import parse_external_id
 
 DEFAULT_QUERY_CLASSAD = dict(
     universe='vanilla',
     getenv='true',
     notification='NEVER',
 )
+
+PROBLEM_RUNNING_CONDOR_SUBMIT = \
+    "Problem encountered while running condor_submit."
+PROBLEM_PARSING_EXTERNAL_ID = \
+    "Failed to find job id from condor_submit"
 
 
 def build_submit_description(executable, output, error, user_log, query_params):
@@ -39,3 +46,21 @@ def build_submit_description(executable, output, error, user_log, query_params):
     submit_description.append('log = ' + user_log)
     submit_description.append('queue')
     return '\n'.join(submit_description)
+
+
+def condor_submit(submit_file):
+    """
+    Submit a condor job described by the given file. Parse an external id for
+    the submission or return None and a reason for the failure.
+    """
+    external_id = None
+    try:
+        submit = Popen(('condor_submit', submit_file), stdout=PIPE, stderr=STDOUT)
+        message, _ = submit.communicate()
+        if submit.returncode == 0:
+            external_id = parse_external_id(message, type='condor')
+        else:
+            message = PROBLEM_PARSING_EXTERNAL_ID
+    except Exception as e:
+        message = str(e)
+    return external_id, message
