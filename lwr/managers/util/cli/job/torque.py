@@ -1,9 +1,4 @@
-"""
-Command-line interface to TORQUE PBS.
 
-Code adapted from Galaxy:
-  - https://bitbucket.org/galaxy/galaxy-central/src/tip/lib/galaxy/jobs/runners/cli.py?at=default
-"""
 from string import Template
 from ..job import BaseJobExec
 try:

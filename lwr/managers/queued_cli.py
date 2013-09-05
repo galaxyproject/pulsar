@@ -3,17 +3,13 @@ LWR job manager that uses a CLI interface to a job queue (e.g. Torque's qsub,
 qstat, etc...).
 
 """
-from os import getcwd
-from os.path import join, basename
-from glob import glob
 
 from .base.external import ExternalBaseManager
 from .util.external import parse_external_id
+from .util.cli import CliInterface, split_params
 
 from logging import getLogger
 log = getLogger(__name__)
-
-DEFAULT_SHELL_PLUGIN = 'LocalShell'
 
 
 class CliQueueManager(ExternalBaseManager):
@@ -21,30 +17,8 @@ class CliQueueManager(ExternalBaseManager):
 
     def __init__(self, name, app, **kwds):
         super(CliQueueManager, self).__init__(name, app, **kwds)
-        self.__load_cli_plugins()
-        self.shell_params = dict((k.replace('shell_', '', 1), v) for k, v in kwds.iteritems() if k.startswith('shell_'))
-        if 'plugin' not in self.shell_params:
-            self.shell_params['plugin'] = 'LocalShell'
-        self.job_params = dict((k.replace('job_', '', 1), v) for k, v in kwds.iteritems() if k.startswith('job_'))
-
-    def __load_cli_plugins(self):
-        def __load(module_path, d):
-            for file in glob(join(join(getcwd(), *module_path.split('.')), '*.py')):
-                if basename(file).startswith('_'):
-                    continue
-                module_name = '%s.%s' % (module_path, basename(file).rsplit('.py', 1)[0])
-                module = __import__(module_name)
-                for comp in module_name.split(".")[1:]:
-                    module = getattr(module, comp)
-                for name in module.__all__:
-                    try:
-                        d[name] = getattr(module, name)
-                    except TypeError:
-                        raise TypeError("Invalid type for name %s" % name)
-        self.cli_shells = {}
-        self.cli_job_interfaces = {}
-        __load('lwr.managers.util.cli.shell', self.cli_shells)
-        __load('lwr.managers.util.cli.job', self.cli_job_interfaces)
+        self.cli_interface = CliInterface(code_dir='.')
+        self.shell_params, self.job_params = split_params(kwds)
 
     def launch(self, job_id, command_line):
         self._check_execution_with_tool_file(job_id, command_line)
@@ -70,12 +44,7 @@ class CliQueueManager(ExternalBaseManager):
         self._register_external_id(job_id, external_id)
 
     def __get_cli_plugins(self):
-        # load shell plugin
-        shell_params = self.shell_params
-        job_params = self.job_params
-        shell = self.cli_shells[shell_params['plugin']](**shell_params)
-        job_interface = self.cli_job_interfaces[self.job_params['plugin']](**job_params)
-        return shell, job_interface
+        return self.cli_interface.get_plugins(self.shell_params, self.job_params)
 
     def _kill_external(self, external_id):
         shell, job_interface = self.__get_cli_plugins()
