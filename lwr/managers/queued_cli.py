@@ -43,8 +43,8 @@ class CliQueueManager(ExternalBaseManager):
                         raise TypeError("Invalid type for name %s" % name)
         self.cli_shells = {}
         self.cli_job_interfaces = {}
-        __load('lwr.cli.shell', self.cli_shells)
-        __load('lwr.cli.job', self.cli_job_interfaces)
+        __load('lwr.managers.util.cli.shell', self.cli_shells)
+        __load('lwr.managers.util.cli.job', self.cli_job_interfaces)
 
     def launch(self, job_id, command_line):
         self._check_execution_with_tool_file(job_id, command_line)
