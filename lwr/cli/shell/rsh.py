@@ -10,7 +10,7 @@ from tempfile import TemporaryFile
 from subprocess import Popen, PIPE
 
 from lwr.util import Bunch, kill_pid
-from lwr.cli.shell import BaseShellExec
+from ..shell import BaseShellExec
 
 from logging import getLogger
 log = getLogger(__name__)

@@ -4,7 +4,7 @@ except ImportError:
     # Will not be able to use DRMAA
     Session = None
 
-NO_DRMAA_MESSAGE = "Attempt to use DRMAA, but drmaa Python library cannot be loaded."
+NO_DRMAA_MESSAGE = "Attempt to use DRMAA, but DRMAA Python library cannot be loaded."
 
 
 class DrmaaSessionFactory(object):
@@ -47,7 +47,7 @@ class DrmaaSession(object):
         return self.session.control(external_job_id, JobControlAction.TERMINATE)
 
     def job_status(self, external_job_id):
-        return self.session.jobStatus( external_job_id )
+        return self.session.jobStatus(external_job_id)
 
 
 __all__ = [DrmaaSessionFactory]

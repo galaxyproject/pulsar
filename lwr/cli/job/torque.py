@@ -5,6 +5,7 @@ Code adapted from Galaxy:
   - https://bitbucket.org/galaxy/galaxy-central/src/tip/lib/galaxy/jobs/runners/cli.py?at=default
 """
 from string import Template
+from ..job import BaseJobExec
 try:
     import xml.etree.cElementTree as et
 except:
@@ -43,7 +44,7 @@ argmap = {'Execution_Time': '-a',
           'Variable_List': '-v'}
 
 
-class Torque(object):
+class Torque(BaseJobExec):
 
     def __init__(self, **params):
         self.params = {}

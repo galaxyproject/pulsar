@@ -26,7 +26,7 @@ def kill_pid(pid, use_psutil=True):
         _stock_kill_pid(pid)
 
 
-def _psutil_kill_pid(pid, including_parent=True):
+def _psutil_kill_pid(pid):
     """
     http://stackoverflow.com/questions/1230669/subprocess-deleting-child-processes-in-windows
     """
@@ -34,8 +34,7 @@ def _psutil_kill_pid(pid, including_parent=True):
         parent = Process(pid)
         for child in parent.get_children(recursive=True):
             child.kill()
-        if including_parent:
-            parent.kill()
+        parent.kill()
     except NoSuchProcess:
         return
 
