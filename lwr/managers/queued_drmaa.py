@@ -1,5 +1,5 @@
-from lwr.managers.base.external import ExternalBaseManager
-from lwr.drmaa import DrmaaSessionFactory
+from .base.external import ExternalBaseManager
+from .util.drmaa import DrmaaSessionFactory
 
 try:
     from drmaa import JobState
