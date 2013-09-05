@@ -3,13 +3,9 @@ from os import stat
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError, check_call
 
 from .util.external import parse_external_id
+from .util.condor import build_submit_description
 from .base.external import ExternalBaseManager
 
-DEFAULT_QUERY_CLASSAD = dict(
-    universe='vanilla',
-    getenv='true',
-    notification='NEVER',
-)
 SUBMIT_PARAM_PREFIX = "submit_"
 
 
@@ -20,37 +16,34 @@ SUBMIT_PARAM_PREFIX = "submit_"
 class CondorQueueManager(ExternalBaseManager):
     """
     Job manager backend that plugs into Condor.
-
     """
     manager_type = "queued_condor"
 
     def __init__(self, name, app, **kwds):
         super(CondorQueueManager, self).__init__(name, app, **kwds)
-        default_submission_params = DEFAULT_QUERY_CLASSAD.copy()
+        submission_params = {}
         for key, value in kwds.iteritems():
             key = key.lower()
             if key.startswith(SUBMIT_PARAM_PREFIX):
                 condor_key = key[len(SUBMIT_PARAM_PREFIX):]
-                default_submission_params[condor_key] = value
-        self.default_submission_params = default_submission_params
+                submission_params[condor_key] = value
+        self.submission_params = submission_params
         self.user_log_sizes = {}
         self.state_cache = {}
 
     def launch(self, job_id, command_line):
         self._check_execution_with_tool_file(job_id, command_line)
         job_file_path = self._setup_job_file(job_id, command_line)
-        query_params = self.default_submission_params.copy()
-        submit_desc = []
-        for k, v in query_params.items():
-            submit_desc.append('%s = %s' % (k, v))
-        submit_desc.append('executable = ' + job_file_path)
-        submit_desc.append('output = ' + self._stdout_path(job_id))
-        submit_desc.append('error = ' + self._stderr_path(job_id))
         log_path = self.__condor_user_log(job_id)
         open(log_path, 'w')  # Touch log file
-        submit_desc.append('log = ' + log_path)
-        submit_desc.append('queue')
-        submit_file_contents = "\n".join(submit_desc)
+        build_submit_params = dict(
+            executable=job_file_path,
+            output=self._stdout_path(job_id),
+            error=self._stderr_path(job_id),
+            user_log=log_path,
+            query_params=self.submission_params,
+        )
+        submit_file_contents = build_submit_description(**build_submit_params)
         submit_file = self._write_job_file(job_id, "job.condor.submit", submit_file_contents)
         submit = Popen(('condor_submit', submit_file), stdout=PIPE, stderr=STDOUT)
         s_out, s_err = submit.communicate()
