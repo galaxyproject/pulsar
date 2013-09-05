@@ -1,7 +1,7 @@
 """
 Condor helper utilities.
 """
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT, check_call, CalledProcessError
 from ..external import parse_external_id
 
 DEFAULT_QUERY_CLASSAD = dict(
@@ -64,3 +64,18 @@ def condor_submit(submit_file):
     except Exception as e:
         message = str(e)
     return external_id, message
+
+
+def condor_stop(external_id):
+    """
+    Stop running condor job and return a failure_message if this
+    fails.
+    """
+    failure_message = None
+    try:
+        check_call(('condor_rm', external_id))
+    except CalledProcessError:
+        failure_message = "condor_rm failed"
+    except Exception as e:
+        "error encountered calling condor_rm: %s" % e
+    return failure_message

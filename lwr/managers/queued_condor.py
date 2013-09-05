@@ -2,8 +2,11 @@ from os.path import exists
 from os import stat
 from subprocess import CalledProcessError, check_call
 
-from .util.condor import build_submit_description, condor_submit
+from .util.condor import build_submit_description, condor_submit, condor_stop
 from .base.external import ExternalBaseManager
+
+from logging import getLogger
+log = getLogger(__name__)
 
 SUBMIT_PARAM_PREFIX = "submit_"
 
@@ -53,10 +56,9 @@ class CondorQueueManager(ExternalBaseManager):
         return self._job_file(job_id, 'job_condor.log')
 
     def _kill_external(self, external_id):
-        try:
-            check_call(('condor_rm', external_id))
-        except CalledProcessError:
-            pass
+        failure_message = condor_stop(external_id)
+        if failure_message:
+            log.warn("Failed to stop condor job with id %s - %s" % (external_id, failure_message))
 
     def get_status(self, job_id):
         external_id = self._external_id(job_id)
