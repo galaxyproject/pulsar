@@ -9,7 +9,7 @@ from time import sleep
 from tempfile import TemporaryFile
 from subprocess import Popen, PIPE
 
-from lwr.util import Bunch, kill_pid
+from lwr.managers.util import Bunch, kill_pid
 from ..shell import BaseShellExec
 
 from logging import getLogger

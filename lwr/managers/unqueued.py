@@ -4,7 +4,8 @@ except ImportError:
     import _thread as thread  # Py3K changed it.from threading import Lock
 from threading import Lock
 
-from lwr.util import kill_pid, execute
+from .util import kill_pid
+from lwr.util import execute
 from lwr.managers.base.directory import DirectoryBaseManager
 
 from logging import getLogger

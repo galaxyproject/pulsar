@@ -2,8 +2,8 @@ from tempfile import TemporaryFile
 from time import sleep
 from subprocess import Popen, PIPE
 
-from lwr.cli.shell import BaseShellExec
-from lwr.util import Bunch, kill_pid
+from ..shell import BaseShellExec
+from lwr.managers.util import Bunch, kill_pid
 
 
 class LocalShell(BaseShellExec):
