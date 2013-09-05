@@ -8,21 +8,19 @@ from .directory import DirectoryBaseManager
 DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
 
 DEFAULT_JOB_FILE_TEMPLATE = """#!/bin/sh
-$galaxy_lib_export
+GALAXY_LIB="$galaxy_lib"
+if [ "$GALAXY_LIB" != "None" ]; then
+    if [ -n "$PYTHONPATH" ]; then
+        PYTHONPATH="$GALAXY_LIB:$PYTHONPATH"
+    else
+        PYTHONPATH="$GALAXY_LIB"
+    fi
+    export PYTHONPATH
+fi
 cd $working_directory
 $command_line
 echo $? > $return_code_path
 """
-
-GALAXY_LIB_EXPORT_TEMPLATE = '''
-GALAXY_LIB='%s'
-if [ -n "$PYTHONPATH" ]; then
-    PYTHONPATH="$GALAXY_LIB:$PYTHONPATH"
-else
-    PYTHONPATH="$GALAXY_LIB"
-fi
-export PYTHONPATH
-'''
 
 
 class ExternalBaseManager(DirectoryBaseManager):
@@ -48,12 +46,12 @@ class ExternalBaseManager(DirectoryBaseManager):
             raise KeyError("Failed to find external id for job_id %s" % job_id)
         return self._get_status_external(external_id)
 
-    def _galaxy_lib_export(self):
+    def _galaxy_lib(self):
         galaxy_home = self.galaxy_home or getenv('GALAXY_HOME', None)
-        export = ''
-        if galaxy_home and galaxy_home.lower() != 'none':
-            export = GALAXY_LIB_EXPORT_TEMPLATE % join(galaxy_home, 'lib')
-        return export
+        galaxy_lib = None
+        if galaxy_home and str(galaxy_home).lower() != 'none':
+            galaxy_lib = join(galaxy_home, 'lib')
+        return galaxy_lib
 
     def _setup_job_file(self, job_id, command_line, file_template=DEFAULT_JOB_FILE_TEMPLATE):
         script_env = self._job_template_env(job_id, command_line=command_line)
@@ -74,7 +72,7 @@ class ExternalBaseManager(DirectoryBaseManager):
     def _job_template_env(self, job_id, command_line=None):
         return_code_path = self._return_code_path(job_id)
         job_template_env = {
-            'galaxy_lib_export': self._galaxy_lib_export(),
+            'galaxy_lib': self._galaxy_lib_export(),
             'return_code_path': return_code_path,
             'working_directory': self.working_directory(job_id),
             'job_id': job_id,
