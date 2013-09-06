@@ -1,22 +1,15 @@
-
-from string import Template
-from ..job import BaseJobExec
 try:
     import xml.etree.cElementTree as et
 except:
     import xml.etree.ElementTree as et
 
+from ..job import BaseJobExec
+from ...job_script import job_script
+
 __all__ = ('Torque',)
 
 from logging import getLogger
 log = getLogger(__name__)
-
-PBS_JOB_TEMPLATE = """#!/bin/sh
-$pbs_header
-cd $working_directory
-$command_line
-echo $? > $return_code_path
-"""
 
 argmap = {'Execution_Time': '-a',
           'Account_Name': '-A',
@@ -63,15 +56,12 @@ class Torque(BaseJobExec):
         for k, v in pbsargs.items():
             template_pbsargs += '#PBS %s %s\n' % (k, v)
         template_env = {
-            'pbs_header': template_pbsargs,
+            'headers': template_pbsargs,
             'working_directory': working_directory,
-            'command_line': command_line,
-            'return_code_path': ecfile,
+            'exit_code_path': ecfile,
+            'command': command_line,
         }
-        return self.__evaluate_template(template_env)
-
-    def __evaluate_template(self, template_env):
-        return Template(PBS_JOB_TEMPLATE).safe_substitute(**template_env)
+        return job_script(**template_env)
 
     def submit(self, script_file):
         return 'qsub %s' % script_file
