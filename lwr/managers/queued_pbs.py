@@ -9,7 +9,9 @@ except ImportError:
 
 class PbsQueueManager(BaseManager):
     """
-    Placeholder for DRMAA backed queue manager. Not yet implemented.
+    Placeholder for PBS-python backed queue manager. Not yet implemented, for
+    many situations this would be used the DRMAA or CLI+Torque managers may be
+    better choices or at least stop gaps.
     """
     manager_type = "queued_pbs"
 

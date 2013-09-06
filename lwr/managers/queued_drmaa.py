@@ -9,7 +9,7 @@ except ImportError:
 
 class DrmaaQueueManager(ExternalBaseManager):
     """
-    Placeholder for DRMAA backed queue manager. Not yet implemented.
+    DRMAA backed queue manager.
     """
     manager_type = "queued_drmaa"
 
