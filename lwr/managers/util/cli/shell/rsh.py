@@ -44,4 +44,4 @@ class SecureShell(RemoteShell):
 class GlobusSecureShell(SecureShell):
 
     def __init__(self, rsh='gsissh', rcp='gsiscp', **kwargs):
-        super(SecureShell, self).__init__(rsh=rsh, rcp=rcp, **kwargs)
+        super(GlobusSecureShell, self).__init__(rsh=rsh, rcp=rcp, **kwargs)
