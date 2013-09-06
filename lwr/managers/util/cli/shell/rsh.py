@@ -5,12 +5,7 @@ same syntax (ssh, scp).
 Code stolen from Galaxy:
   - https://bitbucket.org/galaxy/galaxy-central/src/tip/lib/galaxy/jobs/runners/cli.py?at=default
 """
-from time import sleep
-from tempfile import TemporaryFile
-from subprocess import Popen, PIPE
-
-from ..shell import BaseShellExec
-from ....util import Bunch, kill_pid
+from .local import LocalShell
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -18,9 +13,10 @@ log = getLogger(__name__)
 __all__ = ('RemoteShell', 'SecureShell', 'GlobusSecureShell')
 
 
-class RemoteShell(BaseShellExec):
+class RemoteShell(LocalShell):
 
     def __init__(self, rsh='rsh', rcp='rcp', hostname='localhost', username=None, **kwargs):
+        super(RemoteShell, self).__init__(**kwargs)
         self.rsh = rsh
         self.rcp = rcp
         self.hostname = hostname
@@ -33,20 +29,7 @@ class RemoteShell(BaseShellExec):
             fullcmd = '%s %s %s' % (self.rsh, self.hostname, cmd)
         else:
             fullcmd = '%s -l %s %s %s' % (self.rsh, self.username, self.hostname, cmd)
-        # Read stdout to a tempfile in case it's large (>65K)
-        outf = TemporaryFile()
-        p = Popen(fullcmd, shell=True, stdin=None, stdout=outf, stderr=PIPE)
-        # poll until timeout
-        for i in range(timeout / 3):
-            r = p.poll()
-            if r is not None:
-                break
-            sleep(3)
-        else:
-            kill_pid(p.pid)
-            return Bunch(stdout='', stderr='Execution timed out', returncode=-1)
-        outf.seek(0)
-        return Bunch(stdout=outf.read(), stderr=p.stderr.read(), returncode=p.returncode)
+        return super(RemoteShell, self).execute(fullcmd, persist, timeout)
 
 
 class SecureShell(RemoteShell):
