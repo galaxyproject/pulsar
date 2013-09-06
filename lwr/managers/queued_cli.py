@@ -20,7 +20,7 @@ class CliQueueManager(ExternalBaseManager):
         self.cli_interface = CliInterface(code_dir='.')
         self.shell_params, self.job_params = split_params(kwds)
 
-    def launch(self, job_id, command_line):
+    def launch(self, job_id, command_line, submit_params={}):
         self._check_execution_with_tool_file(job_id, command_line)
         shell, job_interface = self.__get_cli_plugins()
         return_code_path = self._return_code_path(job_id)

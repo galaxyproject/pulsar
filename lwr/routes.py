@@ -1,5 +1,7 @@
 import os
 from webob import exc
+from simplejson import loads
+
 from lwr.util import get_mapped_file, copy_to_path, copy_to_temp, verify_is_in_directory
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
@@ -50,8 +52,9 @@ def clean(manager, job_id):
 
 
 @LwrController()
-def launch(manager, job_id, command_line):
-    manager.launch(job_id, command_line)
+def launch(manager, job_id, command_line, params='{}'):
+    submit_params = loads(params)
+    manager.launch(job_id, command_line, submit_params)
 
 
 @LwrController(response_type='json')

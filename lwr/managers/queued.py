@@ -47,7 +47,7 @@ class QueueManager(Manager):
             worker.start()
             self.work_threads.append(worker)
 
-    def launch(self, job_id, command_line):
+    def launch(self, job_id, command_line, submit_params={}):
         self._prepare_run(job_id, command_line)
         self.work_queue.put((RUN, (job_id, command_line)))
         self.persisted_job_store.enqueue(self.name, job_id, command_line)

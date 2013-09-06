@@ -33,7 +33,7 @@ class CondorQueueManager(ExternalBaseManager):
         self.user_log_sizes = {}
         self.state_cache = {}
 
-    def launch(self, job_id, command_line):
+    def launch(self, job_id, command_line, submit_params={}):
         self._check_execution_with_tool_file(job_id, command_line)
         job_file_path = self._setup_job_file(job_id, command_line)
         log_path = self.__condor_user_log(job_id)

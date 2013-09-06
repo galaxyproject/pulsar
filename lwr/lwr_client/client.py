@@ -195,7 +195,7 @@ class Client(object):
                             "output_type": output_type},
                            output_path=output_path)
 
-    def launch(self, command_line):
+    def launch(self, command_line, submit_params=None):
         """
         Run or queue up the execution of the supplied
         `command_line` on the remote server.
@@ -205,8 +205,10 @@ class Client(object):
         command_line : str
             Command to execute.
         """
-        return self._raw_execute("launch", {"command_line": command_line,
-                                             "job_id": self.job_id})
+        launch_params = dict(command_line=command_line, job_id=self.job_id)
+        if submit_params:
+            launch_params['params'] = submit_params
+        return self._raw_execute("launch", launch_params)
 
     def kill(self):
         """

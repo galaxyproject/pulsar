@@ -20,7 +20,7 @@ class DrmaaQueueManager(ExternalBaseManager):
         drmaa_session_factory = drmaa_session_factory_class()
         self.drmaa_session = drmaa_session_factory.get()
 
-    def launch(self, job_id, command_line):
+    def launch(self, job_id, command_line, submit_params={}):
         self._check_execution_with_tool_file(job_id, command_line)
         attributes = self.__build_template_attributes(job_id, command_line)
         external_id = self.drmaa_session.run_job(**attributes)
