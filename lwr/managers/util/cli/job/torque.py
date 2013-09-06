@@ -3,6 +3,14 @@ try:
 except:
     import xml.etree.ElementTree as et
 
+try:
+    from galaxy.model import Job
+    job_states = Job.states
+except ImportError:
+    # Map Galaxy style job states to LWR ones.
+    from lwr.util import enum
+    job_states = enum(RUNNING='running', OK='complete', QUEUED='queued')
+
 from ..job import BaseJobExec
 from ...job_script import job_script
 
@@ -104,13 +112,13 @@ class Torque(BaseJobExec):
             if line[0] == 'job_state':
                 return self.__get_job_state(line[1].strip())
         # no state found, job has exited
-        return 'complete'
+        return job_states.OK
 
     def __get_job_state(self, state):
         try:
-            return {'E': 'running',
-                    'R': 'running',
-                    'Q': 'queued',
+            return {'E': job_states.RUNNING,
+                    'R': job_states.RUNNING,
+                    'Q': job_states.QUEUED,
                    }.get(state)
         except KeyError:
             raise KeyError("Failed to map torque status code [%s] to job state." % state)
