@@ -1,10 +1,3 @@
-"""
-Interface for remote shell commands (rsh, rcp) and derivatives that use the
-same syntax (ssh, scp).
-
-Code stolen from Galaxy:
-  - https://bitbucket.org/galaxy/galaxy-central/src/tip/lib/galaxy/jobs/runners/cli.py?at=default
-"""
 from .local import LocalShell
 
 from logging import getLogger
