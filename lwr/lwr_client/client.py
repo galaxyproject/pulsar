@@ -125,7 +125,7 @@ class Client(object):
     @parseJson()
     def _get_output_type(self, name):
         return self._raw_execute("get_output_type", {"name": name,
-                                                      "job_id": self.job_id})
+                                                     "job_id": self.job_id})
 
     def fetch_output(self, path, working_directory, action='transfer'):
         """
@@ -183,10 +183,10 @@ class Client(object):
 
     @parseJson()
     def _output_path(self, name, job_id, output_type):
-        self._raw_execute("output_path",
-                           {"name": name,
-                            "job_id": self.job_id,
-                            "output_type": output_type})
+        return self._raw_execute("output_path",
+                                 {"name": name,
+                                  "job_id": self.job_id,
+                                  "output_type": output_type})
 
     @retry()
     def __raw_download_output(self, name, job_id, output_type, output_path):

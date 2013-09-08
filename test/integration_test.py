@@ -11,6 +11,9 @@ except ImportError:
 
 class IntegrationTest(TempDirectoryTestCase):
 
+    def test_integration_copy(self):
+        self.__run(private_token=None, transport=None, cache=False, test_errors=False, default_file_action="copy")
+
     def test_integration_no_transfer(self):
         self.__run(private_token=None, transport=None, cache=False, test_errors=False, default_file_action="none")
 

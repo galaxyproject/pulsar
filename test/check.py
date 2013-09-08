@@ -78,7 +78,9 @@ finally:
                            cleanup_job='never',
                            work_dir_outputs=[],
                            output_files=[temp_output_path])
-        finish_job(**finish_args)
+        failed = finish_job(**finish_args)
+        if failed:
+            raise Exception("Failed to finish job correctly")
         #client.download_output(temp_output_path, temp_directory)
         output_file = open(temp_output_path, 'r')
         try:
