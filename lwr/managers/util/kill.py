@@ -5,7 +5,7 @@ from subprocess import Popen
 
 try:
     from psutil import Process, NoSuchProcess
-except NameError:
+except ImportError:
     """ Don't make psutil a strict requirement, but use if available. """
     Process = None
 
