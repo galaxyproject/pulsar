@@ -69,7 +69,7 @@ class FileActionMapper(object):
             if mapper.matches(normalized_path):
                 action = mapper.action
                 break
-        if type in ["work_dir", "output_task", "output"] and action == "none":
+        if type in ["work_dir", "output_task"] and action == "none":
             ## We are changing the working_directory relative to what
             ## Galaxy would use, these need to be copied over.
             action = "copy"
