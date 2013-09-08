@@ -128,7 +128,7 @@ class TransferTracker(object):
 
     def register_rewrite(self, local_path, remote_path, type, force=False):
         action = self.__action(local_path, type)
-        if action[0] in ['transfer'] or force:
+        if action[0] in ['transfer', 'copy'] or force:
             self.file_renames[local_path] = remote_path
 
     def rewrite_input_paths(self):
