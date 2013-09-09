@@ -2,7 +2,6 @@ from simplejson import dumps
 from getpass import getuser
 
 from .base.base_drmaa import BaseDrmaaManager
-from .util.drmaa import DrmaaSessionFactory
 from .util.sudo import sudo_popen
 
 DEFAULT_CHOWN_WORKING_DIRECTORY_SCRIPT = "scripts/chown_working_directory.bash"
@@ -18,16 +17,12 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
 
     def __init__(self, name, app, **kwds):
         super(ExternalDrmaaQueueManager, self).__init__(name, app, **kwds)
-        self.native_specification = kwds.get('native_specification', None)
         self.chown_working_directory_script = kwds.get('chown_working_directory_script', DEFAULT_CHOWN_WORKING_DIRECTORY_SCRIPT)
         self.drmaa_kill_script = kwds.get('drmaa_kill_script', DEFAULT_DRMAA_KILL_SCRIPT)
         self.drmaa_launch_script = kwds.get('drmaa_launch_script', DEFAULT_DRMAA_LAUNCH_SCRIPT)
         self.production = kwds.get('production', "true").lower() != "false"
         self.reclaimed = {}
         self.user_map = {}
-        drmaa_session_factory_class = kwds.get('drmaa_session_factory_class', DrmaaSessionFactory)
-        drmaa_session_factory = drmaa_session_factory_class()
-        self.drmaa_session = drmaa_session_factory.get()
 
     def launch(self, job_id, command_line, submit_params={}):
         self._check_execution_with_tool_file(job_id, command_line)

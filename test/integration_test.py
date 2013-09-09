@@ -45,6 +45,8 @@ class IntegrationTest(TempDirectoryTestCase):
         self.__run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Torque'}, private_token=None)
 
     def __run(self, app_conf={}, job_conf_props={}, **kwds):
+        app_conf = app_conf.copy()
+        job_conf_props = job_conf_props.copy()
         kwds["suppress_output"] = True
         if job_conf_props:
             job_conf = join(self.temp_directory, "job_managers.ini")

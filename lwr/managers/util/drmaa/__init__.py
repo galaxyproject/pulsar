@@ -49,5 +49,8 @@ class DrmaaSession(object):
     def job_status(self, external_job_id):
         return self.session.jobStatus(external_job_id)
 
+    def close(self):
+        return self.session.exit()
+
 
 __all__ = [DrmaaSessionFactory]

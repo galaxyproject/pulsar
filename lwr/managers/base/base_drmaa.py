@@ -1,4 +1,5 @@
 from .external import ExternalBaseManager
+from ..util.drmaa import DrmaaSessionFactory
 try:
     from drmaa import JobState
 except ImportError:
@@ -6,6 +7,20 @@ except ImportError:
 
 
 class BaseDrmaaManager(ExternalBaseManager):
+
+    def __init__(self, name, app, **kwds):
+        super(BaseDrmaaManager, self).__init__(name, app, **kwds)
+        self.native_specification = kwds.get('native_specification', None)
+        drmaa_session_factory_class = kwds.get('drmaa_session_factory_class', DrmaaSessionFactory)
+        drmaa_session_factory = drmaa_session_factory_class()
+        self.drmaa_session = drmaa_session_factory.get()
+
+    def shutdown(self):
+        try:
+            super(BaseDrmaaManager, self).shutdown()
+        except:
+            pass
+        self.drmaa_session.close()
 
     def _get_status_external(self, external_id):
         drmaa_state = self.drmaa_session.job_status(external_id)
