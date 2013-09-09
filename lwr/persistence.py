@@ -62,6 +62,10 @@ class JobMetadataStore(PersistenceStore):
 
         self._with_lock(delete)
 
+    def _get(self, job_id, default):
+        shelf_id = self.__shelf_id(job_id)
+        return self.shelf.get(shelf_id, default)
+
     def _load(self):
         metadata = []
 

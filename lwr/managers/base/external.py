@@ -3,7 +3,7 @@ from os.path import join
 from stat import S_IEXEC, S_IWRITE, S_IREAD
 from string import Template
 
-from lwr.persistence import PersistenceStore
+from lwr.persistence import JobMetadataStore
 
 from .directory import DirectoryBaseManager
 from ..util.job_script import job_script
@@ -15,9 +15,13 @@ class ExternalBaseManager(DirectoryBaseManager):
 
     def __init__(self, name, app, **kwds):
         super(ExternalBaseManager, self).__init__(name, app, **kwds)
-        self.external_ids = {}
+        self.external_ids = self._build_persistent_store(ExternalIdStore, "ext_ids")
         self.galaxy_home = kwds.get('galaxy_home', None)
         self.job_name_template = kwds.get('job_name_template', DEFAULT_JOB_NAME_TEMPLATE)
+
+    def clean_job_directory(self, job_id):
+        super(ExternalBaseManager, self).clean_job_directory(job_id)
+        self.external_ids.free(job_id)
 
     def setup_job(self, input_job_id, tool_id, tool_version):
         job_id = self._get_job_id(input_job_id)
@@ -50,7 +54,7 @@ class ExternalBaseManager(DirectoryBaseManager):
         return str(self.id_assigner(input_job_id))
 
     def _register_external_id(self, job_id, external_id):
-        self.external_ids[job_id] = external_id
+        self.external_ids.store(job_id, external_id)
         return external_id
 
     def _external_id(self, job_id):
@@ -78,3 +82,20 @@ class ExternalBaseManager(DirectoryBaseManager):
     def _job_name(self, job_id):
         env = self._job_template_env(job_id)
         return Template(self.job_name_template).safe_substitute(env)
+
+
+class ExternalIdStore(JobMetadataStore):
+    """
+    """
+
+    def __init__(self, path):
+        super(ExternalIdStore, self).__init__(path)
+
+    def store(self, job_id, external_id):
+        super(ExternalIdStore, self)._store(job_id, external_id)
+
+    def free(self, job_id):
+        super(ExternalIdStore, self)._delete(job_id)
+
+    def get(self, job_id, default):
+        return super(ExternalIdStore, self)._get(job_id, default)
