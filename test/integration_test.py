@@ -11,35 +11,38 @@ except ImportError:
 
 class IntegrationTest(TempDirectoryTestCase):
 
+    def test_integration_as_user(self):
+        self.__run(job_conf_props={'type': 'queued_external_drmaa', "production": "false"}, private_token=None, default_file_action="copy", user='u1')
+
     def test_integration_copy(self):
-        self.__run(private_token=None, transport=None, cache=False, test_errors=False, default_file_action="copy")
+        self.__run(private_token=None, default_file_action="copy")
 
     def test_integration_no_transfer(self):
-        self.__run(private_token=None, transport=None, cache=False, test_errors=False, default_file_action="none")
+        self.__run(private_token=None, default_file_action="none")
 
     def test_integration_cached(self):
-        self.__run(private_token=None, transport=None, cache=True, test_errors=False)
+        self.__run(private_token=None, cache=True)
 
     def test_integration_default(self):
-        self.__run(private_token=None, transport=None, cache=False, test_errors=False)
+        self.__run(private_token=None)
 
     def test_integration_curl(self):
-        self.__run(private_token=None, transport="curl", cache=False, test_errors=False)
+        self.__run(private_token=None, transport="curl")
 
     def test_integration_token(self):
-        self.__run(app_conf={"private_key": "testtoken"}, private_token="testtoken", transport="curl", cache=False, test_errors=False)
+        self.__run(app_conf={"private_key": "testtoken"}, private_token="testtoken", transport="curl")
 
     def test_integration_errors(self):
-        self.__run(app_conf={"private_key": "testtoken"}, private_token="testtoken", transport="curl", cache=False, test_errors=True)
+        self.__run(app_conf={"private_key": "testtoken"}, private_token="testtoken", transport="curl", test_errors=True)
 
     def test_integration_drmaa(self):
-        self.__run(app_conf={}, job_conf_props={'type': 'queued_drmaa'}, private_token=None, transport=None, cache=False, test_errors=False)
+        self.__run(app_conf={}, job_conf_props={'type': 'queued_drmaa'}, private_token=None)
 
     def test_integration_condor(self):
-        self.__run(app_conf={}, job_conf_props={'type': 'queued_condor'}, private_token=None, transport=None, cache=False, test_errors=False)
+        self.__run(app_conf={}, job_conf_props={'type': 'queued_condor'}, private_token=None)
 
     def test_integration_cli(self):
-        self.__run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Torque'}, private_token=None, transport=None, cache=False, test_errors=False)
+        self.__run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Torque'}, private_token=None)
 
     def __run(self, app_conf={}, job_conf_props={}, **kwds):
         kwds["suppress_output"] = True

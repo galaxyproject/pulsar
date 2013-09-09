@@ -59,9 +59,9 @@ finally:
         output_files = [temp_output_path]
 
         manager_args = {}
-        if options.cache:
+        if getattr(options, 'cache', None):
             manager_args['cache'] = True
-        if options.transport:
+        if getattr(options, 'transport', None):
             manager_args['transport_type'] = options.transport
         client_options = {"url": options.url, "private_token": options.private_token}
         if hasattr(options, "default_file_action"):
@@ -69,7 +69,11 @@ finally:
         client = ClientManager(**manager_args).get_client(client_options, "123456")
         stager = FileStager(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         new_command = stager.get_rewritten_command_line()
-        client.launch(new_command)
+        submit_params = {}
+        user = getattr(options, 'user', None)
+        if user:
+            submit_params['user'] = user
+        client.launch(new_command, submit_params)
         response = client.wait()
 
         finish_args = dict(client=client,
@@ -88,7 +92,7 @@ finally:
             assert output_contents == "hello world output", "Invalid output_contents: %s" % output_contents
         finally:
             output_file.close()
-        if options.test_errors:
+        if getattr(options, 'test_errors', False):
             try:
                 client.fetch_output(temp_output_path + "x", temp_directory)
             except BaseException as e:

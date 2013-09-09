@@ -2,6 +2,7 @@ import os
 import shutil
 import urllib
 import simplejson
+from simplejson import dumps
 from time import sleep
 
 from .destination import url_to_destination_params
@@ -208,7 +209,7 @@ class Client(object):
         """
         launch_params = dict(command_line=command_line, job_id=self.job_id)
         if submit_params:
-            launch_params['params'] = submit_params
+            launch_params['params'] = dumps(submit_params)
         return self._raw_execute("launch", launch_params)
 
     def kill(self):

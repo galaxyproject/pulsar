@@ -11,3 +11,7 @@
 
 ## Uncomment to verify GALAXY_HOME is set properly before starting the LWR.
 #export TEST_GALAXY_LIBS=1
+
+## If using a manager that runs jobs as real users, be sure to load your Python
+## environement in here as well.
+# . .venv/bin/activate

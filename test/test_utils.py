@@ -1,5 +1,6 @@
 from contextlib import contextmanager
-from os import pardir
+from stat import S_IXOTH
+from os import pardir, stat, chmod
 from os.path import join, dirname
 from tempfile import mkdtemp
 from shutil import rmtree
@@ -105,6 +106,9 @@ def test_server(global_conf={}, app_conf={}, test_conf={}):
 @contextmanager
 def test_app(global_conf={}, app_conf={}, test_conf={}):
     staging_directory = mkdtemp()
+    # Make staging directory world executable for run as user tests.
+    mode = stat(staging_directory).st_mode
+    chmod(staging_directory, mode | S_IXOTH)
     cache_directory = mkdtemp()
     try:
         app_conf["staging_directory"] = staging_directory
@@ -122,6 +126,7 @@ def test_app(global_conf={}, app_conf={}, test_conf={}):
         for directory in [staging_directory, cache_directory]:
             try:
                 rmtree(directory)
+                pass
             except:
                 pass
 

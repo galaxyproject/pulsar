@@ -8,23 +8,32 @@ except ImportError:
 
 
 DESCRIPTION = "Change ownership of a job working directory."
+# Switch this to true to tighten up security somewhat in production mode.
+PRODUCTION = False
 
 
 def main():
     arg_parser = ArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--user", required=True)
-    arg_parser.add_argument("--job_id", required=True)
+    arg_parser.add_argument("--job_id")
+    arg_parser.add_argument("--job_directory")
     args = arg_parser.parse_args()
     user = args.user
     job_id = args.job_id
 
-    config = ConfigParser()
-    config.read(['server.ini'])
-    staging_directory = abspath(config.get('app:main', 'staging_directory'))
-
-    working_directory = abspath(join(staging_directory, job_id))
-    assert working_directory.startswith(staging_directory)
-    system("chown -Rh '%s' '%s'" % (user, working_directory))
+    if args.job_id:
+        config = ConfigParser()
+        config.read(['server.ini'])
+        staging_directory = abspath(config.get('app:main', 'staging_directory'))
+        working_directory = abspath(join(staging_directory, job_id))
+        assert working_directory.startswith(staging_directory)
+    elif PRODUCTION:
+        raise Exception("In production mode, must specify a job_id instead of a working directory.")
+    else:
+        job_directory = abspath(args.job_directory)
+        assert job_directory
+    command = "chown -R '%s' '%s'" % (user, job_directory)
+    system(command)
 
 if __name__ == "__main__":
     main()

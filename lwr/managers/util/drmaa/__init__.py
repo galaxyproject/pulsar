@@ -1,6 +1,6 @@
 try:
     from drmaa import Session, JobControlAction
-except ImportError:
+except ImportError as e:
     # Will not be able to use DRMAA
     Session = None
 

@@ -1,8 +1,7 @@
 from simplejson import dumps
 from getpass import getuser
 
-from .base.external import ExternalBaseManager
-from .base.uses_drmaa import UsesDrmaa
+from .base.base_drmaa import BaseDrmaaManager
 from .util.drmaa import DrmaaSessionFactory
 from .util.sudo import sudo_popen
 
@@ -11,7 +10,7 @@ DEFAULT_DRMAA_KILL_SCRIPT = "scripts/drmaa_kill.bash"
 DEFAULT_DRMAA_LAUNCH_SCRIPT = "scripts/drmaa_launch.bash"
 
 
-class ExternalDrmaaQueueManager(ExternalBaseManager, UsesDrmaa):
+class ExternalDrmaaQueueManager(BaseDrmaaManager):
     """
     DRMAA backed queue manager.
     """
@@ -23,7 +22,9 @@ class ExternalDrmaaQueueManager(ExternalBaseManager, UsesDrmaa):
         self.chown_working_directory_script = kwds.get('chown_working_directory_script', DEFAULT_CHOWN_WORKING_DIRECTORY_SCRIPT)
         self.drmaa_kill_script = kwds.get('drmaa_kill_script', DEFAULT_DRMAA_KILL_SCRIPT)
         self.drmaa_launch_script = kwds.get('drmaa_launch_script', DEFAULT_DRMAA_LAUNCH_SCRIPT)
+        self.production = kwds.get('production', "true").lower() != "false"
         self.reclaimed = {}
+        self.user_map = {}
         drmaa_session_factory_class = kwds.get('drmaa_session_factory_class', DrmaaSessionFactory)
         drmaa_session_factory = drmaa_session_factory_class()
         self.drmaa_session = drmaa_session_factory.get()
@@ -32,15 +33,17 @@ class ExternalDrmaaQueueManager(ExternalBaseManager, UsesDrmaa):
         self._check_execution_with_tool_file(job_id, command_line)
         attributes = self._build_template_attributes(job_id, command_line)
         job_attributes_file = self._write_job_file(job_id, 'jt.json', dumps(attributes))
-        user = submit_params.get('username', None)
+        user = submit_params.get('user', None)
         if not user:
             raise Exception("Must specify user submit parameter with this manager.")
-        self.__change_ownership(self, job_id, user)
-        external_id = self.__launch(self, job_attributes_file).strip()
+        self.__change_ownership(job_id, user)
+        external_id = self.__launch(job_attributes_file, user).strip()
+        self.user_map[external_id] = user
         self._register_external_id(job_id, external_id)
 
     def _kill_external(self, external_id):
-        self.__sudo(self.drmaa_kill_script, "--external_id", external_id)
+        user = self.user_map[external_id]
+        self.__sudo(self.drmaa_kill_script, "--external_id", external_id, user=user)
 
     def get_status(self, job_id):
         external_id = self._external_id(job_id)
@@ -49,17 +52,27 @@ class ExternalDrmaaQueueManager(ExternalBaseManager, UsesDrmaa):
         status = super(ExternalDrmaaQueueManager, self)._get_status_external(external_id)
         if status == "complete" and job_id not in self.reclaimed:
             self.reclaimed[job_id] = True
-            self.__change_ownership(self, job_id, getuser())
+            self.__change_ownership(job_id, getuser())
         return status
 
-    def __launch(self, job_attributes):
-        self.__sudo(self.drmaa_launch_script, "--job_attributes", job_attributes)
+    def __launch(self, job_attributes, user):
+        return self.__sudo(self.drmaa_launch_script, "--job_attributes", str(job_attributes), user=user)
 
     def __change_ownership(self, job_id, username):
-        self.__sudo(self.chown_working_directory_script, "--job_id", job_id, "--user", username)
+        cmds = [self.chown_working_directory_script, "--user", str(username)]
+        if self.production:
+            cmds.extend(["--job_id", job_id])
+        else:
+            # In testing, the loading working directory from server.ini doesn't
+            # work. Need to reimagine how to securely map job_id to working
+            # direcotry between test cases and production.
+            cmds.extend(["--job_directory", str(self._job_directory(job_id).path)])
+        # TODO: Verify ownership change.
+        self.__sudo(*cmds)
 
-    def __sudo(**cmds):
-        p = sudo_popen(**cmds)
+    def __sudo(self, *cmds, **kwargs):
+        print cmds
+        p = sudo_popen(*cmds, **kwargs)
         stdout, stderr = p.communicate()
-        assert p.returncode == 0
+        assert p.returncode == 0, "%s, %s" % (stdout, stderr)
         return stdout
