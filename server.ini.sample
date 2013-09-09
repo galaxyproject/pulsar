@@ -31,8 +31,8 @@ staging_directory = lwr_staging
 ## Define job managers (setup queues with various settings, etc...).
 #job_managers_config = job_managers.ini
 
-## Uncomment to enable job persistence
-#shelf_filename = persisted_jobs
+## Comment out to disable persistence.
+persistence_directory = persisted_data
 
 ## How are ids assigned. galaxy (default) just passes through ids as
 ## is. Setting this uuid assigns each job a UUID, this is strongly
