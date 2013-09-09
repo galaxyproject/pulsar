@@ -83,6 +83,9 @@ class ExternalBaseManager(DirectoryBaseManager):
         env = self._job_template_env(job_id)
         return Template(self.job_name_template).safe_substitute(env)
 
+    def shutdown(self):
+        self.external_ids.close()
+
 
 class ExternalIdStore(JobMetadataStore):
     """
