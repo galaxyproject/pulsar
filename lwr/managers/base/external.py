@@ -19,8 +19,8 @@ class ExternalBaseManager(DirectoryBaseManager):
         self.galaxy_home = kwds.get('galaxy_home', None)
         self.job_name_template = kwds.get('job_name_template', DEFAULT_JOB_NAME_TEMPLATE)
 
-    def clean_job_directory(self, job_id):
-        super(ExternalBaseManager, self).clean_job_directory(job_id)
+    def clean(self, job_id):
+        super(ExternalBaseManager, self).clean(job_id)
         self.external_ids.free(job_id)
 
     def setup_job(self, input_job_id, tool_id, tool_version):

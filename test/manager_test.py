@@ -82,7 +82,7 @@ class ManagerTest(TestCase):
         self.assertEquals(manager.stderr_contents(job_id), 'moo')
         self.assertEquals(manager.stdout_contents(job_id), 'Hello World!')
         self.assertEquals(manager.return_code(job_id), 0)
-        manager.clean_job_directory(job_id)
+        manager.clean(job_id)
         self.assertEquals(len(listdir(self.staging_directory)), 0)
 
     def test_kill(self):
@@ -95,4 +95,4 @@ class ManagerTest(TestCase):
         manager.kill(job_id)  # Make sure kill doesn't choke if pid doesn't exist
         while manager.get_status(job_id) not in ['complete', 'cancelled']:
             pass
-        manager.clean_job_directory(job_id)
+        manager.clean(job_id)

@@ -47,7 +47,7 @@ class BaseManager(ManagerInterface):
         self.debug = str(kwds.get("debug", False)).lower() == "true"
         self.authorizer = app.authorizer
 
-    def clean_job_directory(self, job_id):
+    def clean(self, job_id):
         if self.debug:
             # In debug mode skip cleaning job directories.
             return

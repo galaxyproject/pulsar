@@ -80,8 +80,8 @@ class Manager(DirectoryBaseManager):
             else:
                 raise
 
-    def clean_job_directory(self, job_id):
-        super(Manager, self).clean_job_directory(job_id)
+    def clean(self, job_id):
+        super(Manager, self).clean(job_id)
         self._unregister_job(job_id)
 
     def get_status(self, job_id):

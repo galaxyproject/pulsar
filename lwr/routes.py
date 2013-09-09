@@ -48,7 +48,7 @@ def setup(manager, job_id, ip, tool_id=None, tool_version=None):
 
 @LwrController()
 def clean(manager, job_id):
-    manager.clean_job_directory(job_id)
+    manager.clean(job_id)
 
 
 @LwrController()

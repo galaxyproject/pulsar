@@ -86,7 +86,7 @@ class ManagerInterface(object):
         """
 
     @abstractmethod
-    def clean_job_directory(self, job_id):
+    def clean(self, job_id):
         """
         Delete job directory and clean up resources associated with job with
         id `job_id`.
