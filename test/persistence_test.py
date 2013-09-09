@@ -24,10 +24,8 @@ def test_persistence():
         queue1.launch(job_id, 'touch %s' % touch_file)
         time.sleep(.4)
         assert (not(exists(touch_file)))
-        assert exists(join(staging_directory, "queued_jobs"))
         queue1.shutdown()
         queue2 = QueueManager('test', app, num_concurrent_jobs=1)
-        assert exists(join(staging_directory, "queued_jobs"))
         time.sleep(1)
         assert exists(touch_file)
     finally:

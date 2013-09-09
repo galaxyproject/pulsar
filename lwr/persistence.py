@@ -36,47 +36,25 @@ class PersistenceStore(object):
                         raise
 
 
-class PersistedJobStore(PersistenceStore):
+class JobMetadataStore(PersistenceStore):
     """
 
-    >>> import tempfile
-    >>> import os
-    >>> tf = tempfile.NamedTemporaryFile()
-    >>> os.remove(tf.name)
-    >>> store = PersistedJobStore(tf.name)
-    >>> store.enqueue("moo", "1234", "/bin/ls")
-    >>> jobs = store.persisted_jobs("moo")
-    >>> jobs[0][0]
-    '1234'
-    >>> jobs[0][1]
-    '/bin/ls'
-    >>> store = PersistedJobStore(tf.name)
-    >>> jobs = store.persisted_jobs("moo")
-    >>> jobs[0][0]
-    '1234'
-    >>> jobs[0][1]
-    '/bin/ls'
-    >>> try:
-    ...     tf.close()
-    ... except:
-    ...     pass
-    >>>
     """
 
     def __init__(self, path):
-        super(PersistedJobStore, self).__init__(path)
+        super(JobMetadataStore, self).__init__(path)
 
-    def enqueue(self, manager_name, job_id, command_line):
-        shelf_id = self.__shelf_id(manager_name, job_id)
+    def _store(self, job_id, metadata):
+        shelf_id = self.__shelf_id(job_id)
 
-        def set_command_line():
-            self.shelf[shelf_id] = command_line
+        def store():
+            self.shelf[shelf_id] = metadata
             self._sync_if_needed()
 
-        self._with_lock(set_command_line)
+        self._with_lock(store)
 
-    def dequeue(self, manager_name, job_id):
-        shelf_id = self.__shelf_id(manager_name, job_id)
+    def _delete(self, job_id):
+        shelf_id = self.__shelf_id(job_id)
 
         def delete():
             del self.shelf[shelf_id]
@@ -84,17 +62,15 @@ class PersistedJobStore(PersistenceStore):
 
         self._with_lock(delete)
 
-    def persisted_jobs(self, manager_name):
-        prefix = '%s:' % manager_name
-        jobs = []
+    def _load(self):
+        metadata = []
 
-        def set_jobs():
+        def load():
             shelf_keys = self.shelf.keys()
-            persisted_shelf_ids = [shelf_key for shelf_key in shelf_keys if shelf_key.startswith(prefix)]
-            jobs.extend([(shelf_id[len(prefix):], self.shelf[shelf_id]) for shelf_id in persisted_shelf_ids])
+            metadata.extend([(shelf_id, self.shelf[shelf_id]) for shelf_id in shelf_keys])
 
-        self._with_lock(set_jobs)
-        return jobs
+        self._with_lock(load)
+        return dict(metadata)
 
-    def __shelf_id(self, manager_name, job_id):
-        return '%s:%s' % (manager_name, str(job_id))
+    def __shelf_id(self, job_id):
+        return str(job_id)

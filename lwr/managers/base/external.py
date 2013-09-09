@@ -3,6 +3,8 @@ from os.path import join
 from stat import S_IEXEC, S_IWRITE, S_IREAD
 from string import Template
 
+from lwr.persistence import PersistenceStore
+
 from .directory import DirectoryBaseManager
 from ..util.job_script import job_script
 

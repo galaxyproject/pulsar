@@ -6,10 +6,9 @@ except ImportError:
 import sys
 import threading
 import traceback
-from os.path import join
 
 from lwr.managers.unqueued import Manager
-from lwr.persistence import PersistedJobStore
+from lwr.persistence import JobMetadataStore
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -30,10 +29,7 @@ class QueueManager(Manager):
 
     def __init__(self, name, app, **kwds):
         super(QueueManager, self).__init__(name, app, **kwds)
-        job_store_path = None
-        if app.persistence_directory:
-            job_store_path = join(app.persistence_directory, "queued_jobs")
-        self.persisted_job_store = PersistedJobStore(job_store_path)
+        self.persisted_job_store = self._build_persistent_store(PersistedJobStore, "jobs")
 
         num_concurrent_jobs = kwds.get('num_concurrent_jobs', DEFAULT_NUM_CONCURRENT_JOBS)
         if num_concurrent_jobs == '*':
@@ -55,10 +51,10 @@ class QueueManager(Manager):
     def launch(self, job_id, command_line, submit_params={}):
         self._prepare_run(job_id, command_line)
         self.work_queue.put((RUN, (job_id, command_line)))
-        self.persisted_job_store.enqueue(self.name, job_id, command_line)
+        self.persisted_job_store.enqueue(job_id, command_line)
 
     def _recover(self):
-        for (job_id, command_line) in self.persisted_job_store.persisted_jobs(self.name):
+        for (job_id, command_line) in self.persisted_job_store.persisted_jobs():
             self._register_job(job_id, new=False)
             self.work_queue.put((RUN, (job_id, command_line)))
 
@@ -79,8 +75,48 @@ class QueueManager(Manager):
                 return
             try:
                 (job_id, command_line) = obj
-                self.persisted_job_store.dequeue(self.name, job_id)
+                self.persisted_job_store.dequeue(job_id)
                 self._run(job_id, command_line, async=False)
             except:
                 log.warn("Uncaught exception running job with job_id %s" % job_id)
                 traceback.print_exc(file=sys.stdout)
+
+
+class PersistedJobStore(JobMetadataStore):
+    """
+
+    >>> import tempfile
+    >>> import os
+    >>> tf = tempfile.NamedTemporaryFile()
+    >>> os.remove(tf.name)
+    >>> store = PersistedJobStore(tf.name)
+    >>> store.enqueue("1234", "/bin/ls")
+    >>> jobs = store.persisted_jobs()
+    >>> jobs[0][0]
+    '1234'
+    >>> jobs[0][1]
+    '/bin/ls'
+    >>> store = PersistedJobStore(tf.name)
+    >>> jobs = store.persisted_jobs()
+    >>> jobs[0][0]
+    '1234'
+    >>> jobs[0][1]
+    '/bin/ls'
+    >>> try:
+    ...     tf.close()
+    ... except:
+    ...     pass
+    >>>
+    """
+
+    def __init__(self, path):
+        super(PersistedJobStore, self).__init__(path)
+
+    def enqueue(self, job_id, command_line):
+        super(PersistedJobStore, self)._store(job_id, command_line)
+
+    def dequeue(self, job_id):
+        super(PersistedJobStore, self)._delete(job_id)
+
+    def persisted_jobs(self):
+        return super(PersistedJobStore, self)._load().items()

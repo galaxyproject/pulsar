@@ -41,6 +41,7 @@ class BaseManager(ManagerInterface):
 
     def __init__(self, name, app, **kwds):
         self.name = name
+        self.persistence_directory = getattr(app, 'persistence_directory', None)
         self._setup_staging_directory(app.staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
         self.debug = str(kwds.get("debug", False)).lower() == "true"
@@ -93,6 +94,13 @@ class BaseManager(ManagerInterface):
                           JOB_DIRECTORY_TOOL_FILES]:
             job_directory.make_directory(directory)
         return job_directory
+
+    def _build_persistent_store(self, store_class, suffix):
+        store_path = None
+        if self.persistence_directory:
+            store_name = "%s_%s" % (self.name, suffix)
+            store_path = join(self.persistence_directory, store_name)
+        return store_class(store_path)
 
     def _get_authorization(self, job_id, tool_id):
         return self.authorizer.get_authorization(tool_id)
