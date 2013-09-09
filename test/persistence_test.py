@@ -1,9 +1,8 @@
-import os
+from os.path import exists, join
 import shutil
 import tempfile
 import time
 
-from lwr.persistence import PersistedJobStore
 from lwr.managers.queued import QueueManager
 from lwr.util import Bunch
 from lwr.tools.authorization import get_authorizer
@@ -15,23 +14,22 @@ def test_persistence():
     """
     staging_directory = tempfile.mkdtemp()
     try:
-        persisted_job_store = PersistedJobStore(**{'shelf_filename': os.path.join(staging_directory, 'persisted_jobs')})
-        app = Bunch(persisted_job_store=persisted_job_store,
-                    staging_directory=staging_directory,
+        app = Bunch(staging_directory=staging_directory,
+                    persistence_directory=staging_directory,
                     authorizer=get_authorizer(None))
+        assert not exists(join(staging_directory, "queued_jobs"))
         queue1 = QueueManager('test', app, num_concurrent_jobs=0)
         job_id = queue1.setup_job('4', 'tool1', '1.0.0')
-        touch_file = os.path.join(staging_directory, 'ran')
+        touch_file = join(staging_directory, 'ran')
         queue1.launch(job_id, 'touch %s' % touch_file)
-        time.sleep(1)
-        assert (not(os.path.exists(touch_file)))
+        time.sleep(.4)
+        assert (not(exists(touch_file)))
+        assert exists(join(staging_directory, "queued_jobs"))
         queue1.shutdown()
-        persisted_job_store.close()
-        persisted_job_store2 = PersistedJobStore(**{'shelf_filename': os.path.join(staging_directory, 'persisted_jobs')})
-        app.persisted_job_store = persisted_job_store2
         queue2 = QueueManager('test', app, num_concurrent_jobs=1)
+        assert exists(join(staging_directory, "queued_jobs"))
         time.sleep(1)
-        assert os.path.exists(touch_file)
+        assert exists(touch_file)
     finally:
         shutil.rmtree(staging_directory)
         try:

@@ -38,14 +38,19 @@ class PersistedJobStore(PersistenceStore):
     >>> import os
     >>> tf = tempfile.NamedTemporaryFile()
     >>> os.remove(tf.name)
-    >>> store = PersistedJobStore(shelf_filename=tf.name)
+    >>> store = PersistedJobStore(tf.name)
     >>> store.enqueue("moo", "1234", "/bin/ls")
     >>> jobs = store.persisted_jobs("moo")
     >>> jobs[0][0]
     '1234'
     >>> jobs[0][1]
     '/bin/ls'
-    >>> store = PersistedJobStore(shelf_filename=tf.name)
+    >>> store = PersistedJobStore(tf.name)
+    >>> jobs = store.persisted_jobs("moo")
+    >>> jobs[0][0]
+    '1234'
+    >>> jobs[0][1]
+    '/bin/ls'
     >>> try:
     ...     tf.close()
     ... except:
@@ -53,8 +58,8 @@ class PersistedJobStore(PersistenceStore):
     >>>
     """
 
-    def __init__(self, **conf):
-        super(PersistedJobStore, self).__init__(conf.get('shelf_filename', None))
+    def __init__(self, path):
+        super(PersistedJobStore, self).__init__(path)
 
     def enqueue(self, manager_name, job_id, command_line):
         shelf_id = self.__shelf_id(manager_name, job_id)

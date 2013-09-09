@@ -10,7 +10,7 @@ from os import listdir
 from os.path import join
 
 from .test_utils import TestCase
-from .test_utils import TestAuthorizer, TestPersistedJobStore
+from .test_utils import TestAuthorizer
 
 
 class ManagerTest(TestCase):
@@ -22,7 +22,6 @@ class ManagerTest(TestCase):
         self.authorizer = TestAuthorizer()
 
         self.app = Bunch(staging_directory=staging_directory,
-                         persisted_job_store=TestPersistedJobStore(),
                          authorizer=self.authorizer)
 
         self._set_manager()

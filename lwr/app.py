@@ -5,7 +5,6 @@ import inspect
 import os
 
 from lwr.manager_factory import build_managers
-from lwr.persistence import PersistedJobStore
 from lwr.cache import Cache
 from lwr.framework import RoutingApp
 from lwr.tools import ToolBox
@@ -14,6 +13,10 @@ import lwr.routes
 
 from logging import getLogger
 log = getLogger(__name__)
+
+DEFAULT_PRIVATE_KEY = None
+DEFAULT_STAGING_DIRECTORY = "lwr_staging"
+DEFAULT_PERSISTENCE_DIRECTORY = "persisted_data"
 
 
 def app_factory(global_conf, **local_conf):
@@ -34,9 +37,9 @@ class LwrApp(RoutingApp):
         if conf == None:
             conf = {}
         RoutingApp.__init__(self)
-        self.__setup_staging_directory(conf.get('staging_directory', "lwr_staging"))
-        self.__setup_private_key(conf.get("private_key", None))
-        self.__setup_persisted_job_store(conf)
+        self.__setup_staging_directory(conf.get("staging_directory", DEFAULT_STAGING_DIRECTORY))
+        self.__setup_private_key(conf.get("private_key", DEFAULT_PRIVATE_KEY))
+        self.__setup_persistence_directory(conf.get("persistence_directory", None))
         self.__setup_tool_config(conf)
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
@@ -70,9 +73,6 @@ class LwrApp(RoutingApp):
     def __setup_staging_directory(self, staging_directory):
         self.staging_directory = os.path.abspath(staging_directory)
 
-    def __setup_persisted_job_store(self, conf):
-        self.persisted_job_store = PersistedJobStore(**conf)
-
     def __setup_managers(self, conf):
         self.managers = build_managers(self, conf)
 
@@ -84,6 +84,9 @@ class LwrApp(RoutingApp):
     def __setup_routes(self):
         for func_name, func in inspect.getmembers(lwr.routes, lambda x: getattr(x, '__controller__', False)):
             self.__add_route_for_function(func)
+
+    def __setup_persistence_directory(self, persistence_directory):
+        self.persistence_directory = persistence_directory or DEFAULT_PERSISTENCE_DIRECTORY
 
     def __setup_file_cache(self, conf):
         file_cache_dir = conf.get('file_cache_dir', None)

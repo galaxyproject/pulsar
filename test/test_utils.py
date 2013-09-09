@@ -133,11 +133,3 @@ class TestAuthorizer(object):
 
     def get_authorization(self, tool_id):
         return self.authorization
-
-
-class TestPersistedJobStore:
-
-    def next_id(self):
-        yield 1
-        yield 2
-        yield 3

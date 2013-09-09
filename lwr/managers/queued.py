@@ -6,8 +6,10 @@ except ImportError:
 import sys
 import threading
 import traceback
+from os.path import join
 
 from lwr.managers.unqueued import Manager
+from lwr.persistence import PersistedJobStore
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -28,7 +30,10 @@ class QueueManager(Manager):
 
     def __init__(self, name, app, **kwds):
         super(QueueManager, self).__init__(name, app, **kwds)
-        self.persisted_job_store = app.persisted_job_store
+        job_store_path = None
+        if app.persistence_directory:
+            job_store_path = join(app.persistence_directory, "queued_jobs")
+        self.persisted_job_store = PersistedJobStore(job_store_path)
 
         num_concurrent_jobs = kwds.get('num_concurrent_jobs', DEFAULT_NUM_CONCURRENT_JOBS)
         if num_concurrent_jobs == '*':
@@ -58,7 +63,11 @@ class QueueManager(Manager):
             self.work_queue.put((RUN, (job_id, command_line)))
 
     def shutdown(self):
-        self.work_queue.put((STOP_SIGNAL, None))
+        for i in range(len(self.work_threads)):
+            self.work_queue.put((STOP_SIGNAL, None))
+        for worker in self.work_threads:
+            worker.join()
+        self.persisted_job_store.close()
 
     def run_next(self):
         """
