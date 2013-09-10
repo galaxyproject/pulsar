@@ -4,7 +4,7 @@ import os
 import optparse
 import traceback
 
-from lwr.lwr_client import FileStager, finish_job, ClientManager
+from lwr.lwr_client import submit_job, finish_job, ClientManager
 
 
 class MockTool(object):
@@ -70,9 +70,7 @@ finally:
         if user:
             client_options["submit_user"] = user
         client = ClientManager(**manager_args).get_client(client_options, "123456")
-        stager = FileStager(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
-        new_command = stager.get_rewritten_command_line()
-        client.launch(new_command)
+        submit_job(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         response = client.wait()
 
         finish_args = dict(client=client,
