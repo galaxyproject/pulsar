@@ -66,14 +66,13 @@ finally:
         client_options = {"url": options.url, "private_token": options.private_token}
         if hasattr(options, "default_file_action"):
             client_options["default_file_action"] = getattr(options, "default_file_action")
+        user = getattr(options, 'user', None)
+        if user:
+            client_options["submit_user"] = user
         client = ClientManager(**manager_args).get_client(client_options, "123456")
         stager = FileStager(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         new_command = stager.get_rewritten_command_line()
-        submit_params = {}
-        user = getattr(options, 'user', None)
-        if user:
-            submit_params['user'] = user
-        client.launch(new_command, submit_params)
+        client.launch(new_command)
         response = client.wait()
 
         finish_args = dict(client=client,
