@@ -27,7 +27,6 @@ class ClientManager(object):
         cache = kwds.get('cache', None)
         if cache is None:
             cache = _environ_default_int('LWR_CACHE_TRANSFERS')
-
         if cache:
             log.info("Setting LWR client class to caching variant.")
             self.client_class = InputCachingClient
@@ -43,7 +42,9 @@ class ClientManager(object):
             transfer_info = self.transfer_queue.get()
             try:
                 self.__perform_transfer(transfer_info)
-            except:
+            except BaseException as e:
+                log.warn("Transfer failed.")
+                log.exception(e)
                 pass
             self.transfer_queue.task_done()
 
