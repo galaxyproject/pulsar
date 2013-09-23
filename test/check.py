@@ -53,9 +53,10 @@ finally:
             temp_tool_file.close()
             temp_config_file.close()
 
-        command_line = 'python %s "%s" "%s" "%s"' % (temp_tool_path, temp_config_path, temp_input_path, temp_output_path)
+        empty_input = "/foo/bar/x"
+        command_line = 'python %s "%s" "%s" "%s" "%s"' % (temp_tool_path, temp_config_path, temp_input_path, temp_output_path, empty_input)
         config_files = [temp_config_path]
-        input_files = [temp_input_path]
+        input_files = [temp_input_path, empty_input]
         output_files = [temp_output_path]
 
         manager_args = {}
