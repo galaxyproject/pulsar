@@ -2,34 +2,35 @@
 LWR
 ===
 
-This project is a Python server application that allows a 
-`Galaxy <http://galaxyproject.org>`_ server to run jobs on remote 
-systems (including Windows) without requiring a shared mounted 
-file systems. Input files, scripts, and
-config files are transferred to the remote system, the job is
-executed, and the results are transferred back to the Galaxy server.
+This project is a Python server application that allows a `Galaxy
+<http://galaxyproject.org>`_ server to run jobs on remote systems
+(including Windows) without requiring a shared mounted file
+systems. Input files, scripts, and config files are transferred to the
+remote system, the job is executed, and the results are transferred
+back to the Galaxy server.
 
-Full documentation for the project can be found on `Read The Docs <https://lwr.readthedocs.org/>`_.
+Full documentation for the project can be found on `Read The Docs
+<https://lwr.readthedocs.org/>`_.
 
 ------------------
 Configuring Galaxy
 ------------------
 
 A Galaxy tool can be configured to be executed remotely via LWR by
-adding a line to the ``universe.ini`` file under the ``galaxy:tool_runners``
-section with the format::
+adding a line to the ``universe.ini`` file under the
+``galaxy:tool_runners`` section with the format::
 
     <tool_id> = lwr://http://<lwr_host>:<lwr_port>
 
 As an example, if a host named remotehost is running the LWR server
-application on port ``8913``, then the tool with id ``test_tool`` can be
-configured to run remotely on remotehost by adding the following line
-to ``universe.ini``::
+application on port ``8913``, then the tool with id ``test_tool`` can
+be configured to run remotely on remotehost by adding the following
+line to ``universe.ini``::
 
     test_tool = lwr://http://remotehost:8913
 
-Remember this must be added after the ``[galaxy:tool_runners]`` header in
-the ``universe.ini`` file.
+Remember this must be added after the ``[galaxy:tool_runners]`` header
+in the ``universe.ini`` file.
 
 ---------------
 Downloading LWR
@@ -86,9 +87,9 @@ easy_install
 Install python setuptools for your platform, more details on how to do
 this can be found `here <http://pypi.python.org/pypi/setuptools>`_.
 
-The ``easy_install`` command line application will be installed as part of
-setuptools. Use the following command to install the needed packages
-via ``easy_install``::
+The ``easy_install`` command line application will be installed as
+part of setuptools. Use the following command to install the needed
+packages via ``easy_install``::
 
     easy_install paste wsgiutils PasteScript PasteDeploy simplejson webob pyOpenSSL
 
