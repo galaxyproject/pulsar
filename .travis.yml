@@ -21,9 +21,11 @@ install:
   - pip install drmaa
 #  - sudo apt-get install condor
 script: . local_env.sh; nosetests
-matrix:
-  include:
-    - python: 3.3
-      env: REQUIREMENTS_SUFFIX=3
-  allow_failures:
-    - python: 3.3     
+
+## TODO: Figure out why Python 3.3 hangs.
+#matrix:
+#  include:
+#    - python: 3.3
+#      env: REQUIREMENTS_SUFFIX=3
+#  allow_failures:
+#    - python: 3.3     
