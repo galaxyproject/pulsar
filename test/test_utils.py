@@ -1,15 +1,15 @@
 from contextlib import contextmanager
 from stat import S_IXOTH
-from os import pardir, stat, chmod
-from os.path import join, dirname
+from os import pardir, stat, chmod, access, X_OK, pathsep, environ
+from os.path import join, dirname, isfile, split
 from tempfile import mkdtemp
 from shutil import rmtree
 
 from sys import version_info
 if version_info < (2, 7):
-    from unittest2 import TestCase
+    from unittest2 import TestCase, skip
 else:
-    from unittest import TestCase
+    from unittest import TestCase, skip
 
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
@@ -129,6 +129,37 @@ def test_app(global_conf={}, app_conf={}, test_conf={}):
                 pass
             except:
                 pass
+
+
+def skipUnlessExecutable(executable):
+    if __which(executable):
+        return lambda func: func
+    return skip("PATH doesn't contain executable {!r}".format(executable))
+
+
+def skipUnlessEnvironVariable(variable):
+    if variable in environ:
+        return lambda func: func
+    return skip("Environment variable %s is not defined." % variable)
+
+
+def __which(program):
+
+    def is_exe(fpath):
+        return isfile(fpath) and access(fpath, X_OK)
+
+    fpath, fname = split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in environ["PATH"].split(pathsep):
+            path = path.strip('"')
+            exe_file = join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
 
 
 class TestAuthorizer(object):

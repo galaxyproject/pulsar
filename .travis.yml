@@ -1,6 +1,3 @@
-## Add to .hg/hgrc to enable bitbucket pushes to push to github as well.
-# [hooks]  
-# outgoing = hg push git+ssh://git@github.com/jmchilton/lwr.git || true
 language: python
 python:
   - 2.6
@@ -22,7 +19,7 @@ install:
   - sudo python scripts/configure_test_slurm.py
   - echo "export DRMAA_LIBRARY_PATH=/usr/lib/libdrmaa.so" >> local_env.sh
   - pip install drmaa
-  - sudo apt-get install condor
+#  - sudo apt-get install condor
 script: . local_env.sh; nosetests
 matrix:
   include:

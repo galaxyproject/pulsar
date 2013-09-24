@@ -1,5 +1,5 @@
 from os.path import join
-from .test_utils import TempDirectoryTestCase
+from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessEnvironVariable
 
 from lwr.util import Bunch
 from .check import run
@@ -11,6 +11,7 @@ except ImportError:
 
 class IntegrationTest(TempDirectoryTestCase):
 
+    @skipUnlessEnvironVariable("DRMAA_LIBRARY_PATH")
     def test_integration_as_user(self):
         self.__run(job_conf_props={'type': 'queued_external_drmaa', "production": "false"}, private_token=None, default_file_action="copy", user='u1')
 
@@ -35,9 +36,11 @@ class IntegrationTest(TempDirectoryTestCase):
     def test_integration_errors(self):
         self.__run(app_conf={"private_key": "testtoken"}, private_token="testtoken", transport="curl", test_errors=True)
 
+    @skipUnlessEnvironVariable("DRMAA_LIBRARY_PATH")
     def test_integration_drmaa(self):
         self.__run(app_conf={}, job_conf_props={'type': 'queued_drmaa'}, private_token=None)
 
+    @skipUnlessExecutable("condor_submit")
     def test_integration_condor(self):
         self.__run(app_conf={}, job_conf_props={'type': 'queued_condor'}, private_token=None)
 
