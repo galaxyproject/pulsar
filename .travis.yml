@@ -21,6 +21,8 @@ install:
   - sudo service munge start
   - sudo python scripts/configure_test_slurm.py
   - echo "export DRMAA_LIBRARY_PATH=/usr/lib/libdrmaa.so" >> local_env.sh
+  - pip install -r drmaa
+  - sudo apt-get install condor
 script: . local_env.sh; nosetests
 matrix:
   include:
