@@ -11,7 +11,11 @@ install:
   - sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl
   - pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
   - pip install -r dev-requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
-  - sudo apt-get install slurm-llnl slurm-drmaa1 slurm-drmaa-dev 
+  - sudo apt-get install slurm-llnl
+  - wget http://launchpadlibrarian.net/104075475/slurm-drmaa1_1.0.4-3_amd64.deb
+  - sudo dpkg -i slurm-drmaa1_1.0.4-3_amd64.deb
+  - wget http://launchpadlibrarian.net/104075474/slurm-drmaa-dev_1.0.4-3_amd64.deb
+  - sudo dpkg -i slurm-drmaa-dev_1.0.4-3_amd64.deb
   - sudo /usr/sbin/create-munge-key
   - sudo service munge start
   - sudo python scripts/configure_test_slurm.py
