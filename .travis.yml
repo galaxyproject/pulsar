@@ -11,7 +11,12 @@ install:
   - sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl
   - pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
   - pip install -r dev-requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
-script: nosetests
+  - sudo apt-get install slurm-llnl slurm-drmaa1 slurm-drmaa-dev 
+  - sudo /usr/sbin/create-munge-key
+  - sudo service munge start
+  - sudo python scripts/configure_test_slurm.py
+  - echo "export DRMAA_LIBRARY_PATH=/usr/lib/libdrmaa.so" >> local_env.sh
+script: . local_env.sh; nosetests
 matrix:
   include:
     - python: 3.3
