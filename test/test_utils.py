@@ -134,7 +134,7 @@ def test_app(global_conf={}, app_conf={}, test_conf={}):
 def skipUnlessExecutable(executable):
     if __which(executable):
         return lambda func: func
-    return skip("PATH doesn't contain executable {!r}".format(executable))
+    return skip("PATH doesn't contain executable %s" % executable)
 
 
 def skipUnlessEnvironVariable(variable):
