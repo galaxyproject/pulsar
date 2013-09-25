@@ -1,10 +1,10 @@
 
 from lwr.managers.base import BaseManager
 
-try:
-    import pbs
-except ImportError:
-    pass
+#try:
+#    import pbs
+#except ImportError:
+#    pass
 
 
 class PbsQueueManager(BaseManager):
