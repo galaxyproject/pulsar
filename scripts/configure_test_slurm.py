@@ -75,7 +75,7 @@ SlurmctldDebug=3
 #SlurmctldLogFile=
 SlurmdDebug=3
 #SlurmdLogFile=
-NodeName=jlaptop13 CPUs=1 State=UNKNOWN
+NodeName=$hostname CPUs=1 State=UNKNOWN
 PartitionName=debug Nodes=$hostname Default=YES MaxTime=INFINITE State=UP
 '''
 
@@ -89,3 +89,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+p
