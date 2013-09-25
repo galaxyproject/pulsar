@@ -18,6 +18,7 @@ install:
   - sudo service munge start
   - sudo python scripts/configure_test_slurm.py
   - echo "export DRMAA_LIBRARY_PATH=/usr/lib/libdrmaa.so" >> local_env.sh
+  - echo "export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH" >> local_env.sh
   - pip install drmaa 
   - sudo adduser --quiet --disabled-password --gecos TEST u1  ## Create user for run-as-user test.  
 
