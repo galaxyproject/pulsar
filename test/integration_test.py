@@ -44,6 +44,7 @@ class IntegrationTest(TempDirectoryTestCase):
     def test_integration_condor(self):
         self.__run(app_conf={}, job_conf_props={'type': 'queued_condor'}, private_token=None)
 
+    @skipUnlessExecutable("qsub")
     def test_integration_cli(self):
         self.__run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Torque'}, private_token=None)
 
