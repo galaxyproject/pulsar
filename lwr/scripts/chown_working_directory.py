@@ -1,11 +1,10 @@
-from argparse import ArgumentParser
 from os import system
 from os.path import join, abspath
 try:
     from ConfigParser import ConfigParser
 except ImportError:
     from configparser import ConfigParser
-
+from lwr.scripts.util.args import ArgumentParser
 
 DESCRIPTION = "Change ownership of a job working directory."
 # Switch this to true to tighten up security somewhat in production mode.

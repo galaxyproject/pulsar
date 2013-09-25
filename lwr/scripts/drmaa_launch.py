@@ -1,7 +1,7 @@
 from __future__ import print_function
-from argparse import ArgumentParser
 from simplejson import load
 from lwr.managers.util.drmaa import DrmaaSessionFactory
+from lwr.scripts.util.args import ArgumentParser
 
 
 DESCRIPTION = "Submit a DRMAA job."
