@@ -3,6 +3,7 @@ import tempfile
 import os
 
 from lwr.lwr_client.client import Client
+from lwr.lwr_client.manager import HttpJobManagerInterface
 from lwr.lwr_client.transport import Urllib2Transport
 from lwr.util import Bunch
 from lwr.lwr_client.client import retry, MAX_RETRY_COUNT
@@ -58,8 +59,7 @@ class TestClient(Client):
     method so that requests can be inspected and responses faked."""
 
     def __init__(self):
-        client_manager = Bunch(transport=TestTransport(self))
-        Client.__init__(self, {"url": "http://test:803/"}, "543", client_manager)
+        Client.__init__(self, {}, "543", HttpJobManagerInterface({"url": "http://test:803/"}, TestTransport(self)))
         self.expects = deque([])
 
     def expect_open(self, checker, response):

@@ -1,9 +1,11 @@
+from abc import ABCMeta, abstractmethod
 try:
     from Queue import Queue
 except ImportError:
     from queue import Queue
 from threading import Thread
 from os import getenv
+from urllib import urlencode
 
 from .client import Client, InputCachingClient
 from .transport import get_transport
@@ -40,12 +42,59 @@ class ClientManager(object):
 
     def get_client(self, destination_params, job_id):
         destination_params = self.__parse_destination_params(destination_params)
-        return self.client_class(destination_params, job_id, self, **self.extra_client_kwds)
+        job_manager_interface = HttpJobManagerInterface(destination_params, self.transport)
+        return self.client_class(destination_params, job_id, job_manager_interface, **self.extra_client_kwds)
 
     def __parse_destination_params(self, destination_params):
         if isinstance(destination_params, str) or isinstance(destination_params, unicode):
             destination_params = url_to_destination_params(destination_params)
         return destination_params
+
+
+class JobManagerInteface(object):
+    """
+    Abstract base class describes how client communicates with remote job
+    manager.
+    """
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def execute(self, command, args={}, data=None, input_path=None, output_path=None):
+        """
+        Execute the correspond command against configured LWR job manager. Arguments are
+        method parameters and data or input_path describe essentially POST bodies. If command
+        results in a file, resulting path should be specified as output_path.
+        """
+
+
+class HttpJobManagerInterface(object):
+
+    def __init__(self, destination_params, transport):
+        self.transport = transport
+        self.remote_host = destination_params.get("url")
+        assert self.remote_host != None, "Failed to determine url for LWR client."
+        self.private_key = destination_params.get("private_token", None)
+
+    def execute(self, command, args={}, data=None, input_path=None, output_path=None):
+        url = self.__build_url(command, args)
+        response = self.transport.execute(url, data=data, input_path=input_path, output_path=output_path)
+        return response
+
+    def __build_url(self, command, args):
+        if self.private_key:
+            args["private_key"] = self.private_key
+        data = urlencode(args)
+        url = self.remote_host + command + "?" + data
+        return url
+
+
+class LocalJobManagerInterface(object):
+
+    def __init__(self, destination_params):
+        pass
+
+    def execute(self, command, args={}, data=None, input_path=None, output_path=None):
+        raise NotImplementedError()
 
 
 class ClientCacher(object):
@@ -100,4 +149,4 @@ def _environ_default_int(variable, default="0"):
         int_val = int(val)
     return int_val
 
-__all__ = [ClientManager]
+__all__ = [ClientManager, HttpJobManagerInterface]

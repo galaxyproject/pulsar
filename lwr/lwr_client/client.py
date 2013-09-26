@@ -51,7 +51,7 @@ class OutputNotFoundException(Exception):
         return "No remote output found for path %s" % self.path
 
 
-class BaseClient(object):
+class Client(object):
     """
     Objects of this client class perform low-level communication with a remote LWR server.
 
@@ -63,13 +63,16 @@ class BaseClient(object):
         Galaxy job/task id.
     """
 
-    def __init__(self, destination_params, job_id, client_manager):
+    def __init__(self, destination_params, job_id, job_manager_interface):
+        self.job_manager_interface = job_manager_interface
         self.destination_params = destination_params
         self.job_id = job_id
-        self.client_manager = client_manager
 
         self.default_file_action = self.destination_params.get("default_file_action", "transfer")
         self.action_config_path = self.destination_params.get("file_action_config", None)
+
+    def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
+        return self.job_manager_interface.execute(command, args, data, input_path, output_path)
 
     @property
     def _submit_params(self):
@@ -272,45 +275,13 @@ class BaseClient(object):
             shutil.copyfile(source, destination)
 
 
-class DirectClient(BaseClient):
-
-    def __init__(self, destination_params, job_id, client_manager, manager):
-        super(DirectClient, self).__init__(destination_params, job_id, client_manager)
-        self.manager = manager
-
-    def _raw_execute(command, args={}, data=None, input_path=None, output_path=None):
-        pass
-
-
-class HttpClient(BaseClient):
-
-    def __init__(self, destination_params, job_id, client_manager):
-        super(HttpClient, self).__init__(destination_params, job_id, client_manager)
-
-        self.remote_host = self.destination_params.get("url")
-        assert self.remote_host != None, "Failed to determine url for LWR client."
-        self.private_key = self.destination_params.get("private_token", None)
-
-    def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
-        url = self.__build_url(command, args)
-        response = self.client_manager.transport.execute(url, data=data, input_path=input_path, output_path=output_path)
-        return response
-
-    def __build_url(self, command, args):
-        if self.private_key:
-            args["private_key"] = self.private_key
-        data = urllib.urlencode(args)
-        url = self.remote_host + command + "?" + data
-        return url
-
-
-class InputCachingClient(HttpClient):
+class InputCachingClient(Client):
     """
     Beta client that cache's staged files to prevent duplication.
     """
 
-    def __init__(self, destination_params, job_id, client_manager, client_cacher):
-        super(InputCachingClient, self).__init__(destination_params, job_id, client_manager)
+    def __init__(self, destination_params, job_id, job_manager_interface, client_cacher):
+        super(InputCachingClient, self).__init__(destination_params, job_id, job_manager_interface)
         self.client_cacher = client_cacher
 
     @parseJson()
@@ -345,6 +316,3 @@ class InputCachingClient(HttpClient):
     @parseJson()
     def file_available(self, path):
         return self._raw_execute("file_available", {"path": path})
-
-
-Client = HttpClient  # Expose deprecated name for HttpClient.
