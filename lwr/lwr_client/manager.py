@@ -25,26 +25,42 @@ class ClientManager(object):
     def __init__(self, **kwds):
         transport_type = kwds.get('transport_type', None)
         self.transport = get_transport(transport_type)
-        self.event_manager = TransferEventManager()
         cache = kwds.get('cache', None)
         if cache is None:
             cache = _environ_default_int('LWR_CACHE_TRANSFERS')
         if cache:
             log.info("Setting LWR client class to caching variant.")
+            self.client_cacher = ClientCacher(**kwds)
             self.client_class = InputCachingClient
-            default_transfer_threads = _environ_default_int('LWR_CACHE_THREADS', DEFAULT_TRANSFER_THREADS)
-            num_transfer_threads = int(kwds.get('transfer_threads', default_transfer_threads))
-            self.__init_transfer_threads(num_transfer_threads)
+            self.extra_client_kwds = {"client_cacher": self.client_cacher}
         else:
             log.info("Setting LWR client class to standard, non-caching variant.")
             self.client_class = Client
+            self.extra_client_kwds = {}
 
     def get_client(self, destination_params, job_id):
         destination_params = self.__parse_destination_params(destination_params)
-        return self.client_class(destination_params, job_id, self)
+        return self.client_class(destination_params, job_id, self, **self.extra_client_kwds)
+
+    def __parse_destination_params(self, destination_params):
+        if isinstance(destination_params, str) or isinstance(destination_params, unicode):
+            destination_params = url_to_destination_params(destination_params)
+        return destination_params
+
+
+class ClientCacher(object):
+
+    def __init__(self, **kwds):
+        self.event_manager = TransferEventManager()
+        default_transfer_threads = _environ_default_int('LWR_CACHE_THREADS', DEFAULT_TRANSFER_THREADS)
+        num_transfer_threads = int(kwds.get('transfer_threads', default_transfer_threads))
+        self.__init_transfer_threads(num_transfer_threads)
 
     def queue_transfer(self, client, path):
         self.transfer_queue.put((client, path))
+
+    def acquire_event(self, input_path):
+        return self.event_manager.acquire_event(input_path)
 
     def _transfer_worker(self):
         while True:
@@ -76,11 +92,6 @@ class ClientManager(object):
             t.daemon = True
             t.start()
 
-    def __parse_destination_params(self, destination_params):
-        if isinstance(destination_params, str) or isinstance(destination_params, unicode):
-            destination_params = url_to_destination_params(destination_params)
-        return destination_params
-
 
 def _environ_default_int(variable, default="0"):
     val = getenv(variable, default)
@@ -88,3 +99,5 @@ def _environ_default_int(variable, default="0"):
     if str(val).isdigit():
         int_val = int(val)
     return int_val
+
+__all__ = [ClientManager]

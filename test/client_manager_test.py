@@ -15,13 +15,13 @@ def test_environment_variables_config():
     environ['LWR_CACHE_TRANSFERS'] = '1'
     environ['LWR_CACHE_THREADS'] = '4'
     client_manager = ClientManager()
-    client_manager.num_transfer_threads == 4
+    client_manager.client_cacher.num_transfer_threads == 4
 
 
 def test_kwds_config():
     client_manager = ClientManager(cache=True, transfer_threads=3)
     assert __produces_caching_client(client_manager)
-    assert client_manager.num_transfer_threads == 3
+    assert client_manager.client_cacher.num_transfer_threads == 3
 
     client_manager = ClientManager(cache=False)
     assert not __produces_caching_client(client_manager)

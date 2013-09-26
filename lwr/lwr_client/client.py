@@ -309,8 +309,9 @@ class InputCachingClient(HttpClient):
     Beta client that cache's staged files to prevent duplication.
     """
 
-    def __init__(self, destination_params, job_id, client_manager):
+    def __init__(self, destination_params, job_id, client_manager, client_cacher):
         super(InputCachingClient, self).__init__(destination_params, job_id, client_manager)
+        self.client_cacher = client_cacher
 
     @parseJson()
     def _upload_file(self, args, contents, input_path):
@@ -319,10 +320,10 @@ class InputCachingClient(HttpClient):
             input_path = None
             return self._raw_execute(action, args, contents, input_path)
         else:
-            event_holder = self.client_manager.event_manager.acquire_event(input_path)
+            event_holder = self.client_cacher.acquire_event(input_path)
             cache_required = self.cache_required(input_path)
             if cache_required:
-                self.client_manager.queue_transfer(self, input_path)
+                self.client_cacher.queue_transfer(self, input_path)
             while not event_holder.failed:
                 available = self.file_available(input_path)
                 if available['ready']:
