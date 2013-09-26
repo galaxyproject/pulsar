@@ -58,19 +58,7 @@ finally:
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
         output_files = [temp_output_path]
-
-        manager_args = {}
-        if getattr(options, 'cache', None):
-            manager_args['cache'] = True
-        if getattr(options, 'transport', None):
-            manager_args['transport_type'] = options.transport
-        client_options = {"url": options.url, "private_token": options.private_token}
-        if hasattr(options, "default_file_action"):
-            client_options["default_file_action"] = getattr(options, "default_file_action")
-        user = getattr(options, 'user', None)
-        if user:
-            client_options["submit_user"] = user
-        client = ClientManager(**manager_args).get_client(client_options, "123456")
+        client = __client(options)
         submit_job(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         response = client.wait()
 
@@ -108,6 +96,26 @@ finally:
     finally:
         shutil.rmtree(temp_directory)
         # client.clean()
+
+
+def __client(options):
+    client_options = {"url": options.url, "private_token": options.private_token}
+    if hasattr(options, "default_file_action"):
+        client_options["default_file_action"] = getattr(options, "default_file_action")
+    user = getattr(options, 'user', None)
+    if user:
+        client_options["submit_user"] = user
+    client = __client_manager(options).get_client(client_options, "123456")
+    return client
+
+
+def __client_manager(options):
+    manager_args = {}
+    if getattr(options, 'cache', None):
+        manager_args['cache'] = True
+    if getattr(options, 'transport', None):
+        manager_args['transport_type'] = options.transport
+    return ClientManager(**manager_args)
 
 
 def main():
