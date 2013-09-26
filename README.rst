@@ -138,8 +138,8 @@ If `circus <http://circus.readthedocs.org/en/0.9.2/>`_ and/or `chassuette
 servers can be launched via this ``run.sh`` command. See the script for more
 details.
 
-Cross Platform (Windows and \*nix)
-----------------------------------
+Alternative Cross Platform Instructions (Windows and \*nix)
+-----------------------------------------------------------
 
 The ``paster`` command line application will be installed as part of the
 previous dependency installation process. This application can be used to
@@ -221,6 +221,21 @@ To chnage the default configuration, rename the file
 ``job_managers.ini.sample`` distributed with the LWR to ``job_managers.ini``
 and modify it to reflect your desired configuration, and uncomment the line
 ``#job_managers_config = job_managers.ini`` in ``server.ini``.
+
+Likely the cleanest way to interface with an external queueing system is going
+to be DRMAA. In this case, one should likely copy ``local_env.sh.sample`` to
+``local_env.sh`` and update it to set ``DRMAA_LIBRARY_PATH`` to point to the
+correct ``libdrmaa.so`` file. Also, the Python ``drmaa`` module must be
+installed (see note above).
+
+Galaxy Tools
+------------
+
+Many Galaxy tool wrappers require a copy of the Galaxy codebase itself to run,
+these tools will not run under Windows, but on \*nix hosts the LWR can be
+configured to add the required Galaxy code a jobs ``PYTHON_PATH`` by setting
+copying ``local_env.sh.sample`` to ``local_env.sh`` and setting the
+``GALAXY_HOME`` environment variable.
 
 ------
 Puppet
