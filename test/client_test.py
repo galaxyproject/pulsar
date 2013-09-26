@@ -5,7 +5,6 @@ import os
 from lwr.lwr_client.client import Client
 from lwr.lwr_client.manager import HttpJobManagerInterface
 from lwr.lwr_client.transport import Urllib2Transport
-from lwr.util import Bunch
 from lwr.lwr_client.client import retry, MAX_RETRY_COUNT
 
 

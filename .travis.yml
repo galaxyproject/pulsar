@@ -23,7 +23,7 @@ install:
   - sudo adduser --quiet --disabled-password --gecos TEST u1  ## Create user for run-as-user test.  
 
 #  - sudo apt-get install condor
-script: . local_env.sh; env; pyflakes lwr test && nosetests
+script: . local_env.sh; pyflakes lwr test && nosetests
 
 ## TODO: Figure out why Python 3.3 hangs.
 #matrix:

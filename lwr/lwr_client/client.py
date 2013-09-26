@@ -1,6 +1,5 @@
 import os
 import shutil
-import urllib
 import simplejson
 from simplejson import dumps
 from time import sleep
