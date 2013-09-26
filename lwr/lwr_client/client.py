@@ -278,6 +278,16 @@ class BaseClient(object):
         self.destination_params = destination_params
 
 
+class DirectClient(BaseClient):
+
+    def __init__(self, destination_params, job_id, client_manager, manager):
+        super(DirectClient, self).__init__(destination_params, job_id, client_manager)
+        self.manager = manager
+
+    def _raw_execute(command, args={}, data=None, input_path=None, output_path=None):
+        pass
+
+
 class HttpClient(BaseClient):
 
     def __init__(self, destination_params, job_id, client_manager):
