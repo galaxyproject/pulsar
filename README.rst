@@ -231,7 +231,8 @@ found `here <https://github.com/jmchilton/puppet-lwr>`_.
 Testing
 -------
 
-.. image:: https://travis-ci.org/jmchilton/lwr.png?branch=master   :target: https://travis-ci.org/jmchilton/lwr
+.. image:: https://travis-ci.org/jmchilton/lwr.png?branch=master
+    :target: https://travis-ci.org/jmchilton/lwr
 
 A simple sanity test can be run against a running LWR server by
 executing the following command (replace the URL command with the URL
