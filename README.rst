@@ -210,14 +210,16 @@ token.::
 
 
 
-Multiple Job Managers (Queues)
-------------------------------
+Job Managers (Queues)
+---------------------
 
-An LWR server can be configured for multiple queues with different
-properties (e.g. maximum number of concurrent jobs).
+By default the LWR will maintain its own queue of jobs. It can be configured
+to maintain multiple such queues with different properties or to delegate to
+external job queues (via DRMAA, qsub/qstat CLI commands, or Condor).
 
-To configure queues, rename the file ``job_managers.ini.sample``
-distributed with the LWR to ``job_managers.ini``. And comment the line
+To chnage the default configuration, rename the file
+``job_managers.ini.sample`` distributed with the LWR to ``job_managers.ini``
+and modify it to reflect your desired configuration, and uncomment the line
 ``#job_managers_config = job_managers.ini`` in ``server.ini``.
 
 ------
