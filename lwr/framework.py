@@ -57,6 +57,21 @@ class RoutingApp(object):
         return re.compile(regex)
 
 
+def build_func_args(func, *arg_dicts):
+    args = {}
+
+    def add_args(func_args, arg_values):
+        for func_arg in func_args:
+            if func_arg not in args and func_arg in arg_values:
+                args[func_arg] = arg_values[func_arg]
+
+    func_args = inspect.getargspec(func).args
+    for arg_dict in arg_dicts:
+        add_args(func_args, arg_dict)
+
+    return args
+
+
 class Controller(object):
     """
     Wraps python functions into controller methods.
@@ -88,26 +103,21 @@ class Controller(object):
                 if access_response:
                     return access_response
 
+            args = build_func_args(func, args, req.GET, self._app_args(args, req))
             func_args = inspect.getargspec(func).args
-            self.__add_args(args, func_args, req.GET)
-            self.__add_args(args, func_args, self._app_args(args, req))
+
             for func_arg in func_args:
                 if func_arg == "ip":
-                    args[func_arg] = self.__get_client_address(environ)
-
-            for key in dict(args):
-                if key not in func_args:
-                    del args[key]
+                    args["ip"] = self.__get_client_address(environ)
 
             if 'body' in func_args:
                 args['body'] = req.body_file
+
             try:
                 result = func(**args)
             except exc.HTTPException as e:
                 result = e
-            if self.response_type == 'json':
-                resp = Response(body=dumps(result))
-            elif self.response_type == 'file':
+            if self.response_type == 'file':
                 resp = Response()
                 path = result
                 if exists(path):
@@ -115,11 +125,20 @@ class Controller(object):
                 else:
                     raise exc.HTTPNotFound("No file found with path %s." % path)
             else:
-                resp = Response(body='OK')
+                resp = Response(body=self.body(result))
             return resp(environ, start_response)
+        controller_replacement.func = func
+        controller_replacement.response_type = self.response_type
+        controller_replacement.body = self.body
         controller_replacement.__name__ = func.__name__
         controller_replacement.__controller__ = True
         return controller_replacement
+
+    def body(self, result):
+        body = 'OK'
+        if self.response_type == 'json':
+            body = dumps(result)
+        return body
 
     def _prepare_controller_args(self, req, args):
         pass

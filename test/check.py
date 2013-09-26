@@ -99,7 +99,7 @@ finally:
 
 
 def __client(options):
-    client_options = {"url": options.url, "private_token": options.private_token}
+    client_options = {"url": getattr(options, "url", None), "private_token": getattr(options, "private_token", None)}
     if hasattr(options, "default_file_action"):
         client_options["default_file_action"] = getattr(options, "default_file_action")
     user = getattr(options, 'user', None)
@@ -111,8 +111,10 @@ def __client(options):
 
 def __client_manager(options):
     manager_args = {}
-    if getattr(options, 'cache', None):
-        manager_args['cache'] = True
+    simple_client_manager_options = ['cache', 'job_manager', 'file_cache']
+    for client_manager_option in simple_client_manager_options:
+        if getattr(options, client_manager_option, None):
+            manager_args[client_manager_option] = getattr(options, client_manager_option)
     if getattr(options, 'transport', None):
         manager_args['transport_type'] = options.transport
     return ClientManager(**manager_args)

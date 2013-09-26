@@ -6,6 +6,7 @@ except ImportError:
 from threading import Thread
 from os import getenv
 from urllib import urlencode
+from StringIO import StringIO
 
 from .client import Client, InputCachingClient
 from .transport import get_transport
@@ -25,8 +26,14 @@ class ClientManager(object):
     state between multiple client connections.
     """
     def __init__(self, **kwds):
-        transport_type = kwds.get('transport_type', None)
-        self.transport = get_transport(transport_type)
+        if 'job_manager' in kwds:
+            self.job_manager_interface_class = LocalJobManagerInterface
+            self.job_manager_interface_args = dict(job_manager=kwds['job_manager'], file_cache=kwds['file_cache'])
+        else:
+            self.job_manager_interface_class = HttpJobManagerInterface
+            transport_type = kwds.get('transport_type', None)
+            transport = get_transport(transport_type)
+            self.job_manager_interface_args = dict(transport=transport)
         cache = kwds.get('cache', None)
         if cache is None:
             cache = _environ_default_int('LWR_CACHE_TRANSFERS')
@@ -42,7 +49,9 @@ class ClientManager(object):
 
     def get_client(self, destination_params, job_id):
         destination_params = self.__parse_destination_params(destination_params)
-        job_manager_interface = HttpJobManagerInterface(destination_params, self.transport)
+        job_manager_interface_class = self.job_manager_interface_class
+        job_manager_interface_args = dict(destination_params=destination_params, **self.job_manager_interface_args)
+        job_manager_interface = job_manager_interface_class(**job_manager_interface_args)
         return self.client_class(destination_params, job_id, job_manager_interface, **self.extra_client_kwds)
 
     def __parse_destination_params(self, destination_params):
@@ -90,11 +99,39 @@ class HttpJobManagerInterface(object):
 
 class LocalJobManagerInterface(object):
 
-    def __init__(self, destination_params):
-        pass
+    def __init__(self, destination_params, job_manager, file_cache):
+        self.job_manager = job_manager
+        self.file_cache = file_cache
+
+    def __app_args(self):
+        ## Arguments that would be specified from LwrApp if running
+        ## in web server.
+        return {'manager': self.job_manager,
+                 'file_cache': self.file_cache,
+                 'ip': None}
 
     def execute(self, command, args={}, data=None, input_path=None, output_path=None):
-        raise NotImplementedError()
+        from lwr import routes
+        from lwr.framework import build_func_args
+        controller = getattr(routes, command)
+        action = controller.func
+        body_args = dict(body=self.__build_body(data, input_path))
+        args = build_func_args(action, args.copy(), self.__app_args(), body_args)
+        result = action(**args)
+        if controller.response_type != 'file':
+            return controller.body(result)
+        else:
+            from lwr.util import copy_to_path
+            with open(result, 'rb') as result_file:
+                copy_to_path(result_file, output_path)
+
+    def __build_body(self, data, input_path):
+        if data is not None:
+            return StringIO(data)
+        elif input_path is not None:
+            return open(input_path, 'r')
+        else:
+            return None
 
 
 class ClientCacher(object):

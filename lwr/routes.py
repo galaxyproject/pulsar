@@ -27,12 +27,12 @@ class LwrController(Controller):
         manager_name = args.get('manager_name', DEFAULT_MANAGER_NAME)
         app_args = {}
         app_args['manager'] = managers[manager_name]
-        app_args['file_cache'] = app.file_cache
+        app_args['file_cache'] = getattr(app, 'file_cache', None)
         return app_args
 
 
 @LwrController(response_type='json')
-def setup(manager, job_id, ip, tool_id=None, tool_version=None):
+def setup(manager, job_id, tool_id=None, tool_version=None):
     job_id = manager.setup_job(job_id, tool_id, tool_version)
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)

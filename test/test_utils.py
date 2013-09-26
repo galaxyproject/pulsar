@@ -137,10 +137,15 @@ def skipUnlessExecutable(executable):
     return skip("PATH doesn't contain executable %s" % executable)
 
 
-def skipUnlessEnvironVariable(variable):
-    if variable in environ:
+def skipUnlessModule(module):
+    available = True
+    try:
+        __import__(module)
+    except ImportError:
+        available = False
+    if available:
         return lambda func: func
-    return skip("Environment variable %s is not defined." % variable)
+    return skip("Module %s could not be loaded, dependent test skipped." % module)
 
 
 def __which(program):
