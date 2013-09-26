@@ -59,6 +59,7 @@ class IntegrationTests(BaseIntegrationTest):
     def test_integration_default(self):
         self._run(private_token=None, **self.default_kwargs)
 
+    @skipUnlessModule("pycurl")
     def test_integration_curl(self):
         self._run(private_token=None, transport="curl", **self.default_kwargs)
 
