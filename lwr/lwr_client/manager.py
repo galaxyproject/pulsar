@@ -39,6 +39,13 @@ class ClientManager(object):
             log.info("Setting LWR client class to standard, non-caching variant.")
             self.client_class = Client
 
+    def get_client(self, destination_params, job_id):
+        destination_params = self.__parse_destination_params(destination_params)
+        return self.client_class(destination_params, job_id, self)
+
+    def queue_transfer(self, client, path):
+        self.transfer_queue.put((client, path))
+
     def _transfer_worker(self):
         while True:
             transfer_info = self.transfer_queue.get()
@@ -68,13 +75,6 @@ class ClientManager(object):
             t = Thread(target=self._transfer_worker)
             t.daemon = True
             t.start()
-
-    def queue_transfer(self, client, path):
-        self.transfer_queue.put((client, path))
-
-    def get_client(self, destination_params, job_id):
-        destination_params = self.__parse_destination_params(destination_params)
-        return self.client_class(destination_params, job_id, self)
 
     def __parse_destination_params(self, destination_params):
         if isinstance(destination_params, str) or isinstance(destination_params, unicode):
