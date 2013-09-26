@@ -59,7 +59,7 @@ class TestClient(Client):
 
     def __init__(self):
         client_manager = Bunch(transport=TestTransport(self))
-        Client.__init__(self, "http://test:803/", "543", client_manager)
+        Client.__init__(self, {"url": "http://test:803/"}, "543", client_manager)
         self.expects = deque([])
 
     def expect_open(self, checker, response):

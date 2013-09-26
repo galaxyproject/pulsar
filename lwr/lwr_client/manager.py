@@ -8,6 +8,8 @@ from os import getenv
 from .client import Client, InputCachingClient
 from .transport import get_transport
 from .util import TransferEventManager
+from .destination import url_to_destination_params
+
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -71,7 +73,13 @@ class ClientManager(object):
         self.transfer_queue.put((client, path))
 
     def get_client(self, destination_params, job_id):
+        destination_params = self.__parse_destination_params(destination_params)
         return self.client_class(destination_params, job_id, self)
+
+    def __parse_destination_params(self, destination_params):
+        if isinstance(destination_params, str) or isinstance(destination_params, unicode):
+            destination_params = url_to_destination_params(destination_params)
+        return destination_params
 
 
 def _environ_default_int(variable, default="0"):

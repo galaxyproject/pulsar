@@ -5,7 +5,6 @@ import simplejson
 from simplejson import dumps
 from time import sleep
 
-from .destination import url_to_destination_params
 from .destination import submit_params
 
 CACHE_WAIT_SECONDS = 3
@@ -65,7 +64,7 @@ class BaseClient(object):
     """
 
     def __init__(self, destination_params, job_id, client_manager):
-        self._init_destination_params(destination_params)
+        self.destination_params = destination_params
         self.job_id = job_id
         self.client_manager = client_manager
 
@@ -271,11 +270,6 @@ class BaseClient(object):
         destination = os.path.abspath(destination)
         if source != destination:
             shutil.copyfile(source, destination)
-
-    def _init_destination_params(self, destination_params):
-        if isinstance(destination_params, str) or isinstance(destination_params, unicode):
-            destination_params = url_to_destination_params(destination_params)
-        self.destination_params = destination_params
 
 
 class DirectClient(BaseClient):
