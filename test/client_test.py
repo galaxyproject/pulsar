@@ -84,8 +84,8 @@ class RequestChecker(object):
         assert self.expected_args == actual_args, statement
 
     def check_data(self, data):
-        if data == None:
-            assert self.data == None
+        if data is None:
+            assert self.data is None
         elif type(data) == str:
             assert self.data == data
         else:

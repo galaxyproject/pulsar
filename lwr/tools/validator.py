@@ -18,8 +18,8 @@ class ExpressionValidator(object):
         validated = match is not None
         if validated:
             for group in match.groups():
-                if not is_in_directory(group, join(job_directory.path, "inputs")) \
-                  and not is_in_directory(group, join(job_directory.path, "outputs")):
+                if not is_in_directory(group, join(job_directory.path, "inputs")) and \
+                   not is_in_directory(group, join(job_directory.path, "outputs")):
                     validated = False
                     break
         return validated

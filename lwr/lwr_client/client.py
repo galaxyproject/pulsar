@@ -182,11 +182,12 @@ class Client(object):
 
     @retry()
     def __raw_download_output(self, name, job_id, output_type, output_path):
-        self._raw_execute("download_output",
-                           {"name": name,
-                            "job_id": self.job_id,
-                            "output_type": output_type},
-                           output_path=output_path)
+        output_params = {
+            "name": name,
+            "job_id": self.job_id,
+            "output_type": output_type
+        }
+        self._raw_execute("download_output", output_params, output_path=output_path)
 
     def launch(self, command_line):
         """
@@ -232,7 +233,7 @@ class Client(object):
         """
         Return boolean indicating whether the job is complete.
         """
-        if response == None:
+        if response is None:
             response = self.raw_check_complete()
         return response["complete"] == "true"
 

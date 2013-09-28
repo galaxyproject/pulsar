@@ -47,7 +47,7 @@ class Manager(DirectoryBaseManager):
         pid = None
         try:
             pid = self._read_job_file(job_id, JOB_FILE_PID)
-            if pid != None:
+            if pid is not None:
                 pid = int(pid)
         except:
             pass
@@ -147,7 +147,7 @@ class Manager(DirectoryBaseManager):
             return
 
         pid = self.__get_pid(job_id)
-        if pid == None:
+        if pid is None:
             self._record_cancel(job_id)
             self._job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
         return pid

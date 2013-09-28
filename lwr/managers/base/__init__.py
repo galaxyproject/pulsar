@@ -75,7 +75,7 @@ class BaseManager(ManagerInterface):
         return self._job_directory(job_id).tool_files_directory()
 
     def _setup_staging_directory(self, staging_directory):
-        assert not staging_directory == None
+        assert not staging_directory is None
         if not exists(staging_directory):
             makedirs(staging_directory)
         assert isdir(staging_directory)

@@ -45,7 +45,8 @@ class IntegrationTests(BaseIntegrationTest):
 
     @skipUnlessModule("drmaa")
     def test_integration_as_user(self):
-        self._run(job_conf_props={'type': 'queued_external_drmaa', "production": "false"}, private_token=None, default_file_action="copy", user='u1', **self.default_kwargs)
+        job_props = {'type': 'queued_external_drmaa', "production": "false"}
+        self._run(job_conf_props=job_props, private_token=None, default_file_action="copy", user='u1', **self.default_kwargs)
 
     def test_integration_copy(self):
         self._run(private_token=None, default_file_action="copy", **self.default_kwargs)

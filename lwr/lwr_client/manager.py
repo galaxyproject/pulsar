@@ -81,7 +81,7 @@ class HttpJobManagerInterface(object):
     def __init__(self, destination_params, transport):
         self.transport = transport
         self.remote_host = destination_params.get("url")
-        assert self.remote_host != None, "Failed to determine url for LWR client."
+        assert self.remote_host is not None, "Failed to determine url for LWR client."
         self.private_key = destination_params.get("private_token", None)
 
     def execute(self, command, args={}, data=None, input_path=None, output_path=None):
@@ -106,9 +106,11 @@ class LocalJobManagerInterface(object):
     def __app_args(self):
         ## Arguments that would be specified from LwrApp if running
         ## in web server.
-        return {'manager': self.job_manager,
-                 'file_cache': self.file_cache,
-                 'ip': None}
+        return {
+            'manager': self.job_manager,
+            'file_cache': self.file_cache,
+            'ip': None
+        }
 
     def execute(self, command, args={}, data=None, input_path=None, output_path=None):
         from lwr import routes

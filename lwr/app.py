@@ -19,6 +19,10 @@ DEFAULT_STAGING_DIRECTORY = "lwr_staging"
 DEFAULT_PERSISTENCE_DIRECTORY = "persisted_data"
 
 
+NOT_WHITELIST_WARNING = "Starting the LWR without a toolbox to white-list." + \
+                        "Ensure this application is protected by firewall or a configured private token."
+
+
 def app_factory(global_conf, **local_conf):
     """
     Returns the LWR WSGI application.
@@ -34,7 +38,7 @@ class LwrApp(RoutingApp):
     """
 
     def __init__(self, **conf):
-        if conf == None:
+        if conf is None:
             conf = {}
         RoutingApp.__init__(self)
         self.__setup_staging_directory(conf.get("staging_directory", DEFAULT_STAGING_DIRECTORY))
@@ -66,7 +70,7 @@ class LwrApp(RoutingApp):
         if tool_config_files:
             toolbox = ToolBox(tool_config_files)
         else:
-            log.info("Starting the LWR without a toolbox to white-list tools with, ensure this application is protected by firewall or a configured private token.")
+            log.info(NOT_WHITELIST_WARNING)
         self.toolbox = toolbox
         self.authorizer = get_authorizer(toolbox)
 
