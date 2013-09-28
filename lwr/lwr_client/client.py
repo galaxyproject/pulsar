@@ -139,17 +139,27 @@ class Client(object):
                 raise OutputNotFoundException(path)
             return
 
+        output_path = self.__output_path(path, name, working_directory, output_type)
+        self.__populate_output_path(name, output_path, output_type, action)
+
+    def __populate_output_path(self, name, output_path, output_type, action):
+        if action == 'transfer':
+            self.__raw_download_output(name, self.job_id, output_type, output_path)
+        elif action == 'copy':
+            lwr_path = self._output_path(name, self.job_id, output_type)['path']
+            self._copy(lwr_path, output_path)
+
+    def __output_path(self, path, name, working_directory, output_type):
+        """
+        Preconditions: output_type is not 'none'.
+        """
         if output_type == "direct":
             output_path = path
         elif output_type == "task":
             output_path = os.path.join(working_directory, name)
         else:
             raise Exception("Unknown output_type returned from LWR server %s" % output_type)
-        if action == 'transfer':
-            self.__raw_download_output(name, self.job_id, output_type, output_path)
-        elif action == 'copy':
-            lwr_path = self._output_path(name, self.job_id, output_type)['path']
-            self._copy(lwr_path, output_path)
+        return output_path
 
     def fetch_work_dir_output(self, source, working_directory, output_path, action='transfer'):
         """
