@@ -6,6 +6,23 @@ import traceback
 
 from lwr.lwr_client import submit_job, finish_job, ClientManager
 
+TEST_SCRIPT = """
+import sys
+output = open(sys.argv[3], 'w')
+input_input = open(sys.argv[2], 'r')
+config_input = open(sys.argv[1], 'r')
+try:
+    assert input_input.read() == "Hello world input!!@!"
+    contents = config_input.read(1024)
+    output.write(contents)
+    open("workdir_output", "w").write("WORK DIR OUTPUT")
+finally:
+    output.close()
+    config_input.close()
+"""
+
+EXPECTED_OUTPUT = "hello world output"
+
 
 class MockTool(object):
 
@@ -20,38 +37,17 @@ def run(options):
         temp_directory = tempfile.mkdtemp()
         temp_work_dir = os.path.join(temp_directory, "w")
         temp_tool_dir = os.path.join(temp_directory, "t")
-        for dir in [temp_tool_dir, temp_work_dir]:
-            os.makedirs(dir)
+
+        __makedirs([temp_tool_dir, temp_work_dir])
 
         temp_input_path = os.path.join(temp_directory, "input.txt")
         temp_config_path = os.path.join(temp_work_dir, "config.txt")
         temp_tool_path = os.path.join(temp_directory, "t", "script.py")
         temp_output_path = os.path.join(temp_directory, "output")
 
-        temp_input_file = open(temp_input_path, "w")
-        temp_config_file = open(temp_config_path, "w")
-        temp_tool_file = open(temp_tool_path, "w")
-        try:
-            temp_input_file.write("Hello world input!!@!")
-            temp_config_file.write("hello world output")
-            temp_tool_file.write("""
-import sys
-output = open(sys.argv[3], 'w')
-input_input = open(sys.argv[2], 'r')
-config_input = open(sys.argv[1], 'r')
-try:
-    assert input_input.read() == "Hello world input!!@!"
-    contents = config_input.read(1024)
-    output.write(contents)
-    open("workdir_output", "w").write("WORK DIR OUTPUT")
-finally:
-    output.close()
-    config_input.close()
-""")
-        finally:
-            temp_input_file.close()
-            temp_tool_file.close()
-            temp_config_file.close()
+        __write_to_file(temp_input_path, "Hello world input!!@!")
+        __write_to_file(temp_config_path, EXPECTED_OUTPUT)
+        __write_to_file(temp_tool_path, TEST_SCRIPT)
 
         empty_input = "/foo/bar/x"
         command_line = 'python %s "%s" "%s" "%s" "%s"' % (temp_tool_path, temp_config_path, temp_input_path, temp_output_path, empty_input)
@@ -60,8 +56,7 @@ finally:
         output_files = [temp_output_path]
         client = __client(options)
         submit_job(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
-        response = client.wait()
-
+        client.wait()
         finish_args = dict(client=client,
                            working_directory=temp_work_dir,
                            job_completed_normally=True,
@@ -71,31 +66,41 @@ finally:
         failed = finish_job(**finish_args)
         if failed:
             raise Exception("Failed to finish job correctly")
-        #client.download_output(temp_output_path, temp_directory)
-        output_file = open(temp_output_path, 'r')
-        try:
-            output_contents = output_file.read()
-            assert output_contents == "hello world output", "Invalid output_contents: %s" % output_contents
-        finally:
-            output_file.close()
-        if getattr(options, 'test_errors', False):
-            try:
-                client.fetch_output(temp_output_path + "x", temp_directory)
-            except BaseException as e:
-                print response
-                if not options.suppress_output:
-                    traceback.print_exc(e)
-        #if os.path.exists("workdir_output"):
-        #    os.remove("workdir_output")
-        #client.download_work_dir_output("workdir_output")
-        #assert os.path.exists("workdir_output")
+        __check_output(temp_output_path)
+
+        __exercise_errors(options, client, temp_output_path, temp_directory)
     except BaseException as e:
         if not options.suppress_output:
             traceback.print_exc(e)
         raise e
     finally:
         shutil.rmtree(temp_directory)
-        # client.clean()
+
+
+def __check_output(temp_output_path):
+    """
+    Verified the correct outputs were written (i.e. job ran properly).
+    """
+    output_file = open(temp_output_path, 'r')
+    try:
+        output_contents = output_file.read()
+        assert output_contents == EXPECTED_OUTPUT, "Invalid output_contents: %s" % output_contents
+    finally:
+        output_file.close()
+
+
+def __exercise_errors(options, client, temp_output_path, temp_directory):
+    """
+    Exercise error conditions.
+
+    TODO: Improve. Something should be checked here.
+    """
+    if getattr(options, 'test_errors', False):
+        try:
+            client.fetch_output(temp_output_path + "x", temp_directory)
+        except BaseException as e:
+            if not options.suppress_output:
+                traceback.print_exc(e)
 
 
 def __client(options):
@@ -118,6 +123,16 @@ def __client_manager(options):
     if getattr(options, 'transport', None):
         manager_args['transport_type'] = options.transport
     return ClientManager(**manager_args)
+
+
+def __write_to_file(path, contents):
+    with open(path, "w") as file:
+        file.write(contents)
+
+
+def __makedirs(directories):
+    for directory in directories:
+        os.makedirs(directory)
 
 
 def main():
