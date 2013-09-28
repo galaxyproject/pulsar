@@ -250,6 +250,8 @@ Testing
 
 .. image:: https://travis-ci.org/jmchilton/lwr.png?branch=master
     :target: https://travis-ci.org/jmchilton/lwr
+.. image:: https://coveralls.io/repos/jmchilton/lwr/badge.png?branch=master 
+    :target: https://coveralls.io/r/jmchilton/lwr?branch=master
 
 A simple sanity test can be run against a running LWR server by
 executing the following command (replace the URL command with the URL
