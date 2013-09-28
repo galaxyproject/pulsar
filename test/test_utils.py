@@ -51,10 +51,17 @@ class TestManager(object):
 
 @contextmanager
 def test_job_directory():
-    temp_directory = mkdtemp()
-    job_directory = JobDirectory(temp_directory, '1')
-    yield job_directory
-    rmtree(temp_directory)
+    with temp_directory() as directory:
+        yield JobDirectory(directory, '1')
+
+
+@contextmanager
+def temp_directory():
+    directory = mkdtemp()
+    try:
+        yield directory
+    finally:
+        rmtree(directory)
 
 
 @contextmanager

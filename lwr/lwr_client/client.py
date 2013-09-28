@@ -132,21 +132,21 @@ class Client(object):
         """
         name = os.path.basename(path)
         output_type = self._get_output_type(name)
+
+        if output_type == "none":
+            # Just make sure the file was created.
+            if not os.path.exists(path):
+                raise OutputNotFoundException(path)
+            return
+
         if output_type == "direct":
             output_path = path
         elif output_type == "task":
             output_path = os.path.join(working_directory, name)
-        elif output_type == "none":
-            if action == "transfer":
-                raise OutputNotFoundException(path)
         else:
             raise Exception("Unknown output_type returned from LWR server %s" % output_type)
         if action == 'transfer':
             self.__raw_download_output(name, self.job_id, output_type, output_path)
-        elif output_type == 'none':
-            # Just make sure the file was created.
-            if not os.path.exists(path):
-                raise OutputNotFoundException(path)
         elif action == 'copy':
             lwr_path = self._output_path(name, self.job_id, output_type)['path']
             self._copy(lwr_path, output_path)

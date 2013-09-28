@@ -94,38 +94,56 @@ class Controller(object):
             if func_arg not in args and func_arg in arg_values:
                 args[func_arg] = arg_values[func_arg]
 
+    def __handle_access(self, req, environ, start_response):
+        access_response = None
+        if hasattr(self, '_check_access'):
+            access_response = self._check_access(req, environ, start_response)
+        return access_response
+
+    def __build_args(self, func, args, req, environ):
+        args = build_func_args(func, args, req.GET, self._app_args(args, req))
+        func_args = inspect.getargspec(func).args
+
+        for func_arg in func_args:
+            if func_arg == "ip":
+                args["ip"] = self.__get_client_address(environ)
+
+        if 'body' in func_args:
+            args['body'] = req.body_file
+
+        return args
+
+    def __execute_request(self, func, args, req, environ):
+        args = self.__build_args(func, args, req, environ)
+        try:
+            result = func(**args)
+        except exc.HTTPException as e:
+            result = e
+        return result
+
+    def __build_response(self, result):
+        if self.response_type == 'file':
+            resp = Response()
+            path = result
+            if exists(path):
+                resp.app_iter = FileIterator(path)
+            else:
+                raise exc.HTTPNotFound("No file found with path %s." % path)
+        else:
+            resp = Response(body=self.body(result))
+        return resp
+
     def __call__(self, func):
         def controller_replacement(environ, start_response, **args):
             req = Request(environ)
 
-            if hasattr(self, '_check_access'):
-                access_response = self._check_access(req, environ, start_response)
-                if access_response:
-                    return access_response
+            access_response = self.__handle_access(req, environ, start_response)
+            if access_response:
+                return access_response
 
-            args = build_func_args(func, args, req.GET, self._app_args(args, req))
-            func_args = inspect.getargspec(func).args
+            result = self.__execute_request(func, args, req, environ)
+            resp = self.__build_response(result)
 
-            for func_arg in func_args:
-                if func_arg == "ip":
-                    args["ip"] = self.__get_client_address(environ)
-
-            if 'body' in func_args:
-                args['body'] = req.body_file
-
-            try:
-                result = func(**args)
-            except exc.HTTPException as e:
-                result = e
-            if self.response_type == 'file':
-                resp = Response()
-                path = result
-                if exists(path):
-                    resp.app_iter = FileIterator(path)
-                else:
-                    raise exc.HTTPNotFound("No file found with path %s." % path)
-            else:
-                resp = Response(body=self.body(result))
             return resp(environ, start_response)
         controller_replacement.func = func
         controller_replacement.response_type = self.response_type

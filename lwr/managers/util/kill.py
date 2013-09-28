@@ -31,27 +31,35 @@ def _psutil_kill_pid(pid):
 
 
 def _stock_kill_pid(pid):
-    def __check_pid():
+    is_windows = system() == 'Windows'
+
+    if is_windows:
+        __kill_windows(pid)
+    else:
+        __kill_posix(pid)
+
+
+def __kill_windows(pid):
+    try:
+        Popen("taskkill /F /T /PID %i" % pid, shell=True)
+    except Exception:
+        pass
+
+
+def __kill_posix(pid):
+    def __check_pid(pid):
         try:
             os.kill(pid, 0)
             return True
         except OSError:
             return False
 
-    is_windows = system() == 'Windows'
-
-    if is_windows:
-        try:
-            Popen("taskkill /F /T /PID %i" % pid, shell=True)
-        except Exception:
-            pass
-    else:
-        if __check_pid():
-            for sig in [15, 9]:
-                try:
-                    os.killpg(pid, sig)
-                except OSError:
-                    return
-                sleep(1)
-                if not __check_pid():
-                    return
+    if __check_pid():
+        for sig in [15, 9]:
+            try:
+                os.killpg(pid, sig)
+            except OSError:
+                return
+            sleep(1)
+            if not __check_pid():
+                return
