@@ -2,7 +2,7 @@ from string import Template
 
 DEFAULT_JOB_FILE_TEMPLATE = Template("""#!/bin/sh
 $headers
-GALAXY_SLOTS="$slots_expression"
+$slots_statement
 export GALAXY_SLOTS
 GALAXY_LIB="$galaxy_lib"
 if [ "$GALAXY_LIB" != "None" ]; then
@@ -19,12 +19,33 @@ $command
 echo $? > $exit_code_path
 """)
 
+# SGE: http://www.blog.kubiak.co.uk/post/53
+# SLURM: https://computing.llnl.gov/linux/slurm/sbatch.html#lbAF
+SLOTS_STATEMENT_CLUSTER_DEFAULT = """
+if [ -n "$SLURM_JOB_NUM_NODES" ]; then
+    GALAXY_SLOTS="$SLURM_JOB_NUM_NODES"
+    GALAXY_SLOTS_CONFIGURED="1"
+elif [ -n "$NSLOTS" ]; then
+    GALAXY_SLOTS="$NSLOTS"
+    GALAXY_SLOTS_CONFIGURED="1"
+elif [ -f "$PBS_NODEFILE" ]; then
+    GALAXY_SLOTS=`wc -l < $PBS_NODEFILE`
+    GALAXY_SLOTS_CONFIGURED="1"
+else
+    GALAXY_SLOTS="1"
+fi
+"""
+
+SLOTS_STATEMENT_SINGLE = """
+GALAXY_SLOTS="1"
+"""
+
 REQUIRED_TEMPLATE_PARAMS = ['working_directory', 'command', 'exit_code_path']
 OPTIONAL_TEMPLATE_PARAMS = {
     'galaxy_lib': None,
     'headers': '',
     'env_setup_commands': '',
-    'slots_expression': '1',
+    'slots_statement': SLOTS_STATEMENT_CLUSTER_DEFAULT,
 }
 
 
@@ -48,7 +69,7 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     >>> script = job_script(working_directory='wd', command='uptime', exit_code_path='ec', headers='#PBS -test')
     >>> script.startswith('#!/bin/sh\\n#PBS -test\\n')
     True
-    >>> script = job_script(working_directory='wd', command='uptime', exit_code_path='ec', slots_expression='$SLURM_JOB_NUM_NODES')
+    >>> script = job_script(working_directory='wd', command='uptime', exit_code_path='ec', slots_statement='GALAXY_SLOTS="$SLURM_JOB_NUM_NODES"')
     >>> script.find('GALAXY_SLOTS="$SLURM_JOB_NUM_NODES"\\nexport GALAXY_SLOTS\\n') > 0
     True
     """

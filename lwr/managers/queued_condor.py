@@ -2,13 +2,11 @@ from os.path import exists
 from os import stat
 
 from .util.condor import build_submit_description
-from .util.condor import condor_submit, condor_stop, summarize_condor_log
+from .util.condor import condor_submit, condor_stop, summarize_condor_log, submission_params
 from .base.external import ExternalBaseManager
 
 from logging import getLogger
 log = getLogger(__name__)
-
-SUBMIT_PARAM_PREFIX = "submit_"
 
 
 ## TODO:
@@ -23,13 +21,7 @@ class CondorQueueManager(ExternalBaseManager):
 
     def __init__(self, name, app, **kwds):
         super(CondorQueueManager, self).__init__(name, app, **kwds)
-        submission_params = {}
-        for key, value in kwds.iteritems():
-            key = key.lower()
-            if key.startswith(SUBMIT_PARAM_PREFIX):
-                condor_key = key[len(SUBMIT_PARAM_PREFIX):]
-                submission_params[condor_key] = value
-        self.submission_params = submission_params
+        self.submission_params = submission_params(**kwds)
         self.user_log_sizes = {}
         self.state_cache = {}
 

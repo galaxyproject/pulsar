@@ -15,6 +15,18 @@ PROBLEM_RUNNING_CONDOR_SUBMIT = \
 PROBLEM_PARSING_EXTERNAL_ID = \
     "Failed to find job id from condor_submit"
 
+SUBMIT_PARAM_PREFIX = "submit_"
+
+
+def submission_params(**kwds):
+    submission_params = {}
+    for key, value in kwds.iteritems():
+        key = key.lower()
+        if key.startswith(SUBMIT_PARAM_PREFIX):
+            condor_key = key[len(SUBMIT_PARAM_PREFIX):]
+            submission_params[condor_key] = value
+    return submission_params
+
 
 def build_submit_description(executable, output, error, user_log, query_params):
     """
