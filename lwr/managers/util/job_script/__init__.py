@@ -1,40 +1,12 @@
 from string import Template
+from pkg_resources import resource_string
 
-DEFAULT_JOB_FILE_TEMPLATE = Template("""#!/bin/sh
-$headers
-$slots_statement
-export GALAXY_SLOTS
-GALAXY_LIB="$galaxy_lib"
-if [ "$GALAXY_LIB" != "None" ]; then
-    if [ -n "$PYTHONPATH" ]; then
-        PYTHONPATH="$GALAXY_LIB:$PYTHONPATH"
-    else
-        PYTHONPATH="$GALAXY_LIB"
-    fi
-    export PYTHONPATH
-fi
-$env_setup_commands
-cd $working_directory
-$command
-echo $? > $exit_code_path
-""")
+DEFAULT_JOB_FILE_TEMPLATE = Template(
+    resource_string(__name__, 'DEFAULT_JOB_FILE_TEMPLATE.sh')
+)
 
-# SGE: http://www.blog.kubiak.co.uk/post/53
-# SLURM: https://computing.llnl.gov/linux/slurm/sbatch.html#lbAF
-SLOTS_STATEMENT_CLUSTER_DEFAULT = """
-if [ -n "$SLURM_JOB_NUM_NODES" ]; then
-    GALAXY_SLOTS="$SLURM_JOB_NUM_NODES"
-    GALAXY_SLOTS_CONFIGURED="1"
-elif [ -n "$NSLOTS" ]; then
-    GALAXY_SLOTS="$NSLOTS"
-    GALAXY_SLOTS_CONFIGURED="1"
-elif [ -f "$PBS_NODEFILE" ]; then
-    GALAXY_SLOTS=`wc -l < $PBS_NODEFILE`
-    GALAXY_SLOTS_CONFIGURED="1"
-else
-    GALAXY_SLOTS="1"
-fi
-"""
+SLOTS_STATEMENT_CLUSTER_DEFAULT = \
+    resource_string(__name__, 'CLUSTER_SLOTS_STATEMENT.sh')
 
 SLOTS_STATEMENT_SINGLE = """
 GALAXY_SLOTS="1"
