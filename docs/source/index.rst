@@ -8,6 +8,8 @@
 
 .. include:: public_server.rst
 
+.. include:: job_managers.rst
+
 -----------
 Server Code
 -----------
