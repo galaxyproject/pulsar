@@ -7,8 +7,10 @@ except ImportError:
 from lwr.scripts.util.args import ArgumentParser
 
 DESCRIPTION = "Change ownership of a job working directory."
-# Switch this to true to tighten up security somewhat in production mode.
-PRODUCTION = False
+# Switch this to true to tighten up security somewhat in production mode,
+# better increase of security can be had by simply restricting sudoers rule
+# to only allow chown -R of directories of form ${staging_directory}/${job_id}
+FORCE_PRODUCTION = False
 
 
 def main():
@@ -24,9 +26,9 @@ def main():
         config = ConfigParser()
         config.read(['server.ini'])
         staging_directory = abspath(config.get('app:main', 'staging_directory'))
-        working_directory = abspath(join(staging_directory, job_id))
-        assert working_directory.startswith(staging_directory)
-    elif PRODUCTION:
+        job_directory = abspath(join(staging_directory, job_id))
+        assert job_directory.startswith(staging_directory)
+    elif FORCE_PRODUCTION:
         raise Exception("In production mode, must specify a job_id instead of a working directory.")
     else:
         job_directory = abspath(args.job_directory)

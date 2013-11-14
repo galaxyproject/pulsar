@@ -1,6 +1,6 @@
-------------------------------
-Setting Up a Public LWR Server
-------------------------------
+-------------------------------
+Configuring a Public LWR Server
+-------------------------------
 
 An LWR server can be pointed at a Galaxy toolbox XML file and opened
 to the world. By default, an LWR is allowed to run anything Galaxy (or

@@ -107,9 +107,9 @@ packages via ``easy_install``::
 DRMAA
 -----
 
-If your LWR instance is going to communicate with a cluster via DRMAA, a DRMAA
-library will need to be installed and the python dependency drmaa will need to
-be installed as well.::
+If your LWR instance is going to communicate with a cluster via DRMAA, in
+addition to the above dependencies, a DRMAA library will need to be installed
+and the python dependency drmaa will need to be installed as well.::
 
     . .venv/bin/activate; pip install drmaa
 
@@ -213,20 +213,14 @@ token.::
 Job Managers (Queues)
 ---------------------
 
-By default the LWR will maintain its own queue of jobs. It can be configured
-to maintain multiple such queues with different properties or to delegate to
-external job queues (via DRMAA, qsub/qstat CLI commands, or Condor).
+By default the LWR will maintain its own queue of jobs. While ideal for
+Windows usage for instance, if the LWR is going to be used on more
+sophisticate clusters, it can be configured to maintain multiple such queues
+with different properties or to delegate to external job queues (via DRMAA,
+qsub/qstat CLI commands, or Condor).
 
-To chnage the default configuration, rename the file
-``job_managers.ini.sample`` distributed with the LWR to ``job_managers.ini``
-and modify it to reflect your desired configuration, and uncomment the line
-``#job_managers_config = job_managers.ini`` in ``server.ini``.
-
-Likely the cleanest way to interface with an external queueing system is going
-to be DRMAA. In this case, one should likely copy ``local_env.sh.sample`` to
-``local_env.sh`` and update it to set ``DRMAA_LIBRARY_PATH`` to point to the
-correct ``libdrmaa.so`` file. Also, the Python ``drmaa`` module must be
-installed (see note above).
+For more information on configured external job managers, see 
+`the job managers documentation <https://lwr.readthedocs.org/#job-managers>`_.
 
 Galaxy Tools
 ------------

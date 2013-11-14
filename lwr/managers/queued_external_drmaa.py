@@ -4,6 +4,9 @@ from getpass import getuser
 from .base.base_drmaa import BaseDrmaaManager
 from .util.sudo import sudo_popen
 
+from logging import getLogger
+log = getLogger(__name__)
+
 DEFAULT_CHOWN_WORKING_DIRECTORY_SCRIPT = "scripts/chown_working_directory.bash"
 DEFAULT_DRMAA_KILL_SCRIPT = "scripts/drmaa_kill.bash"
 DEFAULT_DRMAA_LAUNCH_SCRIPT = "scripts/drmaa_launch.bash"
@@ -29,6 +32,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         attributes = self._build_template_attributes(job_id, command_line)
         job_attributes_file = self._write_job_file(job_id, 'jt.json', dumps(attributes))
         user = submit_params.get('user', None)
+        log.info("Submit as user %s" % user)
         if not user:
             raise Exception("Must specify user submit parameter with this manager.")
         self.__change_ownership(job_id, user)
