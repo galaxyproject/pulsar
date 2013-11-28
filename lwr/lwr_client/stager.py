@@ -304,7 +304,7 @@ def finish_job(client, cleanup_job, job_completed_normally, working_directory, w
             try:
                 action = action_mapper.action(output_file, 'output')
                 client.fetch_work_dir_output(source_file, working_directory, output_file, action[0])
-            except Exception, e:
+            except Exception as e:
                 download_failure_exceptions.append(e)
             # Remove from full output_files list so don't try to download directly.
             output_files.remove(output_file)
@@ -312,7 +312,7 @@ def finish_job(client, cleanup_job, job_completed_normally, working_directory, w
             try:
                 action = action_mapper.action(output_file, 'output')
                 client.fetch_output(output_file, working_directory=working_directory, action=action[0])
-            except Exception, e:
+            except Exception as e:
                 download_failure_exceptions.append(e)
     return __clean(download_failure_exceptions, cleanup_job, client)
 

@@ -5,8 +5,14 @@ except ImportError:
     from queue import Queue
 from threading import Thread
 from os import getenv
-from urllib import urlencode
-from StringIO import StringIO
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 from .client import Client, InputCachingClient
 from .transport import get_transport

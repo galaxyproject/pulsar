@@ -11,6 +11,7 @@ from os.path import exists
 import re
 
 from simplejson import dumps
+from six import Iterator
 
 
 class RoutingApp(object):
@@ -162,7 +163,7 @@ class Controller(object):
         pass
 
 
-class FileIterator:
+class FileIterator(Iterator):
 
     def __init__(self, path):
         self.input = open(path, 'rb')
@@ -170,7 +171,7 @@ class FileIterator:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         buffer = self.input.read(1024)
         if(buffer == ""):
             raise StopIteration
