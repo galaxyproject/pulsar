@@ -1,4 +1,7 @@
-from cStringIO import StringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 try:
     from pycurl import Curl
 except:
