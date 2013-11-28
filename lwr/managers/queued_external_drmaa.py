@@ -70,7 +70,6 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         self.__sudo(*cmds)
 
     def __sudo(self, *cmds, **kwargs):
-        print cmds
         p = sudo_popen(*cmds, **kwargs)
         stdout, stderr = p.communicate()
         assert p.returncode == 0, "%s, %s" % (stdout, stderr)
