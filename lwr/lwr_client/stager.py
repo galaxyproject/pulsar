@@ -1,6 +1,7 @@
 from os.path import abspath, basename, join, exists
 from os import listdir, sep
 from re import findall
+from io import open
 
 from .action_mapper import FileActionMapper
 
@@ -24,21 +25,23 @@ class JobInputs(object):
     >>> import tempfile
     >>> tf = tempfile.NamedTemporaryFile()
     >>> def setup_inputs(tf):
-    ...     open(tf.name, "w").write("world /path/to/input the rest")
-    ...     inputs = JobInputs("hello /path/to/input", [tf.name])
+    ...     open(tf.name, "w").write(u"world /path/to/input the rest")
+    ...     inputs = JobInputs(u"hello /path/to/input", [tf.name])
     ...     return inputs
     >>> inputs = setup_inputs(tf)
-    >>> inputs.rewrite_paths("/path/to/input", 'C:\\input')
-    >>> inputs.rewritten_command_line
-    'hello C:\\\\input'
-    >>> inputs.rewritten_config_files[tf.name]
-    'world C:\\\\input the rest'
+    >>> inputs.rewrite_paths(u"/path/to/input", u'C:\\input')
+    >>> inputs.rewritten_command_line == u'hello C:\\\\input'
+    True
+    >>> inputs.rewritten_config_files[tf.name] == u'world C:\\\\input the rest'
+    True
     >>> tf.close()
     >>> tf = tempfile.NamedTemporaryFile()
     >>> inputs = setup_inputs(tf)
-    >>> inputs.find_referenced_subfiles('/path/to')
-    ['/path/to/input']
+    >>> inputs.find_referenced_subfiles('/path/to') == [u'/path/to/input']
+    True
     >>> inputs.path_referenced('/path/to')
+    True
+    >>> inputs.path_referenced(u'/path/to') 
     True
     >>> inputs.path_referenced('/path/to/input')
     True
@@ -340,9 +343,9 @@ def submit_job(client, tool, command_line, config_files, input_files, output_fil
 def _read(path):
     """
     Utility method to quickly read small files (config files and tool
-    wrappers) into memory as strings.
+    wrappers) into memory as bytes.
     """
-    input = open(path, "r")
+    input = open(path, "r", encoding="utf-8")
     try:
         return input.read()
     finally:

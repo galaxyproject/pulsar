@@ -1,7 +1,6 @@
 import shelve
 from threading import Lock
 import traceback
-import sys
 
 
 class PersistenceStore(object):
@@ -31,7 +30,7 @@ class PersistenceStore(object):
                 try:
                     return func()
                 except:
-                    traceback.print_exc(file=sys.stdout)
+                    traceback.print_exc()
                     if not suppress_exception:
                         raise
 

@@ -123,6 +123,7 @@ class LocalJobManagerInterface(object):
         }
 
     def execute(self, command, args={}, data=None, input_path=None, output_path=None):
+        # If data set, should be unicode (on Python 2) or str (on Python 3).
         from lwr import routes
         from lwr.framework import build_func_args
         controller = getattr(routes, command)
@@ -139,7 +140,7 @@ class LocalJobManagerInterface(object):
 
     def __build_body(self, data, input_path):
         if data is not None:
-            return BytesIO(data)
+            return BytesIO(data.encode('utf-8'))
         elif input_path is not None:
             return open(input_path, 'rb')
         else:

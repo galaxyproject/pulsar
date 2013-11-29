@@ -146,6 +146,7 @@ class Controller(object):
             resp = self.__build_response(result)
 
             return resp(environ, start_response)
+
         controller_replacement.func = func
         controller_replacement.response_type = self.response_type
         controller_replacement.body = self.body

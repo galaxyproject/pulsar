@@ -3,7 +3,6 @@ try:
     from Queue import Queue
 except ImportError:
     from queue import Queue
-import sys
 import threading
 import traceback
 
@@ -79,7 +78,7 @@ class QueueManager(Manager):
                 self._run(job_id, command_line, async=False)
             except:
                 log.warn("Uncaught exception running job with job_id %s" % job_id)
-                traceback.print_exc(file=sys.stdout)
+                traceback.print_exc()
 
 
 class PersistedJobStore(JobMetadataStore):

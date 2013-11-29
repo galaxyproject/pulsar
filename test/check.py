@@ -49,8 +49,8 @@ def run(options):
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
         __write_to_file(temp_tool_path, TEST_SCRIPT)
 
-        empty_input = "/foo/bar/x"
-        command_line = 'python %s "%s" "%s" "%s" "%s"' % (temp_tool_path, temp_config_path, temp_input_path, temp_output_path, empty_input)
+        empty_input = u"/foo/bar/x"
+        command_line = u'python %s "%s" "%s" "%s" "%s"' % (temp_tool_path, temp_config_path, temp_input_path, temp_output_path, empty_input)
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
         output_files = [temp_output_path]
@@ -69,10 +69,10 @@ def run(options):
         __check_output(temp_output_path)
 
         __exercise_errors(options, client, temp_output_path, temp_directory)
-    except BaseException as e:
+    except BaseException:
         if not options.suppress_output:
-            traceback.print_exc(e)
-        raise e
+            traceback.print_exc()
+        raise
     finally:
         shutil.rmtree(temp_directory)
 
@@ -81,7 +81,7 @@ def __check_output(temp_output_path):
     """
     Verified the correct outputs were written (i.e. job ran properly).
     """
-    output_file = open(temp_output_path, 'r')
+    output_file = open(temp_output_path, 'rb')
     try:
         output_contents = output_file.read()
         assert output_contents == EXPECTED_OUTPUT, "Invalid output_contents: %s" % output_contents
@@ -98,9 +98,9 @@ def __exercise_errors(options, client, temp_output_path, temp_directory):
     if getattr(options, 'test_errors', False):
         try:
             client.fetch_output(temp_output_path + "x", temp_directory)
-        except BaseException as e:
+        except BaseException:
             if not options.suppress_output:
-                traceback.print_exc(e)
+                traceback.print_exc()
 
 
 def __client(options):
