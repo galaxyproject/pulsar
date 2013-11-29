@@ -91,13 +91,13 @@ class PersistedJobStore(JobMetadataStore):
     >>> os.remove(tf.name)
     >>> store = PersistedJobStore(tf.name)
     >>> store.enqueue("1234", "/bin/ls")
-    >>> jobs = store.persisted_jobs()
+    >>> jobs = list(store.persisted_jobs())
     >>> jobs[0][0]
     '1234'
     >>> jobs[0][1]
     '/bin/ls'
     >>> store = PersistedJobStore(tf.name)
-    >>> jobs = store.persisted_jobs()
+    >>> jobs = list(store.persisted_jobs())
     >>> jobs[0][0]
     '1234'
     >>> jobs[0][1]

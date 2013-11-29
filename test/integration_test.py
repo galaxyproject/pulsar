@@ -1,4 +1,5 @@
 from os.path import join
+from six import next, itervalues
 from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessModule
 
 from lwr.util import Bunch
@@ -15,7 +16,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
         app_conf = app_conf.copy()
         job_conf_props = job_conf_props.copy()
         if "suppress_output" not in kwds:
-            kwds["suppress_output"] = True
+            kwds["suppress_output"] = False
         if job_conf_props:
             job_conf = join(self.temp_directory, "job_managers.ini")
             config = ConfigParser()
@@ -31,7 +32,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
         if kwds.get("direct_interface", None):
             from .test_utils import test_app
             with test_app({}, app_conf, {}) as app:
-                options = Bunch(job_manager=app.app.managers.values()[0], file_cache=app.app.file_cache, **kwds)
+                options = Bunch(job_manager=next(itervalues(app.app.managers)), file_cache=app.app.file_cache, **kwds)
                 run(options)
         else:
             from .test_utils import test_server

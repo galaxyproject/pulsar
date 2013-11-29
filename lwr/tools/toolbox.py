@@ -1,7 +1,8 @@
-
 from lwr.tools.validator import ExpressionValidator
 from xml.etree import ElementTree
 from os.path import join, abspath, dirname
+
+from io import open
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -64,7 +65,7 @@ class InputsValidator(object):
         config_validator = self.config_validators.get(name, None)
         valid = True
         if config_validator:
-            contents = open(path, "r").read()
+            contents = open(path, "r", encoding="UTF-8").read()
             valid = config_validator.validate(job_directory, contents)
         return valid
 

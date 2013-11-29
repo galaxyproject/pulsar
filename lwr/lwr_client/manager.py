@@ -10,9 +10,9 @@ try:
 except ImportError:
     from urllib.parse import urlencode
 try:
-    from StringIO import StringIO
+    from StringIO import StringIO as BytesIO
 except ImportError:
-    from io import StringIO
+    from io import BytesIO
 
 from .client import Client, InputCachingClient
 from .transport import get_transport
@@ -61,7 +61,11 @@ class ClientManager(object):
         return self.client_class(destination_params, job_id, job_manager_interface, **self.extra_client_kwds)
 
     def __parse_destination_params(self, destination_params):
-        if isinstance(destination_params, str) or isinstance(destination_params, unicode):
+        try:
+            unicode_type = unicode
+        except NameError:
+            unicode_type = str
+        if isinstance(destination_params, str) or isinstance(destination_params, unicode_type):
             destination_params = url_to_destination_params(destination_params)
         return destination_params
 
@@ -135,9 +139,9 @@ class LocalJobManagerInterface(object):
 
     def __build_body(self, data, input_path):
         if data is not None:
-            return StringIO(data)
+            return BytesIO(data)
         elif input_path is not None:
-            return open(input_path, 'r')
+            return open(input_path, 'rb')
         else:
             return None
 

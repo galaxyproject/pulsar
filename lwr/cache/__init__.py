@@ -57,7 +57,8 @@ class Cache(PersistenceStore):
         return self.destination(token)
 
     def __token(self, ip, path):
-        return sha256("IP:%s:%s" % (ip, path)).hexdigest()
+        for_hash = "IP:%s:%s" % (ip, path)
+        return sha256(for_hash.encode('UTF-8')).hexdigest()
 
 
 __all__ = [Cache]

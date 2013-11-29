@@ -175,7 +175,7 @@ def _handle_upload_to_directory(file_cache, directory, remote_path, body, cache_
     source = body
     if cache_token:
         cached_file = file_cache.destination(cache_token)
-        source = open(cached_file, 'r')
+        source = open(cached_file, 'rb')
         log.info("Copying cached file %s to %s" % (cached_file, path))
     copy_to_path(source, path)
     return {"path": path}

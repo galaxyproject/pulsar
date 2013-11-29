@@ -12,7 +12,7 @@ class CacheTest(TestCase):
     def setUp(self):
         self.temp_dir = mkdtemp()
         self.temp_file = NamedTemporaryFile(delete=False)
-        self.temp_file.write("Hello World!")
+        self.temp_file.write(b"Hello World!")
         self.temp_file.close()
         self.cache = Cache(self.temp_dir)
 

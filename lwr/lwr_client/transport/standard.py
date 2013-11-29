@@ -33,7 +33,7 @@ class Urllib2Transport(object):
             with open(output_path, 'wb') as output:
                 while True:
                     buffer = response.read(1024)
-                    if buffer == "":
+                    if not buffer:
                         break
                     output.write(buffer)
             return response

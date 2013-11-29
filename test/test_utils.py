@@ -100,8 +100,12 @@ class TestAuthorization(object):
 @contextmanager
 def test_server(global_conf={}, app_conf={}, test_conf={}):
     with test_app(global_conf, app_conf, test_conf) as app:
-        from paste.exceptions.errormiddleware import ErrorMiddleware
-        error_app = ErrorMiddleware(app.app, debug=True, error_log="errors")
+        try:
+            from paste.exceptions.errormiddleware import ErrorMiddleware
+            error_app = ErrorMiddleware(app.app, debug=True, error_log="errors")
+        except ImportError:
+            # paste.exceptions not available for Python 3. 
+            error_app = app
         server = StopableWSGIServer.create(error_app)
         try:
             server.wait()

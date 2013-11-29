@@ -1,6 +1,7 @@
 import os
 import platform
 import posixpath
+import six
 from shutil import move, rmtree
 from subprocess import Popen
 from collections import deque
@@ -32,7 +33,7 @@ def _copy_and_close(object, output):
     try:
         while True:
             buffer = object.read(BUFFER_SIZE)
-            if buffer == "":
+            if not buffer:
                 break
             output.write(buffer)
     finally:
@@ -59,7 +60,7 @@ def atomicish_move(source, destination, tmp_suffix="_TMP"):
     > temp_dir = mkdtemp()
     > source = join(temp_dir, "the_source")
     > destination = join(temp_dir, "the_dest")
-    > open(source, "w").write("Hello World!")
+    > open(source, "wb").write(b"Hello World!")
     > assert exists(source)
     > assert not exists(destination)
     > atomicish_move(source, destination)
@@ -109,7 +110,7 @@ class JobDirectory(object):
         path = self._job_file(name)
         job_file = None
         try:
-            job_file = open(path, 'r')
+            job_file = open(path, 'rb')
             return job_file.read()
         except:
             if default is not None:
@@ -122,8 +123,10 @@ class JobDirectory(object):
 
     def write_file(self, name, contents):
         path = self._job_file(name)
-        job_file = open(path, 'w')
+        job_file = open(path, 'wb')
         try:
+            if isinstance(contents, six.text_type):
+                contents = contents.encode("UTF-8")
             job_file.write(contents)
         finally:
             job_file.close()
@@ -141,7 +144,7 @@ class JobDirectory(object):
     def contains_file(self, name):
         return os.path.exists(self._job_file(name))
 
-    def open_file(self, name, mode='w'):
+    def open_file(self, name, mode='wb'):
         return open(self._job_file(name), mode)
 
     def exists(self):

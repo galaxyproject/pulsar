@@ -6,7 +6,7 @@ import traceback
 
 from lwr.lwr_client import submit_job, finish_job, ClientManager
 
-TEST_SCRIPT = """
+TEST_SCRIPT = b"""
 import sys
 output = open(sys.argv[3], 'w')
 input_input = open(sys.argv[2], 'r')
@@ -21,7 +21,7 @@ finally:
     config_input.close()
 """
 
-EXPECTED_OUTPUT = "hello world output"
+EXPECTED_OUTPUT = b"hello world output"
 
 
 class MockTool(object):
@@ -45,7 +45,7 @@ def run(options):
         temp_tool_path = os.path.join(temp_directory, "t", "script.py")
         temp_output_path = os.path.join(temp_directory, "output")
 
-        __write_to_file(temp_input_path, "Hello world input!!@!")
+        __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
         __write_to_file(temp_tool_path, TEST_SCRIPT)
 
@@ -126,7 +126,7 @@ def __client_manager(options):
 
 
 def __write_to_file(path, contents):
-    with open(path, "w") as file:
+    with open(path, "wb") as file:
         file.write(contents)
 
 
