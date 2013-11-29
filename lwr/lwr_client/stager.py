@@ -41,7 +41,7 @@ class JobInputs(object):
     True
     >>> inputs.path_referenced('/path/to')
     True
-    >>> inputs.path_referenced(u'/path/to') 
+    >>> inputs.path_referenced(u'/path/to')
     True
     >>> inputs.path_referenced('/path/to/input')
     True
