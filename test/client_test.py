@@ -180,7 +180,7 @@ def test_download_output():
     client.expect_open(request_checker, b"test output contents")
     client.fetch_output(temp_file.name, ".")
 
-    with open(temp_file.name, "r") as f: 
+    with open(temp_file.name, "r") as f:
         contents = f.read(1024)
         assert contents == "test output contents", "Unxpected contents %s" % contents
 
