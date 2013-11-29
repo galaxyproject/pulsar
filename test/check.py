@@ -58,7 +58,15 @@ def run(options):
         __write_to_file(temp_tool_path, TEST_SCRIPT)
 
         empty_input = u"/foo/bar/x"
-        command_line_params = (temp_tool_path, temp_config_path, temp_input_path, temp_output_path, empty_input, temp_output2_path, EXAMPLE_UNICODE_TEXT)
+        command_line_params = (
+            temp_tool_path,
+            temp_config_path,
+            temp_input_path,
+            temp_output_path,
+            empty_input,
+            temp_output2_path,
+            EXAMPLE_UNICODE_TEXT,
+        )
         command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
