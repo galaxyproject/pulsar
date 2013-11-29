@@ -92,7 +92,7 @@ class JobInputs(object):
         self.rewritten_command_line = self.rewritten_command_line.replace(local_path, remote_path)
 
     def __rewrite_config_files(self, local_path, remote_path):
-        for config_file, rewritten_contents in self.rewritten_config_files.iteritems():
+        for config_file, rewritten_contents in self.rewritten_config_files.items():
             self.rewritten_config_files[config_file] = rewritten_contents.replace(local_path, remote_path)
 
     def __items(self):
@@ -140,7 +140,7 @@ class TransferTracker(object):
         For each file that has been transferred and renamed, updated
         command_line and configfiles to reflect that rewrite.
         """
-        for local_path, remote_path in self.file_renames.iteritems():
+        for local_path, remote_path in self.file_renames.items():
             self.job_inputs.rewrite_paths(local_path, remote_path)
 
     def __action(self, path, type):
@@ -283,7 +283,7 @@ class FileStager(object):
         self.transfer_tracker.rewrite_input_paths()
 
     def __upload_rewritten_config_files(self):
-        for config_file, new_config_contents in self.job_inputs.rewritten_config_files.iteritems():
+        for config_file, new_config_contents in self.job_inputs.rewritten_config_files.items():
             self.client.put_file(config_file, input_type='config', contents=new_config_contents)
 
     def get_rewritten_command_line(self):

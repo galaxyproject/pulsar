@@ -21,7 +21,7 @@ class FileActionMapper(object):
     >>> from tempfile import NamedTemporaryFile
     >>> from os import unlink
     >>> f = NamedTemporaryFile(delete=False)
-    >>> f.write(json_string)
+    >>> write_result = f.write(json_string.encode('UTF-8'))
     >>> f.close()
     >>> class MockClient():
     ...     default_file_action = 'none'

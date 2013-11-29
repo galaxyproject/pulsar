@@ -37,8 +37,8 @@ class DrmaaSession(object):
         """
         template = self.session.createJobTemplate()
         try:
-            for key, value in kwds.iteritems():
-                setattr(template, key, value)
+            for key in kwds:
+                setattr(template, key, kwds[key])
             return self.session.runJob(template)
         finally:
             self.session.deleteJobTemplate(template)
