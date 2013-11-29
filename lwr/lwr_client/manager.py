@@ -13,6 +13,10 @@ try:
     from StringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
+try:
+    from six import text_type
+except ImportError:
+    from galaxy.util import unicodify as text_type
 
 from .client import Client, InputCachingClient
 from .transport import get_transport
@@ -102,7 +106,8 @@ class HttpJobManagerInterface(object):
     def __build_url(self, command, args):
         if self.private_key:
             args["private_key"] = self.private_key
-        data = urlencode(args)
+        arg_bytes = dict([(k, text_type(args[k]).encode('utf-8')) for k in args])
+        data = urlencode(arg_bytes)
         url = self.remote_host + command + "?" + data
         return url
 

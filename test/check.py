@@ -1,27 +1,34 @@
+# -*- coding: utf-8 -*-
 import shutil
 import tempfile
 import os
 import optparse
 import traceback
+from io import open
 
 from lwr.lwr_client import submit_job, finish_job, ClientManager
 
 TEST_SCRIPT = b"""
 import sys
-output = open(sys.argv[3], 'w')
-input_input = open(sys.argv[2], 'r')
 config_input = open(sys.argv[1], 'r')
+input_input = open(sys.argv[2], 'r')
+output = open(sys.argv[3], 'w')
+output2 = open(sys.argv[5], 'w')
+output2_contents = sys.argv[6]
 try:
     assert input_input.read() == "Hello world input!!@!"
     contents = config_input.read(1024)
     output.write(contents)
     open("workdir_output", "w").write("WORK DIR OUTPUT")
+    output2.write(output2_contents)
 finally:
     output.close()
     config_input.close()
+    output2.close()
 """
 
 EXPECTED_OUTPUT = b"hello world output"
+EXAMPLE_UNICODE_TEXT = u'єχαмρℓє συтρυт'
 
 
 class MockTool(object):
@@ -44,16 +51,18 @@ def run(options):
         temp_config_path = os.path.join(temp_work_dir, "config.txt")
         temp_tool_path = os.path.join(temp_directory, "t", "script.py")
         temp_output_path = os.path.join(temp_directory, "output")
+        temp_output2_path = os.path.join(temp_directory, "output2")
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
         __write_to_file(temp_tool_path, TEST_SCRIPT)
 
         empty_input = u"/foo/bar/x"
-        command_line = u'python %s "%s" "%s" "%s" "%s"' % (temp_tool_path, temp_config_path, temp_input_path, temp_output_path, empty_input)
+        command_line_params = (temp_tool_path, temp_config_path, temp_input_path, temp_output_path, empty_input, temp_output2_path, EXAMPLE_UNICODE_TEXT)
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
-        output_files = [temp_output_path]
+        output_files = [temp_output_path, temp_output2_path]
         client = __client(options)
         submit_job(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
         client.wait()
@@ -62,11 +71,11 @@ def run(options):
                            job_completed_normally=True,
                            cleanup_job='never',
                            work_dir_outputs=[],
-                           output_files=[temp_output_path])
+                           output_files=output_files)
         failed = finish_job(**finish_args)
         if failed:
             raise Exception("Failed to finish job correctly")
-        __check_output(temp_output_path)
+        __check_outputs(temp_output_path, temp_output2_path)
 
         __exercise_errors(options, client, temp_output_path, temp_directory)
     except BaseException:
@@ -77,7 +86,7 @@ def run(options):
         shutil.rmtree(temp_directory)
 
 
-def __check_output(temp_output_path):
+def __check_outputs(temp_output_path, temp_output2_path):
     """
     Verified the correct outputs were written (i.e. job ran properly).
     """
@@ -87,6 +96,12 @@ def __check_output(temp_output_path):
         assert output_contents == EXPECTED_OUTPUT, "Invalid output_contents: %s" % output_contents
     finally:
         output_file.close()
+    output_file_2 = open(temp_output2_path, "r", encoding="utf-8")
+    try:
+        output_contents_2 = output_file_2.read()
+        assert output_contents_2 == EXAMPLE_UNICODE_TEXT
+    finally:
+        output_file_2.close()
 
 
 def __exercise_errors(options, client, temp_output_path, temp_directory):
