@@ -37,10 +37,10 @@ class ClientManager(object):
     """
     def __init__(self, **kwds):
         if 'job_manager' in kwds:
-            self.job_manager_interface_class = LocalJobManagerInterface
+            self.job_manager_interface_class = LocalLwrInterface
             self.job_manager_interface_args = dict(job_manager=kwds['job_manager'], file_cache=kwds['file_cache'])
         else:
-            self.job_manager_interface_class = HttpJobManagerInterface
+            self.job_manager_interface_class = HttpLwrInterface
             transport_type = kwds.get('transport_type', None)
             transport = get_transport(transport_type)
             self.job_manager_interface_args = dict(transport=transport)
@@ -90,7 +90,7 @@ class JobManagerInteface(object):
         """
 
 
-class HttpJobManagerInterface(object):
+class HttpLwrInterface(object):
 
     def __init__(self, destination_params, transport):
         self.transport = transport
@@ -112,7 +112,7 @@ class HttpJobManagerInterface(object):
         return url
 
 
-class LocalJobManagerInterface(object):
+class LocalLwrInterface(object):
 
     def __init__(self, destination_params, job_manager, file_cache):
         self.job_manager = job_manager
@@ -204,4 +204,4 @@ def _environ_default_int(variable, default="0"):
         int_val = int(val)
     return int_val
 
-__all__ = [ClientManager, HttpJobManagerInterface]
+__all__ = [ClientManager, HttpLwrInterface]
