@@ -18,10 +18,15 @@ from galaxy.exceptions import ObjectNotFound
 
 import multiprocessing
 from .s3_multipart_upload import multipart_upload
-import boto
-from boto.s3.key import Key
-from boto.s3.connection import S3Connection
-from boto.exception import S3ResponseError
+try:
+    import boto
+    from boto.s3.key import Key
+    from boto.s3.connection import S3Connection
+    from boto.exception import S3ResponseError
+except ImportError:
+    boto = None
+
+NO_BOTO_ERROR_MESSAGE = "S3/Swift object store configured, but no boto dependency available. Please install and properly configure boto or modify object store configuration."
 
 log = logging.getLogger( __name__ )
 logging.getLogger('boto').setLevel(logging.INFO)  # Otherwise boto is quite noisy
@@ -34,6 +39,8 @@ class S3ObjectStore(ObjectStore):
     Galaxy and S3.
     """
     def __init__(self, config, config_xml):
+        if boto is None:
+            raise Exception(NO_BOTO_ERROR_MESSAGE)
         super(S3ObjectStore, self).__init__(config, config_xml)
         self.config = config
         self.staging_path = self.config.file_path

@@ -20,7 +20,11 @@ try:
 except ImportError:
     pass
 
-import boto
+try:
+    import boto
+except ImportError:
+    boto = None
+
 
 def map_wrap(f):
     @functools.wraps(f)
