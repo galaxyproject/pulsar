@@ -2,7 +2,7 @@ from os.path import join
 from six import next, itervalues
 from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessModule
 
-from lwr.util import Bunch
+from lwr.util.bunch import Bunch
 from .check import run
 try:
     from ConfigParser import ConfigParser

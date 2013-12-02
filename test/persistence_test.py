@@ -4,7 +4,7 @@ import tempfile
 import time
 
 from lwr.managers.queued import QueueManager
-from lwr.util import Bunch
+from lwr.util.bunch import Bunch
 from lwr.tools.authorization import get_authorizer
 
 
