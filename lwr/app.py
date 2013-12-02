@@ -3,12 +3,15 @@
 import atexit
 import inspect
 import os
+from tempfile import tempdir
 
 from lwr.manager_factory import build_managers
 from lwr.cache import Cache
 from lwr.framework import RoutingApp
 from lwr.tools import ToolBox
 from lwr.tools.authorization import get_authorizer
+from lwr.util.bunch import Bunch
+from lwr.objectstore import build_object_store_from_config
 import lwr.routes
 
 from logging import getLogger
@@ -48,6 +51,7 @@ class LwrApp(RoutingApp):
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
         self.__setup_routes()
+        self.__setup_object_store(conf)
 
     def shutdown(self):
         for manager in self.managers.values():
@@ -95,6 +99,20 @@ class LwrApp(RoutingApp):
     def __setup_file_cache(self, conf):
         file_cache_dir = conf.get('file_cache_dir', None)
         self.file_cache = Cache(file_cache_dir) if file_cache_dir else None
+
+    def __setup_object_store(self, conf):
+        if "object_store_config_file" not in conf:
+            self.object_store = None
+            return
+        object_store_config = Bunch(
+            object_store_config_file=conf['object_store_config_file'],
+            file_path=conf.get("object_store_file_path", None),
+            object_store_check_old_style=False,
+            job_working_directory=conf.get("object_store_job_working_directory", None),
+            new_file_path=conf.get("object_store_new_file_path", tempdir),
+            umask=int(conf.get("object_store_umask", "0000")),
+        )
+        self.object_store = build_object_store_from_config(object_store_config)
 
     def __add_route_for_function(self, function):
         route_suffix = '/%s' % function.__name__

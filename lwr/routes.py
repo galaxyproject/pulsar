@@ -28,6 +28,7 @@ class LwrController(Controller):
         app_args = {}
         app_args['manager'] = managers[manager_name]
         app_args['file_cache'] = getattr(app, 'file_cache', None)
+        app_args['object_store'] = getattr(app, 'object_store', None)
         return app_args
 
 
@@ -168,6 +169,75 @@ def cache_required(file_cache, ip, path):
 def cache_insert(file_cache, ip, path, body):
     temp_path = copy_to_temp(body)
     file_cache.cache_file(temp_path, ip, path)
+
+
+# TODO: coerce booleans and None values into correct types - simplejson may
+# do this already but need to check.
+@LwrController(response_type='json')
+def object_store_exists(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    obj = LwrDataset(object_id)
+    return object_store.exists(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+
+
+@LwrController(response_type='json')
+def object_store_file_ready(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    obj = LwrDataset(object_id)
+    return object_store.file_ready(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+
+
+@LwrController(response_type='json')
+def object_store_create(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    obj = LwrDataset(object_id)
+    return object_store.create(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+
+
+@LwrController(response_type='json')
+def object_store_empty(object_store, object_id, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    obj = LwrDataset(object_id)
+    return object_store.empty(obj, base_dir=base_dir, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+
+
+@LwrController(response_type='json')
+def object_store_size(object_store, object_id, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    obj = LwrDataset(object_id)
+    return object_store.size(obj, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+
+
+@LwrController(response_type='json')
+def object_store_delete(object_store, object_id, entire_dir=False, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    obj = LwrDataset(object_id)
+    return object_store.delete(obj, entire_dir=False, base_dir=None, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+
+
+@LwrController(response_type='json')
+def object_store_get_data(object_store, object_id, start=0, count=-1, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    obj = LwrDataset(object_id)
+    return object_store.get_data(obj, start=int(start), count=int(count), entire_dir=False, base_dir=None, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+
+
+@LwrController(response_type='json')
+def object_store_get_filename(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    obj = LwrDataset(object_id)
+    return object_store.get_filename(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+
+
+@LwrController(response_type='json')
+def object_store_update_from_file(object_store, object_id, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None, file_name=None, create=False):
+    obj = LwrDataset(object_id)
+    return object_store.update_from_file(obj, base_dir=base_dir, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name, file_name=file_name, create=create)
+
+
+@LwrController(response_type='json')
+def object_store_get_store_usage_percent(object_store):
+    return object_store.get_store_usage_percent()
+
+
+class LwrDataset(object):
+    """Intermediary between lwr and objectstore."""
+
+    def __init__(self, id):
+        self.id = id
+        self.object_store_id = None
 
 
 def _handle_upload_to_directory(file_cache, directory, remote_path, body, cache_token=None, allow_nested_files=False):

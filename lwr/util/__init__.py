@@ -1,13 +1,17 @@
 import os
 import platform
 import posixpath
+import stat
+import grp
+import errno
 import six
+from xml.etree import ElementTree, ElementInclude
 from shutil import move, rmtree
 from subprocess import Popen
 from collections import deque
 from tempfile import NamedTemporaryFile
 from datetime import datetime
-
+from .bunch import Bunch
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -241,36 +245,52 @@ def is_in_directory(file, directory, local_path_module=os.path):
     return local_path_module.commonprefix([file, directory]) == directory
 
 
-class Bunch(object):
+def umask_fix_perms( path, umask, unmasked_perms, gid=None ):
     """
-    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52308
-
-    Often we want to just collect a bunch of stuff together, naming each item of
-    the bunch; a dictionary's OK for that, but a small do-nothing class is even handier, and prettier to use.
+    umask-friendly permissions fixing
     """
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
+    perms = unmasked_perms & ~umask
+    try:
+        st = os.stat( path )
+    except OSError, e:
+        log.exception( 'Unable to set permissions or group on %s' % path )
+        return
+    # fix modes
+    if stat.S_IMODE( st.st_mode ) != perms:
+        try:
+            os.chmod( path, perms )
+        except Exception, e:
+            log.warning( 'Unable to honor umask (%s) for %s, tried to set: %s but mode remains %s, error was: %s' % ( oct( umask ), \
+                                                                                                                      path,
+                                                                                                                      oct( perms ),
+                                                                                                                      oct( stat.S_IMODE( st.st_mode ) ),
+                                                                                                                      e ) )
+    # fix group
+    if gid is not None and st.st_gid != gid:
+        try:
+            os.chown( path, -1, gid )
+        except Exception, e:
+            try:
+                desired_group = grp.getgrgid( gid )
+                current_group = grp.getgrgid( st.st_gid )
+            except:
+                desired_group = gid
+                current_group = st.st_gid
+            log.warning( 'Unable to honor primary group (%s) for %s, group remains %s, error was: %s' % ( desired_group, \
+                                                                                                          path,
+                                                                                                          current_group,
+                                                                                                          e ) )
 
-    def get(self, key, default=None):
-        return self.__dict__.get(key, default)
 
-    def __iter__(self):
-        return iter(self.__dict__)
-
-    def items(self):
-        return self.__dict__.items()
-
-    def __str__(self):
-        return '%s' % self.__dict__
-
-    def __nonzero__(self):
-        return bool(self.__dict__)
-
-    def __bool__(self):
-        return bool(self.__dict__)
-
-    def __setitem__(self, k, v):
-        self.__dict__.__setitem__(k, v)
+def force_symlink( source, link_name ):
+    try:
+        os.symlink( source, link_name )
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            os.remove( link_name )
+            os.symlink( source, link_name )
+        else:
+            raise e
 
 
 class Time:
