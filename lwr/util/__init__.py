@@ -5,13 +5,11 @@ import stat
 import grp
 import errno
 import six
-from xml.etree import ElementTree, ElementInclude
 from shutil import move, rmtree
 from subprocess import Popen
 from collections import deque
 from tempfile import NamedTemporaryFile
 from datetime import datetime
-from .bunch import Bunch
 from logging import getLogger
 log = getLogger(__name__)
 
