@@ -3,6 +3,7 @@ webob
 pyOpenSSL
 psutil
 PasteDeploy
+six
 
 # Problematic for Python 3.
 paste
