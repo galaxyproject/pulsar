@@ -105,7 +105,7 @@ def upload_config_file(manager, file_cache, job_id, name, body, cache_token=None
 
 @LwrController(response_type='json')
 def upload_working_directory_file(manager, file_cache, job_id, name, body, cache_token=None):
-    return _handle_upload_to_directory(file_cache, manager.tool_files_directory(job_id), name, body, cache_token=cache_token)
+    return _handle_upload_to_directory(file_cache, manager.working_directory(job_id), name, body, cache_token=cache_token)
 
 
 @LwrController(response_type='json')
