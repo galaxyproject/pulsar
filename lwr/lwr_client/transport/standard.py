@@ -24,7 +24,6 @@ class Urllib2Transport(object):
         input = None
         try:
             if input_path:
-                input = open(input_path, 'rb')
                 if getsize(input_path):
                     input = open(input_path, 'rb')
                     data = mmap.mmap(input.fileno(), 0, access=mmap.ACCESS_READ)
