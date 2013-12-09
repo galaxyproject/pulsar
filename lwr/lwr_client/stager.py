@@ -157,7 +157,7 @@ class FileStager(object):
 
     **Parameters**
 
-    client : Client
+    client : JobClient
         LWR client object.
     client_job_description : client_job_description
         Description of client view of job to stage and execute remotely.

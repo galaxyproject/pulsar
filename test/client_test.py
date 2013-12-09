@@ -4,7 +4,7 @@ import os
 
 from six import text_type, binary_type
 
-from lwr.lwr_client.client import Client
+from lwr.lwr_client.client import JobClient
 from lwr.lwr_client.manager import HttpLwrInterface
 from lwr.lwr_client.transport import Urllib2Transport
 from lwr.lwr_client.client import retry, MAX_RETRY_COUNT
@@ -55,12 +55,12 @@ class TestTransport(Urllib2Transport):
         return FakeResponse(response)
 
 
-class TestClient(Client):
+class TestClient(JobClient):
     """ A dervative of the Client class that replaces the url_open
     method so that requests can be inspected and responses faked."""
 
     def __init__(self):
-        Client.__init__(self, {}, "543", HttpLwrInterface({"url": "http://test:803/"}, TestTransport(self)))
+        JobClient.__init__(self, {}, "543", HttpLwrInterface({"url": "http://test:803/"}, TestTransport(self)))
         self.expects = deque([])
 
     def expect_open(self, checker, response):

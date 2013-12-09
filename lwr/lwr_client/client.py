@@ -50,8 +50,7 @@ class OutputNotFoundException(Exception):
         return "No remote output found for path %s" % self.path
 
 
-# TODO: Rename to job client.
-class Client(object):
+class JobClient(object):
     """
     Objects of this client class perform low-level communication with a remote LWR server.
 
@@ -286,13 +285,13 @@ class Client(object):
             shutil.copyfile(source, destination)
 
 
-class InputCachingClient(Client):
+class InputCachingJobClient(JobClient):
     """
     Beta client that cache's staged files to prevent duplication.
     """
 
     def __init__(self, destination_params, job_id, job_manager_interface, client_cacher):
-        super(InputCachingClient, self).__init__(destination_params, job_id, job_manager_interface)
+        super(InputCachingJobClient, self).__init__(destination_params, job_id, job_manager_interface)
         self.client_cacher = client_cacher
 
     @parseJson()
