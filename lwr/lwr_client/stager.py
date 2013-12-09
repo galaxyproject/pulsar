@@ -336,7 +336,7 @@ def finish_job(client, cleanup_job, job_completed_normally, working_directory, w
 
 def __clean(download_failure_exceptions, cleanup_job, client):
     failed = (len(download_failure_exceptions) > 0)
-    if not failed or cleanup_job == "always":
+    if (not failed and cleanup_job != "never") or cleanup_job == "always":
         try:
             client.clean()
         except:
