@@ -163,7 +163,7 @@ class FileStager(object):
         Description of client view of job to stage and execute remotely.
     """
 
-    def __init__(self, client, client_job_description):
+    def __init__(self, client, client_job_description, job_config):
         """
         """
         self.client = client
@@ -182,7 +182,7 @@ class FileStager(object):
 
         self.transfer_tracker = TransferTracker(client, self.job_inputs)
 
-        self.__handle_setup()
+        self.__handle_setup(job_config)
         self.__initialize_referenced_tool_files()
         self.__upload_tool_files()
         self.__upload_input_files()
@@ -193,8 +193,9 @@ class FileStager(object):
         self.__handle_rewrites()
         self.__upload_rewritten_config_files()
 
-    def __handle_setup(self):
-        job_config = self.client.setup(self.tool_id, self.tool_version)
+    def __handle_setup(self, job_config):
+        if not job_config:
+            job_config = self.client.setup(self.tool_id, self.tool_version)
 
         self.new_working_directory = job_config['working_directory']
         self.new_outputs_directory = job_config['outputs_directory']
@@ -319,10 +320,10 @@ def __clean(download_failure_exceptions, cleanup_job, client):
     return failed
 
 
-def submit_job(client, client_job_description):
+def submit_job(client, client_job_description, job_config=None):
     """
     """
-    file_stager = FileStager(client, client_job_description)
+    file_stager = FileStager(client, client_job_description, job_config)
     rebuilt_command_line = file_stager.get_rewritten_command_line()
     job_id = file_stager.job_id
     client.launch(rebuilt_command_line)
