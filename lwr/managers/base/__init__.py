@@ -6,6 +6,8 @@ Base Classes and Infrastructure Supporting Concret Manager Implementations.
 from os.path import exists, isdir, join, basename
 from os import listdir
 from os import makedirs
+from os import sep
+from os import getenv
 from uuid import uuid4
 
 from lwr.util import JobDirectory
@@ -45,7 +47,9 @@ class BaseManager(ManagerInterface):
         self._setup_staging_directory(app.staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
         self.debug = str(kwds.get("debug", False)).lower() == "true"
+        self.galaxy_home = kwds.get('galaxy_home', None)
         self.authorizer = app.authorizer
+        self.__init_system_properties()
 
     def clean(self, job_id):
         if self.debug:
@@ -59,8 +63,31 @@ class BaseManager(ManagerInterface):
             except:
                 pass
 
+    def __init_system_properties(self):
+        system_properties = {
+            "separator": sep,
+        }
+        galaxy_home = self._galaxy_home()
+        if galaxy_home:
+            system_properties["galaxy_home"] = galaxy_home
+        self.system_properties = system_properties
+
+    def _galaxy_home(self):
+        return self.galaxy_home or getenv('GALAXY_HOME', None)
+
+    def _galaxy_lib(self):
+        galaxy_home = self._galaxy_home()
+        galaxy_lib = None
+        if galaxy_home and str(galaxy_home).lower() != 'none':
+            galaxy_lib = join(galaxy_home, 'lib')
+        return galaxy_lib
+
     def working_directory(self, job_id):
         return self._job_directory(job_id).working_directory()
+
+    def working_directory_contents(self, job_id):
+        working_directory = self.working_directory(job_id)
+        return listdir(working_directory)
 
     def inputs_directory(self, job_id):
         return self._job_directory(job_id).inputs_directory()

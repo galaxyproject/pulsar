@@ -38,11 +38,14 @@ def setup(manager, job_id, tool_id=None, tool_version=None):
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)
     configs_directory = manager.configs_directory(job_id)
-    response = {"working_directory": working_directory,
-                "outputs_directory": outputs_directory,
-                "configs_directory": configs_directory,
-                "path_separator": os.sep,
-                "job_id": job_id}
+    response = {
+        "working_directory": working_directory,
+        "outputs_directory": outputs_directory,
+        "configs_directory": configs_directory,
+        "path_separator": os.sep,
+        "job_id": job_id,
+        "system_properties": manager.system_properties,
+    }
     log.debug("Setup job with configuration: %s" % response)
     return response
 
@@ -65,11 +68,14 @@ def check_complete(manager, job_id):
         return_code = manager.return_code(job_id)
         stdout_contents = manager.stdout_contents(job_id)
         stderr_contents = manager.stderr_contents(job_id)
-        response = {"complete": "true",
-                    "status": status,
-                    "returncode": return_code,
-                    "stdout": stdout_contents,
-                    "stderr": stderr_contents}
+        response = {
+            "complete": "true",
+            "status": status,
+            "returncode": return_code,
+            "stdout": stdout_contents,
+            "stderr": stderr_contents,
+            "working_directory_contents": manager.working_directory_contents(job_id),
+        }
         log.debug("Returning job complete response: %s" % response)
         return response
     else:

@@ -1,5 +1,4 @@
-from os import chmod, getenv
-from os.path import join
+from os import chmod
 from stat import S_IEXEC, S_IWRITE, S_IREAD
 from string import Template
 
@@ -16,7 +15,6 @@ class ExternalBaseManager(DirectoryBaseManager):
     def __init__(self, name, app, **kwds):
         super(ExternalBaseManager, self).__init__(name, app, **kwds)
         self.external_ids = self._build_persistent_store(ExternalIdStore, "ext_ids")
-        self.galaxy_home = kwds.get('galaxy_home', None)
         self.job_name_template = kwds.get('job_name_template', DEFAULT_JOB_NAME_TEMPLATE)
 
     def clean(self, job_id):
@@ -37,13 +35,6 @@ class ExternalBaseManager(DirectoryBaseManager):
         if not external_id:
             raise KeyError("Failed to find external id for job_id %s" % job_id)
         return self._get_status_external(external_id)
-
-    def _galaxy_lib(self):
-        galaxy_home = self.galaxy_home or getenv('GALAXY_HOME', None)
-        galaxy_lib = None
-        if galaxy_home and str(galaxy_home).lower() != 'none':
-            galaxy_lib = join(galaxy_home, 'lib')
-        return galaxy_lib
 
     def _setup_job_file(self, job_id, command_line):
         script_env = self._job_template_env(job_id, command_line=command_line)
