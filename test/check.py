@@ -6,7 +6,7 @@ import optparse
 import traceback
 from io import open
 
-from lwr.lwr_client import submit_job, finish_job, ClientManager
+from lwr.lwr_client import submit_job, finish_job, ClientManager, ClientJobDescription
 
 TEST_SCRIPT = b"""
 import sys
@@ -72,7 +72,15 @@ def run(options):
         input_files = [temp_input_path, empty_input]
         output_files = [temp_output_path, temp_output2_path]
         client = __client(options)
-        submit_job(client, MockTool(temp_tool_dir), command_line, config_files, input_files, output_files, temp_work_dir)
+        job_description = ClientJobDescription(
+            command_line=command_line,
+            tool=MockTool(temp_tool_dir),
+            config_files=config_files,
+            input_files=input_files,
+            output_files=output_files,
+            working_directory=temp_work_dir,
+        )
+        submit_job(client, job_description)
         client.wait()
         finish_args = dict(client=client,
                            working_directory=temp_work_dir,

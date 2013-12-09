@@ -159,33 +159,22 @@ class FileStager(object):
 
     client : Client
         LWR client object.
-    command_line : str
-        The local command line to execute, this will be rewritten for the remote server.
-    config_files : list
-        List of Galaxy 'configfile's produced for this job. These will be rewritten and sent to remote server.
-    input_files :  list
-        List of input files used by job. These will be transferred and references rewritten.
-    output_files : list
-        List of output_files produced by job.
-    tool_dir : str
-        Directory containing tool to execute (if a wrapper is used, it will be transferred to remote server).
-    working_directory : str
-        Local path created by Galaxy for running this job.
-
+    client_job_description : client_job_description
+        Description of client view of job to stage and execute remotely.
     """
 
-    def __init__(self, client, tool, command_line, config_files, input_files, output_files, working_directory):
+    def __init__(self, client, client_job_description):
         """
         """
         self.client = client
-        self.command_line = command_line
-        self.config_files = config_files
-        self.input_files = input_files
-        self.output_files = output_files
-        self.tool_id = tool.id
-        self.tool_version = tool.version
-        self.tool_dir = abspath(tool.tool_dir)
-        self.working_directory = working_directory
+        self.command_line = client_job_description.command_line
+        self.config_files = client_job_description.config_files
+        self.input_files = client_job_description.input_files
+        self.output_files = client_job_description.output_files
+        self.tool_id = client_job_description.tool.id
+        self.tool_version = client_job_description.tool.version
+        self.tool_dir = abspath(client_job_description.tool.tool_dir)
+        self.working_directory = client_job_description.working_directory
 
         # Setup job inputs, these will need to be rewritten before
         # shipping off to remote LWR server.
@@ -330,10 +319,10 @@ def __clean(download_failure_exceptions, cleanup_job, client):
     return failed
 
 
-def submit_job(client, tool, command_line, config_files, input_files, output_files, working_directory):
+def submit_job(client, client_job_description):
     """
     """
-    file_stager = FileStager(client, tool, command_line, config_files, input_files, output_files, working_directory)
+    file_stager = FileStager(client, client_job_description)
     rebuilt_command_line = file_stager.get_rewritten_command_line()
     job_id = file_stager.job_id
     client.launch(rebuilt_command_line)
@@ -351,4 +340,33 @@ def _read(path):
     finally:
         input.close()
 
-__all__ = [submit_job, finish_job]
+
+class ClientJobDescription(object):
+    """ A description of how client views job - command_line, inputs, etc..
+
+    **Parameters**
+
+    command_line : str
+        The local command line to execute, this will be rewritten for the remote server.
+    config_files : list
+        List of Galaxy 'configfile's produced for this job. These will be rewritten and sent to remote server.
+    input_files :  list
+        List of input files used by job. These will be transferred and references rewritten.
+    output_files : list
+        List of output_files produced by job.
+    tool_dir : str
+        Directory containing tool to execute (if a wrapper is used, it will be transferred to remote server).
+    working_directory : str
+        Local path created by Galaxy for running this job.
+    """
+
+    def __init__(self, tool, command_line, config_files, input_files, output_files, working_directory):
+        self.tool = tool
+        self.command_line = command_line
+        self.config_files = config_files
+        self.input_files = input_files
+        self.output_files = output_files
+        self.working_directory = working_directory
+
+
+__all__ = [submit_job, ClientJobDescription, finish_job]
