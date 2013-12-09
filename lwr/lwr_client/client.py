@@ -161,25 +161,23 @@ class JobClient(object):
             raise Exception("Unknown output_type returned from LWR server %s" % output_type)
         return output_path
 
-    def fetch_work_dir_output(self, source, working_directory, output_path, action='transfer'):
+    def fetch_work_dir_output(self, name, working_directory, output_path, action='transfer'):
         """
         Download an output dataset specified with from_work_dir from the
         remote server.
 
         **Parameters**
 
-        source : str
+        name : str
             Path in job's working_directory to find output in.
         working_directory : str
             Local working_directory for the job.
         output_path : str
             Full path to output dataset.
         """
-        output = open(output_path, "wb")
-        name = os.path.basename(source)
         if action == 'transfer':
-            self.__raw_download_output(name, self.job_id, "work_dir", output)
-        elif action == 'copy':
+            self.__raw_download_output(name, self.job_id, "work_dir", output_path)
+        else:  # Even if action is none - LWR has a different work_dir so this needs to be copied.
             lwr_path = self._output_path(name, self.job_id, 'work_dir')['path']
             self._copy(lwr_path, output_path)
 

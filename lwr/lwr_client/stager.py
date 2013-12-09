@@ -1,12 +1,19 @@
 from os.path import abspath, basename, join, exists
 from os import listdir, sep
 from re import findall
+from re import compile
 from io import open
 
 from .action_mapper import FileActionMapper
 
 from logging import getLogger
 log = getLogger(__name__)
+
+# All output files marked with from_work_dir attributes will copied or downloaded
+# this pattern picks up attiditional files to copy back - such as those
+# associated with multiple outputs and metadata configuration. Set to .* to just
+# copy everything
+COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*")
 
 
 class JobInputs(object):
@@ -287,26 +294,43 @@ class FileStager(object):
         return self.job_inputs.rewritten_command_line
 
 
-def finish_job(client, cleanup_job, job_completed_normally, working_directory, work_dir_outputs, output_files):
+def finish_job(client, cleanup_job, job_completed_normally, working_directory, work_dir_outputs, output_files, working_directory_contents=[]):
     """
     """
     action_mapper = FileActionMapper(client)
     download_failure_exceptions = []
+    downloaded_working_directory_files = []
     if job_completed_normally:
+        # Fetch explicit working directory outputs.
         for source_file, output_file in work_dir_outputs:
+            name = basename(source_file)
             try:
                 action = action_mapper.action(output_file, 'output')
-                client.fetch_work_dir_output(source_file, working_directory, output_file, action[0])
+                client.fetch_work_dir_output(name, working_directory, output_file, action[0])
+                downloaded_working_directory_files.append(name)
             except Exception as e:
                 download_failure_exceptions.append(e)
             # Remove from full output_files list so don't try to download directly.
             output_files.remove(output_file)
+
+        # Fetch output files.
         for output_file in output_files:
             try:
                 action = action_mapper.action(output_file, 'output')
                 client.fetch_output(output_file, working_directory=working_directory, action=action[0])
             except Exception as e:
                 download_failure_exceptions.append(e)
+
+        # Fetch remaining working directory outputs of interest.
+        for name in working_directory_contents:
+            if name in downloaded_working_directory_files:
+                continue
+            if COPY_FROM_WORKING_DIRECTORY_PATTERN.match(name):
+                output_file = join(working_directory, name)
+                action = action_mapper.action(output_file, 'output')
+                client.fetch_work_dir_output(name, working_directory, output_file, action=action[0])
+                downloaded_working_directory_files.append(name)
+
     return __clean(download_failure_exceptions, cleanup_job, client)
 
 

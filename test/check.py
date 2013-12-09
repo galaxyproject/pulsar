@@ -21,6 +21,7 @@ try:
     output.write(contents)
     open("workdir_output", "w").write("WORK DIR OUTPUT")
     output2.write(output2_contents)
+    with open("galaxy.json", "w") as f: f.write("GALAXY_JSON")
 finally:
     output.close()
     config_input.close()
@@ -81,17 +82,21 @@ def run(options):
             working_directory=temp_work_dir,
         )
         submit_job(client, job_description)
-        client.wait()
-        finish_args = dict(client=client,
-                           working_directory=temp_work_dir,
-                           job_completed_normally=True,
-                           cleanup_job='never',
-                           work_dir_outputs=[],
-                           output_files=output_files)
+        result_status = client.wait()
+        finish_args = dict(
+            client=client,
+            working_directory=temp_work_dir,
+            job_completed_normally=True,
+            cleanup_job='never',
+            work_dir_outputs=[],
+            output_files=output_files,
+            working_directory_contents=result_status['working_directory_contents'],
+        )
         failed = finish_job(**finish_args)
         if failed:
             raise Exception("Failed to finish job correctly")
         __check_outputs(temp_output_path, temp_output2_path)
+        __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON")
 
         __exercise_errors(options, client, temp_output_path, temp_directory)
     except BaseException:
@@ -106,18 +111,17 @@ def __check_outputs(temp_output_path, temp_output2_path):
     """
     Verified the correct outputs were written (i.e. job ran properly).
     """
-    output_file = open(temp_output_path, 'rb')
+    __assert_contents(temp_output_path, EXPECTED_OUTPUT)
+    __assert_contents(temp_output2_path, EXAMPLE_UNICODE_TEXT)
+
+
+def __assert_contents(path, contents):
+    file = open(path, 'rb')
     try:
-        output_contents = output_file.read()
-        assert output_contents == EXPECTED_OUTPUT, "Invalid output_contents: %s" % output_contents
+        contents = file.read()
+        assert contents == contents, "Invalid contents: %s" % contents
     finally:
-        output_file.close()
-    output_file_2 = open(temp_output2_path, "r", encoding="utf-8")
-    try:
-        output_contents_2 = output_file_2.read()
-        assert output_contents_2 == EXAMPLE_UNICODE_TEXT
-    finally:
-        output_file_2.close()
+        file.close()
 
 
 def __exercise_errors(options, client, temp_output_path, temp_directory):
