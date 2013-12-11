@@ -6,6 +6,7 @@ import time
 from lwr.managers.queued import QueueManager
 from lwr.util.bunch import Bunch
 from lwr.tools.authorization import get_authorizer
+from .test_utils import TestDependencyManager
 
 
 def test_persistence():
@@ -16,7 +17,9 @@ def test_persistence():
     try:
         app = Bunch(staging_directory=staging_directory,
                     persistence_directory=staging_directory,
-                    authorizer=get_authorizer(None))
+                    authorizer=get_authorizer(None),
+                    dependency_manager=TestDependencyManager(),
+                    )
         assert not exists(join(staging_directory, "queued_jobs"))
         queue1 = QueueManager('test', app, num_concurrent_jobs=0)
         job_id = queue1.setup_job('4', 'tool1', '1.0.0')

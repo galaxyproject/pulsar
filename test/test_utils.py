@@ -97,6 +97,12 @@ class TestAuthorization(object):
             raise Exception
 
 
+class TestDependencyManager(object):
+
+    def dependency_shell_commands(self, requirements, **kwds):
+        return []
+
+
 @contextmanager
 def test_server(global_conf={}, app_conf={}, test_conf={}):
     with test_app(global_conf, app_conf, test_conf) as app:

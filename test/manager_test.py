@@ -11,6 +11,7 @@ from os.path import join
 
 from .test_utils import TestCase
 from .test_utils import TestAuthorizer
+from .test_utils import TestDependencyManager
 
 
 class ManagerTest(TestCase):
@@ -22,7 +23,8 @@ class ManagerTest(TestCase):
         self.authorizer = TestAuthorizer()
 
         self.app = Bunch(staging_directory=staging_directory,
-                         authorizer=self.authorizer)
+                         authorizer=self.authorizer,
+                         dependency_manager=TestDependencyManager())
 
         self._set_manager()
 
