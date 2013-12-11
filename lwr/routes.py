@@ -188,7 +188,9 @@ def object_store_exists(object_store, object_id, base_dir=None, dir_only=False, 
 @LwrController(response_type='json')
 def object_store_file_ready(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
-    return object_store.file_ready(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+    return object_store.file_ready(obj, base_dir=base_dir, dir_only=dir_only,
+                                   extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root,
+                                   alt_name=alt_name)
 
 
 @LwrController(response_type='json')
@@ -218,19 +220,24 @@ def object_store_delete(object_store, object_id, entire_dir=False, base_dir=None
 @LwrController(response_type='json')
 def object_store_get_data(object_store, object_id, start=0, count=-1, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
-    return object_store.get_data(obj, start=int(start), count=int(count), entire_dir=False, base_dir=None, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+    return object_store.get_data(obj, start=int(start), count=int(count), entire_dir=False,
+                                 base_dir=None, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root,
+                                 alt_name=alt_name)
 
 
 @LwrController(response_type='json')
 def object_store_get_filename(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
-    return object_store.get_filename(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
+    return object_store.get_filename(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir,
+                                     extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
 
 
 @LwrController(response_type='json')
-def object_store_update_from_file(object_store, object_id, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None, file_name=None, create=False):
+def object_store_update_from_file(object_store, object_id, base_dir=None, extra_dir=None, extra_dir_at_root=False,
+                                  alt_name=None, file_name=None, create=False):
     obj = LwrDataset(object_id)
-    return object_store.update_from_file(obj, base_dir=base_dir, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name, file_name=file_name, create=create)
+    return object_store.update_from_file(obj, base_dir=base_dir, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root,
+                                         alt_name=alt_name, file_name=file_name, create=create)
 
 
 @LwrController(response_type='json')

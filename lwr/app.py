@@ -11,8 +11,8 @@ from lwr.framework import RoutingApp
 from lwr.tools import ToolBox
 from lwr.tools.authorization import get_authorizer
 from lwr.util.bunch import Bunch
-from lwr.objectstore import build_object_store_from_config
 import lwr.routes
+from galaxy.objectstore import build_object_store_from_config
 
 from logging import getLogger
 log = getLogger(__name__)
