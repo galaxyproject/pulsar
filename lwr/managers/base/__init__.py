@@ -46,8 +46,8 @@ class BaseManager(ManagerInterface):
         self.persistence_directory = getattr(app, 'persistence_directory', None)
         self._setup_staging_directory(app.staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
+        self.__init_galaxy_system_properties(kwds)
         self.debug = str(kwds.get("debug", False)).lower() == "true"
-        self.galaxy_home = kwds.get('galaxy_home', None)
         self.authorizer = app.authorizer
         self.__init_system_properties()
 
@@ -63,6 +63,12 @@ class BaseManager(ManagerInterface):
             except:
                 pass
 
+    def __init_galaxy_system_properties(self, kwds):
+        self.galaxy_home = kwds.get('galaxy_home', None)
+        self.galaxy_config_file = kwds.get('galaxy_config_file', None)
+        self.galaxy_dataset_files_path = kwds.get('galaxy_dataset_files_path', None)
+        self.galaxy_datatypes_config_file = kwds.get('galaxy_datatypes_config_file', None)
+
     def __init_system_properties(self):
         system_properties = {
             "separator": sep,
@@ -70,6 +76,11 @@ class BaseManager(ManagerInterface):
         galaxy_home = self._galaxy_home()
         if galaxy_home:
             system_properties["galaxy_home"] = galaxy_home
+        for property in ['galaxy_config_file', 'galaxy_dataset_files_path', 'galaxy_datatypes_config_file']:
+            value = getattr(self, property, None)
+            if value:
+                system_properties[property] = value
+
         self.system_properties = system_properties
 
     def _galaxy_home(self):
