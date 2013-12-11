@@ -50,6 +50,7 @@ class BaseManager(ManagerInterface):
         self.debug = str(kwds.get("debug", False)).lower() == "true"
         self.authorizer = app.authorizer
         self.__init_system_properties()
+        self.dependency_manager = app.dependency_manager
 
     def clean(self, job_id):
         if self.debug:
@@ -157,3 +158,9 @@ class BaseManager(ManagerInterface):
             path = join(config_files_dir, file)
             authorization.authorize_config_file(job_directory, file, path)
         authorization.authorize_execution(job_directory, command_line)
+
+    def _expand_command_line(self, command_line, requirements):
+        dependency_commands = self.dependency_manager.dependency_shell_commands(requirements)
+        if dependency_commands:
+            command_line = "%s; %s" % ("; ".join(dependency_commands), command_line)
+        return command_line

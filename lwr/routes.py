@@ -6,6 +6,8 @@ from lwr.util import get_mapped_file, copy_to_path, copy_to_temp, verify_is_in_d
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 
+from galaxy.tools.deps.requirements import ToolRequirement
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -56,9 +58,10 @@ def clean(manager, job_id):
 
 
 @LwrController()
-def launch(manager, job_id, command_line, params='{}'):
+def launch(manager, job_id, command_line, params='{}', requirements='[]'):
     submit_params = loads(params)
-    manager.launch(job_id, command_line, submit_params)
+    requirements = [ToolRequirement.from_dict(requirement_dict) for requirement_dict in loads(requirements)]
+    manager.launch(job_id, command_line, submit_params, requirements)
 
 
 @LwrController(response_type='json')

@@ -13,6 +13,7 @@ from lwr.tools.authorization import get_authorizer
 from lwr.util.bunch import Bunch
 import lwr.routes
 from galaxy.objectstore import build_object_store_from_config
+from galaxy.tools.deps import DependencyManager
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -48,10 +49,11 @@ class LwrApp(RoutingApp):
         self.__setup_private_key(conf.get("private_key", DEFAULT_PRIVATE_KEY))
         self.__setup_persistence_directory(conf.get("persistence_directory", None))
         self.__setup_tool_config(conf)
+        self.__setup_object_store(conf)
+        self.__setup_dependency_manager(conf)
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
         self.__setup_routes()
-        self.__setup_object_store(conf)
 
     def shutdown(self):
         for manager in self.managers.values():
@@ -113,6 +115,11 @@ class LwrApp(RoutingApp):
             umask=int(conf.get("object_store_umask", "0000")),
         )
         self.object_store = build_object_store_from_config(object_store_config)
+
+    def __setup_dependency_manager(self, conf):
+        dependencies_dir = conf.get("tool_dependency_dir", "dependencies")
+        resolvers_config_file = conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml")
+        self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file)
 
     def __add_route_for_function(self, function):
         route_suffix = '/%s' % function.__name__

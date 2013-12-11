@@ -350,7 +350,7 @@ def submit_job(client, client_job_description, job_config=None):
     file_stager = FileStager(client, client_job_description, job_config)
     rebuilt_command_line = file_stager.get_rewritten_command_line()
     job_id = file_stager.job_id
-    client.launch(rebuilt_command_line)
+    client.launch(rebuilt_command_line, requirements=client_job_description.requirements)
     return job_id
 
 
@@ -383,15 +383,17 @@ class ClientJobDescription(object):
         Directory containing tool to execute (if a wrapper is used, it will be transferred to remote server).
     working_directory : str
         Local path created by Galaxy for running this job.
+    requirements : list
+        List of requirements for tool execution.
     """
 
-    def __init__(self, tool, command_line, config_files, input_files, output_files, working_directory):
+    def __init__(self, tool, command_line, config_files, input_files, output_files, working_directory, requirements):
         self.tool = tool
         self.command_line = command_line
         self.config_files = config_files
         self.input_files = input_files
         self.output_files = output_files
         self.working_directory = working_directory
-
+        self.requirements = requirements
 
 __all__ = [submit_job, ClientJobDescription, finish_job]

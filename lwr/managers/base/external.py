@@ -36,7 +36,8 @@ class ExternalBaseManager(DirectoryBaseManager):
             raise KeyError("Failed to find external id for job_id %s" % job_id)
         return self._get_status_external(external_id)
 
-    def _setup_job_file(self, job_id, command_line):
+    def _setup_job_file(self, job_id, command_line, requirements=[]):
+        command_line = self._expand_command_line(command_line, requirements)
         script_env = self._job_template_env(job_id, command_line=command_line)
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)

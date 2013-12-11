@@ -7,14 +7,18 @@ import traceback
 from io import open
 
 from lwr.lwr_client import submit_job, finish_job, ClientManager, ClientJobDescription
+from galaxy.tools.deps.requirements import ToolRequirement
 
 TEST_SCRIPT = b"""
 import sys
+from os import getenv
+
 config_input = open(sys.argv[1], 'r')
 input_input = open(sys.argv[2], 'r')
 output = open(sys.argv[3], 'w')
 output2 = open(sys.argv[5], 'w')
 output2_contents = sys.argv[6]
+output3 = open(sys.argv[7], 'w')
 try:
     assert input_input.read() == "Hello world input!!@!"
     contents = config_input.read(1024)
@@ -22,14 +26,17 @@ try:
     open("workdir_output", "w").write("WORK DIR OUTPUT")
     output2.write(output2_contents)
     with open("galaxy.json", "w") as f: f.write("GALAXY_JSON")
+    output3.write(getenv("MOO", "moo_default"))
 finally:
     output.close()
     config_input.close()
     output2.close()
+    output3.close()
 """
 
 EXPECTED_OUTPUT = b"hello world output"
 EXAMPLE_UNICODE_TEXT = u'єχαмρℓє συтρυт'
+TEST_REQUIREMENT = ToolRequirement(name="dep1", version="1.1", type="package")
 
 
 class MockTool(object):
@@ -53,6 +60,7 @@ def run(options):
         temp_tool_path = os.path.join(temp_directory, "t", "script.py")
         temp_output_path = os.path.join(temp_directory, "output")
         temp_output2_path = os.path.join(temp_directory, "output2")
+        temp_output3_path = os.path.join(temp_directory, "output3")
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
@@ -67,12 +75,18 @@ def run(options):
             empty_input,
             temp_output2_path,
             EXAMPLE_UNICODE_TEXT,
+            temp_output3_path,
         )
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
-        output_files = [temp_output_path, temp_output2_path]
+        output_files = [temp_output_path, temp_output2_path, temp_output3_path]
         client = __client(options)
+        requirements = []
+        test_requirement = options.get("test_requirement", False)
+        if test_requirement:
+            requirements.append(TEST_REQUIREMENT)
+
         job_description = ClientJobDescription(
             command_line=command_line,
             tool=MockTool(temp_tool_dir),
@@ -80,6 +94,7 @@ def run(options):
             input_files=input_files,
             output_files=output_files,
             working_directory=temp_work_dir,
+            requirements=requirements,
         )
         submit_job(client, job_description)
         result_status = client.wait()
@@ -94,10 +109,13 @@ def run(options):
         )
         failed = finish_job(**finish_args)
         if failed:
-            raise Exception("Failed to finish job correctly")
+            raise Exception("Failed to finish job correctly - %s" % result_status)
         __check_outputs(temp_output_path, temp_output2_path)
         __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON")
-
+        if test_requirement:
+            __assert_contents(temp_output3_path, "moo_override")
+        else:
+            __assert_contents(temp_output3_path, "moo_default")
         __exercise_errors(options, client, temp_output_path, temp_directory)
     except BaseException:
         if not options.suppress_output:
@@ -115,11 +133,11 @@ def __check_outputs(temp_output_path, temp_output2_path):
     __assert_contents(temp_output2_path, EXAMPLE_UNICODE_TEXT)
 
 
-def __assert_contents(path, contents):
-    file = open(path, 'rb')
+def __assert_contents(path, expected_contents):
+    file = open(path, 'r', encoding="utf-8")
     try:
         contents = file.read()
-        assert contents == contents, "Invalid contents: %s" % contents
+        assert contents == expected_contents, "Invalid contents: %s" % contents
     finally:
         file.close()
 

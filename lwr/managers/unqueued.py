@@ -170,12 +170,14 @@ class Manager(DirectoryBaseManager):
         else:
             self._monitor_execution(job_id, proc, stdout, stderr)
 
-    def launch(self, job_id, command_line, submit_params={}):
-        self._prepare_run(job_id, command_line)
+    def launch(self, job_id, command_line, submit_params={}, requirements=[]):
+        command_line = self._prepare_run(job_id, command_line, requirements=requirements)
         self._run(job_id, command_line)
 
-    def _prepare_run(self, job_id, command_line):
+    def _prepare_run(self, job_id, command_line, requirements):
         self._check_execution_with_tool_file(job_id, command_line)
         self._record_submission(job_id)
+        command_line = self._expand_command_line(command_line, requirements)
+        return command_line
 
 __all__ = [Manager]
