@@ -295,15 +295,6 @@ class FileStager(object):
         return self.job_inputs.rewritten_command_line
 
 
-class JobResultFetcher(object):
-
-    def __init__(self, client):
-        self.client = client
-        self.action_mapper = FileActionMapper(client)
-        self.download_failure_exceptions = []
-        self.downloaded_working_directory_files = []
-
-
 def finish_job(client, cleanup_job, job_completed_normally, working_directory, work_dir_outputs, output_files, working_directory_contents=[]):
     """
     """
