@@ -37,6 +37,7 @@ class LwrController(Controller):
 @LwrController(response_type='json')
 def setup(manager, job_id, tool_id=None, tool_version=None):
     job_id = manager.setup_job(job_id, tool_id, tool_version)
+    inputs_directory = manager.inputs_directory(job_id)
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)
     configs_directory = manager.configs_directory(job_id)
@@ -46,6 +47,7 @@ def setup(manager, job_id, tool_id=None, tool_version=None):
         "outputs_directory": outputs_directory,
         "configs_directory": configs_directory,
         "tools_directory": tools_directory,
+        "inputs_directory": inputs_directory,
         "path_separator": os.sep,
         "job_id": job_id,
         "system_properties": manager.system_properties,
