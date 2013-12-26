@@ -124,26 +124,26 @@ class TransferTracker(object):
         if contents:
             # If contents loaded in memory, no need to write out file and copy,
             # just transfer.
-            action = ('transfer', )
+            action_type = 'transfer'
         else:
             if not exists(path):
                 message = "handle_tranfer called on non-existent file - [%s]" % path
                 log.warn(message)
                 raise Exception(message)
-            action = self.__action(path, type)
+            action_type = self.__action(path, type).action_type
 
-        if action[0] in ['transfer', 'copy']:
+        if action_type in ['transfer', 'copy']:
             response = self.client.put_file(path, type, name=name, contents=contents)
             self.register_rewrite(path, response['path'], type, force=True)
-        elif action[0] == 'none':
+        elif action_type == 'none':
             # No action for this file.
             pass
         else:
-            raise Exception("Unknown action type (%s) encountered for path (%s)" % (action[0], path))
+            raise Exception("Unknown action type (%s) encountered for path (%s)" % (action_type, path))
 
     def register_rewrite(self, local_path, remote_path, type, force=False):
         action = self.__action(local_path, type)
-        if action[0] in ['transfer', 'copy'] or force:
+        if action.action_type in ['transfer', 'copy'] or force:
             self.file_renames[local_path] = remote_path
 
     def rewrite_input_paths(self):
@@ -314,7 +314,7 @@ def __download_results(client, working_directory, work_dir_outputs, output_files
         name = basename(source_file)
         with exception_tracker():
             action = action_mapper.action(output_file, 'output')
-            client.fetch_work_dir_output(name, working_directory, output_file, action[0])
+            client.fetch_work_dir_output(name, working_directory, output_file, action_type=action.action_type)
             downloaded_working_directory_files.append(name)
         # Remove from full output_files list so don't try to download directly.
         output_files.remove(output_file)
@@ -323,7 +323,7 @@ def __download_results(client, working_directory, work_dir_outputs, output_files
     for output_file in output_files:
         with exception_tracker():
             action = action_mapper.action(output_file, 'output')
-            client.fetch_output(output_file, working_directory=working_directory, action=action[0])
+            client.fetch_output(output_file, working_directory=working_directory, action_type=action.action_type)
 
     # Fetch remaining working directory outputs of interest.
     for name in working_directory_contents:
@@ -333,7 +333,7 @@ def __download_results(client, working_directory, work_dir_outputs, output_files
             with exception_tracker():
                 output_file = join(working_directory, name)
                 action = action_mapper.action(output_file, 'output')
-                client.fetch_work_dir_output(name, working_directory, output_file, action=action[0])
+                client.fetch_work_dir_output(name, working_directory, output_file, action_type=action.action_type)
                 downloaded_working_directory_files.append(name)
 
     return exception_tracker.download_failure_exceptions

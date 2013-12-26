@@ -30,22 +30,31 @@ class FileActionMapper(object):
     >>> mapper = FileActionMapper(MockClient())
     >>> unlink(f.name)
     >>> # Test first config line above, implicit path prefix mapper
-    >>> mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')[0] == u'none'
+    >>> action = mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
+    >>> action.action_type == u'none'
     True
+    >>> action.staging_needed
+    False
     >>> # Test another (2nd) mapper, this one with a different action
-    >>> mapper.action('/galaxy/data/files/000/dataset_1.dat', 'input')[0] == u'transfer'
+    >>> action = mapper.action('/galaxy/data/files/000/dataset_1.dat', 'input')
+    >>> action.action_type == u'transfer'
+    True
+    >>> action.staging_needed
     True
     >>> # Always at least copy work_dir outputs.
-    >>> mapper.action('/opt/galaxy/database/working_directory/45.sh', 'work_dir')[0] == u'copy'
+    >>> action = mapper.action('/opt/galaxy/database/working_directory/45.sh', 'work_dir')
+    >>> action.action_type == u'copy'
+    True
+    >>> action.staging_needed
     True
     >>> # Test glob mapper (matching test)
-    >>> mapper.action('/cool/bamfiles/projectABC/study1/patient3.bam', 'input')[0] == u'copy'
+    >>> mapper.action('/cool/bamfiles/projectABC/study1/patient3.bam', 'input').action_type == u'copy'
     True
     >>> # Test glob mapper (non-matching test)
-    >>> mapper.action('/cool/bamfiles/projectABC/study1/patient3.bam.bai', 'input')[0] == u'none'
+    >>> mapper.action('/cool/bamfiles/projectABC/study1/patient3.bam.bai', 'input').action_type == u'none'
     True
     >>> # Regex mapper test.
-    >>> mapper.action('/old/galaxy/data/dataset_10245.dat', 'input')[0] == u'copy'
+    >>> mapper.action('/old/galaxy/data/dataset_10245.dat', 'input').action_type == u'copy'
     True
     """
 
@@ -63,23 +72,62 @@ class FileActionMapper(object):
             self.mappers.append(mappers[map_type](path_config))
 
     def action(self, path, type):
-        action = self.default_action
+        action_type = self.default_action
         normalized_path = abspath(path)
         for mapper in self.mappers:
             if mapper.matches(normalized_path):
-                action = mapper.action
+                action_type = mapper.action_type
                 break
-        if type in ["work_dir", "output_task"] and action == "none":
+        if type in ["work_dir", "output_task"] and action_type == "none":
             ## We are changing the working_directory relative to what
             ## Galaxy would use, these need to be copied over.
-            action = "copy"
-        return (action,)
+            action_type = "copy"
+        action_class = actions.get(action_type, None)
+        if action_class is None:
+            message_template = "Unknown action_type encountered %s while trying to map path %s"
+            message_args = (action_type, path)
+            raise Exception(message_template % message_args)
+        return action_class(path)
+
+
+class NoneAction(object):
+    """ This action indicates the corresponding path does not require any
+    additional action. This should indicate paths that are available both on
+    the LWR client (i.e. Galaxy server) and remote LWR server with the same
+    paths. """
+    action_type = "none"
+    staging_needed = False
+
+    def __init__(self, path):
+        self.path = path
+
+
+class TransferAction(object):
+    """ This actions indicates that the LWR client should initiate an HTTP
+    transfer of the corresponding path to the remote LWR server before
+    launching the job. """
+    action_type = "transfer"
+    staging_needed = True
+
+    def __init__(self, path):
+        self.path = path
+
+
+class CopyAction(object):
+    """ This action indicates that the LWR client should execute a file system
+    copy of the corresponding path to the LWR staging directory prior to
+    launching the corresponding job. """
+    action_type = "copy"
+    staging_needed = True
+
+    def __init__(self, path):
+        self.path = path
 
 
 class BasePathMapper(object):
 
     def __init__(self, config):
-        self.action = config.get('action', DEFAULT_MAPPED_ACTION)
+        self.action_type = config.get('action', DEFAULT_MAPPED_ACTION)
 
 
 class PrefixPathMapper(BasePathMapper):
@@ -111,6 +159,9 @@ class RegexPathMapper(BasePathMapper):
     def matches(self, path):
         return self.pattern.match(path) is not None
 
+
+ACTION_CLASSES = [NoneAction, TransferAction, CopyAction]
+actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
 
 mappers = {
     'prefix': PrefixPathMapper,

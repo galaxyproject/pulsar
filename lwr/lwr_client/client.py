@@ -82,16 +82,16 @@ class JobClient(object):
         args = {"job_id": self.job_id, "name": name, "input_type": input_type}
         return self._raw_execute('input_path', args)
 
-    def put_file(self, path, input_type, name=None, contents=None, action='transfer'):
+    def put_file(self, path, input_type, name=None, contents=None, action_type='transfer'):
         if not name:
             name = os.path.basename(path)
         args = {"job_id": self.job_id, "name": name, "input_type": input_type}
         input_path = path
         if contents:
             input_path = None
-        if action == 'transfer':
+        if action_type == 'transfer':
             return self._upload_file(args, contents, input_path)
-        elif action == 'copy':
+        elif action_type == 'copy':
             lwr_path = self._raw_execute('input_path', args)
             self._copy(path, lwr_path)
             return {'path': lwr_path}
@@ -119,7 +119,7 @@ class JobClient(object):
         return self._raw_execute("get_output_type", {"name": name,
                                                      "job_id": self.job_id})
 
-    def fetch_output(self, path, working_directory, action='transfer'):
+    def fetch_output(self, path, working_directory, action_type='transfer'):
         """
         Download an output dataset from the remote server.
 
@@ -140,12 +140,12 @@ class JobClient(object):
             return
 
         output_path = self.__output_path(path, name, working_directory, output_type)
-        self.__populate_output_path(name, output_path, output_type, action)
+        self.__populate_output_path(name, output_path, output_type, action_type)
 
-    def __populate_output_path(self, name, output_path, output_type, action):
-        if action == 'transfer':
+    def __populate_output_path(self, name, output_path, output_type, action_type):
+        if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, output_type, output_path)
-        elif action == 'copy':
+        elif action_type == 'copy':
             lwr_path = self._output_path(name, self.job_id, output_type)['path']
             self._copy(lwr_path, output_path)
 
@@ -161,7 +161,7 @@ class JobClient(object):
             raise Exception("Unknown output_type returned from LWR server %s" % output_type)
         return output_path
 
-    def fetch_work_dir_output(self, name, working_directory, output_path, action='transfer'):
+    def fetch_work_dir_output(self, name, working_directory, output_path, action_type='transfer'):
         """
         Download an output dataset specified with from_work_dir from the
         remote server.
@@ -175,7 +175,7 @@ class JobClient(object):
         output_path : str
             Full path to output dataset.
         """
-        if action == 'transfer':
+        if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, "work_dir", output_path)
         else:  # Even if action is none - LWR has a different work_dir so this needs to be copied.
             lwr_path = self._output_path(name, self.job_id, 'work_dir')['path']
