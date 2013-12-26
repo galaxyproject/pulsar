@@ -40,10 +40,12 @@ def setup(manager, job_id, tool_id=None, tool_version=None):
     working_directory = manager.working_directory(job_id)
     outputs_directory = manager.outputs_directory(job_id)
     configs_directory = manager.configs_directory(job_id)
+    tools_directory = manager.tool_files_directory(job_id)
     response = {
         "working_directory": working_directory,
         "outputs_directory": outputs_directory,
         "configs_directory": configs_directory,
+        "tools_directory": tools_directory,
         "path_separator": os.sep,
         "job_id": job_id,
         "system_properties": manager.system_properties,
