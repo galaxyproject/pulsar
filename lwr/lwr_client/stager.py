@@ -268,7 +268,7 @@ class FileStager(object):
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
         # uploaded if present.
-        working_directory_files = listdir(self.working_directory) if exists(self.working_directory)  else []
+        working_directory_files = listdir(self.working_directory) if exists(self.working_directory) else []
         for working_directory_file in working_directory_files:
             path = join(self.working_directory, working_directory_file)
             self.transfer_tracker.handle_transfer(path, 'work_dir')
