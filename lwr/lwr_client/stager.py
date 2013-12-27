@@ -38,9 +38,9 @@ class JobInputs(object):
     ...     return inputs
     >>> inputs = setup_inputs(tf)
     >>> inputs.rewrite_paths(u"/path/to/input", u'C:\\input')
-    >>> inputs.rewritten_command_line == u'hello C:\\\\input'
+    >>> inputs.command_line == u'hello C:\\\\input'
     True
-    >>> inputs.rewritten_config_files[tf.name] == u'world C:\\\\input the rest'
+    >>> inputs.config_files[tf.name] == u'world C:\\\\input the rest'
     True
     >>> tf.close()
     >>> tf = tempfile.NamedTemporaryFile()
@@ -59,11 +59,11 @@ class JobInputs(object):
     """
 
     def __init__(self, command_line, config_files):
-        self.rewritten_command_line = command_line
-        self.rewritten_config_files = {}
+        self.command_line = command_line
+        self.config_files = {}
         for config_file in config_files or []:
             config_contents = _read(config_file)
-            self.rewritten_config_files[config_file] = config_contents
+            self.config_files[config_file] = config_contents
 
     def find_referenced_subfiles(self, directory):
         """
@@ -100,24 +100,25 @@ class JobInputs(object):
         self.__rewrite_config_files(local_path, remote_path)
 
     def __rewrite_command_line(self, local_path, remote_path):
-        self.rewritten_command_line = self.rewritten_command_line.replace(local_path, remote_path)
+        self.command_line = self.command_line.replace(local_path, remote_path)
 
     def __rewrite_config_files(self, local_path, remote_path):
-        for config_file, rewritten_contents in self.rewritten_config_files.items():
-            self.rewritten_config_files[config_file] = rewritten_contents.replace(local_path, remote_path)
+        for config_file, contents in self.config_files.items():
+            self.config_files[config_file] = contents.replace(local_path, remote_path)
 
     def __items(self):
-        items = [self.rewritten_command_line]
-        items.extend(self.rewritten_config_files.values())
+        items = [self.command_line]
+        items.extend(self.config_files.values())
         return items
 
 
 class TransferTracker(object):
 
-    def __init__(self, client, job_inputs):
+    def __init__(self, client, job_inputs, rewrite_paths):
         self.client = client
         self.action_mapper = FileActionMapper(client)
         self.job_inputs = job_inputs
+        self.rewrite_paths = rewrite_paths
         self.file_renames = {}
 
     def handle_transfer(self, path, type, name=None, contents=None):
@@ -134,7 +135,9 @@ class TransferTracker(object):
 
         if action_type in ['transfer', 'copy']:
             response = self.client.put_file(path, type, name=name, contents=contents)
-            self.register_rewrite(path, response['path'], type, force=True)
+            register = self.rewrite_paths or type == 'tool'  # Even if inputs not rewritten, tool must be.
+            if register:
+                self.register_rewrite(path, response['path'], type, force=True)
         elif action_type == 'none':
             # No action for this file.
             pass
@@ -183,22 +186,26 @@ class FileStager(object):
         self.tool_version = client_job_description.tool.version
         self.tool_dir = abspath(client_job_description.tool.tool_dir)
         self.working_directory = client_job_description.working_directory
+        self.rewrite_paths = client_job_description.rewrite_paths
 
         # Setup job inputs, these will need to be rewritten before
         # shipping off to remote LWR server.
         self.job_inputs = JobInputs(self.command_line, self.config_files)
 
-        self.transfer_tracker = TransferTracker(client, self.job_inputs)
+        self.transfer_tracker = TransferTracker(client, self.job_inputs, rewrite_paths=self.rewrite_paths)
 
         self.__handle_setup(job_config)
         self.__initialize_referenced_tool_files()
         self.__upload_tool_files()
         self.__upload_input_files()
         self.__upload_working_directory_files()
-        self.__initialize_output_file_renames()
-        self.__initialize_task_output_file_renames()
-        self.__initialize_config_file_renames()
+
+        if self.rewrite_paths:
+            self.__initialize_output_file_renames()
+            self.__initialize_task_output_file_renames()
+            self.__initialize_config_file_renames()
         self.__handle_rewrites()
+
         self.__upload_rewritten_config_files()
 
     def __handle_setup(self, job_config):
@@ -209,8 +216,8 @@ class FileStager(object):
         self.new_outputs_directory = job_config['outputs_directory']
         # Default configs_directory to match remote working_directory to mimic
         # behavior of older LWR servers.
-        self.new_configs_drectory = job_config.get('configs_directory', self.new_working_directory)
-        self.remote_path_separator = job_config['path_separator']
+        self.new_configs_directory = job_config.get('configs_directory', self.new_working_directory)
+        self.remote_separator = self.__parse_remote_separator(job_config)
         # If remote LWR server assigned job id, use that otherwise
         # just use local job_id assigned.
         galaxy_job_id = self.client.job_id
@@ -219,6 +226,12 @@ class FileStager(object):
             # Remote LWR server assigned an id different than the
             # Galaxy job id, update client to reflect this.
             self.client.job_id = self.job_id
+
+    def __parse_remote_separator(self, job_config):
+        separator = job_config.get("system_properties", {}).get("separator", None)
+        if not separator:  # Legacy LWR
+            separator = job_config["path_separator"]  # Poorly named
+        return separator
 
     def __initialize_referenced_tool_files(self):
         self.referenced_tool_files = self.job_inputs.find_referenced_subfiles(self.tool_dir)
@@ -233,7 +246,7 @@ class FileStager(object):
             self.__upload_input_extra_files(input_file)
 
     def __upload_input_file(self, input_file):
-        if self.job_inputs.path_referenced(input_file):
+        if self.__stage_input(input_file):
             if exists(input_file):
                 self.transfer_tracker.handle_transfer(input_file, 'input')
             else:
@@ -245,7 +258,7 @@ class FileStager(object):
         # TODO: Determine if this is object store safe and what needs to be
         # done if it is not.
         files_path = "%s_files" % input_file[0:-len(".dat")]
-        if exists(files_path) and self.job_inputs.path_referenced(files_path):
+        if exists(files_path) and self.__stage_input(files_path):
             for extra_file in listdir(files_path):
                 extra_file_path = join(files_path, extra_file)
                 relative_path = basename(files_path)
@@ -255,25 +268,26 @@ class FileStager(object):
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
         # uploaded if present.
-        for working_directory_file in listdir(self.working_directory):
+        working_directory_files = listdir(self.working_directory) if exists(self.working_directory)  else []
+        for working_directory_file in working_directory_files:
             path = join(self.working_directory, working_directory_file)
             self.transfer_tracker.handle_transfer(path, 'work_dir')
 
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:
-            remote_path = r'%s%s%s' % (self.new_outputs_directory, self.remote_path_separator, basename(output_file))
+            remote_path = r'%s%s%s' % (self.new_outputs_directory, self.remote_separator, basename(output_file))
             self.transfer_tracker.register_rewrite(output_file, remote_path, 'output')
 
     def __initialize_task_output_file_renames(self):
         for output_file in self.output_files:
             name = basename(output_file)
             task_file = join(self.working_directory, name)
-            remote_path = r'%s%s%s' % (self.new_working_directory, self.remote_path_separator, name)
+            remote_path = r'%s%s%s' % (self.new_working_directory, self.remote_separator, name)
             self.transfer_tracker.register_rewrite(task_file, remote_path, 'output_task')
 
     def __initialize_config_file_renames(self):
         for config_file in self.config_files:
-            remote_path = r'%s%s%s' % (self.new_configs_drectory, self.remote_path_separator, basename(config_file))
+            remote_path = r'%s%s%s' % (self.new_configs_directory, self.remote_separator, basename(config_file))
             self.transfer_tracker.register_rewrite(config_file, remote_path, 'config')
 
     def __handle_rewrites(self):
@@ -284,15 +298,20 @@ class FileStager(object):
         self.transfer_tracker.rewrite_input_paths()
 
     def __upload_rewritten_config_files(self):
-        for config_file, new_config_contents in self.job_inputs.rewritten_config_files.items():
+        for config_file, new_config_contents in self.job_inputs.config_files.items():
             self.client.put_file(config_file, input_type='config', contents=new_config_contents)
 
-    def get_rewritten_command_line(self):
+    def get_command_line(self):
         """
         Returns the rewritten version of the command line to execute suitable
         for remote host.
         """
-        return self.job_inputs.rewritten_command_line
+        return self.job_inputs.command_line
+
+    def __stage_input(self, file_path):
+        # If we have disabled path rewriting, just assume everything needs to be transferred,
+        # else check to ensure the file is referenced before transferring it.
+        return (not self.rewrite_paths) or self.job_inputs.path_referenced(file_path)
 
 
 def finish_job(client, cleanup_job, job_completed_normally, working_directory, work_dir_outputs, output_files, working_directory_contents=[]):
@@ -366,7 +385,7 @@ def submit_job(client, client_job_description, job_config=None):
     """
     """
     file_stager = FileStager(client, client_job_description, job_config)
-    rebuilt_command_line = file_stager.get_rewritten_command_line()
+    rebuilt_command_line = file_stager.get_command_line()
     job_id = file_stager.job_id
     client.launch(rebuilt_command_line, requirements=client_job_description.requirements)
     return job_id
@@ -403,9 +422,12 @@ class ClientJobDescription(object):
         Local path created by Galaxy for running this job.
     requirements : list
         List of requirements for tool execution.
+    rewrite_paths : boolean
+        Indicates whether paths should be rewritten in job inputs (command_line
+        and config files) while staging files).
     """
 
-    def __init__(self, tool, command_line, config_files, input_files, output_files, working_directory, requirements):
+    def __init__(self, tool, command_line, config_files, input_files, output_files, working_directory, requirements, rewrite_paths=True):
         self.tool = tool
         self.command_line = command_line
         self.config_files = config_files
@@ -413,5 +435,6 @@ class ClientJobDescription(object):
         self.output_files = output_files
         self.working_directory = working_directory
         self.requirements = requirements
+        self.rewrite_paths = rewrite_paths
 
 __all__ = [submit_job, ClientJobDescription, finish_job]

@@ -117,6 +117,7 @@ class SimpleToolConfig(ToolConfig):
         root = self._root()
         self.id = root.get('id')
         self.version = root.get('version', '1.0.0')
+        self.tool_dir = dirname(resolved_path)
 
 
 class ToolShedToolConfig(SimpleToolConfig):

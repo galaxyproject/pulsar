@@ -10,5 +10,14 @@ from .stager import submit_job, finish_job, ClientJobDescription
 from .client import OutputNotFoundException
 from .manager import ClientManager
 from .destination import url_to_destination_params
+from .path_mapper import PathMapper
 
-__all__ = [ClientManager, OutputNotFoundException, url_to_destination_params, finish_job, submit_job, ClientJobDescription]
+__all__ = [
+    ClientManager,
+    OutputNotFoundException,
+    url_to_destination_params,
+    finish_job,
+    submit_job,
+    ClientJobDescription,
+    PathMapper
+]

@@ -36,6 +36,10 @@ def get_test_toolbox():
     return toolbox
 
 
+def get_test_tool():
+    return get_test_toolbox().get_tool("tool1")
+
+
 class TestManager(object):
 
     def setup_temp_directory(self):
