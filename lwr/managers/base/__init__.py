@@ -4,10 +4,13 @@ Base Classes and Infrastructure Supporting Concret Manager Implementations.
 
 """
 from os.path import exists, isdir, join, basename
+from os.path import relpath
+from os import curdir
 from os import listdir
 from os import makedirs
 from os import sep
 from os import getenv
+from os import walk
 from uuid import uuid4
 
 from lwr.util import JobDirectory
@@ -99,7 +102,15 @@ class BaseManager(ManagerInterface):
 
     def working_directory_contents(self, job_id):
         working_directory = self.working_directory(job_id)
-        return listdir(working_directory)
+        contents = []
+        for path, _, files in walk(working_directory):
+            relative_path = relpath(path, working_directory)
+            for name in files:
+                if relative_path != curdir:
+                    contents.append(join(relative_path, name))
+                else:
+                    contents.append(name)
+        return contents
 
     def inputs_directory(self, job_id):
         return self._job_directory(job_id).inputs_directory()

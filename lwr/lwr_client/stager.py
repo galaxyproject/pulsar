@@ -14,7 +14,7 @@ log = getLogger(__name__)
 # this pattern picks up attiditional files to copy back - such as those
 # associated with multiple outputs and metadata configuration. Set to .* to just
 # copy everything
-COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*")
+COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*|dataset_.*_files/*")
 
 
 class JobInputs(object):
