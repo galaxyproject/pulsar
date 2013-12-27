@@ -102,10 +102,19 @@ class BaseManager(ManagerInterface):
 
     def working_directory_contents(self, job_id):
         working_directory = self.working_directory(job_id)
+        return self.__directory_contents(working_directory)
+
+    def outputs_directory_contents(self, job_id):
+        outputs_directory = self.outputs_directory(job_id)
+        return self.__directory_contents(outputs_directory)
+
+    def __directory_contents(self, directory):
         contents = []
-        for path, _, files in walk(working_directory):
-            relative_path = relpath(path, working_directory)
+        for path, _, files in walk(directory):
+            relative_path = relpath(path, directory)
             for name in files:
+                # Return file1.txt, dataset_1_files/image.png, etc... don't
+                # include . in path.
                 if relative_path != curdir:
                     contents.append(join(relative_path, name))
                 else:
