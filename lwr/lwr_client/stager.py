@@ -1,4 +1,6 @@
 from os.path import abspath, basename, join, exists
+from os.path import dirname
+from os.path import relpath
 from os import listdir, sep
 from re import findall
 from re import compile
@@ -6,6 +8,9 @@ from io import open
 from contextlib import contextmanager
 
 from .action_mapper import FileActionMapper
+from .util import PathHelper
+from .util import directory_files
+
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -14,7 +19,7 @@ log = getLogger(__name__)
 # this pattern picks up attiditional files to copy back - such as those
 # associated with multiple outputs and metadata configuration. Set to .* to just
 # copy everything
-COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*|dataset_.*_files/*")
+COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*|dataset_.*_files.+")
 
 
 class JobInputs(object):
@@ -218,6 +223,7 @@ class FileStager(object):
         # behavior of older LWR servers.
         self.new_configs_directory = job_config.get('configs_directory', self.new_working_directory)
         self.remote_separator = self.__parse_remote_separator(job_config)
+        self.path_helper = PathHelper(self.remote_separator)
         # If remote LWR server assigned job id, use that otherwise
         # just use local job_id assigned.
         galaxy_job_id = self.client.job_id
@@ -255,15 +261,12 @@ class FileStager(object):
                 log.debug(message)
 
     def __upload_input_extra_files(self, input_file):
-        # TODO: Determine if this is object store safe and what needs to be
-        # done if it is not.
         files_path = "%s_files" % input_file[0:-len(".dat")]
         if exists(files_path) and self.__stage_input(files_path):
-            for extra_file in listdir(files_path):
-                extra_file_path = join(files_path, extra_file)
-                relative_path = basename(files_path)
-                extra_file_relative_path = join(relative_path, extra_file)
-                self.transfer_tracker.handle_transfer(extra_file_path, 'input_extra', name=extra_file_relative_path)
+            for extra_file_name in directory_files(files_path):
+                extra_file_path = join(files_path, extra_file_name)
+                remote_name = self.path_helper.remote_name(relpath(extra_file_path, dirname(files_path)))
+                self.transfer_tracker.handle_transfer(extra_file_path, 'input_extra', name=remote_name)
 
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
@@ -275,19 +278,19 @@ class FileStager(object):
 
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:
-            remote_path = r'%s%s%s' % (self.new_outputs_directory, self.remote_separator, basename(output_file))
+            remote_path = self.path_helper.remote_join(self.new_outputs_directory, basename(output_file))
             self.transfer_tracker.register_rewrite(output_file, remote_path, 'output')
 
     def __initialize_task_output_file_renames(self):
         for output_file in self.output_files:
             name = basename(output_file)
             task_file = join(self.working_directory, name)
-            remote_path = r'%s%s%s' % (self.new_working_directory, self.remote_separator, name)
+            remote_path = self.path_helper.remote_join(self.new_working_directory, name)
             self.transfer_tracker.register_rewrite(task_file, remote_path, 'output_task')
 
     def __initialize_config_file_renames(self):
         for config_file in self.config_files:
-            remote_path = r'%s%s%s' % (self.new_configs_directory, self.remote_separator, basename(config_file))
+            remote_path = self.path_helper.remote_join(self.new_configs_directory, basename(config_file))
             self.transfer_tracker.register_rewrite(config_file, remote_path, 'config')
 
     def __handle_rewrites(self):
@@ -314,35 +317,100 @@ class FileStager(object):
         return (not self.rewrite_paths) or self.job_inputs.path_referenced(file_path)
 
 
-def finish_job(client, cleanup_job, job_completed_normally, working_directory, work_dir_outputs, output_files, working_directory_contents=[]):
+def finish_job(client, cleanup_job, job_completed_normally, galaxy_outputs, lwr_outputs):
     """
     """
     download_failure_exceptions = []
     if job_completed_normally:
-        download_failure_exceptions = __download_results(client, working_directory, work_dir_outputs, output_files, working_directory_contents)
+        download_failure_exceptions = __download_results(client, galaxy_outputs, lwr_outputs)
     return __clean(download_failure_exceptions, cleanup_job, client)
 
 
-def __download_results(client, working_directory, work_dir_outputs, output_files, working_directory_contents):
+class GalaxyOutputs(object):
+    """ Abstraction describing the output datasets EXPECTED by the Galaxy job
+    runner client. """
+
+    def __init__(self, working_directory, work_dir_outputs, output_files):
+        self.working_directory = working_directory
+        self.work_dir_outputs = work_dir_outputs
+        self.output_files = output_files
+
+
+class LwrOutputs(object):
+    """ Abstraction describing the output files PRODUCED by the remote LWR
+    server. """
+
+    def __init__(self, complete_response):
+        # Default to None instead of [] to distinguish between empty contents and it not set
+        # by the LWR - older LWR instances will not set these in complete response.
+        self.working_directory_contents = complete_response.get("working_directory_contents", None)
+        self.output_directory_contents = complete_response.get("outputs_directory_contents", None)
+        # Older (pre-2014) LWR servers will not include separator in response,
+        #so this should only be used when reasoning about outputs in
+        # subdirectories which was not previously supported.
+        self.path_helper = PathHelper(complete_response.get("system_properties", {}).get("separator", sep))
+
+    def has_output_file(self, output_file):
+        if self.output_directory_contents is None:
+            # Legacy LWR doesn't report this, return None indicating unsure if
+            # output was generated.
+            return None
+        else:
+            return basename(output_file) in self.output_directory_contents
+
+    def has_output_directory_listing(self):
+        return self.output_directory_contents is not None
+
+    def output_extras(self, output_file):
+        """
+        Returns dict mapping local path to remote name.
+        """
+        output_directory = dirname(output_file)
+
+        def local_path(name):
+            return join(output_directory, self.path_helper.local_name(name))
+
+        files_directory = "%s_files%s" % (basename(output_file)[0:-len(".dat")], self.path_helper.separator)
+        names = filter(lambda o: o.startswith(files_directory),  self.output_directory_contents)
+        return dict(map(lambda name: (local_path(name), name), names))
+
+
+def __download_results(client, galaxy_outputs, lwr_outputs):
     action_mapper = FileActionMapper(client)
     downloaded_working_directory_files = []
     exception_tracker = DownloadExceptionTracker()
+    working_directory = galaxy_outputs.working_directory
+    output_files = galaxy_outputs.output_files
+    working_directory_contents = lwr_outputs.working_directory_contents or []
 
     # Fetch explicit working directory outputs.
-    for source_file, output_file in work_dir_outputs:
-        name = basename(source_file)
+    for source_file, output_file in galaxy_outputs.work_dir_outputs:
+        name = relpath(source_file, working_directory)
+        remote_name = lwr_outputs.path_helper.remote_name(name)
         with exception_tracker():
             action = action_mapper.action(output_file, 'output')
-            client.fetch_work_dir_output(name, working_directory, output_file, action_type=action.action_type)
-            downloaded_working_directory_files.append(name)
+            client.fetch_work_dir_output(remote_name, working_directory, output_file, action_type=action.action_type)
+            downloaded_working_directory_files.append(remote_name)
         # Remove from full output_files list so don't try to download directly.
         output_files.remove(output_file)
 
-    # Fetch output files.
+    # Legacy LWR not returning list of files, iterate over the list of
+    # expected outputs for tool.
     for output_file in output_files:
+        # Fetch ouptut directly...
         with exception_tracker():
             action = action_mapper.action(output_file, 'output')
-            client.fetch_output(output_file, working_directory=working_directory, action_type=action.action_type)
+            output_generated = lwr_outputs.has_output_file(output_file)
+            if output_generated is None:
+                client.fetch_output(output_file, check_exists_remotely=True, action_type=action.action_type)
+            elif output_generated:
+                client.fetch_output(output_file, action_type=action.action_type)
+
+        for local_path, remote_name in lwr_outputs.output_extras(output_file).iteritems():
+            with exception_tracker():
+                action = action_mapper.action(local_path, 'output')
+                client.fetch_output(path=local_path, name=remote_name, action_type=action.action_type)
+        # else not output generated, do not attempt download.
 
     # Fetch remaining working directory outputs of interest.
     for name in working_directory_contents:
@@ -350,7 +418,7 @@ def __download_results(client, working_directory, work_dir_outputs, output_files
             continue
         if COPY_FROM_WORKING_DIRECTORY_PATTERN.match(name):
             with exception_tracker():
-                output_file = join(working_directory, name)
+                output_file = join(working_directory, lwr_outputs.path_helper.local_name(name))
                 action = action_mapper.action(output_file, 'output')
                 client.fetch_work_dir_output(name, working_directory, output_file, action_type=action.action_type)
                 downloaded_working_directory_files.append(name)
@@ -437,4 +505,5 @@ class ClientJobDescription(object):
         self.requirements = requirements
         self.rewrite_paths = rewrite_paths
 
-__all__ = [submit_job, ClientJobDescription, finish_job]
+
+__all__ = [submit_job, ClientJobDescription, finish_job, LwrOutputs, GalaxyOutputs]

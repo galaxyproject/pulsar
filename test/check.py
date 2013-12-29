@@ -6,27 +6,39 @@ import optparse
 import traceback
 from io import open
 
-from lwr.lwr_client import submit_job, finish_job, ClientManager, ClientJobDescription
+from lwr.lwr_client import submit_job
+from lwr.lwr_client import finish_job
+from lwr.lwr_client import LwrOutputs
+from lwr.lwr_client import GalaxyOutputs
+from lwr.lwr_client import ClientManager
+from lwr.lwr_client import ClientJobDescription
 from galaxy.tools.deps.requirements import ToolRequirement
 
 TEST_SCRIPT = b"""
 import sys
 from os import getenv
+from os import makedirs
+from os.path import join
 
 config_input = open(sys.argv[1], 'r')
 input_input = open(sys.argv[2], 'r')
+input_extra = open(sys.argv[8], 'r')
 output = open(sys.argv[3], 'w')
 output2 = open(sys.argv[5], 'w')
 output2_contents = sys.argv[6]
 output3 = open(sys.argv[7], 'w')
 try:
     assert input_input.read() == "Hello world input!!@!"
+    assert input_extra.read() == "INPUT_EXTRA_CONTENTS"
     contents = config_input.read(1024)
     output.write(contents)
     open("workdir_output", "w").write("WORK DIR OUTPUT")
     output2.write(output2_contents)
     with open("galaxy.json", "w") as f: f.write("GALAXY_JSON")
     output3.write(getenv("MOO", "moo_default"))
+    output1_extras_path = "%s_files" % sys.argv[3][0:-len(".dat")]
+    makedirs(output1_extras_path)
+    open(join(output1_extras_path, "extra"), "w").write("EXTRA_OUTPUT_CONTENTS")
 finally:
     output.close()
     config_input.close()
@@ -55,14 +67,16 @@ def run(options):
 
         __makedirs([temp_tool_dir, temp_work_dir])
 
-        temp_input_path = os.path.join(temp_directory, "input.txt")
+        temp_input_path = os.path.join(temp_directory, "dataset_0.dat")
+        temp_input_extra_path = os.path.join(temp_directory, "dataset_0_files", "input_subdir", "extra")
         temp_config_path = os.path.join(temp_work_dir, "config.txt")
         temp_tool_path = os.path.join(temp_directory, "t", "script.py")
-        temp_output_path = os.path.join(temp_directory, "output")
-        temp_output2_path = os.path.join(temp_directory, "output2")
-        temp_output3_path = os.path.join(temp_directory, "output3")
+        temp_output_path = os.path.join(temp_directory, "dataset_1.dat")
+        temp_output2_path = os.path.join(temp_directory, "dataset_2.dat")
+        temp_output3_path = os.path.join(temp_directory, "dataset_3.dat")
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
+        __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
         __write_to_file(temp_tool_path, TEST_SCRIPT)
 
@@ -76,8 +90,9 @@ def run(options):
             temp_output2_path,
             EXAMPLE_UNICODE_TEXT,
             temp_output3_path,
+            temp_input_extra_path,
         )
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
         output_files = [temp_output_path, temp_output2_path, temp_output3_path]
@@ -98,20 +113,25 @@ def run(options):
         )
         submit_job(client, job_description)
         result_status = client.wait()
-        finish_args = dict(
-            client=client,
+        lwr_outputs = LwrOutputs(result_status)
+        galaxy_outputs = GalaxyOutputs(
             working_directory=temp_work_dir,
-            job_completed_normally=True,
-            cleanup_job='never',
             work_dir_outputs=[],
             output_files=output_files,
-            working_directory_contents=result_status['working_directory_contents'],
+        )
+        finish_args = dict(
+            client=client,
+            job_completed_normally=True,
+            cleanup_job='never',
+            galaxy_outputs=galaxy_outputs,
+            lwr_outputs=lwr_outputs,
         )
         failed = finish_job(**finish_args)
         if failed:
             raise Exception("Failed to finish job correctly - %s" % result_status)
         __check_outputs(temp_output_path, temp_output2_path)
         __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON")
+        __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS")
         if test_requirement:
             __assert_contents(temp_output3_path, "moo_override")
         else:
@@ -150,7 +170,7 @@ def __exercise_errors(options, client, temp_output_path, temp_directory):
     """
     if getattr(options, 'test_errors', False):
         try:
-            client.fetch_output(temp_output_path + "x", temp_directory)
+            client.fetch_output(temp_output_path + "x")
         except BaseException:
             if not options.suppress_output:
                 traceback.print_exc()
@@ -179,6 +199,9 @@ def __client_manager(options):
 
 
 def __write_to_file(path, contents):
+    dirname = os.path.dirname(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
     with open(path, "wb") as file:
         file.write(contents)
 

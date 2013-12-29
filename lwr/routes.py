@@ -83,6 +83,7 @@ def check_complete(manager, job_id):
             "stderr": stderr_contents,
             "working_directory_contents": manager.working_directory_contents(job_id),
             "outputs_directory_contents": manager.outputs_directory_contents(job_id),
+            "system_properties": manager.system_properties,
         }
         log.debug("Returning job complete response: %s" % response)
         return response
