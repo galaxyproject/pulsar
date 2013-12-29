@@ -19,6 +19,7 @@ import sys
 from os import getenv
 from os import makedirs
 from os.path import join
+from os.path import basename
 
 config_input = open(sys.argv[1], 'r')
 input_input = open(sys.argv[2], 'r')
@@ -27,6 +28,8 @@ output = open(sys.argv[3], 'w')
 output2 = open(sys.argv[5], 'w')
 output2_contents = sys.argv[6]
 output3 = open(sys.argv[7], 'w')
+assert basename(sys.argv[9]) == "COMMAND_VERSION"
+version_output = open(sys.argv[9], 'w')
 try:
     assert input_input.read() == "Hello world input!!@!"
     assert input_extra.read() == "INPUT_EXTRA_CONTENTS"
@@ -39,11 +42,13 @@ try:
     output1_extras_path = "%s_files" % sys.argv[3][0:-len(".dat")]
     makedirs(output1_extras_path)
     open(join(output1_extras_path, "extra"), "w").write("EXTRA_OUTPUT_CONTENTS")
+    version_output.write("1.0.1")
 finally:
     output.close()
     config_input.close()
     output2.close()
     output3.close()
+    version_output.close()
 """
 
 EXPECTED_OUTPUT = b"hello world output"
@@ -74,6 +79,7 @@ def run(options):
         temp_output_path = os.path.join(temp_directory, "dataset_1.dat")
         temp_output2_path = os.path.join(temp_directory, "dataset_2.dat")
         temp_output3_path = os.path.join(temp_directory, "dataset_3.dat")
+        temp_version_output_path = os.path.join(temp_directory, "GALAXY_VERSION_1234")
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
@@ -91,8 +97,9 @@ def run(options):
             EXAMPLE_UNICODE_TEXT,
             temp_output3_path,
             temp_input_extra_path,
+            temp_version_output_path,
         )
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
         output_files = [temp_output_path, temp_output2_path, temp_output3_path]
@@ -110,6 +117,7 @@ def run(options):
             output_files=output_files,
             working_directory=temp_work_dir,
             requirements=requirements,
+            version_file=temp_version_output_path,
         )
         submit_job(client, job_description)
         result_status = client.wait()
@@ -118,6 +126,7 @@ def run(options):
             working_directory=temp_work_dir,
             work_dir_outputs=[],
             output_files=output_files,
+            version_file=temp_version_output_path,
         )
         finish_args = dict(
             client=client,
@@ -132,6 +141,7 @@ def run(options):
         __check_outputs(temp_output_path, temp_output2_path)
         __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON")
         __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS")
+        __assert_contents(temp_version_output_path, b"1.0.1")
         if test_requirement:
             __assert_contents(temp_output3_path, "moo_override")
         else:

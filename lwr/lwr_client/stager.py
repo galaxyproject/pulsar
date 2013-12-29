@@ -20,6 +20,7 @@ log = getLogger(__name__)
 # associated with multiple outputs and metadata configuration. Set to .* to just
 # copy everything
 COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*|dataset_.*_files.+")
+COMMAND_VERSION_FILENAME = "COMMAND_VERSION"
 
 
 class JobInputs(object):
@@ -191,6 +192,7 @@ class FileStager(object):
         self.tool_version = client_job_description.tool.version
         self.tool_dir = abspath(client_job_description.tool.tool_dir)
         self.working_directory = client_job_description.working_directory
+        self.version_file = client_job_description.version_file
         self.rewrite_paths = client_job_description.rewrite_paths
 
         # Setup job inputs, these will need to be rewritten before
@@ -209,6 +211,8 @@ class FileStager(object):
             self.__initialize_output_file_renames()
             self.__initialize_task_output_file_renames()
             self.__initialize_config_file_renames()
+            self.__initialize_version_file_rename()
+
         self.__handle_rewrites()
 
         self.__upload_rewritten_config_files()
@@ -276,6 +280,12 @@ class FileStager(object):
             path = join(self.working_directory, working_directory_file)
             self.transfer_tracker.handle_transfer(path, 'work_dir')
 
+    def __initialize_version_file_rename(self):
+        version_file = self.version_file
+        if version_file:
+            remote_path = self.path_helper.remote_join(self.new_outputs_directory, COMMAND_VERSION_FILENAME)
+            self.transfer_tracker.register_rewrite(version_file, remote_path, "output")
+
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:
             remote_path = self.path_helper.remote_join(self.new_outputs_directory, basename(output_file))
@@ -330,10 +340,11 @@ class GalaxyOutputs(object):
     """ Abstraction describing the output datasets EXPECTED by the Galaxy job
     runner client. """
 
-    def __init__(self, working_directory, work_dir_outputs, output_files):
+    def __init__(self, working_directory, work_dir_outputs, output_files, version_file):
         self.working_directory = working_directory
         self.work_dir_outputs = work_dir_outputs
         self.output_files = output_files
+        self.version_file = version_file
 
 
 class LwrOutputs(object):
@@ -411,6 +422,11 @@ def __download_results(client, galaxy_outputs, lwr_outputs):
                 action = action_mapper.action(local_path, 'output')
                 client.fetch_output(path=local_path, name=remote_name, action_type=action.action_type)
         # else not output generated, do not attempt download.
+
+    version_file = galaxy_outputs.version_file
+    if version_file and COMMAND_VERSION_FILENAME in lwr_outputs.output_directory_contents:
+        action = action_mapper.action(output_file, 'version')
+        client.fetch_output(path=version_file, name=COMMAND_VERSION_FILENAME, action_type=action.action_type)
 
     # Fetch remaining working directory outputs of interest.
     for name in working_directory_contents:
@@ -490,12 +506,25 @@ class ClientJobDescription(object):
         Local path created by Galaxy for running this job.
     requirements : list
         List of requirements for tool execution.
+    version_file : str
+        Path to version file expected on the client server
     rewrite_paths : boolean
         Indicates whether paths should be rewritten in job inputs (command_line
         and config files) while staging files).
     """
 
-    def __init__(self, tool, command_line, config_files, input_files, output_files, working_directory, requirements, rewrite_paths=True):
+    def __init__(
+        self,
+        tool,
+        command_line,
+        config_files,
+        input_files,
+        output_files,
+        working_directory,
+        requirements,
+        version_file=None,
+        rewrite_paths=True,
+    ):
         self.tool = tool
         self.command_line = command_line
         self.config_files = config_files
@@ -503,6 +532,7 @@ class ClientJobDescription(object):
         self.output_files = output_files
         self.working_directory = working_directory
         self.requirements = requirements
+        self.version_file = version_file
         self.rewrite_paths = rewrite_paths
 
 
