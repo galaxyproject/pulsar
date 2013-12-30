@@ -58,7 +58,7 @@ class FileActionMapper(object):
     >>> action.staging_needed
     True
     >>> # Always at least copy work_dir outputs.
-    >>> action = mapper.action('/opt/galaxy/database/working_directory/45.sh', 'work_dir')
+    >>> action = mapper.action('/opt/galaxy/database/working_directory/45.sh', 'workdir')
     >>> action.action_type == u'copy'
     True
     >>> action.staging_needed
@@ -94,7 +94,7 @@ class FileActionMapper(object):
             if mapper.matches(normalized_path):
                 action_type = mapper.action_type
                 break
-        if type in ["work_dir", "output_task"] and action_type == "none":
+        if type in ["workdir", "output_workdir"] and action_type == "none":
             ## We are changing the working_directory relative to what
             ## Galaxy would use, these need to be copied over.
             action_type = "copy"
