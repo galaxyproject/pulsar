@@ -13,11 +13,11 @@ class TestStager(TempDirectoryTestCase):
     def setUp(self):
         super(TestStager, self).setUp()
         from .test_utils import get_test_tool
-        tool = get_test_tool()
-        self.client = MockClient(tool)
+        self.tool = get_test_tool()
+        self.client = MockClient(self.tool)
         inputs = self.__setup_inputs()
         self.client_job_description = ClientJobDescription(
-            tool=tool,
+            tool=self.tool,
             command_line="run_test.exe",
             config_files=[],
             input_files=inputs,
@@ -42,6 +42,19 @@ class TestStager(TempDirectoryTestCase):
         self.input2 = os.path.join(files_directory, "dataset_2.dat")
         open(self.input2, "wb").write(u"6789")
         return [self.input1, self.input2]
+
+    def test_tool_file_rewrite(self):
+        self.client_job_description.rewrite_paths = True
+        tool_dir = os.path.abspath(self.tool.tool_dir)
+        command_line = "python %s/tool1_wrapper.py" % tool_dir
+        self.client_job_description.command_line = command_line
+        rewritten_command_line = "python /lwr/staging/1/tools/tool1_wrapper.py"
+        self.client.expect_put_paths(["/lwr/staging/1/tools/tool1_wrapper.py"])
+        self.client.expect_command_line(rewritten_command_line)
+        self._submit()
+        uploaded_file1 = self.client.put_files[0]
+        assert uploaded_file1[1] == "tool"
+        self.assertEquals(uploaded_file1[0], "%s/tool1_wrapper.py" % tool_dir)
 
     def test_submit_no_rewrite(self):
         # Expect no rewrite of paths
@@ -85,11 +98,14 @@ class MockClient(object):
         self.expected_tool = tool
         self.job_id = "1234"
         self.expected_command_line = None
-        self.put_paths = deque([
+        self.expect_put_paths([
             '/lwr/staging/1/inputs/dataset_1.dat',
             '/lwr/staging/1/inputs/dataset_2.dat',
         ])
         self.put_files = []
+
+    def expect_put_paths(self, paths):
+        self.put_paths = deque(paths)
 
     def setup(self, tool_id, tool_version):
         assert tool_id == self.expected_tool.id
