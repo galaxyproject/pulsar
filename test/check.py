@@ -116,7 +116,7 @@ def run(options):
             output_files=output_files,
             working_directory=temp_work_dir,
             requirements=requirements,
-            version_file=None,
+            version_file=temp_version_output_path,
         )
         submit_job(client, job_description)
         result_status = client.wait()
@@ -125,7 +125,7 @@ def run(options):
             working_directory=temp_work_dir,
             work_dir_outputs=[],
             output_files=output_files,
-            version_file=None,
+            version_file=temp_version_output_path,
         )
         finish_args = dict(
             client=client,
@@ -137,14 +137,15 @@ def run(options):
         failed = finish_job(**finish_args)
         if failed:
             raise Exception("Failed to finish job correctly - %s" % result_status)
-        __check_outputs(temp_output_path, temp_output2_path)
-        __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON")
-        __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS")
-        __assert_contents(temp_version_output_path, b"1.0.1")
+        __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)
+        __assert_contents(temp_output2_path, EXAMPLE_UNICODE_TEXT, result_status)
+        __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON", result_status)
+        __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS", result_status)
+        __assert_contents(temp_version_output_path, b"1.0.1", result_status)
         if test_requirement:
-            __assert_contents(temp_output3_path, "moo_override")
+            __assert_contents(temp_output3_path, "moo_override", result_status)
         else:
-            __assert_contents(temp_output3_path, "moo_default")
+            __assert_contents(temp_output3_path, "moo_default", result_status)
         __exercise_errors(options, client, temp_output_path, temp_directory)
     except BaseException:
         if not options.suppress_output:
@@ -154,19 +155,14 @@ def run(options):
         shutil.rmtree(temp_directory)
 
 
-def __check_outputs(temp_output_path, temp_output2_path):
-    """
-    Verified the correct outputs were written (i.e. job ran properly).
-    """
-    __assert_contents(temp_output_path, EXPECTED_OUTPUT)
-    __assert_contents(temp_output2_path, EXAMPLE_UNICODE_TEXT)
-
-
-def __assert_contents(path, expected_contents):
+def __assert_contents(path, expected_contents, lwr_state):
     file = open(path, 'r', encoding="utf-8")
     try:
         contents = file.read()
-        assert contents == expected_contents, "Invalid contents: %s" % contents
+        if contents != expected_contents:
+            message = "File (%s) contained invalid contents [%s]." % (path, contents)
+            message = "%s Expected contents [%s]. Final LWR response state [%s]" % (message, expected_contents, lwr_state)
+            raise AssertionError(message)
     finally:
         file.close()
 
