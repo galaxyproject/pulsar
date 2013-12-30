@@ -233,6 +233,12 @@ class JobInputs(object):
             config_contents = _read(config_file)
             self.config_files[config_file] = config_contents
 
+    def find_pattern_references(self, pattern):
+        referenced_files = set()
+        for input_contents in self.__items():
+            referenced_files.update(findall(pattern, input_contents))
+        return list(referenced_files)
+
     def find_referenced_subfiles(self, directory):
         """
         Return list of files below specified `directory` in job inputs. Could
@@ -246,10 +252,7 @@ class JobInputs(object):
 
         """
         pattern = r"(%s%s\S+)" % (directory, sep)
-        referenced_files = set()
-        for input_contents in self.__items():
-            referenced_files.update(findall(pattern, input_contents))
-        return list(referenced_files)
+        return self.find_pattern_references(pattern)
 
     def path_referenced(self, path):
         pattern = r"%s" % path

@@ -38,6 +38,7 @@ class TestStager(TempDirectoryTestCase):
         files_directory = os.path.join(self.temp_directory, "files")
         os.makedirs(files_directory)
         self.input1 = os.path.join(files_directory, "dataset_1.dat")
+        self.input1_files_path = os.path.join(files_directory, "dataset_1_files")
         open(self.input1, "wb").write(u"012345")
         self.input2 = os.path.join(files_directory, "dataset_2.dat")
         open(self.input2, "wb").write(u"6789")
@@ -55,6 +56,20 @@ class TestStager(TempDirectoryTestCase):
         uploaded_file1 = self.client.put_files[0]
         assert uploaded_file1[1] == "tool"
         self.assertEquals(uploaded_file1[0], "%s/tool1_wrapper.py" % tool_dir)
+
+    def test_input_extra_rewrite(self):
+        self.client_job_description.rewrite_paths = True
+        extra_file = os.path.join(self.input1_files_path, "moo", "cow.txt")
+        os.makedirs(os.path.dirname(extra_file))
+        open(extra_file, "w").write("Hello World!")
+        command_line = "test.exe %s" % extra_file
+        self.client_job_description.command_line = command_line
+        self.client.expect_command_line("test.exe /lwr/staging/1/inputs/dataset_1_files/moo/cow.txt")
+        self.client.expect_put_paths(["/lwr/staging/1/inputs/dataset_1_files/moo/cow.txt"])
+        self._submit()
+        uploaded_file1 = self.client.put_files[0]
+        assert uploaded_file1[1] == "input"
+        assert uploaded_file1[0] == extra_file
 
     def test_submit_no_rewrite(self):
         # Expect no rewrite of paths
