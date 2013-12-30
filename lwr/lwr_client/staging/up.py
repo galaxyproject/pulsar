@@ -141,7 +141,7 @@ class FileStager(object):
         version_file = self.version_file
         if version_file:
             remote_path = self.path_helper.remote_join(self.new_outputs_directory, COMMAND_VERSION_FILENAME)
-            self.transfer_tracker.register_rewrite(version_file, remote_path, "output_workdir")
+            self.transfer_tracker.register_rewrite(version_file, remote_path, "output")
 
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:

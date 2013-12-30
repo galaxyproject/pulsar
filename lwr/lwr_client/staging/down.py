@@ -81,7 +81,7 @@ class ResultsDownloader(object):
     def __download_version_file(self):
         version_file = self.galaxy_outputs.version_file
         if version_file and COMMAND_VERSION_FILENAME in self.lwr_outputs.output_directory_contents:
-            action = self.action_mapper.action(version_file, 'output_workdir')
+            action = self.action_mapper.action(version_file, 'output')
             self.client.fetch_output(path=version_file, name=COMMAND_VERSION_FILENAME, action_type=action.action_type)
 
     def __download_other_working_directory_files(self):
