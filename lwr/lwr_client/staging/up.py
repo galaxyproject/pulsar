@@ -338,3 +338,6 @@ def _read(path):
         return input.read()
     finally:
         input.close()
+
+
+__all__ = [submit_job]

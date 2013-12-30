@@ -119,3 +119,5 @@ def __clean(download_failure_exceptions, cleanup_job, client):
         except:
             log.warn("Failed to cleanup remote LWR job")
     return failed
+
+__all__ = [finish_job]
