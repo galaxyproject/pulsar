@@ -17,68 +17,85 @@ COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_
 
 
 def finish_job(client, cleanup_job, job_completed_normally, galaxy_outputs, lwr_outputs):
-    """
+    """ Responsible for downloading results from remote server and cleaning up
+    LWR staging directory (if needed.)
     """
     download_failure_exceptions = []
     if job_completed_normally:
-        download_failure_exceptions = __download_results(client, galaxy_outputs, lwr_outputs)
+        downloader = ResultsDownloader(client, galaxy_outputs, lwr_outputs)
+        download_failure_exceptions = downloader.download()
     return __clean(download_failure_exceptions, cleanup_job, client)
 
 
-def __download_results(client, galaxy_outputs, lwr_outputs):
-    action_mapper = FileActionMapper(client)
-    downloaded_working_directory_files = []
-    exception_tracker = DownloadExceptionTracker()
-    working_directory = galaxy_outputs.working_directory
-    output_files = galaxy_outputs.output_files
-    working_directory_contents = lwr_outputs.working_directory_contents or []
+class ResultsDownloader(object):
 
-    # Fetch explicit working directory outputs.
-    for source_file, output_file in galaxy_outputs.work_dir_outputs:
-        name = relpath(source_file, working_directory)
-        remote_name = lwr_outputs.path_helper.remote_name(name)
-        with exception_tracker():
-            action = action_mapper.action(output_file, 'output')
-            client.fetch_work_dir_output(remote_name, working_directory, output_file, action_type=action.action_type)
-            downloaded_working_directory_files.append(remote_name)
-        # Remove from full output_files list so don't try to download directly.
-        output_files.remove(output_file)
+    def __init__(self, client, galaxy_outputs, lwr_outputs):
+        self.client = client
+        self.galaxy_outputs = galaxy_outputs
+        self.lwr_outputs = lwr_outputs
+        self.action_mapper = FileActionMapper(client)
+        self.downloaded_working_directory_files = []
+        self.exception_tracker = DownloadExceptionTracker()
+        self.output_files = galaxy_outputs.output_files
+        self.working_directory_contents = lwr_outputs.working_directory_contents or []
 
-    # Legacy LWR not returning list of files, iterate over the list of
-    # expected outputs for tool.
-    for output_file in output_files:
-        # Fetch ouptut directly...
-        with exception_tracker():
-            action = action_mapper.action(output_file, 'output')
-            output_generated = lwr_outputs.has_output_file(output_file)
-            if output_generated is None:
-                client.fetch_output(output_file, check_exists_remotely=True, action_type=action.action_type)
-            elif output_generated:
-                client.fetch_output(output_file, action_type=action.action_type)
+    def download(self):
+        self.__download_working_directory_outputs()
+        self.__download_outputs()
+        self.__download_version_file()
+        self.__download_other_working_directory_files()
+        return self.exception_tracker.download_failure_exceptions
 
-        for local_path, remote_name in lwr_outputs.output_extras(output_file).iteritems():
-            with exception_tracker():
-                action = action_mapper.action(local_path, 'output')
-                client.fetch_output(path=local_path, name=remote_name, action_type=action.action_type)
-        # else not output generated, do not attempt download.
+    def __download_working_directory_outputs(self):
+        working_directory = self.galaxy_outputs.working_directory
+        # Fetch explicit working directory outputs.
+        for source_file, output_file in self.galaxy_outputs.work_dir_outputs:
+            name = relpath(source_file, working_directory)
+            remote_name = self.lwr_outputs.path_helper.remote_name(name)
+            with self.exception_tracker():
+                action = self.action_mapper.action(output_file, 'output')
+                self.client.fetch_work_dir_output(remote_name, working_directory, output_file, action_type=action.action_type)
+                self.downloaded_working_directory_files.append(remote_name)
+            # Remove from full output_files list so don't try to download directly.
+            self.output_files.remove(output_file)
 
-    version_file = galaxy_outputs.version_file
-    if version_file and COMMAND_VERSION_FILENAME in lwr_outputs.output_directory_contents:
-        action = action_mapper.action(output_file, 'version')
-        client.fetch_output(path=version_file, name=COMMAND_VERSION_FILENAME, action_type=action.action_type)
+    def __download_outputs(self):
+        # Legacy LWR not returning list of files, iterate over the list of
+        # expected outputs for tool.
+        for output_file in self.output_files:
+            # Fetch ouptut directly...
+            with self.exception_tracker():
+                action = self.action_mapper.action(output_file, 'output')
+                output_generated = self.lwr_outputs.has_output_file(output_file)
+                if output_generated is None:
+                    self.client.fetch_output(output_file, check_exists_remotely=True, action_type=action.action_type)
+                elif output_generated:
+                    self.client.fetch_output(output_file, action_type=action.action_type)
 
-    # Fetch remaining working directory outputs of interest.
-    for name in working_directory_contents:
-        if name in downloaded_working_directory_files:
-            continue
-        if COPY_FROM_WORKING_DIRECTORY_PATTERN.match(name):
-            with exception_tracker():
-                output_file = join(working_directory, lwr_outputs.path_helper.local_name(name))
-                action = action_mapper.action(output_file, 'output')
-                client.fetch_work_dir_output(name, working_directory, output_file, action_type=action.action_type)
-                downloaded_working_directory_files.append(name)
+            for local_path, remote_name in self.lwr_outputs.output_extras(output_file).iteritems():
+                with self.exception_tracker():
+                    action = self.action_mapper.action(local_path, 'output')
+                    self.client.fetch_output(path=local_path, name=remote_name, action_type=action.action_type)
+            # else not output generated, do not attempt download.
 
-    return exception_tracker.download_failure_exceptions
+    def __download_version_file(self):
+        version_file = self.galaxy_outputs.version_file
+        if version_file and COMMAND_VERSION_FILENAME in self.lwr_outputs.output_directory_contents:
+            action = self.action_mapper.action(version_file, 'version')
+            self.client.fetch_output(path=version_file, name=COMMAND_VERSION_FILENAME, action_type=action.action_type)
+
+    def __download_other_working_directory_files(self):
+        working_directory = self.galaxy_outputs.working_directory
+        # Fetch remaining working directory outputs of interest.
+        for name in self.working_directory_contents:
+            if name in self.downloaded_working_directory_files:
+                continue
+            if COPY_FROM_WORKING_DIRECTORY_PATTERN.match(name):
+                with self.exception_tracker():
+                    output_file = join(working_directory, self.lwr_outputs.path_helper.local_name(name))
+                    action = self.action_mapper.action(output_file, 'output')
+                    self.client.fetch_work_dir_output(name, working_directory, output_file, action_type=action.action_type)
+                    self.downloaded_working_directory_files.append(name)
 
 
 class DownloadExceptionTracker(object):
