@@ -31,20 +31,20 @@ class FileActionMapper(object):
     >>> json_string = r'''{"paths": [ \
       {"path": "/opt/galaxy", "action": "none"}, \
       {"path": "/galaxy/data", "action": "transfer"}, \
-      {"path": "/cool/bamfiles/**/*.bam", "action": "copy", "type": "glob"}, \
-      {"path": ".*/dataset_\\\\d+.dat", "action": "copy", "type": "regex"} \
+      {"path": "/cool/bamfiles/**/*.bam", "action": "copy", "match_type": "glob"}, \
+      {"path": ".*/dataset_\\\\d+.dat", "action": "copy", "match_type": "regex"} \
     ]}'''
     >>> from tempfile import NamedTemporaryFile
     >>> from os import unlink
-    >>> f = NamedTemporaryFile(delete=False)
-    >>> write_result = f.write(json_string.encode('UTF-8'))
-    >>> f.close()
-    >>> class MockClient():
-    ...     default_file_action = 'none'
-    ...     action_config_path = f.name
-    ...
-    >>> mapper = FileActionMapper(MockClient())
-    >>> unlink(f.name)
+    >>> def mapper_for(config_contents):
+    ...     f = NamedTemporaryFile(delete=False)
+    ...     write_result = f.write(json_string.encode('UTF-8'))
+    ...     f.close()
+    ...     mock_client = Bunch(default_file_action='none', action_config_path=f.name)
+    ...     mapper = FileActionMapper(mock_client)
+    ...     unlink(f.name)
+    ...     return mapper
+    >>> mapper = mapper_for(json_string)
     >>> # Test first config line above, implicit path prefix mapper
     >>> action = mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
     >>> action.action_type == u'none'
@@ -84,7 +84,7 @@ class FileActionMapper(object):
     def __load_action_config(self, path):
         config = load(open(path, 'rb'))
         for path_config in config.get('paths', []):
-            map_type = path_config.get('type', DEFAULT_PATH_MAPPER_TYPE)
+            map_type = path_config.get('match_type', DEFAULT_PATH_MAPPER_TYPE)
             self.mappers.append(mappers[map_type](path_config))
 
     def action(self, path, type):
