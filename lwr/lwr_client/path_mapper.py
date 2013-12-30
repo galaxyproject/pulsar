@@ -1,5 +1,9 @@
 import os.path
 from .action_mapper import FileActionMapper
+from .action_mapper import path_type
+from .util import PathHelper
+
+from galaxy.util import in_directory
 
 
 class PathMapper(object):
@@ -14,35 +18,61 @@ class PathMapper(object):
     used.
     """
 
-    def __init__(self, client, remote_job_config):
-        self.action_mapper = FileActionMapper(client)
+    def __init__(
+        self,
+        client,
+        remote_job_config,
+        local_working_directory,
+        action_mapper=None,
+    ):
+        self.local_working_directory = local_working_directory
+        if not action_mapper:
+            action_mapper = FileActionMapper(client)
+        self.action_mapper = action_mapper
         self.input_directory = remote_job_config["inputs_directory"]
         self.output_directory = remote_job_config["outputs_directory"]
         self.working_directory = remote_job_config["working_directory"]
         self.config_directory = remote_job_config["configs_directory"]
-        self.separator = remote_job_config["system_properties"]["separator"]
+        separator = remote_job_config["system_properties"]["separator"]
+        self.path_helper = PathHelper(separator)
 
-    def remote_path_rewrite(self, dataset_path, path_type):
+    def remote_output_path_rewrite(self, local_path):
+        output_type = path_type.OUTPUT
+        if in_directory(local_path, self.local_working_directory):
+            output_type = path_type.OUTPUT_WORKDIR
+        remote_path = self.__remote_path_rewrite(local_path, output_type)
+        return remote_path
+
+    def remote_input_path_rewrite(self, local_path):
+        remote_path = self.__remote_path_rewrite(local_path, path_type.INPUT)
+        return remote_path
+
+    def remote_version_path_rewrite(self, local_path):
+        remote_path = self.__remote_path_rewrite(local_path, path_type.OUTPUT, name="COMMAND_VERSION")
+        return remote_path
+
+    def __remote_path_rewrite(self, dataset_path, dataset_path_type, name=None):
         """ Return remote path of this file (if staging is required) else None.
         """
         path = str(dataset_path)  # Use false_path if needed.
-        action = self.action_mapper.action(path, path_type)
+        action = self.action_mapper.action(path, dataset_path_type)
         remote_path_rewrite = None
         if action.staging_needed:
-            name = os.path.basename(path)
-            remote_directory = self.__remote_directory(path_type)
-            remote_path_rewrite = r"%s%s%s" % (remote_directory, self.separator, name)
+            if name is None:
+                name = os.path.basename(path)
+            remote_directory = self.__remote_directory(dataset_path_type)
+            remote_path_rewrite = self.path_helper.remote_join(remote_directory, name)
         return remote_path_rewrite
 
-    def __remote_directory(self, path_type):
-        if path_type in ["output"]:
+    def __remote_directory(self, dataset_path_type):
+        if dataset_path_type in [path_type.OUTPUT]:
             return self.output_directory
-        elif path_type in ["output_workdir", "workdir"]:
+        elif dataset_path_type in [path_type.WORKDIR, path_type.OUTPUT_WORKDIR]:
             return self.working_directory
-        elif path_type in ["input"]:
+        elif dataset_path_type in [path_type.INPUT]:
             return self.input_directory
         else:
-            message = "PathMapper cannot handle path type %s" % path_type
+            message = "PathMapper cannot handle path type %s" % dataset_path_type
             raise Exception(message)
 
 __all__ = [PathMapper]

@@ -243,6 +243,9 @@ def is_in_directory(file, directory, local_path_module=os.path):
     return local_path_module.commonprefix([file, directory]) == directory
 
 
+in_directory = is_in_directory  # For compat. w/Galaxy.
+
+
 def umask_fix_perms(path, umask, unmasked_perms, gid=None):
     """
     umask-friendly permissions fixing
