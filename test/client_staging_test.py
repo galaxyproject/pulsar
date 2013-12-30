@@ -1,7 +1,7 @@
 from collections import deque
 import os
 from .test_utils import TempDirectoryTestCase
-from lwr.lwr_client.stager import submit_job, ClientJobDescription
+from lwr.lwr_client import submit_job, ClientJobDescription
 from galaxy.tools.deps.requirements import ToolRequirement
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")

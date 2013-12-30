@@ -6,9 +6,11 @@ This module contains logic for interfacing with an external LWR server.
 
 """
 
-from .stager import submit_job, finish_job, ClientJobDescription
-from .stager import LwrOutputs
-from .stager import GalaxyOutputs
+from .staging.down import finish_job
+from .staging.up import submit_job
+from .staging import ClientJobDescription
+from .staging import LwrOutputs
+from .staging import GalaxyOutputs
 from .client import OutputNotFoundException
 from .manager import ClientManager
 from .destination import url_to_destination_params
