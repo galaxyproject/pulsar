@@ -28,7 +28,6 @@ output = open(sys.argv[3], 'w')
 output2 = open(sys.argv[5], 'w')
 output2_contents = sys.argv[6]
 output3 = open(sys.argv[7], 'w')
-assert basename(sys.argv[9]) == "COMMAND_VERSION"
 version_output = open(sys.argv[9], 'w')
 try:
     assert input_input.read() == "Hello world input!!@!"
@@ -117,7 +116,7 @@ def run(options):
             output_files=output_files,
             working_directory=temp_work_dir,
             requirements=requirements,
-            version_file=temp_version_output_path,
+            version_file=None,
         )
         submit_job(client, job_description)
         result_status = client.wait()
@@ -126,7 +125,7 @@ def run(options):
             working_directory=temp_work_dir,
             work_dir_outputs=[],
             output_files=output_files,
-            version_file=temp_version_output_path,
+            version_file=None,
         )
         finish_args = dict(
             client=client,
