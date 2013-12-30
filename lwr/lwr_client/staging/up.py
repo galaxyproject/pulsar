@@ -127,7 +127,7 @@ class FileStager(object):
             for extra_file_name in directory_files(files_path):
                 extra_file_path = join(files_path, extra_file_name)
                 remote_name = self.path_helper.remote_name(relpath(extra_file_path, dirname(files_path)))
-                self.transfer_tracker.handle_transfer(extra_file_path, 'input_extra', name=remote_name)
+                self.transfer_tracker.handle_transfer(extra_file_path, 'input', name=remote_name)
 
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
@@ -135,13 +135,13 @@ class FileStager(object):
         working_directory_files = listdir(self.working_directory) if exists(self.working_directory) else []
         for working_directory_file in working_directory_files:
             path = join(self.working_directory, working_directory_file)
-            self.transfer_tracker.handle_transfer(path, 'work_dir')
+            self.transfer_tracker.handle_transfer(path, 'workdir')
 
     def __initialize_version_file_rename(self):
         version_file = self.version_file
         if version_file:
             remote_path = self.path_helper.remote_join(self.new_outputs_directory, COMMAND_VERSION_FILENAME)
-            self.transfer_tracker.register_rewrite(version_file, remote_path, "output")
+            self.transfer_tracker.register_rewrite(version_file, remote_path, "output_workdir")
 
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:
@@ -153,7 +153,7 @@ class FileStager(object):
             name = basename(output_file)
             task_file = join(self.working_directory, name)
             remote_path = self.path_helper.remote_join(self.new_working_directory, name)
-            self.transfer_tracker.register_rewrite(task_file, remote_path, 'output_task')
+            self.transfer_tracker.register_rewrite(task_file, remote_path, 'output_workdir')
 
     def __initialize_config_file_renames(self):
         for config_file in self.config_files:

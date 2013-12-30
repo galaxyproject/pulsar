@@ -2,10 +2,26 @@ from simplejson import load
 from os.path import abspath
 from fnmatch import fnmatch
 from re import compile
-
+from galaxy.util.bunch import Bunch
 
 DEFAULT_MAPPED_ACTION = 'transfer'  # Not really clear to me what this should be, exception?
 DEFAULT_PATH_MAPPER_TYPE = 'prefix'
+
+# Poor man's enum.
+path_type = Bunch(
+    # Galaxy input datasets and extra files.
+    INPUT="input",
+    # Galaxy config and param files.
+    CONFIG="config",
+    # Files from tool's tool_dir (for now just wrapper if available).
+    TOOL="tool",
+    # Input work dir files - e.g. metadata files, task-split input files, etc..
+    WORKDIR="workdir",
+    # Galaxy output datasets in their final home.
+    OUTPUT="output",
+    # Galaxy from_work_dir output paths and other files (e.g. galaxy.json)
+    OUTPUT_WORKDIR="output_workdir",
+)
 
 
 class FileActionMapper(object):

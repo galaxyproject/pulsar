@@ -37,7 +37,7 @@ class PathMapper(object):
     def __remote_directory(self, path_type):
         if path_type in ["output"]:
             return self.output_directory
-        elif path_type in ["output_task", "work_dir"]:
+        elif path_type in ["output_workdir", "workdir"]:
             return self.working_directory
         elif path_type in ["input"]:
             return self.input_directory

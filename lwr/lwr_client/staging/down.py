@@ -53,7 +53,7 @@ class ResultsDownloader(object):
             name = relpath(source_file, working_directory)
             remote_name = self.lwr_outputs.path_helper.remote_name(name)
             with self.exception_tracker():
-                action = self.action_mapper.action(output_file, 'output')
+                action = self.action_mapper.action(output_file, 'output_workdir')
                 self.client.fetch_work_dir_output(remote_name, working_directory, output_file, action_type=action.action_type)
                 self.downloaded_working_directory_files.append(remote_name)
             # Remove from full output_files list so don't try to download directly.
@@ -81,7 +81,7 @@ class ResultsDownloader(object):
     def __download_version_file(self):
         version_file = self.galaxy_outputs.version_file
         if version_file and COMMAND_VERSION_FILENAME in self.lwr_outputs.output_directory_contents:
-            action = self.action_mapper.action(version_file, 'version')
+            action = self.action_mapper.action(version_file, 'output_workdir')
             self.client.fetch_output(path=version_file, name=COMMAND_VERSION_FILENAME, action_type=action.action_type)
 
     def __download_other_working_directory_files(self):
@@ -93,7 +93,7 @@ class ResultsDownloader(object):
             if COPY_FROM_WORKING_DIRECTORY_PATTERN.match(name):
                 with self.exception_tracker():
                     output_file = join(working_directory, self.lwr_outputs.path_helper.local_name(name))
-                    action = self.action_mapper.action(output_file, 'output')
+                    action = self.action_mapper.action(output_file, 'output_workdir')
                     self.client.fetch_work_dir_output(name, working_directory, output_file, action_type=action.action_type)
                     self.downloaded_working_directory_files.append(name)
 
