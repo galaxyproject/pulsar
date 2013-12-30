@@ -24,6 +24,16 @@ path_type = Bunch(
 )
 
 
+ACTION_DEFAULT_PATH_TYPES = [
+    path_type.INPUT,
+    path_type.CONFIG,
+    path_type.TOOL,
+    path_type.WORKDIR,
+    path_type.OUTPUT,
+    path_type.OUTPUT_WORKDIR,
+]
+
+
 class FileActionMapper(object):
     """
     Objects of this class define how paths are mapped to actions.
@@ -36,15 +46,15 @@ class FileActionMapper(object):
     ]}'''
     >>> from tempfile import NamedTemporaryFile
     >>> from os import unlink
-    >>> def mapper_for(config_contents):
+    >>> def mapper_for(default_action, config_contents):
     ...     f = NamedTemporaryFile(delete=False)
-    ...     write_result = f.write(json_string.encode('UTF-8'))
+    ...     write_result = f.write(config_contents.encode('UTF-8'))
     ...     f.close()
-    ...     mock_client = Bunch(default_file_action='none', action_config_path=f.name)
+    ...     mock_client = Bunch(default_file_action=default_action, action_config_path=f.name)
     ...     mapper = FileActionMapper(mock_client)
     ...     unlink(f.name)
     ...     return mapper
-    >>> mapper = mapper_for(json_string)
+    >>> mapper = mapper_for(default_action='none', config_contents=json_string)
     >>> # Test first config line above, implicit path prefix mapper
     >>> action = mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
     >>> action.action_type == u'none'
@@ -72,6 +82,13 @@ class FileActionMapper(object):
     >>> # Regex mapper test.
     >>> mapper.action('/old/galaxy/data/dataset_10245.dat', 'input').action_type == u'copy'
     True
+    >>> input_only_mapper = mapper_for(default_action="none", config_contents=r'''{"paths": [ \
+      {"path": "/", "action": "transfer", "path_types": "input"} \
+    ] }''')
+    >>> input_only_mapper.action('/dataset_1.dat', 'input').action_type == u'transfer'
+    True
+    >>> input_only_mapper.action('/dataset_1.dat', 'output').action_type == u'none'
+    True
     """
 
     def __init__(self, client):
@@ -91,7 +108,7 @@ class FileActionMapper(object):
         action_type = self.default_action
         normalized_path = abspath(path)
         for mapper in self.mappers:
-            if mapper.matches(normalized_path):
+            if mapper.matches(normalized_path, type):
                 action_type = mapper.action_type
                 break
         if type in ["workdir", "output_workdir"] and action_type == "none":
@@ -144,6 +161,13 @@ class BasePathMapper(object):
 
     def __init__(self, config):
         self.action_type = config.get('action', DEFAULT_MAPPED_ACTION)
+        default_path_types_str = ",".join(ACTION_DEFAULT_PATH_TYPES)
+        path_types_str = config.get('path_types', default_path_types_str)
+        self.path_types = path_types_str.split(",")
+
+    def matches(self, path, path_type):
+        path_type_matches = path_type in self.path_types
+        return path_type_matches and self._path_matches(path)
 
 
 class PrefixPathMapper(BasePathMapper):
@@ -152,7 +176,7 @@ class PrefixPathMapper(BasePathMapper):
         super(PrefixPathMapper, self).__init__(config)
         self.prefix_path = abspath(config['path'])
 
-    def matches(self, path):
+    def _path_matches(self, path):
         return path.startswith(self.prefix_path)
 
 
@@ -162,7 +186,7 @@ class GlobPathMapper(BasePathMapper):
         super(GlobPathMapper, self).__init__(config)
         self.glob_path = config['path']
 
-    def matches(self, path):
+    def _path_matches(self, path):
         return fnmatch(path, self.glob_path)
 
 
@@ -172,7 +196,7 @@ class RegexPathMapper(BasePathMapper):
         super(RegexPathMapper, self).__init__(config)
         self.pattern = compile(config['path'])
 
-    def matches(self, path):
+    def _path_matches(self, path):
         return self.pattern.match(path) is not None
 
 
