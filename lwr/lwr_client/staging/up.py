@@ -7,6 +7,7 @@ from io import open
 
 from ..staging import COMMAND_VERSION_FILENAME
 from ..action_mapper import FileActionMapper
+from ..action_mapper import path_type
 from ..util import PathHelper
 from ..util import directory_files
 
@@ -105,7 +106,7 @@ class FileStager(object):
 
     def __upload_tool_files(self):
         for referenced_tool_file in self.referenced_tool_files:
-            self.transfer_tracker.handle_transfer(referenced_tool_file, 'tool')
+            self.transfer_tracker.handle_transfer(referenced_tool_file, path_type.TOOL)
 
     def __upload_input_files(self):
         for input_file in self.input_files:
@@ -115,7 +116,7 @@ class FileStager(object):
     def __upload_input_file(self, input_file):
         if self.__stage_input(input_file):
             if exists(input_file):
-                self.transfer_tracker.handle_transfer(input_file, 'input')
+                self.transfer_tracker.handle_transfer(input_file, path_type.INPUT)
             else:
                 message = "LWR: __upload_input_file called on empty or missing dataset." + \
                           " So such file: [%s]" % input_file
@@ -127,7 +128,7 @@ class FileStager(object):
             for extra_file_name in directory_files(files_path):
                 extra_file_path = join(files_path, extra_file_name)
                 remote_name = self.path_helper.remote_name(relpath(extra_file_path, dirname(files_path)))
-                self.transfer_tracker.handle_transfer(extra_file_path, 'input', name=remote_name)
+                self.transfer_tracker.handle_transfer(extra_file_path, path_type.INPUT, name=remote_name)
 
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
@@ -141,24 +142,24 @@ class FileStager(object):
         version_file = self.version_file
         if version_file:
             remote_path = self.path_helper.remote_join(self.new_outputs_directory, COMMAND_VERSION_FILENAME)
-            self.transfer_tracker.register_rewrite(version_file, remote_path, "output")
+            self.transfer_tracker.register_rewrite(version_file, remote_path, path_type.OUTPUT)
 
     def __initialize_output_file_renames(self):
         for output_file in self.output_files:
             remote_path = self.path_helper.remote_join(self.new_outputs_directory, basename(output_file))
-            self.transfer_tracker.register_rewrite(output_file, remote_path, 'output')
+            self.transfer_tracker.register_rewrite(output_file, remote_path, path_type.OUTPUT)
 
     def __initialize_task_output_file_renames(self):
         for output_file in self.output_files:
             name = basename(output_file)
             task_file = join(self.working_directory, name)
             remote_path = self.path_helper.remote_join(self.new_working_directory, name)
-            self.transfer_tracker.register_rewrite(task_file, remote_path, 'output_workdir')
+            self.transfer_tracker.register_rewrite(task_file, remote_path, path_type.OUTPUT_WORKDIR)
 
     def __initialize_config_file_renames(self):
         for config_file in self.config_files:
             remote_path = self.path_helper.remote_join(self.new_configs_directory, basename(config_file))
-            self.transfer_tracker.register_rewrite(config_file, remote_path, 'config')
+            self.transfer_tracker.register_rewrite(config_file, remote_path, path_type.CONFIG)
 
     def __handle_rewrites(self):
         """

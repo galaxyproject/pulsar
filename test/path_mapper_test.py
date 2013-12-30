@@ -40,7 +40,7 @@ class PathMapperTestCase(TempDirectoryTestCase):
 
     def test_version_path(self):
         local_path = os.path.join(os.path.dirname(self.temp_directory), "GALAXY_VERSION_234")
-        path_mapper = self._path_mapper(local_path, path_type.OUTPUT_WORKDIR)
+        path_mapper = self._path_mapper(local_path, path_type.OUTPUT)
         new_path = path_mapper.remote_version_path_rewrite(local_path)
         assert new_path == "/lwr/staging/1/outputs/COMMAND_VERSION"
 
