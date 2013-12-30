@@ -150,7 +150,7 @@ def test_upload_tool():
 
 
 def test_upload_input():
-    __test_upload("input")
+    __test_upload("extra_input")
 
 
 def test_upload_config():

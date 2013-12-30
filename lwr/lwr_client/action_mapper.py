@@ -186,4 +186,4 @@ mappers = {
 }
 
 
-__all__ = [FileActionMapper]
+__all__ = [FileActionMapper, path_type]

@@ -105,7 +105,7 @@ def upload_tool_file(manager, file_cache, job_id, name, body, cache_token=None):
 
 @LwrController(response_type='json')
 def upload_input(manager, file_cache, job_id, name, body, cache_token=None):
-    return _handle_upload_to_directory(file_cache, manager.inputs_directory(job_id), name, body, cache_token=cache_token)
+    return _handle_upload_to_directory(file_cache, manager.inputs_directory(job_id), name, body, cache_token=cache_token, allow_nested_files=True)
 
 
 @LwrController(response_type='json')
@@ -274,9 +274,10 @@ def _handle_upload_to_directory(file_cache, directory, remote_path, body, cache_
 
 
 def _input_path_params(manager, input_type, job_id):
-    allow_nested_files = input_type in ['input_extra']
+    allow_nested_files = False
     if input_type in ['input', 'input_extra']:
         directory = manager.inputs_directory(job_id)
+        allow_nested_files = True
     elif input_type == 'config':
         directory = manager.configs_directory(job_id)
     elif input_type == 'tool':

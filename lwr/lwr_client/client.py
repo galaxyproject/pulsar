@@ -105,10 +105,12 @@ class JobClient(object):
         ## path. Use old paths.
         input_type = args['input_type']
         action = {
-            'input': 'upload_input',
-            'input_extra': 'upload_extra_input',
+            # For backward compatibility just target upload_input_extra for all
+            # inputs, it allows nested inputs. Want to do away with distinction
+            # inputs and extra inputs.
+            'input': 'upload_extra_input',
             'config': 'upload_config_file',
-            'work_dir': 'upload_working_directory_file',
+            'workdir': 'upload_working_directory_file',
             'tool': 'upload_tool_file'
         }[input_type]
         del args['input_type']
