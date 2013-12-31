@@ -170,7 +170,8 @@ def run(options):
         else:
             __assert_contents(temp_output3_path, "moo_default", result_status)
         rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
-        assert re.search("123456/unstructured/\w+/bwa/human.fa", rewritten_index_path) != None
+        # Path written to this file will differ between Windows and Linux.
+        assert re.search(r"123456[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa", rewritten_index_path) is not None
         __exercise_errors(options, client, temp_output_path, temp_directory)
     except BaseException:
         if not options.suppress_output:

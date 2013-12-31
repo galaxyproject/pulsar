@@ -59,7 +59,7 @@ class FileActionMapper(object):
     >>> from os import unlink
     >>> def mapper_for(default_action, config_contents):
     ...     f = NamedTemporaryFile(delete=False)
-    ...     write_result = f.write(config_contents.encode('UTF-8'))
+    ...     f.write(config_contents.encode('UTF-8'))
     ...     f.close()
     ...     mock_client = Bunch(default_file_action=default_action, action_config_path=f.name)
     ...     mapper = FileActionMapper(mock_client)

@@ -117,17 +117,39 @@ def upload_extra_input(manager, file_cache, job_id, name, body, cache_token=None
 
 @LwrController(response_type='json')
 def upload_config_file(manager, file_cache, job_id, name, body, cache_token=None):
-    return _handle_upload_to_directory(file_cache, manager.configs_directory(job_id), name, body, cache_token=cache_token)
+    directory = manager.configs_directory(job_id)
+    return _handle_upload_to_directory(
+        file_cache,
+        directory,
+        name,
+        body,
+        cache_token=cache_token,
+    )
 
 
 @LwrController(response_type='json')
 def upload_working_directory_file(manager, file_cache, job_id, name, body, cache_token=None):
-    return _handle_upload_to_directory(file_cache, manager.working_directory(job_id), name, body, cache_token=cache_token)
+    directory = manager.working_directory(job_id)
+    return _handle_upload_to_directory(
+        file_cache,
+        directory,
+        name,
+        body,
+        cache_token=cache_token,
+    )
 
 
 @LwrController(response_type='json')
 def upload_unstructured_file(manager, file_cache, job_id, name, body, cache_token=None):
-    return _handle_upload_to_directory(file_cache, manager.unstructured_files_directory(job_id), name, body, cache_token=cache_token, allow_nested_files=True)
+    directory = manager.unstructured_files_directory(job_id)
+    return _handle_upload_to_directory(
+        file_cache,
+        directory,
+        name,
+        body,
+        cache_token=cache_token,
+        allow_nested_files=True
+    )
 
 
 @LwrController(response_type='json')
@@ -282,6 +304,7 @@ def _handle_upload_to_directory(file_cache, directory, remote_path, body, cache_
 
 def _input_path_params(manager, input_type, job_id):
     allow_nested_files = False
+    # work_dir and input_extra are types used by legacy clients...
     if input_type in ['input', 'input_extra']:
         directory = manager.inputs_directory(job_id)
         allow_nested_files = True
@@ -292,7 +315,7 @@ def _input_path_params(manager, input_type, job_id):
         directory = manager.configs_directory(job_id)
     elif input_type == 'tool':
         directory = manager.tool_files_directory(job_id)
-    elif input_type == 'work_dir':
+    elif input_type in ['work_dir', 'workdir']:
         directory = manager.working_directory(job_id)
     else:
         raise Exception("Unknown input_type specified %s" % input_type)

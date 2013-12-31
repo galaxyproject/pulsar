@@ -2,7 +2,6 @@ import os.path
 from .action_mapper import FileActionMapper
 from .action_mapper import path_type
 from .util import PathHelper
-from .util import unique_path_prefix
 
 from galaxy.util import in_directory
 
