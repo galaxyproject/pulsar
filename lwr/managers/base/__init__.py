@@ -133,6 +133,9 @@ class BaseManager(ManagerInterface):
     def tool_files_directory(self, job_id):
         return self._job_directory(job_id).tool_files_directory()
 
+    def unstructured_files_directory(self, job_id):
+        return self._job_directory(job_id).unstructured_files_directory()
+
     def _setup_staging_directory(self, staging_directory):
         assert not staging_directory is None
         if not exists(staging_directory):

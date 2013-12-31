@@ -1,6 +1,8 @@
 from collections import deque
 import os
+
 from .test_utils import TempDirectoryTestCase
+from .test_utils import write_json_config
 from lwr.lwr_client import submit_job, ClientJobDescription
 from galaxy.tools.deps.requirements import ToolRequirement
 
@@ -14,7 +16,7 @@ class TestStager(TempDirectoryTestCase):
         super(TestStager, self).setUp()
         from .test_utils import get_test_tool
         self.tool = get_test_tool()
-        self.client = MockClient(self.tool)
+        self.client = MockClient(self.temp_directory, self.tool)
         inputs = self.__setup_inputs()
         self.client_job_description = ClientJobDescription(
             tool=self.tool,
@@ -71,6 +73,22 @@ class TestStager(TempDirectoryTestCase):
         assert uploaded_file1[1] == "input"
         assert uploaded_file1[0] == extra_file
 
+    def test_unstructured_rewrite(self):
+        self.client_job_description.rewrite_paths = True
+        self.client.set_action_map_config(dict(paths=[
+            dict(path=self.temp_directory, path_types="*any*")
+        ]))
+        local_unstructured_file = os.path.join(self.temp_directory, "A_RANDOM_FILE")
+        open(local_unstructured_file, "wb").write(b"Hello World!")
+        command_line = "foo.exe %s" % local_unstructured_file
+        self.client_job_description.command_line = command_line
+        self.client.expect_put_paths(["/lwr/staging/1/other/A_RANDOM_FILE"])
+        self.client.expect_command_line("foo.exe /lwr/staging/1/other/A_RANDOM_FILE")
+        self._submit()
+        uploaded_file1 = self.client.put_files[0]
+        assert uploaded_file1[1] == "unstructured"
+        self.assertEquals(uploaded_file1[0], local_unstructured_file)
+
     def test_submit_no_rewrite(self):
         # Expect no rewrite of paths
         command_line_template = "run_test.exe --input1=%s --input2=%s"
@@ -107,7 +125,8 @@ class TestStager(TempDirectoryTestCase):
 
 class MockClient(object):
 
-    def __init__(self, tool):
+    def __init__(self, temp_directory, tool):
+        self.temp_directory = temp_directory
         self.default_file_action = "transfer"
         self.action_config_path = None
         self.expected_tool = tool
@@ -118,6 +137,9 @@ class MockClient(object):
             '/lwr/staging/1/inputs/dataset_2.dat',
         ])
         self.put_files = []
+
+    def set_action_map_config(self, config):
+        self.action_config_path = write_json_config(self, config)
 
     def expect_put_paths(self, paths):
         self.put_paths = deque(paths)

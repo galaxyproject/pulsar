@@ -111,7 +111,8 @@ class JobClient(object):
             'input': 'upload_extra_input',
             'config': 'upload_config_file',
             'workdir': 'upload_working_directory_file',
-            'tool': 'upload_tool_file'
+            'tool': 'upload_tool_file',
+            'unstructured': 'upload_unstructured_file',
         }[input_type]
         del args['input_type']
         return action

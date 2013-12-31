@@ -86,6 +86,12 @@ class ManagerInterface(object):
         """
 
     @abstractmethod
+    def unstructured_files_directory(self, job_id):
+        """
+        Directory where job with id `job_id` unstructured files will be stored.
+        """
+
+    @abstractmethod
     def clean(self, job_id):
         """
         Delete job directory and clean up resources associated with job with

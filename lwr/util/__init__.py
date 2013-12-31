@@ -101,6 +101,9 @@ class JobDirectory(object):
     def tool_files_directory(self):
         return self._sub_dir('tool_files')
 
+    def unstructured_files_directory(self):
+        return self._sub_dir('unstructured')
+
     def _job_file(self, name):
         return os.path.join(self.job_directory, name)
 

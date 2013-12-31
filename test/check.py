@@ -4,6 +4,7 @@ import tempfile
 import os
 import optparse
 import traceback
+import re
 from io import open
 
 from lwr.lwr_client import submit_job
@@ -13,13 +14,16 @@ from lwr.lwr_client import GalaxyOutputs
 from lwr.lwr_client import ClientManager
 from lwr.lwr_client import ClientJobDescription
 from galaxy.tools.deps.requirements import ToolRequirement
+from .test_utils import write_json_config
 
 TEST_SCRIPT = b"""
 import sys
 from os import getenv
 from os import makedirs
+from os import listdir
 from os.path import join
 from os.path import basename
+from os.path import dirname
 
 config_input = open(sys.argv[1], 'r')
 input_input = open(sys.argv[2], 'r')
@@ -29,6 +33,10 @@ output2 = open(sys.argv[5], 'w')
 output2_contents = sys.argv[6]
 output3 = open(sys.argv[7], 'w')
 version_output = open(sys.argv[9], 'w')
+index_path = sys.argv[10]
+assert len(listdir(dirname(index_path))) == 2
+assert len(listdir(join(dirname(dirname(index_path)), "seq"))) == 1
+output4_index_path = open(sys.argv[11], 'w')
 try:
     assert input_input.read() == "Hello world input!!@!"
     assert input_extra.read() == "INPUT_EXTRA_CONTENTS"
@@ -42,12 +50,14 @@ try:
     makedirs(output1_extras_path)
     open(join(output1_extras_path, "extra"), "w").write("EXTRA_OUTPUT_CONTENTS")
     version_output.write("1.0.1")
+    output4_index_path.write(index_path)
 finally:
     output.close()
     config_input.close()
     output2.close()
     output3.close()
     version_output.close()
+    output4_index_path.close()
 """
 
 EXPECTED_OUTPUT = b"hello world output"
@@ -66,24 +76,33 @@ class MockTool(object):
 def run(options):
     try:
         temp_directory = tempfile.mkdtemp()
+        temp_index_dir = os.path.join(temp_directory, "idx", "bwa")
+        temp_index_dir_sibbling = os.path.join(temp_directory, "idx", "seq")
         temp_work_dir = os.path.join(temp_directory, "w")
         temp_tool_dir = os.path.join(temp_directory, "t")
 
-        __makedirs([temp_tool_dir, temp_work_dir])
+        __makedirs([temp_tool_dir, temp_work_dir, temp_index_dir, temp_index_dir_sibbling])
 
         temp_input_path = os.path.join(temp_directory, "dataset_0.dat")
         temp_input_extra_path = os.path.join(temp_directory, "dataset_0_files", "input_subdir", "extra")
+        temp_index_path = os.path.join(temp_index_dir, "human.fa")
+
         temp_config_path = os.path.join(temp_work_dir, "config.txt")
         temp_tool_path = os.path.join(temp_directory, "t", "script.py")
         temp_output_path = os.path.join(temp_directory, "dataset_1.dat")
         temp_output2_path = os.path.join(temp_directory, "dataset_2.dat")
         temp_output3_path = os.path.join(temp_directory, "dataset_3.dat")
+        temp_output4_path = os.path.join(temp_directory, "dataset_4.dat")
         temp_version_output_path = os.path.join(temp_directory, "GALAXY_VERSION_1234")
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
         __write_to_file(temp_tool_path, TEST_SCRIPT)
+        __write_to_file(temp_index_path, b"AGTC")
+        # Implicit files that should also get transferred since depth > 0
+        __write_to_file("%s.fai" % temp_index_path, b"AGTC")
+        __write_to_file(os.path.join(temp_index_dir_sibbling, "human_full_seqs"), b"AGTC")
 
         empty_input = u"/foo/bar/x"
         command_line_params = (
@@ -97,12 +116,16 @@ def run(options):
             temp_output3_path,
             temp_input_extra_path,
             temp_version_output_path,
+            temp_index_path,
+            temp_output4_path,
         )
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        assert os.path.exists(temp_index_path)
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
-        output_files = [temp_output_path, temp_output2_path, temp_output3_path]
-        client = __client(options)
+        output_files = [temp_output_path, temp_output2_path, temp_output3_path, temp_output4_path]
+        client = __client(temp_directory, options)
+
         requirements = []
         test_requirement = options.get("test_requirement", False)
         if test_requirement:
@@ -146,6 +169,8 @@ def run(options):
             __assert_contents(temp_output3_path, "moo_override", result_status)
         else:
             __assert_contents(temp_output3_path, "moo_default", result_status)
+        rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
+        assert re.search("123456/unstructured/\w+/bwa/human.fa", rewritten_index_path) != None
         __exercise_errors(options, client, temp_output_path, temp_directory)
     except BaseException:
         if not options.suppress_output:
@@ -156,6 +181,8 @@ def run(options):
 
 
 def __assert_contents(path, expected_contents, lwr_state):
+    if not os.path.exists(path):
+        raise AssertionError("File %s not created. Final LWR response state [%s]" % (path, lwr_state))
     file = open(path, 'r', encoding="utf-8")
     try:
         contents = file.read()
@@ -181,8 +208,14 @@ def __exercise_errors(options, client, temp_output_path, temp_directory):
                 traceback.print_exc()
 
 
-def __client(options):
-    client_options = {"url": getattr(options, "url", None), "private_token": getattr(options, "private_token", None)}
+def __client(temp_directory, options):
+    client_options = {
+        "url": getattr(options, "url", None),
+        "private_token": getattr(options, "private_token", None),
+        "file_action_config": write_json_config(temp_directory, dict(paths=[
+            dict(path=os.path.join(temp_directory, "idx"), path_types="unstructured", depth=2)
+        ])),
+    }
     if hasattr(options, "default_file_action"):
         client_options["default_file_action"] = getattr(options, "default_file_action")
     user = getattr(options, 'user', None)

@@ -2,6 +2,7 @@ import os.path
 from .action_mapper import FileActionMapper
 from .action_mapper import path_type
 from .util import PathHelper
+from .util import unique_path_prefix
 
 from galaxy.util import in_directory
 
@@ -32,6 +33,7 @@ class PathMapper(object):
         self.input_directory = remote_job_config["inputs_directory"]
         self.output_directory = remote_job_config["outputs_directory"]
         self.working_directory = remote_job_config["working_directory"]
+        self.unstructured_files_directory = remote_job_config["unstructured_files_directory"]
         self.config_directory = remote_job_config["configs_directory"]
         separator = remote_job_config["system_properties"]["separator"]
         self.path_helper = PathHelper(separator)
@@ -51,6 +53,19 @@ class PathMapper(object):
         remote_path = self.__remote_path_rewrite(local_path, path_type.OUTPUT, name="COMMAND_VERSION")
         return remote_path
 
+    def check_for_arbitrary_rewrite(self, local_path):
+        if not os.path.exists(local_path):
+            return None, []
+
+        path = str(local_path)  # Use false_path if needed.
+        action = self.action_mapper.action(path, path_type.UNSTRUCTURED)
+        if not action.staging_needed:
+            return None, []
+        unique_names = action.unstructured_map()
+        name = unique_names[path]
+        remote_path = self.path_helper.remote_join(self.unstructured_files_directory, name)
+        return remote_path, unique_names
+
     def __remote_path_rewrite(self, dataset_path, dataset_path_type, name=None):
         """ Return remote path of this file (if staging is required) else None.
         """
@@ -63,6 +78,11 @@ class PathMapper(object):
             remote_directory = self.__remote_directory(dataset_path_type)
             remote_path_rewrite = self.path_helper.remote_join(remote_directory, name)
         return remote_path_rewrite
+
+    def __action(self, dataset_path, dataset_path_type):
+        path = str(dataset_path)  # Use false_path if needed.
+        action = self.action_mapper.action(path, dataset_path_type)
+        return action
 
     def __remote_directory(self, dataset_path_type):
         if dataset_path_type in [path_type.OUTPUT]:

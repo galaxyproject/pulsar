@@ -60,6 +60,7 @@ class PathMapperTestCase(TempDirectoryTestCase):
             outputs_directory="/lwr/staging/1/outputs",
             configs_directory="/lwr/staging/1/configs",
             working_directory="/lwr/staging/1/working",
+            unstructured_files_directory="/lwr/staging/1/unstructured",
             system_properties=dict(separator="/"),
         )
 

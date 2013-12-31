@@ -42,12 +42,14 @@ def setup(manager, job_id, tool_id=None, tool_version=None):
     outputs_directory = manager.outputs_directory(job_id)
     configs_directory = manager.configs_directory(job_id)
     tools_directory = manager.tool_files_directory(job_id)
+    unstructured_files_directory = manager.unstructured_files_directory(job_id)
     response = {
         "working_directory": working_directory,
         "outputs_directory": outputs_directory,
         "configs_directory": configs_directory,
         "tools_directory": tools_directory,
         "inputs_directory": inputs_directory,
+        "unstructured_files_directory": unstructured_files_directory,
         "path_separator": os.sep,
         "job_id": job_id,
         "system_properties": manager.system_properties,
@@ -124,8 +126,13 @@ def upload_working_directory_file(manager, file_cache, job_id, name, body, cache
 
 
 @LwrController(response_type='json')
+def upload_unstructured_file(manager, file_cache, job_id, name, body, cache_token=None):
+    return _handle_upload_to_directory(file_cache, manager.unstructured_files_directory(job_id), name, body, cache_token=cache_token, allow_nested_files=True)
+
+
+@LwrController(response_type='json')
 def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
-    ## Input type should be one of input, input_extra, config, work_dir, or tool.
+    ## Input type should be one of input, config, workdir, tool, or unstructured.
     directory, allow_nested_files = _input_path_params(manager, input_type, job_id)
     return _handle_upload_to_directory(file_cache, directory, name, body, cache_token=cache_token, allow_nested_files=allow_nested_files)
 
@@ -277,6 +284,9 @@ def _input_path_params(manager, input_type, job_id):
     allow_nested_files = False
     if input_type in ['input', 'input_extra']:
         directory = manager.inputs_directory(job_id)
+        allow_nested_files = True
+    elif input_type in ['unstructured']:
+        directory = manager.unstructured_files_directory(job_id)
         allow_nested_files = True
     elif input_type == 'config':
         directory = manager.configs_directory(job_id)

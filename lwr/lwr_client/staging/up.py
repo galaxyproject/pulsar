@@ -51,19 +51,25 @@ class FileStager(object):
         self.tool_dir = abspath(client_job_description.tool.tool_dir)
         self.working_directory = client_job_description.working_directory
         self.version_file = client_job_description.version_file
+        self.arbitrary_files = client_job_description.arbitrary_files
         self.rewrite_paths = client_job_description.rewrite_paths
 
         # Setup job inputs, these will need to be rewritten before
         # shipping off to remote LWR server.
         self.job_inputs = JobInputs(self.command_line, self.config_files)
 
-        self.transfer_tracker = TransferTracker(client, self.job_inputs, rewrite_paths=self.rewrite_paths)
+        self.action_mapper = FileActionMapper(client)
+        self.transfer_tracker = TransferTracker(client, self.action_mapper, self.job_inputs, rewrite_paths=self.rewrite_paths)
 
         self.__handle_setup(job_config)
         self.__initialize_referenced_tool_files()
+        if self.rewrite_paths:
+            self.__initialize_referenced_arbitrary_files()
+
         self.__upload_tool_files()
         self.__upload_input_files()
         self.__upload_working_directory_files()
+        self.__upload_arbitrary_files()
 
         if self.rewrite_paths:
             self.__initialize_output_file_renames()
@@ -104,9 +110,28 @@ class FileStager(object):
     def __initialize_referenced_tool_files(self):
         self.referenced_tool_files = self.job_inputs.find_referenced_subfiles(self.tool_dir)
 
+    def __initialize_referenced_arbitrary_files(self):
+        referenced_arbitrary_path_mappers = dict()
+        for mapper in self.action_mapper.unstructured_mappers():
+            mapper_pattern = mapper.to_pattern()
+            # TODO: Make more sophisticated, allow parent directories,
+            # grabbing sibbling files based on patterns, etc...
+            paths = self.job_inputs.find_pattern_references(mapper_pattern)
+            for path in paths:
+                if path not in referenced_arbitrary_path_mappers:
+                    referenced_arbitrary_path_mappers[path] = mapper
+        for path, mapper in referenced_arbitrary_path_mappers.iteritems():
+            action = self.action_mapper.action(path, path_type.UNSTRUCTURED, mapper)
+            unstructured_map = action.unstructured_map()
+            self.arbitrary_files.update(unstructured_map)
+
     def __upload_tool_files(self):
         for referenced_tool_file in self.referenced_tool_files:
             self.transfer_tracker.handle_transfer(referenced_tool_file, path_type.TOOL)
+
+    def __upload_arbitrary_files(self):
+        for path, name in self.arbitrary_files.iteritems():
+            self.transfer_tracker.handle_transfer(path, path_type.UNSTRUCTURED, name=name)
 
     def __upload_input_files(self):
         for input_file in self.input_files:
@@ -285,9 +310,10 @@ class JobInputs(object):
 
 class TransferTracker(object):
 
-    def __init__(self, client, job_inputs, rewrite_paths):
+    def __init__(self, client, action_mapper, job_inputs, rewrite_paths):
         self.client = client
-        self.action_mapper = FileActionMapper(client)
+        self.action_mapper = action_mapper
+
         self.job_inputs = job_inputs
         self.rewrite_paths = rewrite_paths
         self.file_renames = {}

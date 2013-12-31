@@ -5,6 +5,13 @@ from os import curdir
 from os.path import relpath
 from os.path import join
 import os.path
+import hashlib
+
+
+def unique_path_prefix(path):
+    m = hashlib.md5()
+    m.update(path)
+    return m.hexdigest()
 
 
 def directory_files(directory):

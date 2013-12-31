@@ -29,6 +29,12 @@ class ClientJobDescription(object):
         List of requirements for tool execution.
     version_file : str
         Path to version file expected on the client server
+    arbitrary_files : dict()
+        Additional non-input, non-tool, non-config, non-working directory files
+        to transfer before staging job. This is most likely data indices but
+        can be anything. For now these are copied into staging working
+        directory but this will be reworked to find a better, more robust
+        location.
     rewrite_paths : boolean
         Indicates whether paths should be rewritten in job inputs (command_line
         and config files) while staging files).
@@ -44,6 +50,7 @@ class ClientJobDescription(object):
         working_directory,
         requirements,
         version_file=None,
+        arbitrary_files=None,
         rewrite_paths=True,
     ):
         self.tool = tool
@@ -55,6 +62,7 @@ class ClientJobDescription(object):
         self.requirements = requirements
         self.version_file = version_file
         self.rewrite_paths = rewrite_paths
+        self.arbitrary_files = arbitrary_files or {}
 
 
 class GalaxyOutputs(object):
