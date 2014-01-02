@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from ..staging import COMMAND_VERSION_FILENAME
 from ..action_mapper import FileActionMapper
 
-from galaxy.util import in_directory
 
 from logging import getLogger
 log = getLogger(__name__)
