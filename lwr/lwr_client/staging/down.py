@@ -80,7 +80,9 @@ class ResultsDownloader(object):
 
     def __download_version_file(self):
         version_file = self.galaxy_outputs.version_file
-        if version_file and COMMAND_VERSION_FILENAME in self.lwr_outputs.output_directory_contents:
+        # output_directory_contents may be none for legacy LWR servers.
+        lwr_output_directory_contents = (self.lwr_outputs.output_directory_contents or [])
+        if version_file and COMMAND_VERSION_FILENAME in lwr_output_directory_contents:
             action = self.action_mapper.action(version_file, 'output')
             self.client.fetch_output(path=version_file, name=COMMAND_VERSION_FILENAME, action_type=action.action_type)
 

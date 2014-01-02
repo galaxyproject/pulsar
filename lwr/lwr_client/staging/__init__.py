@@ -105,6 +105,11 @@ class LwrOutputs(object):
         """
         Returns dict mapping local path to remote name.
         """
+        if not self.has_output_directory_listing():
+            # Fetching $output.extra_files_path is not supported with legacy
+            # LWR (pre-2014) severs.
+            return {}
+
         output_directory = dirname(output_file)
 
         def local_path(name):
