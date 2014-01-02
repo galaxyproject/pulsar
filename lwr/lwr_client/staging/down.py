@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from ..staging import COMMAND_VERSION_FILENAME
 from ..action_mapper import FileActionMapper
 
+from galaxy.util import in_directory
+
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -67,8 +69,9 @@ class ResultsDownloader(object):
             with self.exception_tracker():
                 action = self.action_mapper.action(output_file, 'output')
                 output_generated = self.lwr_outputs.has_output_file(output_file)
+                working_directory = self.galaxy_outputs.working_directory
                 if output_generated is None:
-                    self.client.fetch_output(output_file, check_exists_remotely=True, action_type=action.action_type)
+                    self.client.fetch_output_legacy(output_file, working_directory, action_type=action.action_type)
                 elif output_generated:
                     self.client.fetch_output(output_file, action_type=action.action_type)
 

@@ -122,6 +122,22 @@ class JobClient(object):
         return self._raw_execute("get_output_type", {"name": name,
                                                      "job_id": self.job_id})
 
+    # Deprecated
+    def fetch_output_legacy(self, path, working_directory, action_type='transfer'):
+        # Needs to determine if output is task/working directory or standard.
+        name = os.path.basename(path)
+
+        output_type = self._get_output_type(name)
+        if output_type == "none":
+            # Just make sure the file was created.
+            if not os.path.exists(path):
+                raise OutputNotFoundException(path)
+            return
+        elif output_type in ["task"]:
+            path = os.path.join(working_directory, name)
+
+        self.__populate_output_path(name, path, output_type, action_type)
+
     def fetch_output(self, path, name=None, check_exists_remotely=False, action_type='transfer'):
         """
         Download an output dataset from the remote server.
@@ -137,19 +153,8 @@ class JobClient(object):
         if not name:
             # Extra files will send in the path.
             name = os.path.basename(path)
-        if check_exists_remotely:
-            # Legacy behavior
-            output_type = self._get_output_type(name)
 
-            if output_type == "none":
-                # Just make sure the file was created.
-                if not os.path.exists(path):
-                    raise OutputNotFoundException(path)
-                return
-
-        else:
-            output_type = "direct"  # Task/from_work_dir outputs now handled with fetch_work_dir_output
-
+        output_type = "direct"  # Task/from_work_dir outputs now handled with fetch_work_dir_output
         self.__populate_output_path(name, path, output_type, action_type)
 
     def __populate_output_path(self, name, output_path, output_type, action_type):
