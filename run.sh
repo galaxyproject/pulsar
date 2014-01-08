@@ -37,7 +37,7 @@ fi
 # the server.
 if [ -n "$TEST_GALAXY_LIBS" ];
 then
-    python -c "from galaxy import eggs"
+    python -c 'import sys; sys.path.pop(0); from galaxy import eggs'
     result=$?
     if [ "$result" == "0" ];
     then
