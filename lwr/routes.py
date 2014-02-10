@@ -1,6 +1,6 @@
 import os
 from webob import exc
-from simplejson import loads
+from json import loads
 
 from galaxy.util import (
     get_mapped_file,

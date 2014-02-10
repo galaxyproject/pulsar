@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from stat import S_IXOTH
-import simplejson
+import json
 from os import pardir, stat, chmod, access, X_OK, pathsep, environ
 from os.path import join, dirname, isfile, split
 from tempfile import mkdtemp
@@ -48,7 +48,7 @@ def write_json_config(has_temp_directory, data, name="config.json"):
         temp_directory = has_temp_directory
     config_file = join(temp_directory, name)
     with open(config_file, "w") as f:
-        simplejson.dump(data, f)
+        json.dump(data, f)
     return config_file
 
 

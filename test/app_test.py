@@ -1,5 +1,5 @@
 import os
-import simplejson
+import json
 import urllib
 import time
 
@@ -12,7 +12,7 @@ def test_standard_requests():
     with test_app(test_conf={"extra_environ": {"REMOTE_ADDR": "127.101.101.98"}}) as app:
         staging_directory = app.app.staging_directory
         setup_response = app.get("/setup?job_id=12345")
-        setup_config = simplejson.loads(setup_response.body)
+        setup_config = json.loads(setup_response.body)
         assert setup_config["working_directory"].startswith(staging_directory)
         outputs_directory = setup_config["outputs_directory"]
         assert outputs_directory.startswith(staging_directory)
@@ -22,7 +22,7 @@ def test_standard_requests():
         def test_upload(upload_type):
             url = "/upload_%s?job_id=%s&name=input1" % (upload_type, job_id)
             upload_input_response = app.post(url, "Test Contents")
-            upload_input_config = simplejson.loads(upload_input_response.body)
+            upload_input_config = json.loads(upload_input_response.body)
             staged_input_path = upload_input_config["path"]
             staged_input = open(staged_input_path, "r")
             try:
@@ -53,7 +53,7 @@ def test_standard_requests():
         time.sleep(1)
 
         check_response = app.get("/check_complete?job_id=%s" % job_id)
-        check_config = simplejson.loads(check_response.body)
+        check_config = json.loads(check_response.body)
         assert check_config['returncode'] == 0
         assert check_config['stdout'] == "test_out"
         assert check_config['stderr'] == ""

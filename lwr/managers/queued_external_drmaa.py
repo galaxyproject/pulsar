@@ -1,4 +1,4 @@
-from simplejson import dumps
+from json import dumps
 from getpass import getuser
 
 from .base.base_drmaa import BaseDrmaaManager

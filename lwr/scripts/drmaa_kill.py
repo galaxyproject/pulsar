@@ -1,4 +1,4 @@
-from simplejson import load
+from json import load
 from lwr.managers.util.drmaa import DrmaaSessionFactory
 from lwr.scripts.util.args import ArgumentParser
 

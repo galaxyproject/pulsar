@@ -1,6 +1,5 @@
 ## Python 3 is not yet working, but when it does it will require
 ## different libraries. Hence this file.
-simplejson
 webob
 pyOpenSSL
 psutil

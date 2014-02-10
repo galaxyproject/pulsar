@@ -10,7 +10,7 @@ import inspect
 from os.path import exists
 import re
 
-from simplejson import dumps
+from json import dumps
 from six import Iterator
 
 
