@@ -2,7 +2,10 @@ import os
 import platform
 import posixpath
 import stat
-import grp
+try:
+    import grp
+except ImportError:
+    grp = None
 import errno
 import six
 from shutil import move, rmtree
