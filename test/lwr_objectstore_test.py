@@ -1,7 +1,7 @@
 from os import makedirs
 from os.path import join, dirname, exists
 from string import Template
-from lwr.util.bunch import Bunch
+from galaxy.util.bunch import Bunch
 from galaxy.objectstore import build_object_store_from_config
 
 from .test_utils import TempDirectoryTestCase

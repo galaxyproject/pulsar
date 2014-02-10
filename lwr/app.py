@@ -10,10 +10,10 @@ from lwr.cache import Cache
 from lwr.framework import RoutingApp
 from lwr.tools import ToolBox
 from lwr.tools.authorization import get_authorizer
-from lwr.util.bunch import Bunch
 import lwr.routes
 from galaxy.objectstore import build_object_store_from_config
 from galaxy.tools.deps import DependencyManager
+from galaxy.util.bunch import Bunch
 
 from logging import getLogger
 log = getLogger(__name__)

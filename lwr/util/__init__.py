@@ -1,3 +1,9 @@
+"""
+This file is a mess, it is a merge of random stuff that is in galaxy.util and
+stuff that was in lwr.util. This should be reworked to only contain stuff in
+galaxy.util and the rest should be moved into galaxy.util.lwr_io or something
+like that.
+"""
 import os
 import platform
 import posixpath

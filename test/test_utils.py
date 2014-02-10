@@ -16,7 +16,7 @@ from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
 from lwr.tools import ToolBox
-from lwr.util import JobDirectory
+from galaxy.util import JobDirectory
 
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)

@@ -2,11 +2,9 @@ import os
 from shutil import rmtree
 from string import Template
 from tempfile import mkdtemp
-try:
-    from galaxy import objectstore
-except ImportError:
-    from lwr import objectstore
 from contextlib import contextmanager
+
+from galaxy import objectstore
 
 DISK_TEST_CONFIG = """<?xml version="1.0"?>
 <object_store type="disk">

@@ -5,8 +5,8 @@ except ImportError:
 from threading import Lock
 
 from .util import kill_pid
-from lwr.util import execute
 from lwr.managers.base.directory import DirectoryBaseManager
+from galaxy.util import execute
 
 from logging import getLogger
 log = getLogger(__name__)

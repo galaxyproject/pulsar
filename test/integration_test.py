@@ -3,7 +3,7 @@ from os import makedirs, system
 from six import next, itervalues
 from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessModule
 
-from lwr.util.bunch import Bunch
+from galaxy.util.bunch import Bunch
 from .check import run
 try:
     from ConfigParser import ConfigParser

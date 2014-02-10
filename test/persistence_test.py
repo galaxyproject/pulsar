@@ -4,9 +4,10 @@ import tempfile
 import time
 
 from lwr.managers.queued import QueueManager
-from lwr.util.bunch import Bunch
 from lwr.tools.authorization import get_authorizer
 from .test_utils import TestDependencyManager
+
+from galaxy.util.bunch import Bunch
 
 
 def test_persistence():

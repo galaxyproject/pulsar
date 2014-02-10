@@ -48,12 +48,4 @@
     :undoc-members:
     :show-inheritance:
 
-:mod:`lwr.util` Module
------------------------------
-
-.. automodule:: lwr.util
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 """

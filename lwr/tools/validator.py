@@ -2,7 +2,7 @@ from xml.etree.ElementTree import fromstring
 from re import escape, compile
 
 from os.path import join
-from lwr.util import is_in_directory
+from galaxy.util import is_in_directory
 
 
 class ExpressionValidator(object):

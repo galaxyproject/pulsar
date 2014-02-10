@@ -3,7 +3,8 @@ from os.path import join, exists
 from hashlib import sha256
 
 from lwr.persistence import PersistenceStore
-from lwr.util import atomicish_move, Time
+from galaxy.util import atomicish_move
+from galaxy.util import Time
 
 
 class CacheFileMapper(object):

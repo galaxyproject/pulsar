@@ -2,7 +2,7 @@ import tempfile
 from time import sleep
 
 from lwr.managers.unqueued import Manager
-from lwr.util.bunch import Bunch
+from galaxy.util.bunch import Bunch
 
 from shutil import rmtree
 

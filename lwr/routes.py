@@ -2,7 +2,12 @@ import os
 from webob import exc
 from simplejson import loads
 
-from lwr.util import get_mapped_file, copy_to_path, copy_to_temp, verify_is_in_directory
+from galaxy.util import (
+    get_mapped_file,
+    copy_to_path,
+    copy_to_temp,
+    verify_is_in_directory
+)
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 

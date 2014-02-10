@@ -13,7 +13,7 @@ from os import getenv
 from os import walk
 from uuid import uuid4
 
-from lwr.util import JobDirectory
+from galaxy.util import JobDirectory
 from lwr.managers import ManagerInterface
 
 JOB_DIRECTORY_INPUTS = "inputs"

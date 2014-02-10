@@ -1,6 +1,6 @@
 from .test_utils import TempDirectoryTestCase
 
-from lwr.util import JobDirectory
+from galaxy.util import JobDirectory
 from lwr.tools.validator import ExpressionValidator
 
 from os.path import join
