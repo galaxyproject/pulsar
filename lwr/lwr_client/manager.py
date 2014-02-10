@@ -163,7 +163,8 @@ class LocalLwrInterface(object):
         if controller.response_type != 'file':
             return controller.body(result)
         else:
-            from lwr.util import copy_to_path
+            # TODO: Add to Galaxy.
+            from galaxy.util import copy_to_path
             with open(result, 'rb') as result_file:
                 copy_to_path(result_file, output_path)
 
