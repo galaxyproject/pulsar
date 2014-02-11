@@ -322,24 +322,22 @@ class TransferTracker(object):
         if contents:
             # If contents loaded in memory, no need to write out file and copy,
             # just transfer.
-            action_type = 'transfer'
+            staging_needed = True
         else:
             if not exists(path):
                 message = "handle_tranfer called on non-existent file - [%s]" % path
                 log.warn(message)
                 raise Exception(message)
-            action_type = self.__action(path, type).action_type
+            staging_needed = self.__action(path, type).staging_needed
 
-        if action_type in ['transfer', 'copy']:
+        if staging_needed:
             response = self.client.put_file(path, type, name=name, contents=contents)
             register = self.rewrite_paths or type == 'tool'  # Even if inputs not rewritten, tool must be.
             if register:
                 self.register_rewrite(path, response['path'], type, force=True)
-        elif action_type == 'none':
+        else:
             # No action for this file.
             pass
-        else:
-            raise Exception("Unknown action type (%s) encountered for path (%s)" % (action_type, path))
 
     def register_rewrite(self, local_path, remote_path, type, force=False):
         action = self.__action(local_path, type)
