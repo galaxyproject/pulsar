@@ -13,8 +13,7 @@ try:
 except ImportError:
     grp = None
 import errno
-import six
-from shutil import move, rmtree
+from shutil import move
 from subprocess import Popen
 from collections import deque
 from tempfile import NamedTemporaryFile
