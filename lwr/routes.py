@@ -3,7 +3,6 @@ from webob import exc
 from json import loads
 
 from galaxy.util import (
-    get_mapped_file,
     copy_to_path,
     copy_to_temp,
     verify_is_in_directory
@@ -108,26 +107,43 @@ def kill(manager, job_id):
 ## deprecated in favor of generic upload_file route.
 @LwrController(response_type='json')
 def upload_tool_file(manager, file_cache, job_id, name, body, cache_token=None):
-    return _handle_upload_to_directory(file_cache, manager.tool_files_directory(job_id), name, body, cache_token=cache_token)
+    path = manager.calculate_input_path(job_id, name, 'tool')
+    return _handle_upload(
+        file_cache,
+        path,
+        body,
+        cache_token=cache_token
+    )
 
 
 @LwrController(response_type='json')
 def upload_input(manager, file_cache, job_id, name, body, cache_token=None):
-    return _handle_upload_to_directory(file_cache, manager.inputs_directory(job_id), name, body, cache_token=cache_token, allow_nested_files=True)
+    path = manager.calculate_input_path(job_id, name, 'input')
+    return _handle_upload(
+        file_cache,
+        path,
+        body,
+        cache_token=cache_token
+    )
 
 
 @LwrController(response_type='json')
 def upload_extra_input(manager, file_cache, job_id, name, body, cache_token=None):
-    return _handle_upload_to_directory(file_cache, manager.inputs_directory(job_id), name, body, cache_token=cache_token, allow_nested_files=True)
+    path = manager.calculate_input_path(job_id, name, 'input')
+    return _handle_upload(
+        file_cache,
+        path,
+        body,
+        cache_token=cache_token
+    )
 
 
 @LwrController(response_type='json')
 def upload_config_file(manager, file_cache, job_id, name, body, cache_token=None):
-    directory = manager.configs_directory(job_id)
-    return _handle_upload_to_directory(
+    path = manager.calculate_input_path(job_id, name, 'config')
+    return _handle_upload(
         file_cache,
-        directory,
-        name,
+        path,
         body,
         cache_token=cache_token,
     )
@@ -135,11 +151,10 @@ def upload_config_file(manager, file_cache, job_id, name, body, cache_token=None
 
 @LwrController(response_type='json')
 def upload_working_directory_file(manager, file_cache, job_id, name, body, cache_token=None):
-    directory = manager.working_directory(job_id)
-    return _handle_upload_to_directory(
+    path = manager.calculate_input_path(job_id, name, 'workdir')
+    return _handle_upload(
         file_cache,
-        directory,
-        name,
+        path,
         body,
         cache_token=cache_token,
     )
@@ -147,30 +162,26 @@ def upload_working_directory_file(manager, file_cache, job_id, name, body, cache
 
 @LwrController(response_type='json')
 def upload_unstructured_file(manager, file_cache, job_id, name, body, cache_token=None):
-    directory = manager.unstructured_files_directory(job_id)
-    return _handle_upload_to_directory(
+    path = manager.calculate_input_path(job_id, name, 'unstructured')
+    return _handle_upload(
         file_cache,
-        directory,
-        name,
+        path,
         body,
         cache_token=cache_token,
-        allow_nested_files=True
     )
 
 
 @LwrController(response_type='json')
 def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
     ## Input type should be one of input, config, workdir, tool, or unstructured.
-    job_directory = manager.job_directory(job_id)
-    directory, allow_nested_files = job_directory.directory_for_input_type(input_type, job_id)
-    return _handle_upload_to_directory(file_cache, directory, name, body, cache_token=cache_token, allow_nested_files=allow_nested_files)
+    path = manager.calculate_input_path(job_id, name, input_type)
+    return _handle_upload(file_cache, path, body, cache_token=cache_token)
 
 
 @LwrController(response_type='json')
 def input_path(manager, input_type, job_id, name):
-    job_directory = manager.job_directory(job_id)
-    directory, allow_nested_files = job_directory.directory_for_input_type(input_type, job_id)
-    return {'path': get_mapped_file(directory, name, allow_nested_files=allow_nested_files)}
+    path = manager.calculate_input_path(job_id, name, input_type)
+    return {'path': path}
 
 
 @LwrController(response_type='file')
@@ -299,8 +310,7 @@ class LwrDataset(object):
         self.object_store_id = None
 
 
-def _handle_upload_to_directory(file_cache, directory, remote_path, body, cache_token=None, allow_nested_files=False):
-    path = get_mapped_file(directory, remote_path, allow_nested_files=allow_nested_files)
+def _handle_upload(file_cache, path, body, cache_token=None):
     source = body
     if cache_token:
         cached_file = file_cache.destination(cache_token)
