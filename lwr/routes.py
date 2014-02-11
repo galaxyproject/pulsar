@@ -10,6 +10,7 @@ from galaxy.util import (
 )
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
+from lwr.lwr_client.setup_handler import build_job_config
 
 from galaxy.tools.deps.requirements import ToolRequirement
 
@@ -41,24 +42,18 @@ class LwrController(Controller):
 
 @LwrController(response_type='json')
 def setup(manager, job_id, tool_id=None, tool_version=None):
+    return __setup(manager, job_id, tool_id=tool_id, tool_version=tool_version)
+
+
+def __setup(manager, job_id, tool_id, tool_version):
     job_id = manager.setup_job(job_id, tool_id, tool_version)
-    inputs_directory = manager.inputs_directory(job_id)
-    working_directory = manager.working_directory(job_id)
-    outputs_directory = manager.outputs_directory(job_id)
-    configs_directory = manager.configs_directory(job_id)
-    tools_directory = manager.tool_files_directory(job_id)
-    unstructured_files_directory = manager.unstructured_files_directory(job_id)
-    response = {
-        "working_directory": working_directory,
-        "outputs_directory": outputs_directory,
-        "configs_directory": configs_directory,
-        "tools_directory": tools_directory,
-        "inputs_directory": inputs_directory,
-        "unstructured_files_directory": unstructured_files_directory,
-        "path_separator": os.sep,
-        "job_id": job_id,
-        "system_properties": manager.system_properties,
-    }
+    response = build_job_config(
+        job_id=job_id,
+        job_directory=manager.job_directory(job_id),
+        system_properties=manager.system_properties,
+        tool_id=tool_id,
+        tool_version=tool_version,
+    )
     log.debug("Setup job with configuration: %s" % response)
     return response
 
@@ -69,9 +64,15 @@ def clean(manager, job_id):
 
 
 @LwrController()
-def launch(manager, job_id, command_line, params='{}', requirements='[]'):
+def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_params='{}'):
     submit_params = loads(params)
+    setup_params = loads(setup_params)
     requirements = [ToolRequirement.from_dict(requirement_dict) for requirement_dict in loads(requirements)]
+    if setup_params:
+        job_id = setup_params.get("job_id", job_id)
+        tool_id = setup_params.get("tool_id", None)
+        tool_version = setup_params.get("tool_version", None)
+        __setup(manager, job_id, tool_id, tool_version)
     manager.launch(job_id, command_line, submit_params, requirements)
 
 

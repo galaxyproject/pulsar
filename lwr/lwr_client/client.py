@@ -5,6 +5,7 @@ from json import dumps
 from time import sleep
 
 from .destination import submit_params
+from .setup_handler import build as build_setup_handler
 
 CACHE_WAIT_SECONDS = 3
 MAX_RETRY_COUNT = 5
@@ -69,6 +70,7 @@ class JobClient(object):
 
         self.default_file_action = self.destination_params.get("default_file_action", "transfer")
         self.action_config_path = self.destination_params.get("file_action_config", None)
+        self.setup_handler = build_setup_handler(self, destination_params)
 
     def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
         return self.job_manager_interface.execute(command, args, data, input_path, output_path)
@@ -207,10 +209,11 @@ class JobClient(object):
         }
         self._raw_execute("download_output", output_params, output_path=output_path)
 
-    def launch(self, command_line, requirements=[]):
+    def launch(self, command_line, requirements=[], job_config=None):
         """
-        Run or queue up the execution of the supplied
-        `command_line` on the remote server.
+        Queue up the execution of the supplied `command_line` on the remote
+        server. Called launch for historical reasons, should be renamed to
+        enqueue or something like that.
 
         **Parameters**
 
@@ -223,6 +226,12 @@ class JobClient(object):
             launch_params['params'] = dumps(submit_params)
         if requirements:
             launch_params['requirements'] = dumps([requirement.to_dict() for requirement in requirements])
+        if job_config and self.setup_handler.local:
+            # Setup not yet called, job properties were inferred from
+            # destination arguments. Hence, must have LWR setup job
+            # before queueing.
+            setup_params = self._setup_params_from_job_config(job_config)
+            launch_params["setup_params"] = dumps(setup_params)
         return self._raw_execute("launch", launch_params)
 
     def kill(self):
@@ -276,7 +285,6 @@ class JobClient(object):
         """
         self._raw_execute("clean", {"job_id": self.job_id})
 
-    @parseJson()
     def setup(self, tool_id=None, tool_version=None):
         """
         Setup remote LWR server to run this job.
@@ -286,6 +294,13 @@ class JobClient(object):
             setup_args["tool_id"] = tool_id
         if tool_version:
             setup_args["tool_version"] = tool_version
+        return self.setup_handler.setup(**setup_args)
+
+    @parseJson()
+    def remote_setup(self, **setup_args):
+        """
+        Setup remote LWR server to run this job.
+        """
         return self._raw_execute("setup", setup_args)
 
     def _copy(self, source, destination):
@@ -293,6 +308,39 @@ class JobClient(object):
         destination = os.path.abspath(destination)
         if source != destination:
             shutil.copyfile(source, destination)
+
+    def _setup_params_from_job_config(self, job_config):
+        job_id = job_config.get("job_id", None)
+        tool_id = job_config.get("tool_id", None)
+        tool_version = job_config.get("tool_version", None)
+        return dict(
+               job_id=job_id,
+               tool_id=tool_id,
+               tool_version=tool_version
+        )
+
+
+class LocalSetupHandler(object):
+    """ Parse destination params to infer job setup parameters (input/output
+    directories, etc...). Default is to get this configuration data from the
+    remote LWR server.
+
+    Downside of this approach is that it requires more and more dependent
+    configuraiton of Galaxy. Upside is that it is asynchronous and thus makes
+    message queue driven configurations possible.
+    """
+    def __init__(self, client):
+        self.client = client
+
+
+class RemoteSetupHandler(object):
+    """ Default behavior. Fetch setup information from remote LWR server.
+    """
+    def __init__(self, client):
+        self.client = client
+
+    def setup(self, **setup_args):
+        return self.client.remote_setup(**setup_args)
 
 
 class InputCachingJobClient(JobClient):

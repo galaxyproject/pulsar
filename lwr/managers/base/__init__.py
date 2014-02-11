@@ -3,6 +3,7 @@
 Base Classes and Infrastructure Supporting Concret Manager Implementations.
 
 """
+import os
 from os.path import exists, isdir, join, basename
 from os.path import relpath
 from os import curdir
@@ -12,9 +13,12 @@ from os import sep
 from os import getenv
 from os import walk
 from uuid import uuid4
+from shutil import rmtree
 
-from galaxy.util import JobDirectory
+import six
+
 from lwr.managers import ManagerInterface
+from lwr.lwr_client.job_directory import RemoteJobDirectory
 
 JOB_DIRECTORY_INPUTS = "inputs"
 JOB_DIRECTORY_OUTPUTS = "outputs"
@@ -146,6 +150,8 @@ class BaseManager(ManagerInterface):
     def _job_directory(self, job_id):
         return JobDirectory(self.staging_directory, job_id)
 
+    job_directory = _job_directory
+
     def _setup_job_directory(self, job_id):
         job_directory = self._job_directory(job_id)
         job_directory.setup()
@@ -187,3 +193,68 @@ class BaseManager(ManagerInterface):
         if dependency_commands:
             command_line = "%s; %s" % ("; ".join(dependency_commands), command_line)
         return command_line
+
+
+class JobDirectory(RemoteJobDirectory):
+
+    def __init__(self, staging_directory, job_id):
+        super(JobDirectory, self).__init__(staging_directory, remote_id=job_id, remote_sep=sep)
+        # Assert this job id isn't hacking path somehow.
+        assert job_id == basename(job_id)
+
+    def _job_file(self, name):
+        return os.path.join(self.job_directory, name)
+
+    def read_file(self, name, default=None):
+        path = self._job_file(name)
+        job_file = None
+        try:
+            job_file = open(path, 'rb')
+            return job_file.read()
+        except:
+            if default is not None:
+                return default
+            else:
+                raise
+        finally:
+            if job_file:
+                job_file.close()
+
+    def write_file(self, name, contents):
+        path = self._job_file(name)
+        job_file = open(path, 'wb')
+        try:
+            if isinstance(contents, six.text_type):
+                contents = contents.encode("UTF-8")
+            job_file.write(contents)
+        finally:
+            job_file.close()
+        return path
+
+    def remove_file(self, name):
+        """
+        Quietly remove a job file.
+        """
+        try:
+            os.remove(self._job_file(name))
+        except OSError:
+            pass
+
+    def contains_file(self, name):
+        return os.path.exists(self._job_file(name))
+
+    def open_file(self, name, mode='wb'):
+        return open(self._job_file(name), mode)
+
+    def exists(self):
+        return os.path.exists(self.path)
+
+    def delete(self):
+        return rmtree(self.path)
+
+    def setup(self):
+        os.mkdir(self.job_directory)
+
+    def make_directory(self, name):
+        path = self._job_file(name)
+        os.mkdir(path)

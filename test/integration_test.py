@@ -32,6 +32,9 @@ class BaseIntegrationTest(TempDirectoryTestCase):
             from .test_utils import test_server
             with test_server(app_conf=app_conf) as server:
                 options = Bunch(url=server.application_url, **kwds)
+                if kwds.get("local_setup", False):
+                    staging_directory = server.test_app.application.staging_directory
+                    options["jobs_directory"] = staging_directory
                 run(options)
 
     def __setup_job_properties(self, app_conf, job_conf_props):
@@ -74,6 +77,10 @@ class IntegrationTests(BaseIntegrationTest):
     def test_integration_as_user(self):
         job_props = {'type': 'queued_external_drmaa', "production": "false"}
         self._run(job_conf_props=job_props, private_token=None, default_file_action="copy", user='u1', **self.default_kwargs)
+
+    ## Still doesn't work because trying of inputs handling...
+    #def test_integration_local_setup(self):
+    #    self._run(private_token=None, default_file_action="none", local_setup=True, **self.default_kwargs)
 
     def test_integration_copy(self):
         self._run(private_token=None, default_file_action="copy", **self.default_kwargs)
