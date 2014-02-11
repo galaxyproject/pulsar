@@ -161,13 +161,15 @@ def upload_unstructured_file(manager, file_cache, job_id, name, body, cache_toke
 @LwrController(response_type='json')
 def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
     ## Input type should be one of input, config, workdir, tool, or unstructured.
-    directory, allow_nested_files = _input_path_params(manager, input_type, job_id)
+    job_directory = manager.job_directory(job_id)
+    directory, allow_nested_files = job_directory.directory_for_input_type(input_type, job_id)
     return _handle_upload_to_directory(file_cache, directory, name, body, cache_token=cache_token, allow_nested_files=allow_nested_files)
 
 
 @LwrController(response_type='json')
 def input_path(manager, input_type, job_id, name):
-    directory, allow_nested_files = _input_path_params(manager, input_type, job_id)
+    job_directory = manager.job_directory(job_id)
+    directory, allow_nested_files = job_directory.directory_for_input_type(input_type, job_id)
     return {'path': get_mapped_file(directory, name, allow_nested_files=allow_nested_files)}
 
 
@@ -306,23 +308,3 @@ def _handle_upload_to_directory(file_cache, directory, remote_path, body, cache_
         log.info("Copying cached file %s to %s" % (cached_file, path))
     copy_to_path(source, path)
     return {"path": path}
-
-
-def _input_path_params(manager, input_type, job_id):
-    allow_nested_files = False
-    # work_dir and input_extra are types used by legacy clients...
-    if input_type in ['input', 'input_extra']:
-        directory = manager.inputs_directory(job_id)
-        allow_nested_files = True
-    elif input_type in ['unstructured']:
-        directory = manager.unstructured_files_directory(job_id)
-        allow_nested_files = True
-    elif input_type == 'config':
-        directory = manager.configs_directory(job_id)
-    elif input_type == 'tool':
-        directory = manager.tool_files_directory(job_id)
-    elif input_type in ['work_dir', 'workdir']:
-        directory = manager.working_directory(job_id)
-    else:
-        raise Exception("Unknown input_type specified %s" % input_type)
-    return directory, allow_nested_files
