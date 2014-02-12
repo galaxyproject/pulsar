@@ -169,9 +169,10 @@ def run(options):
             __assert_contents(temp_output3_path, "moo_override", result_status)
         else:
             __assert_contents(temp_output3_path, "moo_default", result_status)
-        rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
-        # Path written to this file will differ between Windows and Linux.
-        assert re.search(r"123456[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa", rewritten_index_path) is not None
+        if client.default_file_action != "none":
+            rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
+            # Path written to this file will differ between Windows and Linux.
+            assert re.search(r"123456[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa", rewritten_index_path) is not None
         __exercise_errors(options, client, temp_output_path, temp_directory)
     except BaseException:
         if not options.suppress_output:
@@ -210,15 +211,17 @@ def __exercise_errors(options, client, temp_output_path, temp_directory):
 
 
 def __client(temp_directory, options):
+    default_file_action = getattr(options, "default_file_action", None)
+    unstructured_action = default_file_action or "transfer"
     client_options = {
         "url": getattr(options, "url", None),
         "private_token": getattr(options, "private_token", None),
         "file_action_config": write_json_config(temp_directory, dict(paths=[
-            dict(path=os.path.join(temp_directory, "idx"), path_types="unstructured", depth=2)
+            dict(path=os.path.join(temp_directory, "idx"), path_types="unstructured", depth=2, action=unstructured_action)
         ])),
     }
-    if hasattr(options, "default_file_action"):
-        client_options["default_file_action"] = getattr(options, "default_file_action")
+    if default_file_action:
+        client_options["default_file_action"] = default_file_action
     if hasattr(options, "jobs_directory"):
         client_options["jobs_directory"] = getattr(options, "jobs_directory")
     user = getattr(options, 'user', None)

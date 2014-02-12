@@ -41,6 +41,10 @@ class RemoteJobDirectory(object):
     def path(self):
         return self.job_directory
 
+    @property
+    def separator(self):
+        return self.path_helper.separator
+
     def calculate_input_path(self, remote_path, input_type):
         """ Only for used by LWR client, should override for managers to
         enforce security and make the directory if needed.

@@ -10,6 +10,7 @@ from galaxy.util import (
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 from lwr.lwr_client.setup_handler import build_job_config
+from lwr.lwr_client.action_mapper import from_dict
 
 from galaxy.tools.deps.requirements import ToolRequirement
 
@@ -63,7 +64,7 @@ def clean(manager, job_id):
 
 
 @LwrController()
-def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_params='{}'):
+def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_params='{}', remote_staging_actions='[]'):
     submit_params = loads(params)
     setup_params = loads(setup_params)
     requirements = [ToolRequirement.from_dict(requirement_dict) for requirement_dict in loads(requirements)]
@@ -72,6 +73,13 @@ def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_
         tool_id = setup_params.get("tool_id", None)
         tool_version = setup_params.get("tool_version", None)
         __setup(manager, job_id, tool_id, tool_version)
+    remote_staging_actions = loads(remote_staging_actions)
+    for remote_staging_action in remote_staging_actions:
+        name = remote_staging_action["name"]
+        input_type = remote_staging_action["type"]
+        action = from_dict(remote_staging_action["action"])
+        path = manager.calculate_input_path(job_id, name, input_type)
+        action.write_to_path(path)
     manager.launch(job_id, command_line, submit_params, requirements)
 
 

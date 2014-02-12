@@ -1,6 +1,5 @@
 import os
 from .util import filter_destination_params
-from .job_directory import RemoteJobDirectory
 
 REMOTE_SYSTEM_PROPERTY_PREFIX = "remote_property_"
 
@@ -8,7 +7,8 @@ REMOTE_SYSTEM_PROPERTY_PREFIX = "remote_property_"
 def build(client, destination_args):
     """ Build a SetupHandler object for client from destination parameters.
     """
-    if "jobs_directory" in destination_args:
+    # Have defined a remote job directory, lets do the setup locally.
+    if client.job_directory:
         handler = LocalSetupHandler(client, destination_args)
     else:
         handler = RemoteSetupHandler(client)
@@ -32,21 +32,14 @@ class LocalSetupHandler(object):
     def __init__(self, client, destination_args):
         self.client = client
         system_properties = self.__build_system_properties(destination_args)
-        if "sep" not in system_properties:
-            self.sep = destination_args.get("sep", os.sep)
-            system_properties["sep"] = self.sep
+        system_properties["sep"] = client.job_directory.separator
         self.system_properties = system_properties
         self.jobs_directory = destination_args["jobs_directory"]
 
     def setup(self, job_id, tool_id=None, tool_version=None):
-        job_directory = RemoteJobDirectory(
-            remote_staging_directory=self.jobs_directory,
-            remote_id=job_id,
-            remote_sep=self.sep
-        )
         return build_job_config(
             job_id=job_id,
-            job_directory=job_directory,
+            job_directory=self.client.job_directory,
             system_properties=self.system_properties,
             tool_id=tool_id,
             tool_version=tool_version,

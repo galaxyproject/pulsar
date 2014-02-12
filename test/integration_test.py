@@ -23,18 +23,22 @@ class BaseIntegrationTest(TempDirectoryTestCase):
         self.__setup_job_properties(app_conf, job_conf_props)
         self.__setup_dependencies(app_conf)
 
+        def update_options_for_app(options, app):
+            if kwds.get("local_setup", False):
+                staging_directory = app.staging_directory
+                options["jobs_directory"] = staging_directory
+
         if kwds.get("direct_interface", None):
             from .test_utils import test_app
             with test_app({}, app_conf, {}) as app:
                 options = Bunch(job_manager=next(itervalues(app.app.managers)), file_cache=app.app.file_cache, **kwds)
+                update_options_for_app(options, app.app)
                 run(options)
         else:
             from .test_utils import test_server
             with test_server(app_conf=app_conf) as server:
                 options = Bunch(url=server.application_url, **kwds)
-                if kwds.get("local_setup", False):
-                    staging_directory = server.test_app.application.staging_directory
-                    options["jobs_directory"] = staging_directory
+                update_options_for_app(options, server.test_app.application)
                 run(options)
 
     def __setup_job_properties(self, app_conf, job_conf_props):
@@ -78,9 +82,9 @@ class IntegrationTests(BaseIntegrationTest):
         job_props = {'type': 'queued_external_drmaa', "production": "false"}
         self._run(job_conf_props=job_props, private_token=None, default_file_action="copy", user='u1', **self.default_kwargs)
 
-    ## Still doesn't work because trying of inputs handling...
-    #def test_integration_local_setup(self):
-    #    self._run(private_token=None, default_file_action="none", local_setup=True, **self.default_kwargs)
+    # Still doesn't work because trying of inputs handling...
+    def test_integration_local_setup(self):
+        self._run(private_token=None, default_file_action="remote_copy", local_setup=True, **self.default_kwargs)
 
     def test_integration_copy(self):
         self._run(private_token=None, default_file_action="copy", **self.default_kwargs)

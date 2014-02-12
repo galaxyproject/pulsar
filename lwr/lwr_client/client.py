@@ -6,6 +6,7 @@ from time import sleep
 
 from .destination import submit_params
 from .setup_handler import build as build_setup_handler
+from .job_directory import RemoteJobDirectory
 
 CACHE_WAIT_SECONDS = 3
 MAX_RETRY_COUNT = 5
@@ -67,6 +68,17 @@ class JobClient(object):
         self.job_manager_interface = job_manager_interface
         self.destination_params = destination_params
         self.job_id = job_id
+        if "jobs_directory" in (destination_params or {}):
+            staging_directory = destination_params["jobs_directory"]
+            sep = destination_params.get("remote_sep", os.sep)
+            job_directory = RemoteJobDirectory(
+                remote_staging_directory=staging_directory,
+                remote_id=job_id,
+                remote_sep=sep,
+            )
+        else:
+            job_directory = None
+        self.job_directory = job_directory
 
         self.default_file_action = self.destination_params.get("default_file_action", "transfer")
         self.action_config_path = self.destination_params.get("file_action_config", None)
@@ -159,6 +171,12 @@ class JobClient(object):
         output_type = "direct"  # Task/from_work_dir outputs now handled with fetch_work_dir_output
         self.__populate_output_path(name, path, output_type, action_type)
 
+    @property
+    def prefer_local_staging(self):
+        # If doing a job directory is defined, calculate paths here and stage
+        # remotely.
+        return self.job_directory is None
+
     def __populate_output_path(self, name, output_path, output_type, action_type):
         self.__ensure_directory(output_path)
         if action_type == 'transfer':
@@ -209,7 +227,7 @@ class JobClient(object):
         }
         self._raw_execute("download_output", output_params, output_path=output_path)
 
-    def launch(self, command_line, requirements=[], job_config=None):
+    def launch(self, command_line, requirements=[], remote_staging_actions=[], job_config=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -226,6 +244,8 @@ class JobClient(object):
             launch_params['params'] = dumps(submit_params)
         if requirements:
             launch_params['requirements'] = dumps([requirement.to_dict() for requirement in requirements])
+        if remote_staging_actions:
+            launch_params['remote_staging_actions'] = dumps(remote_staging_actions)
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
             # destination arguments. Hence, must have LWR setup job

@@ -7,12 +7,18 @@ from os.path import sep
 import fnmatch
 from re import compile
 from re import escape
+import galaxy.util
 from galaxy.util.bunch import Bunch
 from .util import directory_files
 from .util import unique_path_prefix
 
 DEFAULT_MAPPED_ACTION = 'transfer'  # Not really clear to me what this should be, exception?
 DEFAULT_PATH_MAPPER_TYPE = 'prefix'
+
+STAGING_ACTION_REMOTE = "remote"
+STAGING_ACTION_LOCAL = "local"
+STAGING_ACTION_NONE = None
+STAGING_ACTION_DEFAULT = "default"
 
 # Poor man's enum.
 path_type = Bunch(
@@ -167,6 +173,14 @@ class BaseAction(object):
             unstructured_map[path] = join(prefix, name)
         return unstructured_map
 
+    @property
+    def staging_needed(self):
+        return self.staging != STAGING_ACTION_NONE
+
+    @property
+    def staging_action_local(self):
+        return self.staging == STAGING_ACTION_LOCAL
+
 
 class NoneAction(BaseAction):
     """ This action indicates the corresponding path does not require any
@@ -174,7 +188,7 @@ class NoneAction(BaseAction):
     the LWR client (i.e. Galaxy server) and remote LWR server with the same
     paths. """
     action_type = "none"
-    staging_needed = False
+    staging = STAGING_ACTION_NONE
 
 
 class TransferAction(BaseAction):
@@ -182,7 +196,7 @@ class TransferAction(BaseAction):
     transfer of the corresponding path to the remote LWR server before
     launching the job. """
     action_type = "transfer"
-    staging_needed = True
+    staging = STAGING_ACTION_LOCAL
 
 
 class CopyAction(BaseAction):
@@ -190,7 +204,74 @@ class CopyAction(BaseAction):
     copy of the corresponding path to the LWR staging directory prior to
     launching the corresponding job. """
     action_type = "copy"
-    staging_needed = True
+    staging = STAGING_ACTION_LOCAL
+
+
+class RemoteCopyAction(BaseAction):
+    """ This action indicates the LWR server should copy the file before
+    execution via direct file system copy. This is like a CopyAction, but
+    it indicates the action should occur on the LWR server instead of on
+    the client.
+    """
+    action_type = "remote_copy"
+    staging = STAGING_ACTION_REMOTE
+
+    def to_dict(self):
+        return dict(path=self.path, action_type=RemoteCopyAction.action_type)
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return RemoteCopyAction(path=action_dict["path"])
+
+    def write_to_path(self, path):
+        galaxy.util.copy_to_path(open(self.path, "rb"), path)
+
+
+class MessageAction(object):
+    """ Sort of pseudo action describing "files" store in memory and
+    transferred via message (HTTP, Python-call, MQ, etc...)
+    """
+    action_type = "message"
+    staging = STAGING_ACTION_DEFAULT
+
+    def __init__(self, contents, client=None):
+        self.contents = contents
+        self.client = client
+
+    @property
+    def staging_needed(self):
+        return True
+
+    @property
+    def staging_action_local(self):
+        # Ekkk, cannot be called if created through from_dict.
+        # Shouldn't be a problem the way it is used - but is an
+        # object design problem.
+        return self.client.prefer_local_staging
+
+    def to_dict(self):
+        return dict(contents=self.contents, action_type=MessageAction.action_type)
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return MessageAction(contents=action_dict["contents"])
+
+    def write_to_path(self, path):
+        open(path, "w").write(self.contents)
+
+DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, MessageAction]
+
+
+def from_dict(action_dict):
+    action_type = action_dict.get("action_type", None)
+    target_class = None
+    for action_class in DICTIFIABLE_ACTION_CLASSES:
+        if action_type == action_class.action_type:
+            target_class = action_class
+    if not target_class:
+        message = "Failed to recover action from dictionary - invalid action type specified %s." % action_type
+        raise Exception(message)
+    return target_class.from_dict(action_dict)
 
 
 class BasePathMapper(object):
@@ -265,7 +346,7 @@ class FileLister(object):
 
 DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
 
-ACTION_CLASSES = [NoneAction, TransferAction, CopyAction]
+ACTION_CLASSES = [NoneAction, TransferAction, CopyAction, RemoteCopyAction]
 actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
 
 mappers = {
@@ -275,4 +356,4 @@ mappers = {
 }
 
 
-__all__ = [FileActionMapper, path_type]
+__all__ = [FileActionMapper, path_type, from_dict, MessageAction]
