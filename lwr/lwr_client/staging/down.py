@@ -23,83 +23,110 @@ def finish_job(client, cleanup_job, job_completed_normally, galaxy_outputs, lwr_
     """
     download_failure_exceptions = []
     if job_completed_normally:
-        downloader = ResultsDownloader(client, galaxy_outputs, lwr_outputs)
-        download_failure_exceptions = downloader.download()
+        output_collector = ClientOutputCollector(client)
+        action_mapper = FileActionMapper(client)
+        results_stager = ResultsCollector(output_collector, action_mapper, galaxy_outputs, lwr_outputs)
+        download_failure_exceptions = results_stager.collect()
     return __clean(download_failure_exceptions, cleanup_job, client)
 
 
-class ResultsDownloader(object):
+class ClientOutputCollector(object):
 
-    def __init__(self, client, galaxy_outputs, lwr_outputs):
+    def __init__(self, client):
         self.client = client
+
+    def collect_output(self, results_collector, output_type, action, path, name):
+        if output_type == 'legacy':
+            working_directory = results_collector.galaxy_outputs.working_directory
+            self.client.fetch_output_legacy(path, working_directory, action_type=action.action_type)
+        elif output_type == 'output_workdir':
+            working_directory = results_collector.galaxy_outputs.working_directory
+            self.client.fetch_work_dir_output(name, working_directory, path, action_type=action.action_type)
+        elif output_type == 'output':
+            self.client.fetch_output(path=path, name=name, action_type=action.action_type)
+
+
+class ResultsCollector(object):
+
+    def __init__(self, output_collector, action_mapper, galaxy_outputs, lwr_outputs):
+        self.output_collector = output_collector
+        self.action_mapper = action_mapper
         self.galaxy_outputs = galaxy_outputs
         self.lwr_outputs = lwr_outputs
-        self.action_mapper = FileActionMapper(client)
         self.downloaded_working_directory_files = []
         self.exception_tracker = DownloadExceptionTracker()
         self.output_files = galaxy_outputs.output_files
         self.working_directory_contents = lwr_outputs.working_directory_contents or []
 
-    def download(self):
-        self.__download_working_directory_outputs()
-        self.__download_outputs()
-        self.__download_version_file()
-        self.__download_other_working_directory_files()
+    def collect(self):
+        self.__collect_working_directory_outputs()
+        self.__collect_outputs()
+        self.__collect_version_file()
+        self.__collect_other_working_directory_files()
         return self.exception_tracker.download_failure_exceptions
 
-    def __download_working_directory_outputs(self):
+    def __collect_working_directory_outputs(self):
         working_directory = self.galaxy_outputs.working_directory
         # Fetch explicit working directory outputs.
         for source_file, output_file in self.galaxy_outputs.work_dir_outputs:
             name = relpath(source_file, working_directory)
-            remote_name = self.lwr_outputs.path_helper.remote_name(name)
-            with self.exception_tracker():
-                action = self.action_mapper.action(output_file, 'output_workdir')
-                self.client.fetch_work_dir_output(remote_name, working_directory, output_file, action_type=action.action_type)
-                self.downloaded_working_directory_files.append(remote_name)
+            lwr_name = self.lwr_outputs.path_helper.remote_name(name)
+            if self._attempt_collect_output('output_workdir', path=output_file, name=lwr_name):
+                self.downloaded_working_directory_files.append(lwr_name)
             # Remove from full output_files list so don't try to download directly.
             self.output_files.remove(output_file)
 
-    def __download_outputs(self):
+    def __collect_outputs(self):
         # Legacy LWR not returning list of files, iterate over the list of
         # expected outputs for tool.
         for output_file in self.output_files:
             # Fetch output directly...
-            with self.exception_tracker():
-                action = self.action_mapper.action(output_file, 'output')
-                output_generated = self.lwr_outputs.has_output_file(output_file)
-                working_directory = self.galaxy_outputs.working_directory
-                if output_generated is None:
-                    self.client.fetch_output_legacy(output_file, working_directory, action_type=action.action_type)
-                elif output_generated:
-                    self.client.fetch_output(output_file, action_type=action.action_type)
+            output_generated = self.lwr_outputs.has_output_file(output_file)
+            if output_generated is None:
+                self._attempt_collect_output('legacy', output_file)
+            elif output_generated:
+                self._attempt_collect_output('output', output_file)
 
-            for local_path, remote_name in self.lwr_outputs.output_extras(output_file).iteritems():
-                with self.exception_tracker():
-                    action = self.action_mapper.action(local_path, 'output')
-                    self.client.fetch_output(path=local_path, name=remote_name, action_type=action.action_type)
+            for galaxy_path, lwr_name in self.lwr_outputs.output_extras(output_file).iteritems():
+                self._attempt_collect_output('output', path=galaxy_path, name=lwr_name)
             # else not output generated, do not attempt download.
 
-    def __download_version_file(self):
+    def __collect_version_file(self):
         version_file = self.galaxy_outputs.version_file
         # output_directory_contents may be none for legacy LWR servers.
         lwr_output_directory_contents = (self.lwr_outputs.output_directory_contents or [])
         if version_file and COMMAND_VERSION_FILENAME in lwr_output_directory_contents:
-            action = self.action_mapper.action(version_file, 'output')
-            self.client.fetch_output(path=version_file, name=COMMAND_VERSION_FILENAME, action_type=action.action_type)
+            self._attempt_collect_output('output', version_file, name=COMMAND_VERSION_FILENAME)
 
-    def __download_other_working_directory_files(self):
+    def __collect_other_working_directory_files(self):
         working_directory = self.galaxy_outputs.working_directory
         # Fetch remaining working directory outputs of interest.
         for name in self.working_directory_contents:
             if name in self.downloaded_working_directory_files:
                 continue
             if COPY_FROM_WORKING_DIRECTORY_PATTERN.match(name):
-                with self.exception_tracker():
-                    output_file = join(working_directory, self.lwr_outputs.path_helper.local_name(name))
-                    action = self.action_mapper.action(output_file, 'output_workdir')
-                    self.client.fetch_work_dir_output(name, working_directory, output_file, action_type=action.action_type)
+                output_file = join(working_directory, self.lwr_outputs.path_helper.local_name(name))
+                if self._attempt_collect_output(output_type='output_workdir', path=output_file, name=name):
                     self.downloaded_working_directory_files.append(name)
+
+    def _attempt_collect_output(self, output_type, path, name=None):
+        # path is final path on galaxy server (client)
+        # name is the 'name' of the file on the LWR server (possible a relative)
+        # path.
+        collected = False
+        with self.exception_tracker():
+            # output_action_type cannot be 'legacy' but output_type may be
+            # eventually drop support for legacy mode (where type wasn't known)
+            # ahead of time.
+            output_action_type = 'output_workdir' if output_type == 'output_workdir' else 'output'
+            action = self.action_mapper.action(path, output_action_type)
+            self._collect_output(output_type, action, path, name)
+            collected = True
+
+        return collected
+
+    def _collect_output(self, output_type, action, path, name):
+        self.output_collector.collect_output(self, output_type, action, path, name)
 
 
 class DownloadExceptionTracker(object):
