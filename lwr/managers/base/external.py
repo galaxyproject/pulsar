@@ -2,24 +2,22 @@ from os import chmod
 from stat import S_IEXEC, S_IWRITE, S_IREAD
 from string import Template
 
-from lwr.persistence import JobMetadataStore
-
 from .directory import DirectoryBaseManager
 from ..util.job_script import job_script
 
 DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
+JOB_FILE_EXTERNAL_ID = "external_id"
 
 
 class ExternalBaseManager(DirectoryBaseManager):
 
     def __init__(self, name, app, **kwds):
         super(ExternalBaseManager, self).__init__(name, app, **kwds)
-        self.external_ids = self._build_persistent_store(ExternalIdStore, "ext_ids")
+        self._external_ids = {}
         self.job_name_template = kwds.get('job_name_template', DEFAULT_JOB_NAME_TEMPLATE)
 
     def clean(self, job_id):
         super(ExternalBaseManager, self).clean(job_id)
-        self.external_ids.free(job_id)
 
     def setup_job(self, input_job_id, tool_id, tool_version):
         job_id = self._get_job_id(input_job_id)
@@ -46,18 +44,19 @@ class ExternalBaseManager(DirectoryBaseManager):
         return str(self.id_assigner(input_job_id))
 
     def _register_external_id(self, job_id, external_id):
-        self.external_ids.store(job_id, external_id)
+        self._write_job_file(job_id, JOB_FILE_EXTERNAL_ID, external_id)
+        self._external_ids[job_id] = external_id
         return external_id
 
     def _external_id(self, job_id):
-        return self.external_ids.get(job_id, None)
+        return self._external_ids.get(job_id, None)
 
     def _job_template_env(self, job_id, command_line=None):
         return_code_path = self._return_code_path(job_id)
         job_template_env = {
             'galaxy_lib': self._galaxy_lib(),
             'exit_code_path': return_code_path,
-            'working_directory': self.working_directory(job_id),
+            'working_directory': self.job_directory(job_id).working_directory(),
             'job_id': job_id,
         }
         if command_line:
@@ -75,22 +74,10 @@ class ExternalBaseManager(DirectoryBaseManager):
         env = self._job_template_env(job_id)
         return Template(self.job_name_template).safe_substitute(env)
 
-    def shutdown(self):
-        self.external_ids.close()
+    def _recover_active_job(self, job_id):
+        external_id = self._read_job_file(job_id, JOB_FILE_EXTERNAL_ID, None)
+        if external_id:
+            self._external_ids[job_id] = external_id
 
-
-class ExternalIdStore(JobMetadataStore):
-    """
-    """
-
-    def __init__(self, path):
-        super(ExternalIdStore, self).__init__(path)
-
-    def store(self, job_id, external_id):
-        super(ExternalIdStore, self)._store(job_id, external_id)
-
-    def free(self, job_id):
-        super(ExternalIdStore, self)._delete(job_id)
-
-    def get(self, job_id, default):
-        return super(ExternalIdStore, self)._get(job_id, default)
+    def _deactivate_job(self, job_id):
+        del self._external_ids[job_id]

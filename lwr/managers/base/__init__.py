@@ -19,6 +19,7 @@ from shutil import rmtree
 
 import six
 
+from lwr import locks
 from lwr.managers import ManagerInterface
 from lwr.lwr_client.job_directory import RemoteJobDirectory
 from galaxy.util import verify_is_in_directory
@@ -54,6 +55,7 @@ class BaseManager(ManagerInterface):
     def __init__(self, name, app, **kwds):
         self.name = name
         self.persistence_directory = getattr(app, 'persistence_directory', None)
+        self.lock_manager = locks.LockManager()
         self._setup_staging_directory(app.staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
         self.__init_galaxy_system_properties(kwds)
@@ -74,6 +76,9 @@ class BaseManager(ManagerInterface):
             except:
                 pass
 
+    def system_properties(self):
+        return self.__system_properties
+
     def __init_galaxy_system_properties(self, kwds):
         self.galaxy_home = kwds.get('galaxy_home', None)
         self.galaxy_config_file = kwds.get('galaxy_config_file', None)
@@ -92,7 +97,7 @@ class BaseManager(ManagerInterface):
             if value:
                 system_properties[property] = value
 
-        self.system_properties = system_properties
+        self.__system_properties = system_properties
 
     def _galaxy_home(self):
         return self.galaxy_home or getenv('GALAXY_HOME', None)
@@ -104,55 +109,6 @@ class BaseManager(ManagerInterface):
             galaxy_lib = join(galaxy_home, 'lib')
         return galaxy_lib
 
-    def working_directory(self, job_id):
-        return self._job_directory(job_id).working_directory()
-
-    def working_directory_contents(self, job_id):
-        working_directory = self.working_directory(job_id)
-        return self.__directory_contents(working_directory)
-
-    def outputs_directory_contents(self, job_id):
-        outputs_directory = self.outputs_directory(job_id)
-        return self.__directory_contents(outputs_directory)
-
-    def __directory_contents(self, directory):
-        contents = []
-        for path, _, files in walk(directory):
-            relative_path = relpath(path, directory)
-            for name in files:
-                # Return file1.txt, dataset_1_files/image.png, etc... don't
-                # include . in path.
-                if relative_path != curdir:
-                    contents.append(join(relative_path, name))
-                else:
-                    contents.append(name)
-        return contents
-
-    def inputs_directory(self, job_id):
-        return self._job_directory(job_id).inputs_directory()
-
-    def outputs_directory(self, job_id):
-        return self._job_directory(job_id).outputs_directory()
-
-    def configs_directory(self, job_id):
-        return self._job_directory(job_id).configs_directory()
-
-    def tool_files_directory(self, job_id):
-        return self._job_directory(job_id).tool_files_directory()
-
-    def unstructured_files_directory(self, job_id):
-        return self._job_directory(job_id).unstructured_files_directory()
-
-    def calculate_input_path(self, job_id, path, input_type):
-        """ Delegate to underlying JobDirectory abstraction to calculate the
-        local path that should be used for the input described by path and
-        input_type. Verify security and create destination directory if
-        needed.
-        """
-        job_directory = self._job_directory(job_id)
-        path = job_directory.calculate_input_path(path, input_type)
-        return path
-
     def _setup_staging_directory(self, staging_directory):
         assert not staging_directory is None
         if not exists(staging_directory):
@@ -161,7 +117,7 @@ class BaseManager(ManagerInterface):
         self.staging_directory = staging_directory
 
     def _job_directory(self, job_id):
-        return JobDirectory(self.staging_directory, job_id)
+        return JobDirectory(self.staging_directory, job_id, self.lock_manager)
 
     job_directory = _job_directory
 
@@ -176,13 +132,6 @@ class BaseManager(ManagerInterface):
             job_directory.make_directory(directory)
         return job_directory
 
-    def _build_persistent_store(self, store_class, suffix):
-        store_path = None
-        if self.persistence_directory:
-            store_name = "%s_%s" % (self.name, suffix)
-            store_path = join(self.persistence_directory, store_name)
-        return store_class(store_path)
-
     def _get_authorization(self, job_id, tool_id):
         return self.authorizer.get_authorization(tool_id)
 
@@ -190,12 +139,12 @@ class BaseManager(ManagerInterface):
         log.debug("job_id: %s - Checking authorization of command_line [%s]" % (job_id, command_line))
         authorization = self._get_authorization(job_id, tool_id)
         job_directory = self._job_directory(job_id)
-        tool_files_dir = self.tool_files_directory(job_id)
+        tool_files_dir = job_directory.tool_files_directory()
         for file in listdir(tool_files_dir):
             contents = open(join(tool_files_dir, file), 'r').read()
             log.debug("job_id: %s - checking tool file %s" % (job_id, file))
             authorization.authorize_tool_file(basename(file), contents)
-        config_files_dir = self.configs_directory(job_id)
+        config_files_dir = job_directory.configs_directory()
         for file in listdir(config_files_dir):
             path = join(config_files_dir, file)
             authorization.authorize_config_file(job_directory, file, path)
@@ -210,8 +159,9 @@ class BaseManager(ManagerInterface):
 
 class JobDirectory(RemoteJobDirectory):
 
-    def __init__(self, staging_directory, job_id):
+    def __init__(self, staging_directory, job_id, lock_manager=None):
         super(JobDirectory, self).__init__(staging_directory, remote_id=job_id, remote_sep=sep)
+        self.lock_manager = lock_manager
         # Assert this job id isn't hacking path somehow.
         assert job_id == basename(job_id)
 
@@ -279,6 +229,31 @@ class JobDirectory(RemoteJobDirectory):
     def make_directory(self, name):
         path = self._job_file(name)
         os.mkdir(path)
+
+    def lock(self, name=".state"):
+        assert self.lock_manager, "Can only use job directory locks if lock manager defined."
+        return self.lock_manager.get_lock(self._job_file(name))
+
+    def working_directory_contents(self):
+        working_directory = self.working_directory()
+        return self.__directory_contents(working_directory)
+
+    def outputs_directory_contents(self):
+        outputs_directory = self.outputs_directory()
+        return self.__directory_contents(outputs_directory)
+
+    def __directory_contents(self, directory):
+        contents = []
+        for path, _, files in walk(directory):
+            relative_path = relpath(path, directory)
+            for name in files:
+                # Return file1.txt, dataset_1_files/image.png, etc... don't
+                # include . in path.
+                if relative_path != curdir:
+                    contents.append(join(relative_path, name))
+                else:
+                    contents.append(name)
+        return contents
 
 
 def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):

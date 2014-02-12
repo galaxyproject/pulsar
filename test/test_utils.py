@@ -56,13 +56,13 @@ class TestManager(object):
 
     def setup_temp_directory(self):
         self.temp_directory = mkdtemp()
-        self.job_directory = JobDirectory(self.temp_directory, '1')
+        self.__job_directory = JobDirectory(self.temp_directory, '1')
 
     def cleanup_temp_directory(self):
         rmtree(self.temp_directory)
 
-    def outputs_directory(self, job_id):
-        return self.job_directory.outputs_directory()
+    def job_directory(self, job_id):
+        return self.__job_directory
 
 
 @contextmanager

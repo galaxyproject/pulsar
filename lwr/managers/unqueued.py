@@ -1,9 +1,7 @@
 try:
     import thread
 except ImportError:
-    import _thread as thread  # Py3K changed it.from threading import Lock
-from threading import Lock
-
+    import _thread as thread  # Py3K changed it.
 from .util import kill_pid
 from lwr.managers.base.directory import DirectoryBaseManager
 from galaxy.util import execute
@@ -35,7 +33,6 @@ class Manager(DirectoryBaseManager):
 
     def __init__(self, name, app, **kwds):
         super(Manager, self).__init__(name, app, **kwds)
-        self.job_locks = dict({})
 
     def _record_cancel(self, job_id):
         self._write_job_file(job_id, JOB_FILE_CANCELLED, 'true')
@@ -54,52 +51,24 @@ class Manager(DirectoryBaseManager):
         return pid
 
     def setup_job(self, input_job_id, tool_id, tool_version):
-        job_id = self._register_job(input_job_id, True)
+        job_id = self._get_job_id(input_job_id)
         return self._setup_job_for_job_id(job_id, tool_id, tool_version)
 
     def _get_job_id(self, galaxy_job_id):
         return str(self.id_assigner(galaxy_job_id))
 
-    def _register_job(self, job_id, new=True):
-        if new:
-            galaxy_job_id = job_id
-            job_id = self._get_job_id(galaxy_job_id)
-        self.job_locks[job_id] = Lock()
-        return job_id
-
-    def _unregister_job(self, job_id):
-        log.debug("Unregistering job with job_id %s" % job_id)
-        del self.job_locks[job_id]
-
-    def _get_job_lock(self, job_id, allow_none=False):
-        try:
-            return self.job_locks[job_id]
-        except:
-            if allow_none:
-                return None
-            else:
-                raise
-
-    def clean(self, job_id):
-        super(Manager, self).clean(job_id)
-        self._unregister_job(job_id)
+    def _get_job_lock(self, job_id):
+        return self._job_directory(job_id).lock()
 
     def get_status(self, job_id):
-        try:
-            with self._get_job_lock(job_id):
-                return self._get_status(job_id)
-        except KeyError:
-            log.warn("Attempted to call get_status for job_id %s, but no such id exists." % job_id)
-            raise
+        with self._get_job_lock(job_id):
+            return self._get_status(job_id)
 
     def kill(self, job_id):
         log.info("Attempting to kill job with job_id %s" % job_id)
-        job_lock = self._get_job_lock(job_id, allow_none=True)
-        if job_lock:
-            with job_lock:
-                pid = self._get_pid_for_killing_or_cancel(job_id)
-        else:
-            log.info("Attempt to kill job with job_id %s, but no job_lock could be obtained." % job_id)
+        job_lock = self._get_job_lock(job_id)
+        with job_lock:
+            pid = self._get_pid_for_killing_or_cancel(job_id)
         if pid:
             log.info("Attempting to kill pid %s" % pid)
             kill_pid(pid)
@@ -156,7 +125,8 @@ class Manager(DirectoryBaseManager):
         with self._get_job_lock(job_id):
             if self._is_cancelled(job_id):
                 return
-        working_directory = self.working_directory(job_id)
+        job_directory = self.job_directory(job_id)
+        working_directory = job_directory.working_directory()
         stdout = self._open_standard_output(job_id)
         stderr = self._open_standard_error(job_id)
         proc = execute(command_line=command_line,

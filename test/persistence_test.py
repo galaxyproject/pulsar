@@ -4,6 +4,7 @@ import tempfile
 import time
 
 from lwr.managers.queued import QueueManager
+from lwr.managers.stateful import StatefulManagerProxy
 from lwr.tools.authorization import get_authorizer
 from .test_utils import TestDependencyManager
 
@@ -22,14 +23,14 @@ def test_persistence():
                     dependency_manager=TestDependencyManager(),
                     )
         assert not exists(join(staging_directory, "queued_jobs"))
-        queue1 = QueueManager('test', app, num_concurrent_jobs=0)
+        queue1 = StatefulManagerProxy(QueueManager('test', app, num_concurrent_jobs=0))
         job_id = queue1.setup_job('4', 'tool1', '1.0.0')
         touch_file = join(staging_directory, 'ran')
         queue1.launch(job_id, 'touch %s' % touch_file)
         time.sleep(.4)
         assert (not(exists(touch_file)))
         queue1.shutdown()
-        queue2 = QueueManager('test', app, num_concurrent_jobs=1)
+        queue2 = StatefulManagerProxy(QueueManager('test', app, num_concurrent_jobs=1))
         time.sleep(1)
         assert exists(touch_file)
     finally:

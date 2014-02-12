@@ -55,43 +55,6 @@ class ManagerInterface(object):
         """
 
     @abstractmethod
-    def tool_files_directory(self, job_id):
-        """
-        Directory where job with id `job_id` tool files (wrapper scripts)
-        will be stored.
-        """
-
-    @abstractmethod
-    def inputs_directory(self, job_id):
-        """
-        Directory where job with id `job_id` input files will be stored.
-        """
-
-    @abstractmethod
-    def working_directory(self, job_id):
-        """
-        Working directory for execution of job with id `job_id`.
-        """
-
-    @abstractmethod
-    def outputs_directory(self, job_id):
-        """
-        Directory where job with id `job_id` outputs will be stored.
-        """
-
-    @abstractmethod
-    def configs_directory(self, job_id):
-        """
-        Directory where job with id `job_id` tool config files will be stored.
-        """
-
-    @abstractmethod
-    def unstructured_files_directory(self, job_id):
-        """
-        Directory where job with id `job_id` unstructured files will be stored.
-        """
-
-    @abstractmethod
     def clean(self, job_id):
         """
         Delete job directory and clean up resources associated with job with
@@ -139,3 +102,57 @@ class ManagerInterface(object):
         """
         End or cancel execution of the specified job.
         """
+
+    @abstractmethod
+    def job_directory(self, job_id):
+        """ Return a JobDirectory abstraction describing the state of the
+        job working directory.
+        """
+
+
+class ManagerProxy(object):
+    """
+    Subclass to build override proxy a manager and override specific
+    functionality.
+    """
+
+    def __init__(self, manager):
+        self._proxied_manager = manager
+
+    def setup_job(self, *args, **kwargs):
+        return self._proxied_manager.setup_job(*args, **kwargs)
+
+    def clean(self, *args, **kwargs):
+        return self._proxied_manager.clean(*args, **kwargs)
+
+    def launch(self, *args, **kwargs):
+        return self._proxied_manager.launch(*args, **kwargs)
+
+    def get_status(self, *args, **kwargs):
+        return self._proxied_manager.get_status(*args, **kwargs)
+
+    def return_code(self, *args, **kwargs):
+        return self._proxied_manager.return_code(*args, **kwargs)
+
+    def stdout_contents(self, *args, **kwargs):
+        return self._proxied_manager.stdout_contents(*args, **kwargs)
+
+    def stderr_contents(self, *args, **kwargs):
+        return self._proxied_manager.stderr_contents(*args, **kwargs)
+
+    def kill(self, *args, **kwargs):
+        return self._proxied_manager.kill(*args, **kwargs)
+
+    def shutdown(self):
+        """ Optional. """
+        try:
+            shutdown_method = self._proxied_manager.shutdown
+        except AttributeError:
+            return
+        shutdown_method()
+
+    def job_directory(self, *args, **kwargs):
+        return self._proxied_manager.job_directory(*args, **kwargs)
+
+    def system_properties(self):
+        return self._proxied_manager.system_properties()

@@ -7,7 +7,7 @@ from .test_utils import test_manager
 def test_output_path():
     with test_manager() as manager:
         path = _output_path(manager, '1', 'moo', 'direct')
-        assert path == join(manager.job_directory.outputs_directory(), 'moo')
+        assert path == join(manager.job_directory('1').outputs_directory(), 'moo')
 
 
 def test_output_path_security():

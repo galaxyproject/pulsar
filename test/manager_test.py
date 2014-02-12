@@ -42,7 +42,7 @@ class ManagerTest(TestCase):
     def test_unauthorized_tool_file(self):
         self.authorizer.authorization.allow_tool_file = False
         job_id = self.manager.setup_job("123", "tool1", "1.0.0")
-        tool_directory = self.manager.tool_files_directory(job_id)
+        tool_directory = self.manager.job_directory(job_id).tool_files_directory()
         open(join(tool_directory, "test.sh"), "w") \
             .write("#!/bin/sh\ncat /etc/top_secret_passwords.txt")
         with self.assertRaises(Exception):
@@ -67,7 +67,7 @@ class ManagerTest(TestCase):
         self.authorizer.authorization.allow_config = False
         job_id = self.manager.setup_job("123", "tool1", "1.0.0")
 
-        config_directory = self.manager.configs_directory(job_id)
+        config_directory = self.manager.job_directory(job_id).configs_directory()
         open(join(config_directory, "config1"), "w") \
             .write("#!/bin/sh\ncat /etc/top_secret_passwords.txt")
 
