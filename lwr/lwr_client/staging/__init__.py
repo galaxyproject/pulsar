@@ -75,6 +75,23 @@ class GalaxyOutputs(object):
         self.output_files = output_files
         self.version_file = version_file
 
+    def to_dict(self):
+        return dict(
+            working_directory=self.working_directory,
+            work_dir_outputs=self.work_dir_outputs,
+            output_files=self.output_files,
+            version_file=self.version_file
+        )
+
+    @staticmethod
+    def from_dict(config_dict):
+        return GalaxyOutputs(
+            working_directory=config_dict.get('working_directory'),
+            work_dir_outputs=config_dict.get('work_dir_outputs'),
+            output_files=config_dict.get('output_files'),
+            version_file=config_dict.get('version_file'),
+        )
+
 
 class LwrOutputs(object):
     """ Abstraction describing the output files PRODUCED by the remote LWR
