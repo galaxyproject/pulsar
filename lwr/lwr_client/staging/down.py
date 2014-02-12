@@ -64,7 +64,7 @@ class ResultsDownloader(object):
         # Legacy LWR not returning list of files, iterate over the list of
         # expected outputs for tool.
         for output_file in self.output_files:
-            # Fetch ouptut directly...
+            # Fetch output directly...
             with self.exception_tracker():
                 action = self.action_mapper.action(output_file, 'output')
                 output_generated = self.lwr_outputs.has_output_file(output_file)

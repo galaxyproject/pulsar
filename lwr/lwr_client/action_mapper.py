@@ -69,6 +69,7 @@ class FileActionMapper(object):
     ...     f.close()
     ...     mock_client = Bunch(default_file_action=default_action, action_config_path=f.name)
     ...     mapper = FileActionMapper(mock_client)
+    ...     mapper = FileActionMapper(config=mapper.to_dict()) # Serialize and deserialize it to make sure still works
     ...     unlink(f.name)
     ...     return mapper
     >>> mapper = mapper_for(default_action='none', config_contents=json_string)
@@ -116,18 +117,33 @@ class FileActionMapper(object):
     True
     """
 
-    def __init__(self, client):
-        self.default_action = client.default_file_action
+    def __init__(self, client=None, config=None):
+        if config is None and client is None:
+            message = "FileActionMapper must be constructed from either a client or a config dictionary."
+            raise Exception(message)
+        if config is None:
+            config = self.__client_to_config(client)
+        self.default_action = config.get("default_action", "transfer")
+        self.mappers = mappers_from_dicts(config.get("paths", []))
+
+    def to_dict(self):
+        return dict(
+            default_action=self.default_action,
+            paths=map(lambda m: m.to_dict(), self.mappers)
+        )
+
+    def __client_to_config(self, client):
         action_config_path = client.action_config_path
-        self.mappers = []
         if action_config_path:
-            self.__load_action_config(action_config_path)
+            config = load(open(action_config_path, 'rb'))
+        else:
+            config = dict()
+        config["default_action"] = client.default_file_action
+        return config
 
     def __load_action_config(self, path):
         config = load(open(path, 'rb'))
-        for path_config in config.get('paths', []):
-            map_type = path_config.get('match_type', DEFAULT_PATH_MAPPER_TYPE)
-            self.mappers.append(mappers[map_type](path_config))
+        self.mappers = mappers_from_dicts(config.get('paths', []))
 
     def action(self, path, type, mapper=None):
         action_type = self.default_action if type in ACTION_DEFAULT_PATH_TYPES else "none"
@@ -288,8 +304,19 @@ class BasePathMapper(object):
         path_type_matches = path_type in self.path_types
         return path_type_matches and self._path_matches(path)
 
+    def _extend_base_dict(self, **kwds):
+        base_dict = dict(
+            action=self.action_type,
+            path_types=",".join(self.path_types),
+            match_type=self.match_type,
+            **self.file_lister.to_dict()
+        )
+        base_dict.update(**kwds)
+        return base_dict
+
 
 class PrefixPathMapper(BasePathMapper):
+    match_type = 'prefix'
 
     def __init__(self, config):
         super(PrefixPathMapper, self).__init__(config)
@@ -302,8 +329,12 @@ class PrefixPathMapper(BasePathMapper):
         pattern_str = "(%s%s[^\s,\"\']+)" % (escape(self.prefix_path), escape(sep))
         return compile(pattern_str)
 
+    def to_dict(self):
+        return self._extend_base_dict(path=self.prefix_path)
+
 
 class GlobPathMapper(BasePathMapper):
+    match_type = 'glob'
 
     def __init__(self, config):
         super(GlobPathMapper, self).__init__(config)
@@ -315,12 +346,17 @@ class GlobPathMapper(BasePathMapper):
     def to_pattern(self):
         return compile(fnmatch.translate(self.glob_path))
 
+    def to_dict(self):
+        return self._extend_base_dict(path=self.glob_path)
+
 
 class RegexPathMapper(BasePathMapper):
+    match_type = 'regex'
 
     def __init__(self, config):
         super(RegexPathMapper, self).__init__(config)
-        self.pattern = compile(config['path'])
+        self.pattern_raw = config['path']
+        self.pattern = compile(self.pattern_raw)
 
     def _path_matches(self, path):
         return self.pattern.match(path) is not None
@@ -328,11 +364,31 @@ class RegexPathMapper(BasePathMapper):
     def to_pattern(self):
         return self.pattern
 
+    def to_dict(self):
+        return self._extend_base_dict(path=self.pattern_raw)
+
+MAPPER_CLASSES = [PrefixPathMapper, GlobPathMapper, RegexPathMapper]
+MAPPER_CLASS_DICT = dict(map(lambda c: (c.match_type, c), MAPPER_CLASSES))
+
+
+def mappers_from_dicts(mapper_def_list):
+    return map(lambda m: __mappper_from_dict(m), mapper_def_list)
+
+
+def __mappper_from_dict(mapper_dict):
+    map_type = mapper_dict.get('match_type', DEFAULT_PATH_MAPPER_TYPE)
+    return MAPPER_CLASS_DICT[map_type](mapper_dict)
+
 
 class FileLister(object):
 
     def __init__(self, config):
         self.depth = int(config.get("depth", "0"))
+
+    def to_dict(self):
+        return dict(
+            depth=self.depth
+        )
 
     def unstructured_map(self, path):
         depth = self.depth
@@ -348,12 +404,6 @@ DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
 
 ACTION_CLASSES = [NoneAction, TransferAction, CopyAction, RemoteCopyAction]
 actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
-
-mappers = {
-    'prefix': PrefixPathMapper,
-    'glob': GlobPathMapper,
-    'regex': RegexPathMapper,
-}
 
 
 __all__ = [FileActionMapper, path_type, from_dict, MessageAction]
