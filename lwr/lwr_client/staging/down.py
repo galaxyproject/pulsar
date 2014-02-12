@@ -21,13 +21,13 @@ def finish_job(client, cleanup_job, job_completed_normally, galaxy_outputs, lwr_
     """ Responsible for downloading results from remote server and cleaning up
     LWR staging directory (if needed.)
     """
-    download_failure_exceptions = []
+    collection_failure_exceptions = []
     if job_completed_normally:
         output_collector = ClientOutputCollector(client)
         action_mapper = FileActionMapper(client)
         results_stager = ResultsCollector(output_collector, action_mapper, galaxy_outputs, lwr_outputs)
-        download_failure_exceptions = results_stager.collect()
-    return __clean(download_failure_exceptions, cleanup_job, client)
+        collection_failure_exceptions = results_stager.collect()
+    return __clean(collection_failure_exceptions, cleanup_job, client)
 
 
 class ClientOutputCollector(object):
@@ -63,7 +63,7 @@ class ResultsCollector(object):
         self.__collect_outputs()
         self.__collect_version_file()
         self.__collect_other_working_directory_files()
-        return self.exception_tracker.download_failure_exceptions
+        return self.exception_tracker.collection_failure_exceptions
 
     def __collect_working_directory_outputs(self):
         working_directory = self.galaxy_outputs.working_directory
@@ -132,18 +132,18 @@ class ResultsCollector(object):
 class DownloadExceptionTracker(object):
 
     def __init__(self):
-        self.download_failure_exceptions = []
+        self.collection_failure_exceptions = []
 
     @contextmanager
     def __call__(self):
         try:
             yield
         except Exception as e:
-            self.download_failure_exceptions.append(e)
+            self.collection_failure_exceptions.append(e)
 
 
-def __clean(download_failure_exceptions, cleanup_job, client):
-    failed = (len(download_failure_exceptions) > 0)
+def __clean(collection_failure_exceptions, cleanup_job, client):
+    failed = (len(collection_failure_exceptions) > 0)
     if (not failed and cleanup_job != "never") or cleanup_job == "always":
         try:
             client.clean()
