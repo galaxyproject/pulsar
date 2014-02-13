@@ -12,10 +12,8 @@ try:
 except ImportError:
     grp = None
 import errno
-from shutil import move
 from subprocess import Popen
 from tempfile import NamedTemporaryFile
-from datetime import datetime
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -56,30 +54,6 @@ def copy_to_temp(object):
     temp_file = NamedTemporaryFile(delete=False)
     _copy_and_close(object, temp_file)
     return temp_file.name
-
-
-def atomicish_move(source, destination, tmp_suffix="_TMP"):
-    """
-    Move source to destination without copying to directly to destination
-    there is never a partial file.
-
-    > from tempfile import mkdtemp
-    > from os.path import join, exists
-    > temp_dir = mkdtemp()
-    > source = join(temp_dir, "the_source")
-    > destination = join(temp_dir, "the_dest")
-    > open(source, "wb").write(b"Hello World!")
-    > assert exists(source)
-    > assert not exists(destination)
-    > atomicish_move(source, destination)
-    > assert not exists(source)
-    > assert exists(destination)
-    """
-    destination_dir = os.path.dirname(destination)
-    destination_name = os.path.basename(destination)
-    temp_destination = os.path.join(destination_dir, "%s%s" % (destination_name, tmp_suffix))
-    move(source, temp_destination)
-    os.rename(temp_destination, destination)
 
 
 def execute(command_line, working_directory, stdout, stderr):
@@ -183,11 +157,3 @@ def force_symlink(source, link_name):
             os.symlink(source, link_name)
         else:
             raise e
-
-
-class Time:
-    """ Time utilities of now that can be instrumented for testing."""
-
-    @classmethod
-    def now(cls):
-        return datetime.utcnow()
