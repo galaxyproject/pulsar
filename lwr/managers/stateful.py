@@ -3,6 +3,7 @@ import threading
 
 from lwr.managers import ManagerProxy
 from lwr.managers import status
+from lwr.lwr_client.action_mapper import from_dict
 
 import logging
 log = logging.getLogger(__name__)
@@ -37,6 +38,17 @@ class StatefulManagerProxy(ManagerProxy):
         job_id = self._proxied_manager.setup_job(*args, **kwargs)
         self.active_jobs.activate_job(job_id)
         return job_id
+
+    def handle_remote_staging(self, job_id, remote_staging_config):
+        # TODO: Serialize and handle postprocessing.
+        # TODO: Introduce preprocessing state and do this preprocessing step
+        #  asynchronously.
+        for remote_staging_action in remote_staging_config.get("setup", []):
+            name = remote_staging_action["name"]
+            input_type = remote_staging_action["type"]
+            action = from_dict(remote_staging_action["action"])
+            path = self._proxied_manager.job_directory(job_id).calculate_input_path(name, input_type)
+            action.write_to_path(path)
 
     def get_status(self, job_id):
         job_directory = self._proxied_manager.job_directory(job_id)

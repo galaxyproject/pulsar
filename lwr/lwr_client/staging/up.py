@@ -29,8 +29,11 @@ def submit_job(client, client_job_description, job_config=None):
     if file_stager.job_config:
         launch_kwds["job_config"] = file_stager.job_config
     remote_staging_actions = file_stager.transfer_tracker.remote_staging_actions
+    remote_staging = {}
     if remote_staging_actions:
-        launch_kwds["remote_staging_actions"] = remote_staging_actions
+        remote_staging["setup"] = remote_staging_actions
+    if remote_staging:
+        launch_kwds["remote_staging"] = remote_staging
 
     client.launch(**launch_kwds)
     return job_id

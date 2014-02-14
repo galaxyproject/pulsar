@@ -227,7 +227,7 @@ class JobClient(object):
         }
         self._raw_execute("download_output", output_params, output_path=output_path)
 
-    def launch(self, command_line, requirements=[], remote_staging_actions=[], job_config=None):
+    def launch(self, command_line, requirements=[], remote_staging=[], job_config=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -244,8 +244,8 @@ class JobClient(object):
             launch_params['params'] = dumps(submit_params)
         if requirements:
             launch_params['requirements'] = dumps([requirement.to_dict() for requirement in requirements])
-        if remote_staging_actions:
-            launch_params['remote_staging_actions'] = dumps(remote_staging_actions)
+        if remote_staging:
+            launch_params['remote_staging'] = dumps(remote_staging)
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
             # destination arguments. Hence, must have LWR setup job
