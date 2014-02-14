@@ -45,33 +45,39 @@ class RemoteJobDirectory(object):
     def separator(self):
         return self.path_helper.separator
 
-    def calculate_input_path(self, remote_path, input_type):
+    def calculate_path(self, remote_relative_path, input_type):
         """ Only for used by LWR client, should override for managers to
         enforce security and make the directory if needed.
         """
-        directory, allow_nested_files = self._directory_for_input_type(input_type)
-        return self.path_helper.remote_join(directory, remote_path)
+        directory, allow_nested_files = self._directory_for_file_type(input_type)
+        return self.path_helper.remote_join(directory, remote_relative_path)
 
-    def _directory_for_input_type(self, input_type):
+    def _directory_for_file_type(self, file_type):
         allow_nested_files = False
         # work_dir and input_extra are types used by legacy clients...
         # Obviously this client won't be legacy because this is in the
         # client module, but this code is reused on server which may
         # serve legacy clients.
-        if input_type in ['input', 'input_extra']:
+        if file_type in ['input', 'input_extra']:
             directory = self.inputs_directory()
             allow_nested_files = True
-        elif input_type in ['unstructured']:
+        elif file_type in ['unstructured']:
             directory = self.unstructured_files_directory()
             allow_nested_files = True
-        elif input_type == 'config':
+        elif file_type == 'config':
             directory = self.configs_directory()
-        elif input_type == 'tool':
+        elif file_type == 'tool':
             directory = self.tool_files_directory()
-        elif input_type in ['work_dir', 'workdir']:
+        elif file_type in ['work_dir', 'workdir']:
             directory = self.working_directory()
+        elif file_type in ['output']:
+            directory = self.outputs_directory()
+            allow_nested_files = True
+        elif file_type in ['output_workdir']:
+            directory = self.working_directory()
+            allow_nested_files = True
         else:
-            raise Exception("Unknown input_type specified %s" % input_type)
+            raise Exception("Unknown file_type specified %s" % file_type)
         return directory, allow_nested_files
 
     def _sub_dir(self, name):

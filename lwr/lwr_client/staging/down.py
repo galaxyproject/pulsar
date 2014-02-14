@@ -17,7 +17,7 @@ log = getLogger(__name__)
 COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|dataset_\d+_files.+")
 
 
-def finish_job(client, cleanup_job, job_completed_normally, galaxy_outputs, lwr_outputs):
+def finish_job(client, cleanup_job, job_completed_normally, client_outputs, lwr_outputs):
     """ Responsible for downloading results from remote server and cleaning up
     LWR staging directory (if needed.)
     """
@@ -25,9 +25,10 @@ def finish_job(client, cleanup_job, job_completed_normally, galaxy_outputs, lwr_
     if job_completed_normally:
         output_collector = ClientOutputCollector(client)
         action_mapper = FileActionMapper(client)
-        results_stager = ResultsCollector(output_collector, action_mapper, galaxy_outputs, lwr_outputs)
+        results_stager = ResultsCollector(output_collector, action_mapper, client_outputs, lwr_outputs)
         collection_failure_exceptions = results_stager.collect()
-    return __clean(collection_failure_exceptions, cleanup_job, client)
+    __clean(collection_failure_exceptions, cleanup_job, client)
+    return collection_failure_exceptions
 
 
 class ClientOutputCollector(object):
@@ -35,27 +36,33 @@ class ClientOutputCollector(object):
     def __init__(self, client):
         self.client = client
 
-    def collect_output(self, results_collector, output_type, action, path, name):
+    def collect_output(self, results_collector, output_type, action, name):
+        # This output should have been handled by the LWR.
+        if not action.staging_action_local:
+            return False
+
+        path = action.path
         if output_type == 'legacy':
-            working_directory = results_collector.galaxy_outputs.working_directory
+            working_directory = results_collector.client_outputs.working_directory
             self.client.fetch_output_legacy(path, working_directory, action_type=action.action_type)
         elif output_type == 'output_workdir':
-            working_directory = results_collector.galaxy_outputs.working_directory
+            working_directory = results_collector.client_outputs.working_directory
             self.client.fetch_work_dir_output(name, working_directory, path, action_type=action.action_type)
         elif output_type == 'output':
             self.client.fetch_output(path=path, name=name, action_type=action.action_type)
+        return True
 
 
 class ResultsCollector(object):
 
-    def __init__(self, output_collector, action_mapper, galaxy_outputs, lwr_outputs):
+    def __init__(self, output_collector, action_mapper, client_outputs, lwr_outputs):
         self.output_collector = output_collector
         self.action_mapper = action_mapper
-        self.galaxy_outputs = galaxy_outputs
+        self.client_outputs = client_outputs
         self.lwr_outputs = lwr_outputs
         self.downloaded_working_directory_files = []
         self.exception_tracker = DownloadExceptionTracker()
-        self.output_files = galaxy_outputs.output_files
+        self.output_files = client_outputs.output_files
         self.working_directory_contents = lwr_outputs.working_directory_contents or []
 
     def collect(self):
@@ -66,9 +73,9 @@ class ResultsCollector(object):
         return self.exception_tracker.collection_failure_exceptions
 
     def __collect_working_directory_outputs(self):
-        working_directory = self.galaxy_outputs.working_directory
+        working_directory = self.client_outputs.working_directory
         # Fetch explicit working directory outputs.
-        for source_file, output_file in self.galaxy_outputs.work_dir_outputs:
+        for source_file, output_file in self.client_outputs.work_dir_outputs:
             name = relpath(source_file, working_directory)
             lwr_name = self.lwr_outputs.path_helper.remote_name(name)
             if self._attempt_collect_output('output_workdir', path=output_file, name=lwr_name):
@@ -92,14 +99,14 @@ class ResultsCollector(object):
             # else not output generated, do not attempt download.
 
     def __collect_version_file(self):
-        version_file = self.galaxy_outputs.version_file
+        version_file = self.client_outputs.version_file
         # output_directory_contents may be none for legacy LWR servers.
         lwr_output_directory_contents = (self.lwr_outputs.output_directory_contents or [])
         if version_file and COMMAND_VERSION_FILENAME in lwr_output_directory_contents:
             self._attempt_collect_output('output', version_file, name=COMMAND_VERSION_FILENAME)
 
     def __collect_other_working_directory_files(self):
-        working_directory = self.galaxy_outputs.working_directory
+        working_directory = self.client_outputs.working_directory
         # Fetch remaining working directory outputs of interest.
         for name in self.working_directory_contents:
             if name in self.downloaded_working_directory_files:
@@ -120,13 +127,13 @@ class ResultsCollector(object):
             # ahead of time.
             output_action_type = 'output_workdir' if output_type == 'output_workdir' else 'output'
             action = self.action_mapper.action(path, output_action_type)
-            self._collect_output(output_type, action, path, name)
-            collected = True
+            if self._collect_output(output_type, action, name):
+                collected = True
 
         return collected
 
-    def _collect_output(self, output_type, action, path, name):
-        self.output_collector.collect_output(self, output_type, action, path, name)
+    def _collect_output(self, output_type, action, name):
+        return self.output_collector.collect_output(self, output_type, action, name)
 
 
 class DownloadExceptionTracker(object):
@@ -147,8 +154,7 @@ def __clean(collection_failure_exceptions, cleanup_job, client):
     if (not failed and cleanup_job != "never") or cleanup_job == "always":
         try:
             client.clean()
-        except:
+        except Exception:
             log.warn("Failed to cleanup remote LWR job")
-    return failed
 
 __all__ = [finish_job]

@@ -13,6 +13,7 @@ from os import makedirs
 from os import sep
 from os import getenv
 from os import walk
+import json
 from uuid import uuid4
 import posixpath
 from shutil import rmtree
@@ -168,11 +169,11 @@ class JobDirectory(RemoteJobDirectory):
     def _job_file(self, name):
         return os.path.join(self.job_directory, name)
 
-    def calculate_input_path(self, remote_path, input_type):
+    def calculate_path(self, remote_path, input_type):
         """ Verify remote_path is in directory for input_type inputs
         and create directory if needed.
         """
-        directory, allow_nested_files = self._directory_for_input_type(input_type)
+        directory, allow_nested_files = self._directory_for_file_type(input_type)
         path = get_mapped_file(directory, remote_path, allow_nested_files=allow_nested_files)
         return path
 
@@ -254,6 +255,21 @@ class JobDirectory(RemoteJobDirectory):
                 else:
                     contents.append(name)
         return contents
+
+    # Following abstractions store.
+    def store_metadata(self, metadata_name, metadata_value):
+        self.write_file(metadata_name, json.dumps(metadata_value))
+
+    def load_metadata(self, metadata_name, default=None):
+        DEFAULT_RAW = object()
+        contents = self.read_file(metadata_name, default=DEFAULT_RAW)
+        if contents is DEFAULT_RAW:
+            return default
+        else:
+            return json.loads(contents)
+
+    def has_metadata(self, metadata_name):
+        self.contains_file(metadata_name)
 
 
 def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):

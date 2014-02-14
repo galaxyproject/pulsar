@@ -4,6 +4,7 @@ import os
 from .test_utils import TempDirectoryTestCase
 from .test_utils import write_json_config
 from lwr.lwr_client import submit_job, ClientJobDescription
+from lwr.lwr_client import ClientOutputs
 from galaxy.tools.deps.requirements import ToolRequirement
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
@@ -23,7 +24,7 @@ class TestStager(TempDirectoryTestCase):
             command_line="run_test.exe",
             config_files=[],
             input_files=inputs,
-            output_files=[],
+            client_outputs=ClientOutputs("/galaxy/database/working_directory/1", []),
             working_directory="/galaxy/database/working_directory/1",
             requirements=[TEST_REQUIREMENT_1, TEST_REQUIREMENT_2],
             rewrite_paths=False,
@@ -149,7 +150,7 @@ class MockClient(object):
         assert tool_version == self.expected_tool.version
         return {}
 
-    def launch(self, command_line, requirements, job_config={}):
+    def launch(self, command_line, requirements, job_config={}, remote_staging={}):
         if self.expected_command_line is not None:
             message = "Excepected command line %s, got %s" % (self.expected_command_line, command_line)
             assert self.expected_command_line == command_line, message

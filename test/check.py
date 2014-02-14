@@ -10,7 +10,7 @@ from io import open
 from lwr.lwr_client import submit_job
 from lwr.lwr_client import finish_job
 from lwr.lwr_client import LwrOutputs
-from lwr.lwr_client import GalaxyOutputs
+from lwr.lwr_client import ClientOutputs
 from lwr.lwr_client import ClientManager
 from lwr.lwr_client import ClientJobDescription
 from galaxy.tools.deps.requirements import ToolRequirement
@@ -130,21 +130,26 @@ def run(options):
         test_requirement = options.get("test_requirement", False)
         if test_requirement:
             requirements.append(TEST_REQUIREMENT)
+        client_outputs = ClientOutputs(
+            working_directory=temp_work_dir,
+            work_dir_outputs=[],
+            output_files=output_files,
+            version_file=temp_version_output_path,
+        )
 
         job_description = ClientJobDescription(
             command_line=command_line,
             tool=MockTool(temp_tool_dir),
             config_files=config_files,
             input_files=input_files,
-            output_files=output_files,
+            client_outputs=client_outputs,
             working_directory=temp_work_dir,
             requirements=requirements,
-            version_file=temp_version_output_path,
         )
         submit_job(client, job_description)
         result_status = client.wait()
-        lwr_outputs = LwrOutputs(result_status)
-        galaxy_outputs = GalaxyOutputs(
+        lwr_outputs = LwrOutputs.from_status_response(result_status)
+        client_outputs = ClientOutputs(
             working_directory=temp_work_dir,
             work_dir_outputs=[],
             output_files=output_files,
@@ -154,12 +159,14 @@ def run(options):
             client=client,
             job_completed_normally=True,
             cleanup_job='never',
-            galaxy_outputs=galaxy_outputs,
+            client_outputs=client_outputs,
             lwr_outputs=lwr_outputs,
         )
         failed = finish_job(**finish_args)
         if failed:
-            raise Exception("Failed to finish job correctly - %s" % result_status)
+            failed_message_template = "Failed to complete job correctly, final status %s, finish exceptions %s."
+            failed_message = failed_message_template % (result_status, failed)
+            assert False, failed_message
         __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)
         __assert_contents(temp_output2_path, EXAMPLE_UNICODE_TEXT, result_status)
         __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON", result_status)

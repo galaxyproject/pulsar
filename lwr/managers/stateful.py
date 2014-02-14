@@ -40,12 +40,13 @@ class StatefulManagerProxy(ManagerProxy):
         self.active_jobs.activate_job(job_id)
         return job_id
 
-    def handle_remote_staging(self, job_id, remote_staging_config):
+    def handle_remote_staging(self, job_id, staging_config):
         # TODO: Serialize and handle postprocessing.
         # TODO: Introduce preprocessing state and do this preprocessing step
         #  asynchronously.
         job_directory = self._proxied_manager.job_directory(job_id)
-        preprocess(job_directory, remote_staging_config.get("setup", []))
+        preprocess(job_directory, staging_config.get("setup", []))
+        job_directory.store_metadata("staging_config", staging_config)
 
     def get_status(self, job_id):
         job_directory = self._proxied_manager.job_directory(job_id)

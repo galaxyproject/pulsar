@@ -10,7 +10,7 @@ from .staging.down import finish_job
 from .staging.up import submit_job
 from .staging import ClientJobDescription
 from .staging import LwrOutputs
-from .staging import GalaxyOutputs
+from .staging import ClientOutputs
 from .client import OutputNotFoundException
 from .manager import ClientManager
 from .destination import url_to_destination_params
@@ -24,6 +24,6 @@ __all__ = [
     submit_job,
     ClientJobDescription,
     LwrOutputs,
-    GalaxyOutputs,
+    ClientOutputs,
     PathMapper,
 ]

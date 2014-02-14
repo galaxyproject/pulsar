@@ -28,10 +28,14 @@ def submit_job(client, client_job_description, job_config=None):
     )
     if file_stager.job_config:
         launch_kwds["job_config"] = file_stager.job_config
-    remote_staging_actions = file_stager.transfer_tracker.remote_staging_actions
     remote_staging = {}
+    remote_staging_actions = file_stager.transfer_tracker.remote_staging_actions
     if remote_staging_actions:
         remote_staging["setup"] = remote_staging_actions
+    # Somehow make the following optional.
+    remote_staging["action_mapper"] = file_stager.action_mapper.to_dict()
+    remote_staging["client_outputs"] = client_job_description.client_outputs.to_dict()
+
     if remote_staging:
         launch_kwds["remote_staging"] = remote_staging
 
@@ -350,7 +354,7 @@ class TransferTracker(object):
                 if not name:
                     name = basename(path)
                 self.__add_remote_staging_input(action, name, type)
-                get_path = lambda: job_directory.calculate_input_path(name, type)
+                get_path = lambda: job_directory.calculate_path(name, type)
             register = self.rewrite_paths or type == 'tool'  # Even if inputs not rewritten, tool must be.
             if register:
                 self.register_rewrite(path, get_path(), type, force=True)

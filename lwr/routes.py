@@ -113,7 +113,7 @@ def kill(manager, job_id):
 ## deprecated in favor of generic upload_file route.
 @LwrController(response_type='json')
 def upload_tool_file(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_input_path(name, 'tool')
+    path = manager.job_directory(job_id).calculate_path(name, 'tool')
     return _handle_upload(
         file_cache,
         path,
@@ -124,7 +124,7 @@ def upload_tool_file(manager, file_cache, job_id, name, body, cache_token=None):
 
 @LwrController(response_type='json')
 def upload_input(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_input_path(name, 'input')
+    path = manager.job_directory(job_id).calculate_path(name, 'input')
     return _handle_upload(
         file_cache,
         path,
@@ -135,7 +135,7 @@ def upload_input(manager, file_cache, job_id, name, body, cache_token=None):
 
 @LwrController(response_type='json')
 def upload_extra_input(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_input_path(name, 'input')
+    path = manager.job_directory(job_id).calculate_path(name, 'input')
     return _handle_upload(
         file_cache,
         path,
@@ -146,7 +146,7 @@ def upload_extra_input(manager, file_cache, job_id, name, body, cache_token=None
 
 @LwrController(response_type='json')
 def upload_config_file(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_input_path(name, 'config')
+    path = manager.job_directory(job_id).calculate_path(name, 'config')
     return _handle_upload(
         file_cache,
         path,
@@ -157,7 +157,7 @@ def upload_config_file(manager, file_cache, job_id, name, body, cache_token=None
 
 @LwrController(response_type='json')
 def upload_working_directory_file(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_input_path(name, 'workdir')
+    path = manager.job_directory(job_id).calculate_path(name, 'workdir')
     return _handle_upload(
         file_cache,
         path,
@@ -168,7 +168,7 @@ def upload_working_directory_file(manager, file_cache, job_id, name, body, cache
 
 @LwrController(response_type='json')
 def upload_unstructured_file(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_input_path(name, 'unstructured')
+    path = manager.job_directory(job_id).calculate_path(name, 'unstructured')
     return _handle_upload(
         file_cache,
         path,
@@ -180,13 +180,13 @@ def upload_unstructured_file(manager, file_cache, job_id, name, body, cache_toke
 @LwrController(response_type='json')
 def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
     ## Input type should be one of input, config, workdir, tool, or unstructured.
-    path = manager.job_directory(job_id).calculate_input_path(name, input_type)
+    path = manager.job_directory(job_id).calculate_path(name, input_type)
     return _handle_upload(file_cache, path, body, cache_token=cache_token)
 
 
 @LwrController(response_type='json')
 def input_path(manager, input_type, job_id, name):
-    path = manager.job_directory(job_id).calculate_input_path(name, input_type)
+    path = manager.job_directory(job_id).calculate_path(name, input_type)
     return {'path': path}
 
 
