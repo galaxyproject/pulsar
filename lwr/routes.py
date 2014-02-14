@@ -10,6 +10,7 @@ from galaxy.util import (
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 from lwr.managers import status as manager_status
+from lwr.managers import job_complete_dict
 from lwr.lwr_client.setup_handler import build_job_config
 
 from galaxy.tools.deps.requirements import ToolRequirement
@@ -83,21 +84,8 @@ def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_
 @LwrController(response_type='json')
 def check_complete(manager, job_id):
     status = manager.get_status(job_id)
-    job_directory = manager.job_directory(job_id)
     if status in [manager_status.COMPLETE, manager_status.CANCELLED]:
-        return_code = manager.return_code(job_id)
-        stdout_contents = manager.stdout_contents(job_id)
-        stderr_contents = manager.stderr_contents(job_id)
-        response = {
-            "complete": "true",
-            "status": status,
-            "returncode": return_code,
-            "stdout": stdout_contents,
-            "stderr": stderr_contents,
-            "working_directory_contents": job_directory.working_directory_contents(),
-            "outputs_directory_contents": job_directory.outputs_directory_contents(),
-            "system_properties": manager.system_properties(),
-        }
+        response = job_complete_dict(status, manager, job_id)
         log.debug("Returning job complete response: %s" % response)
         return response
     else:

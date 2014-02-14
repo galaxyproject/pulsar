@@ -156,3 +156,20 @@ class ManagerProxy(object):
 
     def system_properties(self):
         return self._proxied_manager.system_properties()
+
+
+def job_complete_dict(complete_status, manager, job_id):
+    return_code = manager.return_code(job_id)
+    stdout_contents = manager.stdout_contents(job_id)
+    stderr_contents = manager.stderr_contents(job_id)
+    job_directory = manager.job_directory(job_id)
+    return dict(
+        complete="true",  # Is this still used or is it legacy.
+        status=complete_status,
+        returncode=return_code,
+        stdout=stdout_contents,
+        stderr=stderr_contents,
+        working_directory_contents=job_directory.working_directory_contents(),
+        outputs_directory_contents=job_directory.outputs_directory_contents(),
+        system_properties=manager.system_properties(),
+    )
