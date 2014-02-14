@@ -1,10 +1,13 @@
 import os
+import threading
 
 from lwr.managers import ManagerProxy
 
 
 import logging
 log = logging.getLogger(__name__)
+
+DEFAULT_DO_MONITOR = False
 
 DECACTIVATE_FAILED_MESSAGE = "Failed to deactivate job with job id %s. May be problems when starting LWR next."
 ACTIVATE_FAILED_MESSAGE = "Failed to activate job wiht job id %s. This job may not recover properly upon LWR restart."
@@ -16,10 +19,18 @@ class StatefulManagerProxy(ManagerProxy):
     """
     """
 
-    def __init__(self, manager):
+    def __init__(self, manager, **manager_options):
         super(StatefulManagerProxy, self).__init__(manager)
         self.active_jobs = ActiveJobs(manager)
         self.__recover_active_jobs()
+        monitor = None
+        if manager_options.get("monitor", DEFAULT_DO_MONITOR):
+            monitor = ManagerMonitor(self)
+        self.__monitor = monitor
+
+    @property
+    def name(self):
+        return self._proxied_manager.name
 
     def setup_job(self, *args, **kwargs):
         job_id = self._proxied_manager.setup_job(*args, **kwargs)
@@ -42,12 +53,20 @@ class StatefulManagerProxy(ManagerProxy):
 
         return proxy_status
 
+    def shutdown(self):
+        if self.__monitor:
+            try:
+                self.__monitor.shutdown()
+            except Exception:
+                log.exception("Failed to shutdown job monitor for manager %s" % self.name)
+        super(StatefulManagerProxy, self).shutdown()
+
     def __recover_active_jobs(self):
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
         if recover_method is None:
             return
 
-        for job_id in self.active_jobs.active_jobs():
+        for job_id in self.active_jobs.active_job_ids():
             try:
                 recover_method(job_id)
             except Exception:
@@ -67,6 +86,9 @@ class ActiveJobs(object):
     """ Keeps track of active jobs (those that are not yet "complete").
     Current implementation is file based, but could easily be made
     database-based instead.
+
+    TODO: Keep active jobs in memory after initial load so don't need to repeatedly
+    hit disk to recover this information.
     """
 
     def __init__(self, manager):
@@ -79,7 +101,7 @@ class ActiveJobs(object):
             active_job_directory = None
         self.active_job_directory = active_job_directory
 
-    def active_jobs(self):
+    def active_job_ids(self):
         job_ids = []
         if self.active_job_directory:
             job_ids = os.listdir(self.active_job_directory)
@@ -104,5 +126,46 @@ class ActiveJobs(object):
 
     def _active_job_file(self, job_id):
         return os.path.join(self.active_job_directory, job_id)
+
+
+class ManagerMonitor(object):
+    """ Monitors active jobs of a StatefulManagerProxy.
+    """
+
+    def __init__(self, stateful_manager):
+        self.stateful_manager = stateful_manager
+        self.active = True
+        name = "%s-monitor-thread" % stateful_manager.name
+        thread = threading.Thread(name=name)
+        thread.daemon = True
+        thread.start()
+        self.thread = thread
+
+    def shutdown(self):
+        self.active = False
+        self.thread.join()
+
+    def _run(self):
+        """ Main loop, repeatedly checking active jobs of stateful manager.
+        """
+        while self.active:
+            try:
+                self._monitor_active_jobs()
+            except Exception:
+                log.exception("Failure in stateful manager monitor step.")
+
+    def _monitor_active_jobs(self):
+        active_job_ids = self.stateful_manager.active_jobs.active_job_ids()
+        for active_job_id in active_job_ids:
+            try:
+                self._check_active_job_status(active_job_id)
+            except Exception:
+                log.exception("Failed checking active job status for job_id %s" % active_job_id)
+
+    def _check_active_job_status(self, active_job_id):
+        # Manager itself will handle state transitions when status changes,
+        # just need to poll get_statu
+        self.stateful_manager.get_status(active_job_id)
+
 
 __all__ = [StatefulManagerProxy]

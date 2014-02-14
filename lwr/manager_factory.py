@@ -71,7 +71,7 @@ def _parse_manager(manager_classes, app, manager_name, config, default_options):
 
 
 def _build_manager(manager_class, app, name=DEFAULT_MANAGER_NAME, manager_options={}):
-    return stateful.StatefulManagerProxy(manager_class(name, app, **manager_options))
+    return stateful.StatefulManagerProxy(manager_class(name, app, **manager_options), **manager_options)
 
 
 def _get_manager_modules():
