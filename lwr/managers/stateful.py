@@ -41,11 +41,12 @@ class StatefulManagerProxy(ManagerProxy):
         return job_id
 
     def handle_remote_staging(self, job_id, staging_config):
-        # TODO: Serialize and handle postprocessing.
-        # TODO: Introduce preprocessing state and do this preprocessing step
-        #  asynchronously.
         job_directory = self._proxied_manager.job_directory(job_id)
-        preprocess(job_directory, staging_config.get("setup", []))
+
+        def do_preprocess():
+            preprocess(job_directory, staging_config.get("setup", []))
+        new_thread_for_manager(self, "preprocess", do_preprocess, daemon=False)
+
         job_directory.store_metadata("staging_config", staging_config)
 
     def get_status(self, job_id):
@@ -62,7 +63,11 @@ class StatefulManagerProxy(ManagerProxy):
         if deactivate:
             self.__deactivate(job_id)
             if proxy_status == status.COMPLETE:
-                self.__postprocess(job_id)
+
+                def do_postprocess():
+                    postprocess(self._proxied_manager.job_directory(job_id))
+
+                new_thread_for_manager(self, "postprocess", do_postprocess, daemon=False)
 
         if proxy_status == status.COMPLETE:
             if not job_directory.contains_file(JOB_FILE_POSTPROCESSED):
@@ -81,10 +86,6 @@ class StatefulManagerProxy(ManagerProxy):
             except Exception:
                 log.exception("Failed to shutdown job monitor for manager %s" % self.name)
         super(StatefulManagerProxy, self).shutdown()
-
-    def __postprocess(self, job_id):
-        # TODO: Postprocess in new thread.
-        postprocess(self._proxied_manager.job_directory(job_id))
 
     def __recover_active_jobs(self):
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
@@ -160,10 +161,7 @@ class ManagerMonitor(object):
     def __init__(self, stateful_manager):
         self.stateful_manager = stateful_manager
         self.active = True
-        name = "%s-monitor-thread" % stateful_manager.name
-        thread = threading.Thread(name=name)
-        thread.daemon = True
-        thread.start()
+        thread = new_thread_for_manager(self, "monitor", self._run, True)
         self.thread = thread
 
     def shutdown(self):
@@ -192,5 +190,12 @@ class ManagerMonitor(object):
         # just need to poll get_statu
         self.stateful_manager.get_status(active_job_id)
 
+
+def new_thread_for_manager(manager, name, target, daemon):
+    thread_name = "%s-%s" % (manager, name)
+    thread = threading.Thread(name=thread_name, target=target)
+    thread.daemon = daemon
+    thread.start()
+    return thread
 
 __all__ = [StatefulManagerProxy]

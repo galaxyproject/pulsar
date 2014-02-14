@@ -50,8 +50,11 @@ def test_standard_requests():
         launch_response = app.get("/launch?job_id=%s&command_line=%s" % (job_id, command_line))
         assert launch_response.body == 'OK'
 
-        time.sleep(1)
-
+        # Hack: Call twice to ensure postprocessing occurs and has time to
+        # complete. Monitor thread should get this.
+        time.sleep(.2)
+        check_response = app.get("/check_complete?job_id=%s" % job_id)
+        time.sleep(.2)
         check_response = app.get("/check_complete?job_id=%s" % job_id)
         check_config = json.loads(check_response.body)
         assert check_config['returncode'] == 0
