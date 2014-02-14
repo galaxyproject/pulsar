@@ -1,14 +1,11 @@
 from os.path import join
 from os import makedirs, system
 from six import next, itervalues
+from six.moves import configparser
 from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessModule
 
 from galaxy.util.bunch import Bunch
 from .check import run
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
 
 
 class BaseIntegrationTest(TempDirectoryTestCase):
@@ -44,7 +41,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
     def __setup_job_properties(self, app_conf, job_conf_props):
         if job_conf_props:
             job_conf = join(self.temp_directory, "job_managers.ini")
-            config = ConfigParser()
+            config = configparser.ConfigParser()
             section_name = "manager:_default_"
             config.add_section(section_name)
             for key, value in job_conf_props.iteritems():

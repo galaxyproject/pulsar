@@ -3,6 +3,7 @@ from getpass import getuser
 
 from .base.base_drmaa import BaseDrmaaManager
 from .util.sudo import sudo_popen
+from ..managers import status
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -49,11 +50,11 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         external_id = self._external_id(job_id)
         if not external_id:
             raise KeyError("Failed to find external id for job_id %s" % job_id)
-        status = super(ExternalDrmaaQueueManager, self)._get_status_external(external_id)
-        if status == "complete" and job_id not in self.reclaimed:
+        external_status = super(ExternalDrmaaQueueManager, self)._get_status_external(external_id)
+        if external_status == status.COMPLETE and job_id not in self.reclaimed:
             self.reclaimed[job_id] = True
             self.__change_ownership(job_id, getuser())
-        return status
+        return external_status
 
     def __launch(self, job_attributes, user):
         return self.__sudo(self.drmaa_launch_script, "--job_attributes", str(job_attributes), user=user)

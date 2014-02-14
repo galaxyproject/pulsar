@@ -4,6 +4,7 @@ from os import stat
 from .util.condor import build_submit_description
 from .util.condor import condor_submit, condor_stop, summarize_condor_log, submission_params
 from .base.external import ExternalBaseManager
+from ..managers import status
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -58,10 +59,10 @@ class CondorQueueManager(ExternalBaseManager):
             raise Exception("Failed to obtain external_id for job_id %s, cannot determine status." % job_id)
         log_path = self.__condor_user_log(job_id)
         if not exists(log_path):
-            return 'complete'
+            return status.COMPLETE
         if external_id not in self.user_log_sizes:
             self.user_log_sizes[external_id] = -1
-            self.state_cache[external_id] = 'queued'
+            self.state_cache[external_id] = status.QUEUED
         log_size = stat(log_path).st_size
         if log_size == self.user_log_sizes[external_id]:
             return self.state_cache[external_id]
@@ -70,11 +71,11 @@ class CondorQueueManager(ExternalBaseManager):
     def __get_state_from_log(self, external_id, log_file):
         s1, s4, s7, s5, s9, log_size = summarize_condor_log(log_file, external_id)
         if s5 or s9:
-            state = 'complete'
+            state = status.COMPLETE
         elif s1 or s4 or s7:
-            state = 'running'
+            state = status.RUNNING
         else:
-            state = 'queued'
+            state = status.QUEUED
         self.user_log_sizes[external_id] = log_size
         self.state_cache[external_id] = state
         return state

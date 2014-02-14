@@ -2,7 +2,7 @@ import os
 import threading
 
 from lwr.managers import ManagerProxy
-
+from lwr.managers import status
 
 import logging
 log = logging.getLogger(__name__)
@@ -13,6 +13,7 @@ DECACTIVATE_FAILED_MESSAGE = "Failed to deactivate job with job id %s. May be pr
 ACTIVATE_FAILED_MESSAGE = "Failed to activate job wiht job id %s. This job may not recover properly upon LWR restart."
 
 JOB_FILE_FINAL_STATUS = "final_status"
+JOB_FILE_POSTPROCESSED = "postprocessed"
 
 
 class StatefulManagerProxy(ManagerProxy):
@@ -45,13 +46,23 @@ class StatefulManagerProxy(ManagerProxy):
                 proxy_status = job_directory.read_file(JOB_FILE_FINAL_STATUS)
             else:
                 proxy_status = self._proxied_manager.get_status(job_id)
-                if proxy_status in ['complete', 'cancelled']:
+                if proxy_status in [status.COMPLETE, status.CANCELLED]:
                     job_directory.write_file(JOB_FILE_FINAL_STATUS, proxy_status)
                     deactivate = True
         if deactivate:
             self.__deactivate(job_id)
+            if proxy_status == status.COMPLETE:
+                self.__postprocess(job_id)
 
-        return proxy_status
+        if proxy_status == status.COMPLETE:
+            if not job_directory.contains_file(JOB_FILE_POSTPROCESSED):
+                job_status = status.POSTPROCESSING
+            else:
+                job_status = status.COMPLETE
+        else:
+            job_status = proxy_status
+
+        return job_status
 
     def shutdown(self):
         if self.__monitor:
@@ -60,6 +71,10 @@ class StatefulManagerProxy(ManagerProxy):
             except Exception:
                 log.exception("Failed to shutdown job monitor for manager %s" % self.name)
         super(StatefulManagerProxy, self).shutdown()
+
+    def __postprocess(self, job_id):
+        # TODO: Postprocess in new thread and then write this file.
+        self._proxied_manager.job_directory(job_id).write_file(JOB_FILE_POSTPROCESSED, "")
 
     def __recover_active_jobs(self):
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)

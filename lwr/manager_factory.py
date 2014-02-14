@@ -5,10 +5,7 @@ import os
 import lwr.managers
 from lwr.managers import stateful
 from lwr.managers.queued import QueueManager
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
+from six.moves import configparser
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +31,7 @@ def build_managers(app, conf):
     if not job_managers_config:
         managers[DEFAULT_MANAGER_NAME] = _build_manager(QueueManager, app, DEFAULT_MANAGER_NAME, default_options)
     else:
-        config = ConfigParser()
+        config = configparser.ConfigParser()
         config.readfp(open(job_managers_config))
         for section in config.sections():
             if not section.startswith(MANAGER_PREFIX):

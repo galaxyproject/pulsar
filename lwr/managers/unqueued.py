@@ -4,6 +4,7 @@ except ImportError:
     import _thread as thread  # Py3K changed it.
 from .util import kill_pid
 from lwr.managers.base.directory import DirectoryBaseManager
+from lwr.managers import status
 from galaxy.util import execute
 
 from logging import getLogger
@@ -93,13 +94,13 @@ class Manager(DirectoryBaseManager):
     def _get_status(self, job_id):
         job_directory = self._job_directory(job_id)
         if self._is_cancelled(job_id):
-            return 'cancelled'
+            return status.CANCELLED
         elif job_directory.contains_file(JOB_FILE_PID):
-            return 'running'
+            return status.RUNNING
         elif job_directory.contains_file(JOB_FILE_SUBMITTED):
-            return 'queued'
+            return status.QUEUED
         else:
-            return 'complete'
+            return status.COMPLETE
 
     # with job lock
     def _is_cancelled(self, job_id):
@@ -111,8 +112,8 @@ class Manager(DirectoryBaseManager):
 
     # with job lock
     def _get_pid_for_killing_or_cancel(self, job_id):
-        status = self._get_status(job_id)
-        if status not in ['running', 'queued']:
+        job_status = self._get_status(job_id)
+        if job_status not in [status.RUNNING, status.QUEUED]:
             return
 
         pid = self.__get_pid(job_id)

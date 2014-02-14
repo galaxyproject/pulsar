@@ -1,5 +1,7 @@
 from .external import ExternalBaseManager
 from ..util.drmaa import DrmaaSessionFactory
+from lwr.managers import status
+
 try:
     from drmaa import JobState
 except ImportError:
@@ -25,16 +27,16 @@ class BaseDrmaaManager(ExternalBaseManager):
     def _get_status_external(self, external_id):
         drmaa_state = self.drmaa_session.job_status(external_id)
         return {
-            JobState.UNDETERMINED: 'complete',
-            JobState.QUEUED_ACTIVE: 'queued',
-            JobState.SYSTEM_ON_HOLD: 'queued',
-            JobState.USER_ON_HOLD: 'queued',
-            JobState.USER_SYSTEM_ON_HOLD: 'queued',
-            JobState.RUNNING: 'running',
-            JobState.SYSTEM_SUSPENDED: 'queued',
-            JobState.USER_SUSPENDED: 'queued',
-            JobState.DONE: 'complete',
-            JobState.FAILED: 'complete',  # Should be a FAILED state here as well
+            JobState.UNDETERMINED: status.COMPLETE,
+            JobState.QUEUED_ACTIVE: status.QUEUED,
+            JobState.SYSTEM_ON_HOLD: status.QUEUED,
+            JobState.USER_ON_HOLD: status.QUEUED,
+            JobState.USER_SYSTEM_ON_HOLD: status.QUEUED,
+            JobState.RUNNING: status.RUNNING,
+            JobState.SYSTEM_SUSPENDED: status.QUEUED,
+            JobState.USER_SUSPENDED: status.QUEUED,
+            JobState.DONE: status.COMPLETE,
+            JobState.FAILED: status.COMPLETE,  # Should be a FAILED state here as well
         }[drmaa_state]
 
     def _build_template_attributes(self, job_id, command_line, requirements=[]):

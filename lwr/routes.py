@@ -9,6 +9,7 @@ from galaxy.util import (
 )
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
+from lwr.managers import status as manager_status
 from lwr.lwr_client.setup_handler import build_job_config
 from lwr.lwr_client.action_mapper import from_dict
 
@@ -87,7 +88,7 @@ def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_
 def check_complete(manager, job_id):
     status = manager.get_status(job_id)
     job_directory = manager.job_directory(job_id)
-    if status in ['complete', 'cancelled']:
+    if status in [manager_status.COMPLETE, manager_status.CANCELLED]:
         return_code = manager.return_code(job_id)
         stdout_contents = manager.stdout_contents(job_id)
         stderr_contents = manager.stderr_contents(job_id)
