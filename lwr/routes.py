@@ -10,10 +10,11 @@ from galaxy.util import (
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 from lwr.managers import status as manager_status
-from lwr.managers import job_complete_dict
-from lwr.lwr_client.setup_handler import build_job_config
-
-from galaxy.tools.deps.requirements import ToolRequirement
+from .manager_endpoint_util import (
+    submit_job,
+    setup_job,
+    job_complete_dict,
+)
 
 import logging
 log = logging.getLogger(__name__)
@@ -47,14 +48,7 @@ def setup(manager, job_id, tool_id=None, tool_version=None):
 
 
 def __setup(manager, job_id, tool_id, tool_version):
-    job_id = manager.setup_job(job_id, tool_id, tool_version)
-    response = build_job_config(
-        job_id=job_id,
-        job_directory=manager.job_directory(job_id),
-        system_properties=manager.system_properties(),
-        tool_id=tool_id,
-        tool_version=tool_version,
-    )
+    response = setup_job(job_id, tool_id, tool_version)
     log.debug("Setup job with configuration: %s" % response)
     return response
 
@@ -68,17 +62,17 @@ def clean(manager, job_id):
 def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_params='{}', remote_staging='[]'):
     submit_params = loads(params)
     setup_params = loads(setup_params)
-    requirements = [ToolRequirement.from_dict(requirement_dict) for requirement_dict in loads(requirements)]
-    if setup_params:
-        job_id = setup_params.get("job_id", job_id)
-        tool_id = setup_params.get("tool_id", None)
-        tool_version = setup_params.get("tool_version", None)
-        __setup(manager, job_id, tool_id, tool_version)
-    remote_staging_config = loads(remote_staging)
-    if remote_staging_config:
-        # Ensure we have a stateful manager
-        manager.handle_remote_staging(job_id, remote_staging_config)
-    manager.launch(job_id, command_line, submit_params, requirements)
+    requirements = loads(requirements)
+    remote_staging = loads(remote_staging)
+    submit_config = dict(
+        job_id=job_id,
+        command_line=command_line,
+        setup_params=setup_params,
+        submit_params=submit_params,
+        requirements=requirements,
+        remote_staging=remote_staging
+    )
+    submit_job(manager, submit_config)
 
 
 @LwrController(response_type='json')
