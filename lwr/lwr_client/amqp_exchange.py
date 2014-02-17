@@ -13,21 +13,32 @@ KOMBU_UNAVAILABLE = "Attempting to bind to AMQP message queue, but kombu depende
 
 DEFAULT_EXCHANGE_NAME = "lwr"
 DEFAULT_EXCHANGE_TYPE = "direct"
-DEFAULT_TIMEOUT = 0.2
+DEFAULT_TIMEOUT = 0.2  # Set timeout to periodically give up looking and check
+                       # if polling should end.
 
 
 class LwrExchange(object):
+    """ Utility for publishing and consuming structured LWR queues using kombu.
+    This is shared between the server and client - an exchange should be setup
+    for each manager (or in the case of the client, each manager one wished to
+    communicate with.)
+
+    Each LWR manager is defined solely by name in the scheme, so only one LWR
+    should target each AMQP endpoint or care should be taken that unique
+    manager names are used across LWR servers targetting same AMQP endpoint -
+    and in particular only one such LWR should define an default manager with
+    name _default_.
+    """
 
     def __init__(self, url, manager_name, timeout=DEFAULT_TIMEOUT):
+        """
+        """
         if not kombu:
             raise Exception(KOMBU_UNAVAILABLE)
         self.__url = url
         self.__manager_name = manager_name
         self.__exchange = kombu.Exchange(DEFAULT_EXCHANGE_NAME, DEFAULT_EXCHANGE_TYPE)
         self.__timeout = timeout
-
-    def connection(self, connection_string, **kwargs):
-        return kombu.Connection(connection_string, **kwargs)
 
     def consume(self, queue_name, callback, check=True, connection_kwargs={}):
         queue = self.__queue(queue_name)
@@ -50,6 +61,9 @@ class LwrExchange(object):
                     declare=[self.__exchange],
                     routing_key=key,
                 )
+
+    def connection(self, connection_string, **kwargs):
+        return kombu.Connection(connection_string, **kwargs)
 
     def __queue(self, name):
         queue_name = self.__queue_name(name)

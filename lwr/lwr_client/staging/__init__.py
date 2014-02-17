@@ -14,15 +14,20 @@ class ClientJobDescription(object):
     **Parameters**
 
     command_line : str
-        The local command line to execute, this will be rewritten for the remote server.
+        The local command line to execute, this will be rewritten for
+        the remote server.
     config_files : list
-        List of Galaxy 'configfile's produced for this job. These will be rewritten and sent to remote server.
+        List of Galaxy 'configfile's produced for this job. These will
+        be rewritten and sent to remote server.
     input_files :  list
-        List of input files used by job. These will be transferred and references rewritten.
-    output_files : list
-        List of output_files produced by job.
+        List of input files used by job. These will be transferred and
+        references rewritten.
+    client_outputs : ClientOutputs
+        Description of outputs produced by job (at least output files along
+        with optional version string and working directory outputs.
     tool_dir : str
-        Directory containing tool to execute (if a wrapper is used, it will be transferred to remote server).
+        Directory containing tool to execute (if a wrapper is used, it will
+        be transferred to remote server).
     working_directory : str
         Local path created by Galaxy for running this job.
     requirements : list
