@@ -5,7 +5,11 @@ from collections import deque
 import posixpath
 
 from .util import PathHelper
-from galaxy.util import verify_is_in_directory
+from galaxy.util import in_directory
+
+from logging import getLogger
+log = getLogger(__name__)
+
 
 TYPES_TO_METHOD = dict(
     input="inputs_directory",
@@ -124,3 +128,10 @@ def __posix_to_local_path(path, local_path_module=os.path):
         (path, base) = posixpath.split(path)
         partial_path.appendleft(base)
     return local_path_module.join(*partial_path)
+
+
+def verify_is_in_directory(path, directory, local_path_module=os.path):
+    if not in_directory(path, directory, local_path_module):
+        msg = "Attempt to read or write file outside an authorized directory."
+        log.warn("%s Attempted path: %s, valid directory: %s" % (msg, path, directory))
+        raise Exception(msg)

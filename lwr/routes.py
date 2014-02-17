@@ -5,8 +5,8 @@ from json import loads
 from galaxy.util import (
     copy_to_path,
     copy_to_temp,
-    verify_is_in_directory
 )
+from lwr.lwr_client.job_directory import verify_is_in_directory
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 from lwr.managers import status as manager_status

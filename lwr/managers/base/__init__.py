@@ -23,7 +23,7 @@ import six
 from lwr import locks
 from lwr.managers import ManagerInterface
 from lwr.lwr_client.job_directory import RemoteJobDirectory
-from galaxy.util import verify_is_in_directory
+from lwr.lwr_client.job_directory import verify_is_in_directory
 
 JOB_DIRECTORY_INPUTS = "inputs"
 JOB_DIRECTORY_OUTPUTS = "outputs"

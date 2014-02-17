@@ -69,13 +69,6 @@ def execute(command_line, working_directory, stdout, stderr):
     return proc
 
 
-def verify_is_in_directory(path, directory, local_path_module=os.path):
-    if not is_in_directory(path, directory, local_path_module):
-        msg = "Attempt to read or write file outside an authorized directory."
-        log.warn("%s Attempted path: %s, valid directory: %s" % (msg, path, directory))
-        raise Exception(msg)
-
-
 def is_in_directory(file, directory, local_path_module=os.path):
     """
     Return true, if the common prefix of both is equal to directory
