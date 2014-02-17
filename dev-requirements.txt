@@ -1,5 +1,6 @@
 # Optional requirements used by test cases
 pycurl
+kombu
 
 # For testing
 nose
