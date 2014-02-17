@@ -7,6 +7,18 @@ import posixpath
 from .util import PathHelper
 from galaxy.util import verify_is_in_directory
 
+TYPES_TO_METHOD = dict(
+    input="inputs_directory",
+    input_extra="inputs_directory",
+    unstructured="unstructured_files_directory",
+    config="configs_directory",
+    tool="tool_files_directory",
+    work_dir="working_directory",
+    workdir="working_directory",
+    output="outputs_directory",
+    output_workdir="working_directory",
+)
+
 
 class RemoteJobDirectory(object):
     """ Representation of a (potentially) remote LWR-style staging directory.
@@ -58,27 +70,11 @@ class RemoteJobDirectory(object):
         # Obviously this client won't be legacy because this is in the
         # client module, but this code is reused on server which may
         # serve legacy clients.
-        if file_type in ['input', 'input_extra']:
-            directory = self.inputs_directory()
-            allow_nested_files = True
-        elif file_type in ['unstructured']:
-            directory = self.unstructured_files_directory()
-            allow_nested_files = True
-        elif file_type == 'config':
-            directory = self.configs_directory()
-        elif file_type == 'tool':
-            directory = self.tool_files_directory()
-        elif file_type in ['work_dir', 'workdir']:
-            directory = self.working_directory()
-        elif file_type in ['output']:
-            directory = self.outputs_directory()
-            allow_nested_files = True
-        elif file_type in ['output_workdir']:
-            directory = self.working_directory()
-            allow_nested_files = True
-        else:
+        allow_nested_files = file_type in ['input', 'input_extra', 'unstructured', 'output', 'output_workdir']
+        directory_function = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
+        if not directory_function:
             raise Exception("Unknown file_type specified %s" % file_type)
-        return directory, allow_nested_files
+        return directory_function(), allow_nested_files
 
     def _sub_dir(self, name):
         return self.path_helper.remote_join(self.job_directory, name)
