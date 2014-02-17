@@ -48,7 +48,7 @@ def setup(manager, job_id, tool_id=None, tool_version=None):
 
 
 def __setup(manager, job_id, tool_id, tool_version):
-    response = setup_job(job_id, tool_id, tool_version)
+    response = setup_job(manager, job_id, tool_id, tool_version)
     log.debug("Setup job with configuration: %s" % response)
     return response
 

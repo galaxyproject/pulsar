@@ -52,20 +52,9 @@ class OutputNotFoundException(Exception):
         return "No remote output found for path %s" % self.path
 
 
-class JobClient(object):
-    """
-    Objects of this client class perform low-level communication with a remote LWR server.
+class BaseJobClient(object):
 
-    **Parameters**
-
-    destination_params : dict or str
-        connection parameters, either url with dict containing url (and optionally `private_token`).
-    job_id : str
-        Galaxy job/task id.
-    """
-
-    def __init__(self, destination_params, job_id, job_manager_interface):
-        self.job_manager_interface = job_manager_interface
+    def __init__(self, destination_params, job_id):
         self.destination_params = destination_params
         self.job_id = job_id
         if "jobs_directory" in (destination_params or {}):
@@ -82,7 +71,42 @@ class JobClient(object):
 
         self.default_file_action = self.destination_params.get("default_file_action", "transfer")
         self.action_config_path = self.destination_params.get("file_action_config", None)
+
         self.setup_handler = build_setup_handler(self, destination_params)
+
+    def setup(self, tool_id=None, tool_version=None):
+        """
+        Setup remote LWR server to run this job.
+        """
+        setup_args = {"job_id": self.job_id}
+        if tool_id:
+            setup_args["tool_id"] = tool_id
+        if tool_version:
+            setup_args["tool_version"] = tool_version
+        return self.setup_handler.setup(**setup_args)
+
+    @property
+    def prefer_local_staging(self):
+        # If doing a job directory is defined, calculate paths here and stage
+        # remotely.
+        return self.job_directory is None
+
+
+class JobClient(BaseJobClient):
+    """
+    Objects of this client class perform low-level communication with a remote LWR server.
+
+    **Parameters**
+
+    destination_params : dict or str
+        connection parameters, either url with dict containing url (and optionally `private_token`).
+    job_id : str
+        Galaxy job/task id.
+    """
+
+    def __init__(self, destination_params, job_id, job_manager_interface):
+        super(JobClient, self).__init__(destination_params, job_id)
+        self.job_manager_interface = job_manager_interface
 
     def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
         return self.job_manager_interface.execute(command, args, data, input_path, output_path)
@@ -171,12 +195,6 @@ class JobClient(object):
         output_type = "direct"  # Task/from_work_dir outputs now handled with fetch_work_dir_output
         self.__populate_output_path(name, path, output_type, action_type)
 
-    @property
-    def prefer_local_staging(self):
-        # If doing a job directory is defined, calculate paths here and stage
-        # remotely.
-        return self.job_directory is None
-
     def __populate_output_path(self, name, output_path, output_type, action_type):
         self.__ensure_directory(output_path)
         if action_type == 'transfer':
@@ -250,7 +268,7 @@ class JobClient(object):
             # Setup not yet called, job properties were inferred from
             # destination arguments. Hence, must have LWR setup job
             # before queueing.
-            setup_params = self._setup_params_from_job_config(job_config)
+            setup_params = _setup_params_from_job_config(job_config)
             launch_params["setup_params"] = dumps(setup_params)
         return self._raw_execute("launch", launch_params)
 
@@ -268,6 +286,7 @@ class JobClient(object):
         while max_seconds is None or i < max_seconds:
             complete_response = self.raw_check_complete()
             if complete_response["complete"] == "true":
+                print complete_response
                 return complete_response
             else:
                 print complete_response
@@ -309,17 +328,6 @@ class JobClient(object):
         """
         self._raw_execute("clean", {"job_id": self.job_id})
 
-    def setup(self, tool_id=None, tool_version=None):
-        """
-        Setup remote LWR server to run this job.
-        """
-        setup_args = {"job_id": self.job_id}
-        if tool_id:
-            setup_args["tool_id"] = tool_id
-        if tool_version:
-            setup_args["tool_version"] = tool_version
-        return self.setup_handler.setup(**setup_args)
-
     @parseJson()
     def remote_setup(self, **setup_args):
         """
@@ -333,15 +341,34 @@ class JobClient(object):
         if source != destination:
             shutil.copyfile(source, destination)
 
-    def _setup_params_from_job_config(self, job_config):
-        job_id = job_config.get("job_id", None)
-        tool_id = job_config.get("tool_id", None)
-        tool_version = job_config.get("tool_version", None)
-        return dict(
-            job_id=job_id,
-            tool_id=tool_id,
-            tool_version=tool_version
-        )
+
+class MessageJobClient(BaseJobClient):
+
+    def __init__(self, destination_params, job_id, exchange):
+        super(MessageJobClient, self).__init__(destination_params, job_id)
+        if not self.job_directory:
+            error_message = "Message-queue based LWR client requires destination define a remote job_directory to stage files into."
+            raise Exception(error_message)
+        self.exchange = exchange
+
+    def launch(self, command_line, requirements=[], remote_staging=[], job_config=None):
+        """
+        """
+        launch_params = dict(command_line=command_line, job_id=self.job_id)
+        submit_params_dict = submit_params(self.destination_params)
+        if submit_params_dict:
+            launch_params['params'] = submit_params_dict
+        if requirements:
+            launch_params['requirements'] = [requirement.to_dict() for requirement in requirements]
+        if remote_staging:
+            launch_params['remote_staging'] = remote_staging
+        if job_config and self.setup_handler.local:
+            # Setup not yet called, job properties were inferred from
+            # destination arguments. Hence, must have LWR setup job
+            # before queueing.
+            setup_params = _setup_params_from_job_config(job_config)
+            launch_params["setup_params"] = setup_params
+        return self.exchange.publish("setup", launch_params)
 
 
 class LocalSetupHandler(object):
@@ -408,6 +435,17 @@ class InputCachingJobClient(JobClient):
     @parseJson()
     def file_available(self, path):
         return self._raw_execute("file_available", {"path": path})
+
+
+def _setup_params_from_job_config(job_config):
+    job_id = job_config.get("job_id", None)
+    tool_id = job_config.get("tool_id", None)
+    tool_version = job_config.get("tool_version", None)
+    return dict(
+        job_id=job_id,
+        tool_id=tool_id,
+        tool_version=tool_version
+    )
 
 
 class ObjectStoreClient(object):

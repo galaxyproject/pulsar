@@ -5,13 +5,14 @@ import os
 import optparse
 import traceback
 import re
+import threading
 from io import open
 
 from lwr.lwr_client import submit_job
 from lwr.lwr_client import finish_job
 from lwr.lwr_client import LwrOutputs
 from lwr.lwr_client import ClientOutputs
-from lwr.lwr_client import ClientManager
+from lwr.lwr_client import build_client_manager
 from lwr.lwr_client import ClientJobDescription
 from galaxy.tools.deps.requirements import ToolRequirement
 from .test_utils import write_json_config
@@ -124,7 +125,7 @@ def run(options):
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
         output_files = [temp_output_path, temp_output2_path, temp_output3_path, temp_output4_path]
-        client = __client(temp_directory, options)
+        client, client_manager = __client(temp_directory, options)
 
         requirements = []
         test_requirement = options.get("test_requirement", False)
@@ -147,7 +148,7 @@ def run(options):
             requirements=requirements,
         )
         submit_job(client, job_description)
-        result_status = client.wait()
+        result_status = __wait(client, client_manager)
         lwr_outputs = LwrOutputs.from_status_response(result_status)
         client_outputs = ClientOutputs(
             working_directory=temp_work_dir,
@@ -181,12 +182,31 @@ def run(options):
             # Path written to this file will differ between Windows and Linux.
             assert re.search(r"123456[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa", rewritten_index_path) is not None
         __exercise_errors(options, client, temp_output_path, temp_directory)
+        client_manager.shutdown()
     except BaseException:
         if not options.suppress_output:
             traceback.print_exc()
         raise
     finally:
         shutil.rmtree(temp_directory)
+
+
+def __wait(client, client_manager):
+    if hasattr(client, 'wait'):
+        final_status = client.wait()
+    else:
+        final_status = {}
+        event = threading.Event()
+
+        def on_complete(message):
+            final_status.update(message)
+            event.set()
+
+        client_manager.listen_for_job_completes(on_complete)
+        event.wait(5)
+        if not event.is_set():
+            raise Exception("Job Not Completed Properly")
+    return final_status
 
 
 def __assert_contents(path, expected_contents, lwr_state):
@@ -234,8 +254,9 @@ def __client(temp_directory, options):
     user = getattr(options, 'user', None)
     if user:
         client_options["submit_user"] = user
-    client = __client_manager(options).get_client(client_options, "123456")
-    return client
+    client_manager = __client_manager(options)
+    client = client_manager.get_client(client_options, "123456")
+    return client, client_manager
 
 
 def __client_manager(options):
@@ -246,7 +267,9 @@ def __client_manager(options):
             manager_args[client_manager_option] = getattr(options, client_manager_option)
     if getattr(options, 'transport', None):
         manager_args['transport_type'] = options.transport
-    return ClientManager(**manager_args)
+    if getattr(options, 'manager_url', None):
+        manager_args['url'] = options.manager_url
+    return build_client_manager(**manager_args)
 
 
 def __write_to_file(path, contents):

@@ -16,6 +16,7 @@ ACTIVATE_FAILED_MESSAGE = "Failed to activate job wiht job id %s. This job may n
 
 JOB_FILE_FINAL_STATUS = "final_status"
 JOB_FILE_POSTPROCESSED = "postprocessed"
+JOB_FILE_PREPROCESSED = "preprocessed"
 
 
 class StatefulManagerProxy(ManagerProxy):
@@ -25,11 +26,13 @@ class StatefulManagerProxy(ManagerProxy):
     def __init__(self, manager, **manager_options):
         super(StatefulManagerProxy, self).__init__(manager)
         self.active_jobs = ActiveJobs(manager)
+        self.__completion_callback = lambda final_status, job_id: None
         self.__recover_active_jobs()
-        monitor = None
-        if manager_options.get("monitor", DEFAULT_DO_MONITOR):
-            monitor = ManagerMonitor(self)
-        self.__monitor = monitor
+        self.__monitor = None
+
+    def set_completion_callback(self, on_complete):
+        self.__completion_callback = on_complete
+        self.__monitor = ManagerMonitor(self)
 
     @property
     def name(self):
@@ -37,7 +40,6 @@ class StatefulManagerProxy(ManagerProxy):
 
     def setup_job(self, *args, **kwargs):
         job_id = self._proxied_manager.setup_job(*args, **kwargs)
-        self.active_jobs.activate_job(job_id)
         return job_id
 
     def handle_remote_staging(self, job_id, staging_config):
@@ -49,10 +51,20 @@ class StatefulManagerProxy(ManagerProxy):
 
         job_directory.store_metadata("staging_config", staging_config)
 
+    def launch(self, job_id, *args, **kwargs):
+        job_directory = self._proxied_manager.job_directory(job_id)
+        result = self._proxied_manager.launch(job_id, *args, **kwargs)
+        with job_directory.lock("status"):
+            job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
+        self.active_jobs.activate_job(job_id)
+        return result
+
     def get_status(self, job_id):
         job_directory = self._proxied_manager.job_directory(job_id)
         deactivate = False
         with job_directory.lock("status"):
+            if not job_directory.contains_file(JOB_FILE_PREPROCESSED):
+                proxy_status = status.PREPROCESSING
             if job_directory.contains_file(JOB_FILE_FINAL_STATUS):
                 proxy_status = job_directory.read_file(JOB_FILE_FINAL_STATUS)
             else:
@@ -63,12 +75,7 @@ class StatefulManagerProxy(ManagerProxy):
         if deactivate:
             self.__deactivate(job_id)
             if proxy_status == status.COMPLETE:
-
-                def do_postprocess():
-                    postprocess(self._proxied_manager.job_directory(job_id))
-
-                new_thread_for_manager(self, "postprocess", do_postprocess, daemon=False)
-
+                self.__handle_postprocessing(job_id)
         if proxy_status == status.COMPLETE:
             if not job_directory.contains_file(JOB_FILE_POSTPROCESSED):
                 job_status = status.POSTPROCESSING
@@ -78,6 +85,17 @@ class StatefulManagerProxy(ManagerProxy):
             job_status = proxy_status
 
         return job_status
+
+    def __handle_postprocessing(self, job_id):
+        def do_postprocess():
+            postprocess_success = False
+            try:
+                postprocess_success = postprocess(self._proxied_manager.job_directory(job_id))
+            except Exception:
+                log.exception("Failed to postprocess results for job id %s" % job_id)
+            final_status = status.COMPLETE if postprocess_success else status.FAILED
+            self.__completion_callback(final_status, job_id)
+        new_thread_for_manager(self, "postprocess", do_postprocess, daemon=False)
 
     def shutdown(self):
         if self.__monitor:

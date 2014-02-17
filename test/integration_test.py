@@ -79,9 +79,11 @@ class IntegrationTests(BaseIntegrationTest):
         job_props = {'type': 'queued_external_drmaa', "production": "false"}
         self._run(job_conf_props=job_props, private_token=None, default_file_action="copy", user='u1', **self.default_kwargs)
 
-    # Still doesn't work because trying of inputs handling...
     def test_integration_local_setup(self):
         self._run(private_token=None, default_file_action="remote_copy", local_setup=True, **self.default_kwargs)
+
+    def test_message_queue(self):
+        self._run(app_conf=dict(message_queue_url="memory://test1"), private_token=None, default_file_action="remote_copy", local_setup=True, manager_url="memory://test1", **self.default_kwargs)
 
     def test_integration_copy(self):
         self._run(private_token=None, default_file_action="copy", **self.default_kwargs)

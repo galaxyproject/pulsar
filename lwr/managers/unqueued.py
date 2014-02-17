@@ -94,13 +94,14 @@ class Manager(DirectoryBaseManager):
     def _get_status(self, job_id):
         job_directory = self._job_directory(job_id)
         if self._is_cancelled(job_id):
-            return status.CANCELLED
+            job_status = status.CANCELLED
         elif job_directory.contains_file(JOB_FILE_PID):
-            return status.RUNNING
+            job_status = status.RUNNING
         elif job_directory.contains_file(JOB_FILE_SUBMITTED):
-            return status.QUEUED
+            job_status = status.QUEUED
         else:
-            return status.COMPLETE
+            job_status = status.COMPLETE
+        return job_status
 
     # with job lock
     def _is_cancelled(self, job_id):

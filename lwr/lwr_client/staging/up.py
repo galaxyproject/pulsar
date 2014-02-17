@@ -343,8 +343,6 @@ class TransferTracker(object):
 
         if action.staging_needed:
             local_action = action.staging_action_local
-            print local_action, action
-            print path, type, name
             if local_action:
                 response = self.client.put_file(path, type, name=name, contents=contents)
                 get_path = lambda: response['path']
