@@ -371,29 +371,6 @@ class MessageJobClient(BaseJobClient):
         return self.exchange.publish("setup", launch_params)
 
 
-class LocalSetupHandler(object):
-    """ Parse destination params to infer job setup parameters (input/output
-    directories, etc...). Default is to get this configuration data from the
-    remote LWR server.
-
-    Downside of this approach is that it requires more and more dependent
-    configuraiton of Galaxy. Upside is that it is asynchronous and thus makes
-    message queue driven configurations possible.
-    """
-    def __init__(self, client):
-        self.client = client
-
-
-class RemoteSetupHandler(object):
-    """ Default behavior. Fetch setup information from remote LWR server.
-    """
-    def __init__(self, client):
-        self.client = client
-
-    def setup(self, **setup_args):
-        return self.client.remote_setup(**setup_args)
-
-
 class InputCachingJobClient(JobClient):
     """
     Beta client that cache's staged files to prevent duplication.

@@ -107,9 +107,6 @@ class LwrOutputs(object):
     def __init__(self, working_directory_contents, output_directory_contents, remote_separator=sep):
         self.working_directory_contents = working_directory_contents
         self.output_directory_contents = output_directory_contents
-        # Older (pre-2014) LWR servers will not include separator in response,
-        #so this should only be used when reasoning about outputs in
-        # subdirectories which was not previously supported.
         self.path_helper = PathHelper(remote_separator)
 
     @staticmethod
@@ -119,8 +116,8 @@ class LwrOutputs(object):
         working_directory_contents = complete_response.get("working_directory_contents", None)
         output_directory_contents = complete_response.get("outputs_directory_contents", None)
         # Older (pre-2014) LWR servers will not include separator in response,
-        #so this should only be used when reasoning about outputs in
-        # subdirectories which was not previously supported.
+        # so this should only be used when reasoning about outputs in
+        # subdirectories (which was not previously supported prior to that).
         remote_separator = complete_response.get("system_properties", {}).get("separator", sep)
         return LwrOutputs(
             working_directory_contents,
