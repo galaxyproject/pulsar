@@ -1,7 +1,6 @@
 try:
     import kombu
     from kombu import pools
-    from kombu.common import eventloop
 except ImportError:
     kombu = None
 
