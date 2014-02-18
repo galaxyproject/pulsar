@@ -7,7 +7,7 @@ from six import text_type, binary_type
 from lwr.lwr_client.client import JobClient
 from lwr.lwr_client.manager import HttpLwrInterface
 from lwr.lwr_client.transport import Urllib2Transport
-from lwr.lwr_client.client import retry, MAX_RETRY_COUNT
+from lwr.lwr_client.decorators import retry, MAX_RETRY_COUNT
 
 
 def test_with_retry():

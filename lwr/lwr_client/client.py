@@ -1,49 +1,18 @@
 import os
 import shutil
-import json
+import time
 from json import dumps
-from time import sleep
 
 from .destination import submit_params
 from .setup_handler import build as build_setup_handler
 from .job_directory import RemoteJobDirectory
+from .decorators import parseJson
+from .decorators import retry
 
 import logging
 log = logging.getLogger(__name__)
 
 CACHE_WAIT_SECONDS = 3
-MAX_RETRY_COUNT = 5
-RETRY_SLEEP_TIME = 0.1
-
-
-class parseJson(object):
-
-    def __call__(self, func):
-        def replacement(*args, **kwargs):
-            response = func(*args, **kwargs)
-            return json.loads(response)
-        return replacement
-
-
-class retry(object):
-
-    def __call__(self, func):
-
-        def replacement(*args, **kwargs):
-            max_count = MAX_RETRY_COUNT
-            count = 0
-            while True:
-                count += 1
-                try:
-                    return func(*args, **kwargs)
-                except:
-                    if count >= max_count:
-                        raise
-                    else:
-                        sleep(RETRY_SLEEP_TIME)
-                        continue
-
-        return replacement
 
 
 class OutputNotFoundException(Exception):
@@ -298,9 +267,10 @@ class JobClient(BaseJobClient):
                 return complete_response
             else:
                 print complete_response
-            sleep(1)
+            time.sleep(1)
             i += 1
 
+    @retry()
     @parseJson()
     def raw_check_complete(self):
         """
@@ -317,7 +287,6 @@ class JobClient(BaseJobClient):
             response = self.raw_check_complete()
         return response["complete"] == "true"
 
-    @retry()
     def get_status(self):
         check_complete_response = self.raw_check_complete()
         # Older LWR instances won't set status so use 'complete', at some
