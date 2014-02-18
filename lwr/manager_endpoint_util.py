@@ -2,10 +2,19 @@
 and message queue.
 """
 from lwr.lwr_client.setup_handler import build_job_config
+from lwr.managers import status
 from galaxy.tools.deps.requirements import ToolRequirement
 
 
-def job_complete_dict(complete_status, manager, job_id):
+def full_status(manager, job_status, job_id):
+    if job_status in [status.COMPLETE, status.CANCELLED]:
+        full_status = __job_complete_dict(job_status, manager, job_id)
+    else:
+        full_status = {"complete": "false", "status": job_status}
+    return full_status
+
+
+def __job_complete_dict(complete_status, manager, job_id):
     """ Build final dictionary describing completed job for consumption by
     LWR client.
     """

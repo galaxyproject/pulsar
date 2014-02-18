@@ -26,12 +26,12 @@ class StatefulManagerProxy(ManagerProxy):
     def __init__(self, manager, **manager_options):
         super(StatefulManagerProxy, self).__init__(manager)
         self.active_jobs = ActiveJobs(manager)
-        self.__completion_callback = lambda final_status, job_id: None
+        self.__state_change_callback = lambda status, job_id: None
         self.__recover_active_jobs()
         self.__monitor = None
 
-    def set_completion_callback(self, on_complete):
-        self.__completion_callback = on_complete
+    def set_state_change_callback(self, state_change_callback):
+        self.__state_change_callback = state_change_callback
         self.__monitor = ManagerMonitor(self)
 
     @property
@@ -121,7 +121,7 @@ class StatefulManagerProxy(ManagerProxy):
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
             final_status = status.COMPLETE if postprocess_success else status.FAILED
-            self.__completion_callback(final_status, job_id)
+            self.__state_change_callback(final_status, job_id)
         new_thread_for_manager(self, "postprocess", do_postprocess, daemon=False)
 
     def shutdown(self):

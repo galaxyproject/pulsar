@@ -107,7 +107,7 @@ class JobClient(BaseJobClient):
             launch_params["setup_params"] = dumps(setup_params)
         return self._raw_execute("launch", launch_params)
 
-    def final_status(self):
+    def full_status(self):
         """ Return a dictionary summarizing final state of job.
         """
         return self.raw_check_complete()
@@ -312,11 +312,11 @@ class MessageJobClient(BaseJobClient):
     def clean(self):
         del self.client_manager.final_status_cache[self.job_id]
 
-    def final_status(self):
-        final_status = self.client_manager.final_status_cache.get(self.job_id, None)
-        if final_status is None:
-            raise Exception("final_status() called before a final status was properly cached with cilent manager.")
-        return final_status
+    def full_status(self):
+        full_status = self.client_manager.status_cache.get(self.job_id, None)
+        if full_status is None:
+            raise Exception("full_status() called before a final status was properly cached with cilent manager.")
+        return full_status
 
     def kill(self):
         log.warn("Kill not yet implemented with message queue driven LWR jobs.")

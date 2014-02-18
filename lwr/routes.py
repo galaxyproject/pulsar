@@ -13,7 +13,7 @@ from lwr.managers import status as manager_status
 from .manager_endpoint_util import (
     submit_job,
     setup_job,
-    job_complete_dict,
+    full_status,
 )
 
 import logging
@@ -78,12 +78,7 @@ def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_
 @LwrController(response_type='json')
 def check_complete(manager, job_id):
     status = manager.get_status(job_id)
-    if status in [manager_status.COMPLETE, manager_status.CANCELLED]:
-        response = job_complete_dict(status, manager, job_id)
-        log.debug("Returning job complete response: %s" % response)
-        return response
-    else:
-        return {"complete": "false", "status": status}
+    return full_status(manager, status, job_id)
 
 
 @LwrController()

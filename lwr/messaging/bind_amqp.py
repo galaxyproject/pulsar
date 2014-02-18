@@ -1,3 +1,4 @@
+from lwr.managers import status
 from lwr.lwr_client import amqp_exchange
 from lwr import manager_endpoint_util
 import threading
@@ -22,11 +23,11 @@ def bind_manager_to_queue(manager, queue_state, connection_string):
 
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
     # has occurred.
-    def bind_on_complete(final_status, job_id):
-        payload = manager_endpoint_util.job_complete_dict(final_status, manager, job_id)
-        lwr_exchange.publish("complete", payload)
+    def bind_on_status_change(new_status, job_id):
+        payload = manager_endpoint_util.full_status(manager, new_status, job_id)
+        lwr_exchange.publish("status_update", payload)
 
-    manager.set_completion_callback(bind_on_complete)
+    manager.set_state_change_callback(bind_on_status_change)
 
 
 def __drain(queue_state, lwr_exchange, callback):

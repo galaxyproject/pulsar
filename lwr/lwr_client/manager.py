@@ -26,7 +26,7 @@ DEFAULT_TRANSFER_THREADS = 2
 def build_client_manager(**kwargs):
     if 'job_manager' in kwargs:
         return ClientManager(**kwargs)  # TODO: Consider more separation here.
-    elif 'url' in kwargs:
+    elif kwargs.get('url', None):
         return MessageQueueClientManager(**kwargs)
     else:
         return ClientManager(**kwargs)
@@ -76,7 +76,7 @@ class MessageQueueClientManager(object):
         self.url = kwds.get('url')
         self.manager_name = kwds.get("manager", "_default_")
         self.exchange = LwrExchange(self.url, self.manager_name)
-        self.final_status_cache = {}
+        self.status_cache = {}
         self.callback_lock = threading.Lock()
         self.callback_thread = None
         self.active = True
@@ -89,17 +89,17 @@ class MessageQueueClientManager(object):
             def callback_wrapper(body, message):
                 try:
                     if "job_id" in body:
-                        self.final_status_cache[body["job_id"]] = body
+                        self.status_cache[body["job_id"]] = body
                     callback(body)
                 except Exception:
                     log.exception("Failure processing job status update message.")
                 message.ack()
 
             def run():
-                self.exchange.consume("complete", callback_wrapper, check=self)
+                self.exchange.consume("status_update", callback_wrapper, check=self)
 
             thread = threading.Thread(
-                name="lwr_client_%s_complete_callback" % self.manager_name,
+                name="lwr_client_%s_status_update_callback" % self.manager_name,
                 target=run
             )
             thread.daemon = False  # Lets not interrupt processing of this.
