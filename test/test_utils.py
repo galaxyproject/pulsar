@@ -120,24 +120,30 @@ class TestDependencyManager(object):
 
 
 @contextmanager
-def test_server(global_conf={}, app_conf={}, test_conf={}):
-    with test_app(global_conf, app_conf, test_conf) as app:
-        try:
-            from paste.exceptions.errormiddleware import ErrorMiddleware
-            error_app = ErrorMiddleware(app.app, debug=True, error_log="errors")
-        except ImportError:
-            # paste.exceptions not available for Python 3.
-            error_app = app
-        server = StopableWSGIServer.create(error_app)
-        try:
-            server.wait()
-            yield server
-        finally:
-            server.shutdown()
+def server_for_test_app(app):
+    try:
+        from paste.exceptions.errormiddleware import ErrorMiddleware
+        error_app = ErrorMiddleware(app.app, debug=True, error_log="errors")
+    except ImportError:
+        # paste.exceptions not available for Python 3.
+        error_app = app
+    server = StopableWSGIServer.create(error_app)
+    try:
+        server.wait()
+        yield server
+    finally:
+        server.shutdown()
 
 
 @contextmanager
-def test_app(global_conf={}, app_conf={}, test_conf={}):
+def test_lwr_server(global_conf={}, app_conf={}, test_conf={}):
+    with test_lwr_app(global_conf, app_conf, test_conf) as app:
+        with server_for_test_app(app) as test_lwr_server:
+            yield test_lwr_server
+
+
+@contextmanager
+def test_lwr_app(global_conf={}, app_conf={}, test_conf={}):
     staging_directory = mkdtemp()
     # Make staging directory world executable for run as user tests.
     mode = stat(staging_directory).st_mode
@@ -149,8 +155,7 @@ def test_app(global_conf={}, app_conf={}, test_conf={}):
         from lwr.app import app_factory
 
         app = app_factory(global_conf, **app_conf)
-        test_app = TestApp(app, **test_conf)
-        yield test_app
+        yield TestApp(app, **test_conf)
     finally:
         try:
             app.shutdown()

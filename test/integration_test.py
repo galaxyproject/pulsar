@@ -26,14 +26,14 @@ class BaseIntegrationTest(TempDirectoryTestCase):
                 options["jobs_directory"] = staging_directory
 
         if kwds.get("direct_interface", None):
-            from .test_utils import test_app
-            with test_app({}, app_conf, {}) as app:
+            from .test_utils import test_lwr_app
+            with test_lwr_app({}, app_conf, {}) as app:
                 options = Bunch(job_manager=next(itervalues(app.app.managers)), file_cache=app.app.file_cache, **kwds)
                 update_options_for_app(options, app.app)
                 run(options)
         else:
-            from .test_utils import test_server
-            with test_server(app_conf=app_conf) as server:
+            from .test_utils import test_lwr_server
+            with test_lwr_server(app_conf=app_conf) as server:
                 options = Bunch(url=server.application_url, **kwds)
                 update_options_for_app(options, server.test_app.application)
                 run(options)
