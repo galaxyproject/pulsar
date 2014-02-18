@@ -18,7 +18,7 @@ def bind_manager_to_queue(manager, queue_state, connection_string):
 
     thread_name = "consumer-%s" % connection_string
     thread = threading.Thread(name=thread_name, target=drain)
-    thread.daemon = True
+    thread.daemon = False
     thread.start()
 
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
