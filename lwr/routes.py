@@ -9,7 +9,6 @@ from galaxy.util import (
 from lwr.lwr_client.job_directory import verify_is_in_directory
 from lwr.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
-from lwr.managers import status as manager_status
 from .manager_endpoint_util import (
     submit_job,
     setup_job,
