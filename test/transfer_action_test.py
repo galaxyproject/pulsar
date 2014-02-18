@@ -10,7 +10,6 @@ import webtest
 import contextlib
 
 from lwr.lwr_client.action_mapper import RemoteTransferAction
-from lwr.lwr_client.transport import curl
 from lwr.framework import file_response
 
 

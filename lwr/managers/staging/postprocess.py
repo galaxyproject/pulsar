@@ -1,4 +1,3 @@
-from galaxy.util import copy_to_path
 from lwr.lwr_client import action_mapper
 from lwr.lwr_client import staging
 from lwr.lwr_client.staging import LwrOutputs
