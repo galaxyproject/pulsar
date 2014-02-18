@@ -250,21 +250,6 @@ class JobClient(BaseJobClient):
         """
         return self._raw_execute("kill", {"job_id": self.job_id})
 
-    def wait(self, max_seconds=None):
-        """
-        Wait for job to finish.
-        """
-        i = 0
-        while max_seconds is None or i < max_seconds:
-            complete_response = self.raw_check_complete()
-            if complete_response["complete"] == "true":
-                print complete_response
-                return complete_response
-            else:
-                print complete_response
-            time.sleep(1)
-            i += 1
-
     @retry()
     @parseJson()
     def raw_check_complete(self):

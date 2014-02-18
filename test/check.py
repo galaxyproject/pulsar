@@ -6,6 +6,7 @@ import optparse
 import traceback
 import re
 import threading
+import time
 from io import open
 
 from lwr.lwr_client import submit_job
@@ -192,8 +193,13 @@ def run(options):
 
 
 def __wait(client, client_manager):
-    if hasattr(client, 'wait'):
-        final_status = client.wait()
+    if not hasattr(client_manager, 'ensure_has_job_completes_callback'):  # Synchornous client, poll
+        i = 0
+        while i < 5:
+            complete_response = client.raw_check_complete()
+            if complete_response["complete"] == "true":
+                return complete_response
+            time.sleep(1)
     else:
         final_status = {}
         event = threading.Event()
