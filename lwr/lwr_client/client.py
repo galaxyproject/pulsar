@@ -87,11 +87,6 @@ class JobClient(BaseJobClient):
     def _submit_params(self):
         return submit_params(self.destination_params)
 
-    @parseJson()
-    def input_path(self, path, input_type, name=None):
-        args = {"job_id": self.job_id, "name": name, "input_type": input_type}
-        return self._raw_execute('input_path', args)
-
     def put_file(self, path, input_type, name=None, contents=None, action_type='transfer'):
         if not name:
             name = os.path.basename(path)
@@ -412,55 +407,3 @@ def _setup_params_from_job_config(job_config):
         tool_id=tool_id,
         tool_version=tool_version
     )
-
-
-class ObjectStoreClient(object):
-
-    def __init__(self, lwr_interface):
-        self.lwr_interface = lwr_interface
-
-    @parseJson()
-    def exists(self, **kwds):
-        return self._raw_execute("object_store_exists", args=self.__data(**kwds))
-
-    @parseJson()
-    def file_ready(self, **kwds):
-        return self._raw_execute("object_store_file_ready", args=self.__data(**kwds))
-
-    @parseJson()
-    def create(self, **kwds):
-        return self._raw_execute("object_store_create", args=self.__data(**kwds))
-
-    @parseJson()
-    def empty(self, **kwds):
-        return self._raw_execute("object_store_empty", args=self.__data(**kwds))
-
-    @parseJson()
-    def size(self, **kwds):
-        return self._raw_execute("object_store_size", args=self.__data(**kwds))
-
-    @parseJson()
-    def delete(self, **kwds):
-        return self._raw_execute("object_store_delete", args=self.__data(**kwds))
-
-    @parseJson()
-    def get_data(self, **kwds):
-        return self._raw_execute("object_store_get_data", args=self.__data(**kwds))
-
-    @parseJson()
-    def get_filename(self, **kwds):
-        return self._raw_execute("object_store_get_filename", args=self.__data(**kwds))
-
-    @parseJson()
-    def update_from_file(self, **kwds):
-        return self._raw_execute("object_store_update_from_file", args=self.__data(**kwds))
-
-    @parseJson()
-    def get_store_usage_percent(self):
-        return self._raw_execute("object_store_get_store_usage_percent", args={})
-
-    def __data(self, **kwds):
-        return kwds
-
-    def _raw_execute(self, command, args={}):
-        return self.lwr_interface.execute(command, args, data=None, input_path=None, output_path=None)
