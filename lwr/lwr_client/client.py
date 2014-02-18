@@ -7,6 +7,7 @@ from .job_directory import RemoteJobDirectory
 from .decorators import parseJson
 from .decorators import retry
 from .util import copy
+from .util import ensure_directory
 
 import logging
 log = logging.getLogger(__name__)
@@ -222,7 +223,7 @@ class JobClient(BaseJobClient):
         self.__populate_output_path(name, path, output_type, action_type)
 
     def _fetch_work_dir_output(self, name, working_directory, output_path, action_type='transfer'):
-        self.__ensure_directory(output_path)
+        ensure_directory(output_path)
         if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, "work_dir", output_path)
         else:  # Even if action is none - LWR has a different work_dir so this needs to be copied.
@@ -230,7 +231,7 @@ class JobClient(BaseJobClient):
             copy(lwr_path, output_path)
 
     def __populate_output_path(self, name, output_path, output_type, action_type):
-        self.__ensure_directory(output_path)
+        ensure_directory(output_path)
         if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, output_type, output_path)
         elif action_type == 'copy':
@@ -262,11 +263,6 @@ class JobClient(BaseJobClient):
     def _get_output_type(self, name):
         return self._raw_execute("get_output_type", {"name": name,
                                                      "job_id": self.job_id})
-
-    def __ensure_directory(self, output_path):
-        output_path_directory = os.path.dirname(output_path)
-        if not os.path.exists(output_path_directory):
-            os.makedirs(output_path_directory)
 
     @parseJson()
     def _output_path(self, name, job_id, output_type):

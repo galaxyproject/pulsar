@@ -25,6 +25,12 @@ def copy(source, destination):
         shutil.copyfile(source, destination)
 
 
+def ensure_directory(file_path):
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
 def directory_files(directory):
     """
 
