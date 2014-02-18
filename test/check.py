@@ -205,7 +205,6 @@ class Waiter(object):
             self.event = threading.Event()
 
             def on_update(message):
-                print "Have message %s" % message
                 if message["status"] in ["complete", "cancelled"]:
                     self.final_status = message
                     self.event.set()
