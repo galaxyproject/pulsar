@@ -259,22 +259,15 @@ class JobClient(BaseJobClient):
         check_complete_response = self._raw_execute("check_complete", {"job_id": self.job_id})
         return check_complete_response
 
-    def check_complete(self, response=None):
-        """
-        Return boolean indicating whether the job is complete.
-        """
-        if response is None:
-            response = self.raw_check_complete()
-        return response["complete"] == "true"
-
     def get_status(self):
         check_complete_response = self.raw_check_complete()
         # Older LWR instances won't set status so use 'complete', at some
         # point drop backward compatibility.
         status = check_complete_response.get("status", None)
-        # Bug in certains older LWR instances returned literal "status".
         if status in ["status", None]:
-            complete = self.check_complete(check_complete_response)
+            # LEGACY: Bug in certains older LWR instances returned literal
+            # "status".
+            complete = self.raw_check_complete()["complete"] == "true"
             old_status = "complete" if complete else "running"
             status = old_status
         return status
