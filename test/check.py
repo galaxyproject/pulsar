@@ -202,7 +202,7 @@ def __wait(client, client_manager):
             final_status.update(message)
             event.set()
 
-        client_manager.listen_for_job_completes(on_complete)
+        client_manager.ensure_has_job_completes_callback(on_complete)
         event.wait(5)
         if not event.is_set():
             raise Exception("Job Not Completed Properly")

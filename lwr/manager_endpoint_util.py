@@ -14,6 +14,7 @@ def job_complete_dict(complete_status, manager, job_id):
     stderr_contents = manager.stderr_contents(job_id)
     job_directory = manager.job_directory(job_id)
     return dict(
+        job_id=job_id,
         complete="true",  # Is this still used or is it legacy.
         status=complete_status,
         returncode=return_code,
