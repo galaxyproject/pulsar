@@ -11,6 +11,9 @@ import galaxy.util
 from galaxy.util.bunch import Bunch
 from .util import directory_files
 from .util import unique_path_prefix
+from .transport import get_file
+from .transport import post_file
+
 
 DEFAULT_MAPPED_ACTION = 'transfer'  # Not really clear to me what this should be, exception?
 DEFAULT_PATH_MAPPER_TYPE = 'prefix'
@@ -233,7 +236,7 @@ class RemoteCopyAction(BaseAction):
     staging = STAGING_ACTION_REMOTE
 
     def to_dict(self):
-        return dict(path=self.path, action_type=RemoteCopyAction.action_type)
+        return dict(path=self.path, action_type=self.action_type)
 
     @classmethod
     def from_dict(cls, action_dict):
@@ -241,6 +244,37 @@ class RemoteCopyAction(BaseAction):
 
     def write_to_path(self, path):
         galaxy.util.copy_to_path(open(self.path, "rb"), path)
+
+    def write_from_path(self, lwr_path):
+        with open(lwr_path, "rb") as f:
+            galaxy.util.copy_to_path(f, self.path)
+
+
+class RemoteTransferAction(BaseAction):
+    """ This action indicates the LWR server should copy the file before
+    execution via direct file system copy. This is like a CopyAction, but
+    it indicates the action should occur on the LWR server instead of on
+    the client.
+    """
+    action_type = "remote_transfer"
+    staging = STAGING_ACTION_REMOTE
+
+    def __init__(self, path, file_lister=None, url=None):
+        super(RemoteTransferAction, self).__init__(path, file_lister=file_lister)
+        self.url = url
+
+    def to_dict(self):
+        return dict(path=self.path, action_type=self.action_type, url=self.url)
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return RemoteTransferAction(path=action_dict["path"], url=action_dict["url"])
+
+    def write_to_path(self, path):
+        get_file(self.url, path)
+
+    def write_from_path(self, lwr_path):
+        post_file(self.url, lwr_path)
 
 
 class MessageAction(object):
@@ -275,7 +309,8 @@ class MessageAction(object):
     def write_to_path(self, path):
         open(path, "w").write(self.contents)
 
-DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, MessageAction]
+
+DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, RemoteTransferAction, MessageAction]
 
 
 def from_dict(action_dict):
@@ -402,8 +437,20 @@ class FileLister(object):
 
 DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
 
-ACTION_CLASSES = [NoneAction, TransferAction, CopyAction, RemoteCopyAction]
+ACTION_CLASSES = [
+    NoneAction,
+    TransferAction,
+    CopyAction,
+    RemoteCopyAction,
+    RemoteTransferAction
+]
 actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
 
 
-__all__ = [FileActionMapper, path_type, from_dict, MessageAction]
+__all__ = [
+    FileActionMapper,
+    path_type,
+    from_dict,
+    MessageAction,
+    RemoteTransferAction,  # For testing
+]

@@ -124,12 +124,7 @@ class Controller(object):
 
     def __build_response(self, result):
         if self.response_type == 'file':
-            resp = Response()
-            path = result
-            if exists(path):
-                resp.app_iter = FileIterator(path)
-            else:
-                raise exc.HTTPNotFound("No file found with path %s." % path)
+            resp = file_response(result)
         else:
             resp = Response(body=self.body(result))
         return resp
@@ -162,6 +157,15 @@ class Controller(object):
 
     def _prepare_controller_args(self, req, args):
         pass
+
+
+def file_response(path):
+    resp = Response()
+    if exists(path):
+        resp.app_iter = FileIterator(path)
+    else:
+        raise exc.HTTPNotFound("No file found with path %s." % path)
+    return resp
 
 
 class FileIterator(Iterator):

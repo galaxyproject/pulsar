@@ -46,12 +46,7 @@ class LwrServerOutputCollector(object):
             return  # Galaxy (client) will collect output.
 
         lwr_path = self.job_directory.calculate_path(name, output_type)
-        # TODO: Handle other action types...
-        if action.action_type == "remote_copy":
-            with open(lwr_path, "rb") as f:
-                copy_to_path(f, action.path)
-        else:
-            log.warn("Unable to handle action %s on LWR side." % action)
+        action.write_from_path(lwr_path)
 
 
 def __lwr_outputs(job_directory):

@@ -12,6 +12,11 @@ if version_info < (2, 7):
 else:
     from unittest import TestCase, skip
 
+try:
+    from nose.tools import nottest
+except ImportError:
+    nottest = lambda x: x
+
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
@@ -119,6 +124,7 @@ class TestDependencyManager(object):
         return []
 
 
+@nottest
 @contextmanager
 def server_for_test_app(app):
     try:
