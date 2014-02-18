@@ -1,6 +1,6 @@
-from lwr.managers import status
 from lwr.lwr_client import amqp_exchange
 from lwr import manager_endpoint_util
+import functools
 import threading
 import logging
 
@@ -10,16 +10,14 @@ log = logging.getLogger(__name__)
 def bind_manager_to_queue(manager, queue_state, connection_string):
     lwr_exchange = amqp_exchange.LwrExchange(connection_string, manager.name)
 
-    def process_messages(body, message):
-        __process_message(manager, body, message)
+    process_setup_messages = functools.partial(__process_setup_message, manager)
+    process_kill_messages = functools.partial(__process_kill_message, manager)
 
-    def drain():
-        __drain(queue_state, lwr_exchange, process_messages)
+    def drain(callback):
+        __drain(queue_state, lwr_exchange, callback)
 
-    thread_name = "consumer-%s" % connection_string
-    thread = threading.Thread(name=thread_name, target=drain)
-    thread.daemon = False
-    thread.start()
+    __start_consumer("setup", lwr_exchange, functools.partial(drain, process_setup_messages))
+    __start_consumer("kill", lwr_exchange, functools.partial(drain, process_kill_messages))
 
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
     # has occurred.
@@ -30,10 +28,25 @@ def bind_manager_to_queue(manager, queue_state, connection_string):
     manager.set_state_change_callback(bind_on_status_change)
 
 
+def __start_consumer(name, exchange, target):
+    thread_name = "consume-%s-%s" % (name, exchange.url)
+    thread = threading.Thread(name=thread_name, target=target)
+    thread.daemon = False
+    thread.start()
+    return thread
+
+
 def __drain(queue_state, lwr_exchange, callback):
     lwr_exchange.consume("setup", callback=callback, check=queue_state)
 
 
-def __process_message(manager, body, message):
+def __process_kill_message(manager, body, message):
+    job_id = body.get("job_id", None)
+    if job_id:
+        manager.kill(job_id)
+    message.ack()
+
+
+def __process_setup_message(manager, body, message):
     manager_endpoint_util.submit_job(manager, body)
     message.ack()

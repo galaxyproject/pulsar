@@ -40,6 +40,10 @@ class LwrExchange(object):
         self.__exchange = kombu.Exchange(DEFAULT_EXCHANGE_NAME, DEFAULT_EXCHANGE_TYPE)
         self.__timeout = timeout
 
+    @property
+    def url(self):
+        return self.__url
+
     def consume(self, queue_name, callback, check=True, connection_kwargs={}):
         queue = self.__queue(queue_name)
         with self.connection(self.__url, **connection_kwargs) as connection:

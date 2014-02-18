@@ -310,7 +310,7 @@ class MessageJobClient(BaseJobClient):
         return self.client_manager.exchange.publish("setup", launch_params)
 
     def clean(self):
-        del self.client_manager.final_status_cache[self.job_id]
+        del self.client_manager.status_cache[self.job_id]
 
     def full_status(self):
         full_status = self.client_manager.status_cache.get(self.job_id, None)
@@ -319,7 +319,7 @@ class MessageJobClient(BaseJobClient):
         return full_status
 
     def kill(self):
-        log.warn("Kill not yet implemented with message queue driven LWR jobs.")
+        self.client_manager.exchange.publish("kill", dict(job_id=self.job_id))
 
 
 class InputCachingJobClient(JobClient):
