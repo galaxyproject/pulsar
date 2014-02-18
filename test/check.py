@@ -127,7 +127,7 @@ def run(options):
         input_files = [temp_input_path, empty_input]
         output_files = [temp_output_path, temp_output2_path, temp_output3_path, temp_output4_path]
         client, client_manager = __client(temp_directory, options)
-
+        waiter = Waiter(client, client_manager)
         requirements = []
         test_requirement = options.get("test_requirement", False)
         if test_requirement:
@@ -149,7 +149,7 @@ def run(options):
             requirements=requirements,
         )
         submit_job(client, job_description)
-        result_status = __wait(client, client_manager)
+        result_status = waiter.wait()
         lwr_outputs = LwrOutputs.from_status_response(result_status)
         client_outputs = ClientOutputs(
             working_directory=temp_work_dir,
@@ -192,27 +192,44 @@ def run(options):
         shutil.rmtree(temp_directory)
 
 
-def __wait(client, client_manager):
-    if not hasattr(client_manager, 'ensure_has_job_completes_callback'):  # Synchornous client, poll
-        i = 0
-        while i < 5:
-            complete_response = client.raw_check_complete()
-            if complete_response["complete"] == "true":
-                return complete_response
-            time.sleep(1)
-    else:
-        final_status = {}
-        event = threading.Event()
+class Waiter(object):
 
-        def on_complete(message):
-            final_status.update(message)
-            event.set()
+    def __init__(self, client, client_manager):
+        self.client = client
+        self.client_manager = client_manager
+        self.async = hasattr(client_manager, 'ensure_has_status_update_callback')
+        self.__setup_callback()
 
-        client_manager.ensure_has_job_completes_callback(on_complete)
-        event.wait(5)
-        if not event.is_set():
-            raise Exception("Job Not Completed Properly")
-    return final_status
+    def __setup_callback(self):
+        if self.async:
+            self.event = threading.Event()
+
+            def on_update(message):
+                print "Have message %s" % message
+                if message["status"] in ["complete", "cancelled"]:
+                    self.final_status = message
+                    self.event.set()
+
+            self.client_manager.ensure_has_status_update_callback(on_update)
+
+    def wait(self):
+        final_status = None
+        if not self.async:
+            i = 0
+            while i < 5:
+                complete_response = self.client.raw_check_complete()
+                if complete_response["status"] in ["complete", "cancelled"]:
+                    final_status = complete_response
+                    break
+                time.sleep(1)
+        else:
+            self.event.wait(5)
+            if self.event.is_set():
+                final_status = self.final_status
+        if not final_status:
+            raise Exception("Job not completed properly")
+
+        return final_status
 
 
 def __assert_contents(path, expected_contents, lwr_state):

@@ -48,6 +48,7 @@ class LwrExchange(object):
         queue = self.__queue(queue_name)
         with self.connection(self.__url, **connection_kwargs) as connection:
             with kombu.Consumer(connection, queues=[queue], callbacks=[callback], accept=['json']):
+                log.info("Consuming queue %s" % queue)
                 while check:
                     try:
                         connection.drain_events(timeout=self.__timeout)
@@ -58,6 +59,7 @@ class LwrExchange(object):
         with self.connection(self.__url) as connection:
             with pools.producers[connection].acquire() as producer:
                 key = self.__queue_name(name)
+                log.info("Publishing with key %s and payload %s" % (key, payload))
                 producer.publish(
                     payload,
                     serializer='json',

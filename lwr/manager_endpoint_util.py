@@ -10,7 +10,7 @@ def full_status(manager, job_status, job_id):
     if job_status in [status.COMPLETE, status.CANCELLED]:
         full_status = __job_complete_dict(job_status, manager, job_id)
     else:
-        full_status = {"complete": "false", "status": job_status}
+        full_status = {"complete": "false", "status": job_status, "job_id": job_id}
     return full_status
 
 

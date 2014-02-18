@@ -13,11 +13,11 @@ def bind_manager_to_queue(manager, queue_state, connection_string):
     process_setup_messages = functools.partial(__process_setup_message, manager)
     process_kill_messages = functools.partial(__process_kill_message, manager)
 
-    def drain(callback):
-        __drain(queue_state, lwr_exchange, callback)
+    def drain(callback, name):
+        __drain(name, queue_state, lwr_exchange, callback)
 
-    __start_consumer("setup", lwr_exchange, functools.partial(drain, process_setup_messages))
-    __start_consumer("kill", lwr_exchange, functools.partial(drain, process_kill_messages))
+    __start_consumer("setup", lwr_exchange, functools.partial(drain, process_setup_messages, "setup"))
+    __start_consumer("kill", lwr_exchange, functools.partial(drain, process_kill_messages, "kill"))
 
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
     # has occurred.
@@ -36,8 +36,8 @@ def __start_consumer(name, exchange, target):
     return thread
 
 
-def __drain(queue_state, lwr_exchange, callback):
-    lwr_exchange.consume("setup", callback=callback, check=queue_state)
+def __drain(name, queue_state, lwr_exchange, callback):
+    lwr_exchange.consume(name, callback=callback, check=queue_state)
 
 
 def __process_kill_message(manager, body, message):

@@ -17,6 +17,7 @@ ACTIVATE_FAILED_MESSAGE = "Failed to activate job wiht job id %s. This job may n
 JOB_FILE_FINAL_STATUS = "final_status"
 JOB_FILE_POSTPROCESSED = "postprocessed"
 JOB_FILE_PREPROCESSED = "preprocessed"
+JOB_METADATA_RUNNING = "running"
 
 
 class StatefulManagerProxy(ManagerProxy):
@@ -65,10 +66,12 @@ class StatefulManagerProxy(ManagerProxy):
         """
         job_directory = self._proxied_manager.job_directory(job_id)
         with job_directory.lock("status"):
-            proxy_status, deactivate = self.__proxy_status(job_directory, job_id)
+            proxy_status, state_change = self.__proxy_status(job_directory, job_id)
 
-        if deactivate:
+        if state_change == "to_complete":
             self.__deactivate(job_id, proxy_status)
+        elif state_change == "to_running":
+            self.__state_change_callback(status.RUNNING, job_id)
 
         return self.__status(job_directory, proxy_status)
 
@@ -77,17 +80,21 @@ class StatefulManagerProxy(ManagerProxy):
         to be marked as deactivated (this occurs when job first returns a
         complete status from proxy.
         """
-        deactivate = False
+        state_change = None
         if not job_directory.contains_file(JOB_FILE_PREPROCESSED):
             proxy_status = status.PREPROCESSING
         elif job_directory.contains_file(JOB_FILE_FINAL_STATUS):
             proxy_status = job_directory.read_file(JOB_FILE_FINAL_STATUS)
         else:
             proxy_status = self._proxied_manager.get_status(job_id)
-            if proxy_status in [status.COMPLETE, status.CANCELLED]:
+            if proxy_status == status.RUNNING:
+                if not job_directory.has_metadata(JOB_METADATA_RUNNING):
+                    job_directory.store_metadata(JOB_METADATA_RUNNING, True)
+                    state_change = "to_running"
+            elif proxy_status in [status.COMPLETE, status.CANCELLED]:
                 job_directory.write_file(JOB_FILE_FINAL_STATUS, proxy_status)
-                deactivate = True
-        return proxy_status, deactivate
+                state_change = "to_complete"
+        return proxy_status, state_change
 
     def __status(self, job_directory, proxy_status):
         """ Use proxied manager's status to compute the real

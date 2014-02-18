@@ -81,7 +81,7 @@ class MessageQueueClientManager(object):
         self.callback_thread = None
         self.active = True
 
-    def ensure_has_job_completes_callback(self, callback):
+    def ensure_has_status_update_callback(self, callback):
         with self.callback_lock:
             if self.callback_thread is not None:
                 return
