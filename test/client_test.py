@@ -178,7 +178,7 @@ def test_download_output():
     client.expect_open(request_checker, b'"direct"')
     request_checker = RequestChecker("download_output", {"name": os.path.basename(temp_file.name), "output_type": "direct"})
     client.expect_open(request_checker, b"test output contents")
-    client.fetch_output(temp_file.name)
+    client._fetch_output(temp_file.name)
 
     with open(temp_file.name, "r") as f:
         contents = f.read(1024)

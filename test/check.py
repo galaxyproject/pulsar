@@ -237,7 +237,7 @@ def __exercise_errors(options, client, temp_output_path, temp_directory):
     """
     if getattr(options, 'test_errors', False):
         try:
-            client.fetch_output(temp_output_path + "x")
+            client._fetch_output(temp_output_path + "x")
         except BaseException:
             if not options.suppress_output:
                 traceback.print_exc()

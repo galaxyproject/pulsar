@@ -79,7 +79,6 @@ class JobClient(BaseJobClient):
         super(JobClient, self).__init__(destination_params, job_id)
         self.job_manager_interface = job_manager_interface
 
-
     def launch(self, command_line, requirements=[], remote_staging=[], job_config=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
@@ -167,11 +166,39 @@ class JobClient(BaseJobClient):
             copy(path, lwr_path)
             return {'path': lwr_path}
 
+    def fetch_output(self, path, name, working_directory, action_type, output_type):
+        """
+        Fetch (transfer, copy, etc...) an output from the remote LWR server.
+
+        **Parameters**
+
+        path : str
+            Local path of the dataset.
+        name : str
+            Remote name of file (i.e. path relative to remote staging output
+            or working directory).
+        working_directory : str
+            Local working_directory for the job.
+        action_type : str
+            Where to find file on LWR (output_workdir or output). legacy is also
+            an option in this case LWR is asked for location - this will only be
+            used if targetting an older LWR server that didn't return statuses
+            allowing this to be inferred.
+        """
+        if output_type == 'legacy':
+            self._fetch_output_legacy(path, working_directory, action_type=action_type)
+        elif output_type == 'output_workdir':
+            self._fetch_work_dir_output(name, working_directory, path, action_type=action_type)
+        elif output_type == 'output':
+            self._fetch_output(path=path, name=name, action_type=action_type)
+        else:
+            raise Exception("Unknown output_type %s" % output_type)
+
     def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
         return self.job_manager_interface.execute(command, args, data, input_path, output_path)
 
     # Deprecated
-    def fetch_output_legacy(self, path, working_directory, action_type='transfer'):
+    def _fetch_output_legacy(self, path, working_directory, action_type='transfer'):
         # Needs to determine if output is task/working directory or standard.
         name = os.path.basename(path)
 
@@ -186,18 +213,7 @@ class JobClient(BaseJobClient):
 
         self.__populate_output_path(name, path, output_type, action_type)
 
-    def fetch_output(self, path, name=None, check_exists_remotely=False, action_type='transfer'):
-        """
-        Download an output dataset from the remote server.
-
-        **Parameters**
-
-        path : str
-            Local path of the dataset.
-        working_directory : str
-            Local working_directory for the job.
-        """
-
+    def _fetch_output(self, path, name=None, check_exists_remotely=False, action_type='transfer'):
         if not name:
             # Extra files will send in the path.
             name = os.path.basename(path)
@@ -205,20 +221,7 @@ class JobClient(BaseJobClient):
         output_type = "direct"  # Task/from_work_dir outputs now handled with fetch_work_dir_output
         self.__populate_output_path(name, path, output_type, action_type)
 
-    def fetch_work_dir_output(self, name, working_directory, output_path, action_type='transfer'):
-        """
-        Download an output dataset specified with from_work_dir from the
-        remote server.
-
-        **Parameters**
-
-        name : str
-            Path in job's working_directory to find output in.
-        working_directory : str
-            Local working_directory for the job.
-        output_path : str
-            Full path to output dataset.
-        """
+    def _fetch_work_dir_output(self, name, working_directory, output_path, action_type='transfer'):
         self.__ensure_directory(output_path)
         if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, "work_dir", output_path)
