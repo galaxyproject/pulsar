@@ -269,7 +269,7 @@ class JobDirectory(RemoteJobDirectory):
             return json.loads(contents)
 
     def has_metadata(self, metadata_name):
-        self.contains_file(metadata_name)
+        return self.contains_file(metadata_name)
 
 
 def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):
