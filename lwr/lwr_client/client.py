@@ -1,6 +1,4 @@
 import os
-import shutil
-import time
 from json import dumps
 
 from .destination import submit_params
@@ -8,6 +6,7 @@ from .setup_handler import build as build_setup_handler
 from .job_directory import RemoteJobDirectory
 from .decorators import parseJson
 from .decorators import retry
+from .util import copy
 
 import logging
 log = logging.getLogger(__name__)
@@ -98,7 +97,7 @@ class JobClient(BaseJobClient):
             return self._upload_file(args, contents, input_path)
         elif action_type == 'copy':
             lwr_path = self._raw_execute('input_path', args)
-            self._copy(path, lwr_path)
+            copy(path, lwr_path)
             return {'path': lwr_path}
 
     @parseJson()
@@ -168,7 +167,7 @@ class JobClient(BaseJobClient):
             self.__raw_download_output(name, self.job_id, output_type, output_path)
         elif action_type == 'copy':
             lwr_path = self._output_path(name, self.job_id, output_type)['path']
-            self._copy(lwr_path, output_path)
+            copy(lwr_path, output_path)
 
     def fetch_work_dir_output(self, name, working_directory, output_path, action_type='transfer'):
         """
@@ -189,7 +188,7 @@ class JobClient(BaseJobClient):
             self.__raw_download_output(name, self.job_id, "work_dir", output_path)
         else:  # Even if action is none - LWR has a different work_dir so this needs to be copied.
             lwr_path = self._output_path(name, self.job_id, 'work_dir')['path']
-            self._copy(lwr_path, output_path)
+            copy(lwr_path, output_path)
 
     def __ensure_directory(self, output_path):
         output_path_directory = os.path.dirname(output_path)
@@ -267,7 +266,7 @@ class JobClient(BaseJobClient):
         if status in ["status", None]:
             # LEGACY: Bug in certains older LWR instances returned literal
             # "status".
-            complete = self.raw_check_complete()["complete"] == "true"
+            complete = check_complete_response["complete"] == "true"
             old_status = "complete" if complete else "running"
             status = old_status
         return status
@@ -284,12 +283,6 @@ class JobClient(BaseJobClient):
         Setup remote LWR server to run this job.
         """
         return self._raw_execute("setup", setup_args)
-
-    def _copy(self, source, destination):
-        source = os.path.abspath(source)
-        destination = os.path.abspath(destination)
-        if source != destination:
-            shutil.copyfile(source, destination)
 
 
 class MessageJobClient(BaseJobClient):

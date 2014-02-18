@@ -185,15 +185,6 @@ def test_download_output():
         assert contents == "test output contents", "Unxpected contents %s" % contents
 
 
-def test_wait():
-    client = TestClient()
-    request_checker = RequestChecker("check_complete")
-    client.expect_open(request_checker, b'{"complete": "true", "stdout" : "output"}')
-    wait_response = client.wait()
-    request_checker.assert_called()
-    assert wait_response['stdout'] == "output"
-
-
 def test_get_status_complete_legacy():
     client = TestClient()
     request_checker = RequestChecker("check_complete")
