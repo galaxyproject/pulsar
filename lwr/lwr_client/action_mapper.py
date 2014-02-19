@@ -70,7 +70,7 @@ class FileActionMapper(object):
     ...     f = NamedTemporaryFile(delete=False)
     ...     f.write(config_contents.encode('UTF-8'))
     ...     f.close()
-    ...     mock_client = Bunch(default_file_action=default_action, action_config_path=f.name)
+    ...     mock_client = Bunch(default_file_action=default_action, action_config_path=f.name, files_endpoint=None)
     ...     mapper = FileActionMapper(mock_client)
     ...     mapper = FileActionMapper(config=mapper.to_dict()) # Serialize and deserialize it to make sure still works
     ...     unlink(f.name)

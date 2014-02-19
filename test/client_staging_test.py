@@ -130,6 +130,7 @@ class MockClient(object):
         self.temp_directory = temp_directory
         self.default_file_action = "transfer"
         self.action_config_path = None
+        self.files_endpoint = None
         self.expected_tool = tool
         self.job_id = "1234"
         self.expected_command_line = None
