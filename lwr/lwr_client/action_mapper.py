@@ -128,10 +128,12 @@ class FileActionMapper(object):
             config = self.__client_to_config(client)
         self.default_action = config.get("default_action", "transfer")
         self.mappers = mappers_from_dicts(config.get("paths", []))
+        self.files_endpoint = config.get("files_endpoint", None)
 
     def to_dict(self):
         return dict(
             default_action=self.default_action,
+            files_endpoint=self.files_endpoint,
             paths=map(lambda m: m.to_dict(), self.mappers)
         )
 
@@ -142,6 +144,7 @@ class FileActionMapper(object):
         else:
             config = dict()
         config["default_action"] = client.default_file_action
+        config["files_endpoint"] = client.files_endpoint
         return config
 
     def __load_action_config(self, path):
@@ -169,13 +172,29 @@ class FileActionMapper(object):
             message_template = "Unknown action_type encountered %s while trying to map path %s"
             message_args = (action_type, path)
             raise Exception(message_template % message_args)
-        return action_class(path, file_lister=file_lister)
+        action = action_class(path, file_lister=file_lister)
+        self.__process_action(action, type)
+        return action
 
     def unstructured_mappers(self):
         """ Return mappers that will map 'unstructured' files (i.e. go beyond
         mapping inputs, outputs, and config files).
         """
         return filter(lambda m: path_type.UNSTRUCTURED in m.path_types, self.mappers)
+
+    def __process_action(self, action, file_type):
+        """ Extension point to populate extra action information after an
+        action has been created.
+        """
+        if action.action_type == "remote_transfer":
+            url_base = self.files_endpoint
+            if not url_base:
+                raise Exception("Attempted to use remote_transfer action with defining a files_endpoint")
+            if "?" not in url_base:
+                url_base = "%s?" % url_base
+            # TODO: URL encode path.
+            url = "%s&path=%s&file_type=%s" % (url_base, action.path, file_type)
+            action.url = url
 
 
 class BaseAction(object):

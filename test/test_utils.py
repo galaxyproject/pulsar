@@ -242,13 +242,15 @@ class JobFilesApp(object):
 
     def _post(self, request, params):
         path = params['path']
-        assert galaxy.util.in_directory(path, self.root_directory)
+        if not galaxy.util.in_directory(path, self.root_directory):
+            assert False, "%s not in %s" % (path, self.root_directory)
         galaxy.util.copy_to_path(params["file"].file, path)
         return webob.Response(body='')
 
     def _get(self, request, params):
         path = params['path']
-        assert galaxy.util.in_directory(path, self.root_directory)
+        if not galaxy.util.in_directory(path, self.root_directory):
+            assert False, "%s not in %s" % (path, self.root_directory)
         return file_response(path)
 
 

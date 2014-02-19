@@ -273,6 +273,8 @@ def __client(temp_directory, options):
         client_options["default_file_action"] = default_file_action
     if hasattr(options, "jobs_directory"):
         client_options["jobs_directory"] = getattr(options, "jobs_directory")
+    if hasattr(options, "files_endpoint"):
+        client_options["files_endpoint"] = getattr(options, "files_endpoint")
     user = getattr(options, 'user', None)
     if user:
         client_options["submit_user"] = user

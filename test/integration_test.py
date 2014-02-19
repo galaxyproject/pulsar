@@ -6,6 +6,7 @@ from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessM
 
 from .test_utils import test_lwr_app
 from .test_utils import test_lwr_server
+from .test_utils import files_server
 
 from galaxy.util.bunch import Bunch
 from .check import run
@@ -22,9 +23,18 @@ class BaseIntegrationTest(TempDirectoryTestCase):
 
         self.__setup_job_properties(app_conf, job_conf_props)
         self.__setup_dependencies(app_conf)
+        self._run_in_app(app_conf, **kwds)
 
+    def _run_in_app(self, app_conf, **kwds):
         if kwds.get("direct_interface", None):
-            self._run_direct(app_conf, **kwds)
+            # Client directory hasn't bee created yet, don't restrict where
+            # test files written.
+            # Can only run tests using files_server if not constructing a test
+            # server for LWR - webtest doesn't seem to like having two test
+            # servers alive at same time.
+            with files_server("/") as test_files_server:
+                files_endpoint = test_files_server.application_url
+                self._run_direct(app_conf, files_endpoint=files_endpoint, **kwds)
         else:
             self._run_in_test_server(app_conf, **kwds)
 
@@ -136,3 +146,11 @@ class IntegrationTests(BaseIntegrationTest):
 
 class DirectIntegrationTests(IntegrationTests):
     default_kwargs = dict(direct_interface=True, test_requirement=False)
+
+    def test_integration_remote_transfer(self):
+        self._run(
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            **self.default_kwargs
+        )
