@@ -17,11 +17,14 @@ try:
 except ImportError:
     nottest = lambda x: x
 
+import webob
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
+import galaxy.util
 from lwr.tools import ToolBox
 from lwr.managers.base import JobDirectory
+from lwr.framework import file_response
 
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)
@@ -141,6 +144,7 @@ def server_for_test_app(app):
         server.shutdown()
 
 
+@nottest
 @contextmanager
 def test_lwr_server(global_conf={}, app_conf={}, test_conf={}):
     with test_lwr_app(global_conf, app_conf, test_conf) as app:
@@ -148,6 +152,7 @@ def test_lwr_server(global_conf={}, app_conf={}, test_conf={}):
             yield test_lwr_server
 
 
+@nottest
 @contextmanager
 def test_lwr_app(global_conf={}, app_conf={}, test_conf={}):
     staging_directory = mkdtemp()
@@ -218,3 +223,43 @@ class TestAuthorizer(object):
 
     def get_authorization(self, tool_id):
         return self.authorization
+
+
+class JobFilesApp(object):
+
+    def __init__(self, root_directory=None):
+        self.root_directory = root_directory
+
+    def __call__(self, environ, start_response):
+        req = webob.Request(environ)
+        params = req.params.mixed()
+        method = req.method
+        if method == "POST":
+            resp = self._post(req, params)
+        elif method == "GET":
+            resp = self._get(req, params)
+        return resp(environ, start_response)
+
+    def _post(self, request, params):
+        path = params['path']
+        assert galaxy.util.in_directory(path, self.root_directory)
+        galaxy.util.copy_to_path(params["file"].file, path)
+        return webob.Response(body='')
+
+    def _get(self, request, params):
+        path = params['path']
+        assert galaxy.util.in_directory(path, self.root_directory)
+        return file_response(path)
+
+
+@contextmanager
+def files_server(directory=None):
+    if not directory:
+        with temp_directory() as directory:
+            app = TestApp(JobFilesApp(directory))
+            with server_for_test_app(app) as server:
+                yield server, directory
+    else:
+        app = TestApp(JobFilesApp(directory))
+        with server_for_test_app(app) as server:
+            yield server

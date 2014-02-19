@@ -4,6 +4,9 @@ from six import next, itervalues
 from six.moves import configparser
 from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessModule
 
+from .test_utils import test_lwr_app
+from .test_utils import test_lwr_server
+
 from galaxy.util.bunch import Bunch
 from .check import run
 
@@ -20,23 +23,27 @@ class BaseIntegrationTest(TempDirectoryTestCase):
         self.__setup_job_properties(app_conf, job_conf_props)
         self.__setup_dependencies(app_conf)
 
-        def update_options_for_app(options, app):
-            if kwds.get("local_setup", False):
-                staging_directory = app.staging_directory
-                options["jobs_directory"] = staging_directory
-
         if kwds.get("direct_interface", None):
-            from .test_utils import test_lwr_app
-            with test_lwr_app({}, app_conf, {}) as app:
-                options = Bunch(job_manager=next(itervalues(app.app.managers)), file_cache=app.app.file_cache, **kwds)
-                update_options_for_app(options, app.app)
-                run(options)
+            self._run_direct(app_conf, **kwds)
         else:
-            from .test_utils import test_lwr_server
-            with test_lwr_server(app_conf=app_conf) as server:
-                options = Bunch(url=server.application_url, **kwds)
-                update_options_for_app(options, server.test_app.application)
-                run(options)
+            self._run_in_test_server(app_conf, **kwds)
+
+    def _run_in_test_server(self, app_conf, **kwds):
+        with test_lwr_server(app_conf=app_conf) as server:
+            options = Bunch(url=server.application_url, **kwds)
+            self._update_options_for_app(options, server.test_app.application, **kwds)
+            run(options)
+
+    def _run_direct(self, app_conf, **kwds):
+        with test_lwr_app({}, app_conf, {}) as app:
+            options = Bunch(job_manager=next(itervalues(app.app.managers)), file_cache=app.app.file_cache, **kwds)
+            self._update_options_for_app(options, app.app, **kwds)
+            run(options)
+
+    def _update_options_for_app(self, options, app, **kwds):
+        if kwds.get("local_setup", False):
+            staging_directory = app.staging_directory
+            options["jobs_directory"] = staging_directory
 
     def __setup_job_properties(self, app_conf, job_conf_props):
         if job_conf_props:
