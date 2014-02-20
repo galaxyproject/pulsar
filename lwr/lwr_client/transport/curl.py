@@ -41,7 +41,7 @@ class PycurlTransport(object):
 def post_file(url, path):
     c = _new_curl_object()
     c.setopt(c.URL, url.encode('ascii'))
-    c.setopt(c.HTTPPOST, [("file", (c.FORM_FILE, path))])
+    c.setopt(c.HTTPPOST, [("file", (c.FORM_FILE, path.encode('ascii')))])
     c.perform()
 
 

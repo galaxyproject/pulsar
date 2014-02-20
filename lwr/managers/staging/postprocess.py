@@ -1,3 +1,5 @@
+import os
+
 from lwr.lwr_client import action_mapper
 from lwr.lwr_client import staging
 from lwr.lwr_client.staging import LwrOutputs
@@ -43,6 +45,11 @@ class LwrServerOutputCollector(object):
         # in this context.
         if action.staging_action_local:
             return  # Galaxy (client) will collect output.
+
+        if not name:
+            # TODO: Would not work on Windows. Any use in allowing
+            # remote_transfer action for Windows?
+            name = os.path.basename(action.path)
 
         lwr_path = self.job_directory.calculate_path(name, output_type)
         action.write_from_path(lwr_path)

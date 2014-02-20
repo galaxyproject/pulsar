@@ -1,4 +1,6 @@
 from json import load
+from os import makedirs
+from os.path import exists
 from os.path import abspath
 from os.path import dirname
 from os.path import join
@@ -265,8 +267,12 @@ class RemoteCopyAction(BaseAction):
         galaxy.util.copy_to_path(open(self.path, "rb"), path)
 
     def write_from_path(self, lwr_path):
+        destination = self.path
+        parent_directory = dirname(destination)
+        if not exists(parent_directory):
+            makedirs(parent_directory)
         with open(lwr_path, "rb") as f:
-            galaxy.util.copy_to_path(f, self.path)
+            galaxy.util.copy_to_path(f, destination)
 
 
 class RemoteTransferAction(BaseAction):

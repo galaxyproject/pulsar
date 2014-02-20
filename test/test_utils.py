@@ -2,7 +2,9 @@ from contextlib import contextmanager
 from stat import S_IXOTH
 import json
 from os import pardir, stat, chmod, access, X_OK, pathsep, environ
+from os import makedirs
 from os.path import join, dirname, isfile, split
+from os.path import exists
 from tempfile import mkdtemp
 from shutil import rmtree
 
@@ -244,6 +246,9 @@ class JobFilesApp(object):
         path = params['path']
         if not galaxy.util.in_directory(path, self.root_directory):
             assert False, "%s not in %s" % (path, self.root_directory)
+        parent_directory = dirname(path)
+        if not exists(parent_directory):
+            makedirs(parent_directory)
         galaxy.util.copy_to_path(params["file"].file, path)
         return webob.Response(body='')
 

@@ -45,20 +45,21 @@ class StatefulManagerProxy(ManagerProxy):
 
     def handle_remote_staging(self, job_id, staging_config):
         job_directory = self._proxied_manager.job_directory(job_id)
-
-        def do_preprocess():
-            preprocess(job_directory, staging_config.get("setup", []))
-        new_thread_for_manager(self, "preprocess", do_preprocess, daemon=False)
-
         job_directory.store_metadata("staging_config", staging_config)
 
     def launch(self, job_id, *args, **kwargs):
         job_directory = self._proxied_manager.job_directory(job_id)
-        result = self._proxied_manager.launch(job_id, *args, **kwargs)
-        with job_directory.lock("status"):
-            job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
-        self.active_jobs.activate_job(job_id)
-        return result
+
+        def do_preprocess():
+            # TODO: Handle preprocess or launch failures!
+            staging_config = job_directory.load_metadata("staging_config", {})
+            preprocess(job_directory, staging_config.get("setup", []))
+            self._proxied_manager.launch(job_id, *args, **kwargs)
+            with job_directory.lock("status"):
+                job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
+            self.active_jobs.activate_job(job_id)
+
+        new_thread_for_manager(self, "preprocess", do_preprocess, daemon=False)
 
     def get_status(self, job_id):
         """ Compute status used proxied manager and handle state transitions
