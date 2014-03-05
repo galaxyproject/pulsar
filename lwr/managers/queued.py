@@ -46,11 +46,11 @@ class QueueManager(Manager):
 
     def launch(self, job_id, command_line, submit_params={}, requirements=[]):
         command_line = self._prepare_run(job_id, command_line, requirements=requirements)
-        self.work_queue.put((RUN, (job_id, command_line)))
         try:
             self._job_directory(job_id).write_file(JOB_FILE_COMMAND_LINE, command_line)
         except Exception:
             log.info("Failed to persist command line for job %s, will not be able to recover." % job_id)
+        self.work_queue.put((RUN, (job_id, command_line)))
 
     def _recover_active_job(self, job_id):
         command_line = self._job_directory(job_id).read_file(JOB_FILE_COMMAND_LINE, None)
@@ -76,7 +76,7 @@ class QueueManager(Manager):
                 try:
                     os.remove(self._job_file(job_id, JOB_FILE_COMMAND_LINE))
                 except Exception:
-                    log.info("Running command but failed to delete - command may rerun on LWR boot.")
+                    log.exception("Running command but failed to delete - command may rerun on LWR boot.")
                 self._run(job_id, command_line, async=False)
             except:
                 log.warn("Uncaught exception running job with job_id %s" % job_id)
