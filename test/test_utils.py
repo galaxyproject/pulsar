@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 from stat import S_IXOTH
-import json
 from os import pardir, stat, chmod, access, X_OK, pathsep, environ
 from os import makedirs
 from os.path import join, dirname, isfile, split
@@ -28,6 +27,8 @@ from lwr.tools import ToolBox
 from lwr.managers.base import JobDirectory
 from lwr.framework import file_response
 
+from .test_common import write_json_config
+
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)
 
@@ -49,17 +50,6 @@ def get_test_toolbox():
 
 def get_test_tool():
     return get_test_toolbox().get_tool("tool1")
-
-
-def write_json_config(has_temp_directory, data, name="config.json"):
-    try:
-        temp_directory = has_temp_directory.temp_directory
-    except AttributeError:
-        temp_directory = has_temp_directory
-    config_file = join(temp_directory, name)
-    with open(config_file, "w") as f:
-        json.dump(data, f)
-    return config_file
 
 
 class TestManager(object):

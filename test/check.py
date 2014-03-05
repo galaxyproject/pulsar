@@ -16,7 +16,7 @@ from lwr.lwr_client import ClientOutputs
 from lwr.lwr_client import build_client_manager
 from lwr.lwr_client import ClientJobDescription
 from galaxy.tools.deps.requirements import ToolRequirement
-from .test_utils import write_json_config
+from .test_common import write_json_config
 
 TEST_SCRIPT = b"""
 import sys
@@ -107,6 +107,9 @@ def run(options):
         __write_to_file(os.path.join(temp_index_dir_sibbling, "human_full_seqs"), b"AGTC")
 
         empty_input = u"/foo/bar/x"
+
+        test_unicode = getattr( options, "test_unicode", False ) # TODO Switch this in integration tests
+        cmd_text = EXAMPLE_UNICODE_TEXT if test_unicode else "Hello World"
         command_line_params = (
             temp_tool_path,
             temp_config_path,
@@ -114,7 +117,7 @@ def run(options):
             temp_output_path,
             empty_input,
             temp_output2_path,
-            EXAMPLE_UNICODE_TEXT,
+            cmd_text,
             temp_output3_path,
             temp_input_extra_path,
             temp_version_output_path,
@@ -129,7 +132,7 @@ def run(options):
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
         requirements = []
-        test_requirement = options.get("test_requirement", False)
+        test_requirement = getattr( options, "test_requirement", False )
         if test_requirement:
             requirements.append(TEST_REQUIREMENT)
         client_outputs = ClientOutputs(
@@ -170,7 +173,7 @@ def run(options):
             failed_message = failed_message_template % (result_status, failed)
             assert False, failed_message
         __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)
-        __assert_contents(temp_output2_path, EXAMPLE_UNICODE_TEXT, result_status)
+        __assert_contents(temp_output2_path, cmd_text, result_status)
         __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON", result_status)
         __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS", result_status)
         __assert_contents(temp_version_output_path, b"1.0.1", result_status)
