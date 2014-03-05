@@ -163,7 +163,7 @@ def run(options):
         finish_args = dict(
             client=client,
             job_completed_normally=True,
-            cleanup_job='never',
+            cleanup_job='always',  # Default should 'always' if overridden via options.
             client_outputs=client_outputs,
             lwr_outputs=lwr_outputs,
         )

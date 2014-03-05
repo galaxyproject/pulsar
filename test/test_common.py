@@ -3,6 +3,7 @@ best place - but check needs to not depend on test_utils so run_client_tests
 can execute without webob dependency.
 """
 import json
+from os.path import join
 
 
 def write_json_config(has_temp_directory, data, name="config.json"):
