@@ -108,7 +108,7 @@ def run(options):
 
         empty_input = u"/foo/bar/x"
 
-        test_unicode = getattr( options, "test_unicode", False ) # TODO Switch this in integration tests
+        test_unicode = getattr( options, "test_unicode", False )  # TODO Switch this in integration tests
         cmd_text = EXAMPLE_UNICODE_TEXT if test_unicode else "Hello World"
         command_line_params = (
             temp_tool_path,
