@@ -2,7 +2,7 @@ from collections import deque
 import os
 
 from .test_utils import TempDirectoryTestCase
-from .test_utils import write_json_config
+from .test_common import write_json_config
 from lwr.lwr_client import submit_job, ClientJobDescription
 from lwr.lwr_client import ClientOutputs
 from galaxy.tools.deps.requirements import ToolRequirement
