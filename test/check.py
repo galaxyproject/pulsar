@@ -108,7 +108,7 @@ def run(options):
 
         empty_input = u"/foo/bar/x"
 
-        test_unicode = getattr( options, "test_unicode", False )  # TODO Switch this in integration tests
+        test_unicode = getattr(options, "test_unicode", False)  # TODO Switch this in integration tests
         cmd_text = EXAMPLE_UNICODE_TEXT if test_unicode else "Hello World"
         command_line_params = (
             temp_tool_path,
@@ -132,7 +132,7 @@ def run(options):
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
         requirements = []
-        test_requirement = getattr( options, "test_requirement", False )
+        test_requirement = getattr(options, "test_requirement", False)
         if test_requirement:
             requirements.append(TEST_REQUIREMENT)
         client_outputs = ClientOutputs(
