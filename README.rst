@@ -100,7 +100,7 @@ The ``easy_install`` command line application will be installed as
 part of setuptools. Use the following command to install the needed
 packages via ``easy_install``::
 
-    easy_install paste wsgiutils PasteScript PasteDeploy webob six pyOpenSSL
+    easy_install paste wsgiutils PasteScript PasteDeploy webob six psutil pyOpenSSL
 
 ``pyOpenSSL`` is only required if LWR is configured to use HTTPS/SSL.
 

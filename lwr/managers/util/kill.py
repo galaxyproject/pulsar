@@ -47,7 +47,7 @@ def __kill_windows(pid):
 
 
 def __kill_posix(pid):
-    def __check_pid(pid):
+    def __check_pid():
         try:
             os.kill(pid, 0)
             return True
