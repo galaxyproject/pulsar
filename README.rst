@@ -253,8 +253,13 @@ of your running LWR application)::
 
     python run_client_tests.py --url=http://localhost:8913
 
-This project is distributed with unit tests, the following command
-will install the needed python components to run these tests.::
+-----------
+Development
+-----------
+
+This project is distributed with unit and integration tests (many of
+which will not run under Windows), the following command will install
+the needed python components to run these tests.::
 
     pip install -r dev-requirements.txt
 
