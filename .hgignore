@@ -18,3 +18,5 @@ paster.pid
 toolbox
 persisted_data/*
 dependencies
+job_metrics.xml
+dependency_resolvers_conf.xml

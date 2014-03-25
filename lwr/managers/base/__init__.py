@@ -64,6 +64,7 @@ class BaseManager(ManagerInterface):
         self.authorizer = app.authorizer
         self.__init_system_properties()
         self.dependency_manager = app.dependency_manager
+        self.job_metrics = app.job_metrics
 
     def clean(self, job_id):
         if self.debug:

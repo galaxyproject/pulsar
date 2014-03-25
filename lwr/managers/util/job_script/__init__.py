@@ -2,11 +2,11 @@ from string import Template
 from pkg_resources import resource_string
 
 DEFAULT_JOB_FILE_TEMPLATE = Template(
-    resource_string(__name__, 'DEFAULT_JOB_FILE_TEMPLATE.sh').decode('UTF-8')
+    resource_string(__name__, 'DEFAULT_JOB_FILE_TEMPLATE.sh')
 )
 
 SLOTS_STATEMENT_CLUSTER_DEFAULT = \
-    resource_string(__name__, 'CLUSTER_SLOTS_STATEMENT.sh').decode('UTF-8')
+    resource_string(__name__, 'CLUSTER_SLOTS_STATEMENT.sh')
 
 SLOTS_STATEMENT_SINGLE = """
 GALAXY_SLOTS="1"
@@ -18,6 +18,8 @@ OPTIONAL_TEMPLATE_PARAMS = {
     'headers': '',
     'env_setup_commands': '',
     'slots_statement': SLOTS_STATEMENT_CLUSTER_DEFAULT,
+    'instrument_pre_commands': '',
+    'instrument_post_commands': '',
 }
 
 
@@ -47,6 +49,13 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     """
     if any([param not in kwds for param in REQUIRED_TEMPLATE_PARAMS]):
         raise Exception("Failed to create job_script, a required parameter is missing.")
+    job_instrumenter = kwds.get("job_instrumenter", None)
+    if job_instrumenter:
+        del kwds[ "job_instrumenter" ]
+        working_directory = kwds["working_directory"]
+        kwds["instrument_pre_commands"] = job_instrumenter.pre_execute_commands(working_directory)
+        kwds["instrument_post_commands"] = job_instrumenter.post_execute_commands(working_directory)
+
     template_params = OPTIONAL_TEMPLATE_PARAMS.copy()
     template_params.update(**kwds)
     if not isinstance(template, Template):

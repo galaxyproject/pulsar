@@ -89,6 +89,7 @@ class DirectoryBaseManager(BaseManager):
     def _job_template_env(self, job_id, command_line=None):
         return_code_path = self._return_code_path(job_id)
         job_template_env = {
+            'job_instrumenter': self.job_metrics.default_job_instrumenter,
             'galaxy_lib': self._galaxy_lib(),
             'exit_code_path': return_code_path,
             'working_directory': self.job_directory(job_id).working_directory(),

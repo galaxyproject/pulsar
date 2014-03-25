@@ -56,6 +56,12 @@ persistence_directory = persisted_data
 ## external clean up.
 # file_cache_dir = cache
 
+## Setup job metrics file. See Galaxy documentaiton for more
+## information on job metrics. (If job_metrics.xml is present, 
+## this will be used unless overridden by this option.
+# job_metrics_config_file = job_metrics_conf.xml
+
+
 ## Configure circus and chaussette (if used).
 [circus]
 endpoint = tcp://127.0.0.1:5555

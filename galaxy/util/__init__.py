@@ -150,3 +150,21 @@ def force_symlink(source, link_name):
             os.symlink(source, link_name)
         else:
             raise e
+
+
+def listify( item, do_strip=False ):
+    """
+    Make a single item a single item list, or return a list if passed a
+    list.  Passing a None returns an empty list.
+    """
+    if not item:
+        return []
+    elif isinstance( item, list ):
+        return item
+    elif isinstance( item, basestring ) and item.count( ',' ):
+        if do_strip:
+            return [token.strip() for token in item.split( ',' )]
+        else:
+            return item.split( ',' )
+    else:
+        return [ item ]

@@ -14,6 +14,7 @@ from lwr import messaging
 import lwr.routes
 from galaxy.objectstore import build_object_store_from_config
 from galaxy.tools.deps import DependencyManager
+from galaxy.jobs.metrics import JobMetrics
 from galaxy.util.bunch import Bunch
 
 from logging import getLogger
@@ -52,6 +53,7 @@ class LwrApp(RoutingApp):
         self.__setup_tool_config(conf)
         self.__setup_object_store(conf)
         self.__setup_dependency_manager(conf)
+        self.__setup_job_metrics(conf)
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
         self.__setup_routes()
@@ -132,6 +134,10 @@ class LwrApp(RoutingApp):
         dependencies_dir = conf.get("tool_dependency_dir", "dependencies")
         resolvers_config_file = conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml")
         self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file)
+
+    def __setup_job_metrics(self, conf):
+        job_metrics_config_file = conf.get("job_metrics_config_file", "job_metrics_conf.xml")
+        self.job_metrics = JobMetrics(job_metrics_config_file)
 
     def __add_route_for_function(self, function):
         route_suffix = '/%s' % function.__name__
