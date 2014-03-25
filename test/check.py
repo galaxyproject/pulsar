@@ -160,10 +160,13 @@ def run(options):
             output_files=output_files,
             version_file=temp_version_output_path,
         )
+        cleanup_job = 'always'
+        if not getattr(options, 'cleanup', True):
+            cleanup_job = 'never'
         finish_args = dict(
             client=client,
             job_completed_normally=True,
-            cleanup_job='always',  # Default should 'always' if overridden via options.
+            cleanup_job=cleanup_job,  # Default should 'always' if overridden via options.
             client_outputs=client_outputs,
             lwr_outputs=lwr_outputs,
         )
@@ -321,6 +324,7 @@ def main():
     parser.add_option('--cache', default=False, action="store_true")
     parser.add_option('--test_errors', default=False, action="store_true")
     parser.add_option('--suppress_output', default=False, action="store_true")
+    parser.add_option('--disable_cleanup', dest="cleanup", default=True, action="store_false")
     (options, args) = parser.parse_args()
     run(options)
 
