@@ -1,3 +1,6 @@
+import os
+import stat
+
 JOB_FILE_RETURN_CODE = "return_code"
 JOB_FILE_STANDARD_OUTPUT = "stdout"
 JOB_FILE_STANDARD_ERROR = "stderr"
@@ -6,6 +9,7 @@ JOB_FILE_TOOL_VERSION = "tool_version"
 
 from lwr.managers.base import BaseManager
 from lwr.managers import LWR_UNKNOWN_RETURN_CODE
+from ..util.job_script import job_script
 
 
 class DirectoryBaseManager(BaseManager):
@@ -74,3 +78,29 @@ class DirectoryBaseManager(BaseManager):
         if job_directory.contains_file(JOB_FILE_TOOL_ID):
             tool_id = job_directory.read_file(JOB_FILE_TOOL_ID)
         return tool_id
+
+    # Helpers methods related to setting up job script files.
+    def _setup_job_file(self, job_id, command_line, requirements=[]):
+        command_line = self._expand_command_line(command_line, requirements)
+        script_env = self._job_template_env(job_id, command_line=command_line)
+        script = job_script(**script_env)
+        return self._write_job_script(job_id, script)
+
+    def _job_template_env(self, job_id, command_line=None):
+        return_code_path = self._return_code_path(job_id)
+        job_template_env = {
+            'galaxy_lib': self._galaxy_lib(),
+            'exit_code_path': return_code_path,
+            'working_directory': self.job_directory(job_id).working_directory(),
+            'job_id': job_id,
+        }
+        if command_line:
+            job_template_env['command'] = command_line
+
+        return job_template_env
+
+    def _write_job_script(self, job_id, contents):
+        self._write_job_file(job_id, "command.sh", contents)
+        script_path = self._job_file(job_id, "command.sh")
+        os.chmod(script_path, stat.S_IEXEC | stat.S_IWRITE | stat.S_IREAD)
+        return script_path

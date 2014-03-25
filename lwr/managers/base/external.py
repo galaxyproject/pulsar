@@ -1,15 +1,15 @@
-from os import chmod
-from stat import S_IEXEC, S_IWRITE, S_IREAD
 from string import Template
 
 from .directory import DirectoryBaseManager
-from ..util.job_script import job_script
 
 DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
 JOB_FILE_EXTERNAL_ID = "external_id"
 
 
 class ExternalBaseManager(DirectoryBaseManager):
+    """ Base class for managers that interact with external distributed
+    resource managers.
+    """
 
     def __init__(self, name, app, **kwds):
         super(ExternalBaseManager, self).__init__(name, app, **kwds)
@@ -34,12 +34,6 @@ class ExternalBaseManager(DirectoryBaseManager):
             raise KeyError("Failed to find external id for job_id %s" % job_id)
         return self._get_status_external(external_id)
 
-    def _setup_job_file(self, job_id, command_line, requirements=[]):
-        command_line = self._expand_command_line(command_line, requirements)
-        script_env = self._job_template_env(job_id, command_line=command_line)
-        script = job_script(**script_env)
-        return self._write_job_script(job_id, script)
-
     def _get_job_id(self, input_job_id):
         return str(self.id_assigner(input_job_id))
 
@@ -50,25 +44,6 @@ class ExternalBaseManager(DirectoryBaseManager):
 
     def _external_id(self, job_id):
         return self._external_ids.get(job_id, None)
-
-    def _job_template_env(self, job_id, command_line=None):
-        return_code_path = self._return_code_path(job_id)
-        job_template_env = {
-            'galaxy_lib': self._galaxy_lib(),
-            'exit_code_path': return_code_path,
-            'working_directory': self.job_directory(job_id).working_directory(),
-            'job_id': job_id,
-        }
-        if command_line:
-            job_template_env['command'] = command_line
-
-        return job_template_env
-
-    def _write_job_script(self, job_id, contents):
-        self._write_job_file(job_id, "command.sh", contents)
-        script_path = self._job_file(job_id, "command.sh")
-        chmod(script_path, S_IEXEC | S_IWRITE | S_IREAD)
-        return script_path
 
     def _job_name(self, job_id):
         env = self._job_template_env(job_id)

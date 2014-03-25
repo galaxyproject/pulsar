@@ -2,6 +2,8 @@ try:
     import thread
 except ImportError:
     import _thread as thread  # Py3K changed it.
+import platform
+
 from .util import kill_pid
 from lwr.managers.base.directory import DirectoryBaseManager
 from lwr.managers import status
@@ -149,7 +151,10 @@ class Manager(DirectoryBaseManager):
     def _prepare_run(self, job_id, command_line, requirements):
         self._check_execution_with_tool_file(job_id, command_line)
         self._record_submission(job_id)
-        command_line = self._expand_command_line(command_line, requirements)
+        if platform.system().lower() == "windows":
+            command_line = self._expand_command_line(command_line, requirements)
+        else:
+            command_line = self._setup_job_file(job_id, command_line, requirements=requirements)
         return command_line
 
 __all__ = [Manager]
