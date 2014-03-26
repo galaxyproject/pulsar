@@ -23,15 +23,6 @@ then
     . .venv/bin/activate
 fi
 
-# Set GALAXY_HOME to add Galaxy code base and dependencies to
-# PYTHONPATH. This is required for many stock Galaxy tools.
-if [ -n "$GALAXY_HOME" ]; 
-then
-    PYTHONPATH="$GALAXY_HOME/lib":$PYTHONPATH
-    export PYTHONPATH
-    echo "Added Galaxy libraries ($GALAXY_HOME/lib) to PYTHONPATH"
-fi
-
 # If TEST_GALAXY_LIBS is set, this script will attempt to verify
 # Galaxy is properly placed on the LWR's PYTHONPATH before starting
 # the server.
