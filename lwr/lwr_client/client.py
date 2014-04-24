@@ -39,6 +39,7 @@ class BaseJobClient(object):
             )
         else:
             job_directory = None
+        self.env = destination_params.get("env", [])
         self.files_endpoint = destination_params.get("files_endpoint", None)
         self.job_directory = job_directory
 
