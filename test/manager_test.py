@@ -3,6 +3,7 @@ from time import sleep
 
 from lwr.managers.unqueued import Manager
 from galaxy.util.bunch import Bunch
+from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 
 from shutil import rmtree
 
@@ -24,6 +25,7 @@ class ManagerTest(TestCase):
 
         self.app = Bunch(staging_directory=staging_directory,
                          authorizer=self.authorizer,
+                         job_metrics=NullJobMetrics(),
                          dependency_manager=TestDependencyManager())
 
         self._set_manager()
@@ -98,3 +100,9 @@ class ManagerTest(TestCase):
         while manager.get_status(job_id) not in ['complete', 'cancelled']:
             pass
         manager.clean(job_id)
+
+
+class NullJobMetrics(object):
+
+    def __init__(self):
+        self.default_job_instrumenter = NULL_JOB_INSTRUMENTER
