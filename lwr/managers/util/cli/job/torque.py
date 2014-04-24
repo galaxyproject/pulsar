@@ -13,6 +13,7 @@ except ImportError:
 
 from ..job import BaseJobExec
 from ...job_script import job_script
+from ...env import env_to_statement
 
 __all__ = ('Torque',)
 
@@ -47,7 +48,7 @@ class Torque(BaseJobExec):
         for k, v in params.items():
             self.params[k] = v
 
-    def get_job_template(self, ofile, efile, job_name, working_directory, command_line, ecfile):
+    def get_job_template(self, ofile, efile, job_name, working_directory, command_line, ecfile, env=[]):
         pbsargs = {'-o': ofile,
                    '-e': efile,
                    '-N': job_name}
@@ -66,6 +67,7 @@ class Torque(BaseJobExec):
         template_env = {
             'headers': template_pbsargs,
             'working_directory': working_directory,
+            'env_setup_commands': map(env_to_statement, env),
             'exit_code_path': ecfile,
             'command': command_line,
         }

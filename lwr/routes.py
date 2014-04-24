@@ -58,10 +58,11 @@ def clean(manager, job_id):
 
 
 @LwrController()
-def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_params='{}', remote_staging='[]'):
+def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_params='{}', remote_staging='[]', env='[]'):
     submit_params = loads(params)
     setup_params = loads(setup_params)
     requirements = loads(requirements)
+    env = loads(env)
     remote_staging = loads(remote_staging)
     submit_config = dict(
         job_id=job_id,
@@ -69,6 +70,7 @@ def launch(manager, job_id, command_line, params='{}', requirements='[]', setup_
         setup_params=setup_params,
         submit_params=submit_params,
         requirements=requirements,
+        env=env,
         remote_staging=remote_staging
     )
     submit_job(manager, submit_config)

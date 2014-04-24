@@ -45,6 +45,7 @@ def submit_job(manager, job_config):
     setup_params = job_config.get('setup_params')
     remote_staging = job_config.get('remote_staging', {})
     requirements = job_config.get('requirements', [])
+    env = job_config.get('env', [])
     submit_params = job_config.get('submit_params', {})
 
     if setup_params:
@@ -57,7 +58,7 @@ def submit_job(manager, job_config):
         manager.handle_remote_staging(job_id, remote_staging)
 
     requirements = [ToolRequirement.from_dict(r) for r in requirements]
-    manager.launch(job_id, command_line, submit_params, requirements)
+    manager.launch(job_id, command_line, submit_params, requirements=requirements, env=env)
 
 
 def setup_job(manager, job_id, tool_id, tool_version):

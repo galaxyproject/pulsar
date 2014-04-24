@@ -7,9 +7,9 @@ class DrmaaQueueManager(BaseDrmaaManager):
     """
     manager_type = "queued_drmaa"
 
-    def launch(self, job_id, command_line, submit_params={}, requirements=[]):
+    def launch(self, job_id, command_line, submit_params={}, requirements=[], env=[]):
         self._check_execution_with_tool_file(job_id, command_line)
-        attributes = self._build_template_attributes(job_id, command_line, requirements=requirements)
+        attributes = self._build_template_attributes(job_id, command_line, requirements=requirements, env=env)
         external_id = self.drmaa_session.run_job(**attributes)
         self._register_external_id(job_id, external_id)
 

@@ -63,6 +63,7 @@ class BaseManager(ManagerInterface):
         self.debug = str(kwds.get("debug", False)).lower() == "true"
         self.authorizer = app.authorizer
         self.__init_system_properties()
+        self.__init_env_vars(**kwds)
         self.dependency_manager = app.dependency_manager
         self.job_metrics = app.job_metrics
 
@@ -100,6 +101,14 @@ class BaseManager(ManagerInterface):
                 system_properties[property] = value
 
         self.__system_properties = system_properties
+
+    def __init_env_vars(self, **kwds):
+        env_vars = []
+        for key, value in six.iteritems(kwds):
+            if key.lower().startswith("env_"):
+                name = key[len("env_"):]
+                env_vars.append(dict(name=name, value=value, raw=False))
+        self.env_vars = env_vars
 
     def _galaxy_home(self):
         return self.galaxy_home or getenv('GALAXY_HOME', None)

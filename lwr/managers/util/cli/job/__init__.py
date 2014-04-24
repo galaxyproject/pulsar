@@ -14,7 +14,7 @@ class BaseJobExec(object):
         """
 
     @abstractmethod
-    def get_job_template(self, ofile, efile, job_name, working_directory, command_line, ecfile):
+    def get_job_template(self, ofile, efile, job_name, working_directory, command_line, ecfile, env=[]):
         """
         Given specified inputs, return job script file template.
         """

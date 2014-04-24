@@ -45,6 +45,7 @@ try:
     contents = config_input.read(1024)
     output.write(contents)
     open("workdir_output", "w").write("WORK DIR OUTPUT")
+    open("env_test", "w").write(getenv("TEST_ENV", "DEFAULT"))
     output2.write(output2_contents)
     with open("galaxy.json", "w") as f: f.write("GALAXY_JSON")
     output3.write(getenv("MOO", "moo_default"))
@@ -96,6 +97,8 @@ def run(options):
         temp_output3_path = os.path.join(temp_directory, "dataset_3.dat")
         temp_output4_path = os.path.join(temp_directory, "dataset_4.dat")
         temp_version_output_path = os.path.join(temp_directory, "GALAXY_VERSION_1234")
+        temp_output_workdir_destination = os.path.join(temp_directory, "dataset_77.dat")
+        temp_output_workdir = os.path.join(temp_work_dir, "env_test")
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
@@ -128,16 +131,12 @@ def run(options):
         command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
-        output_files = [temp_output_path, temp_output2_path, temp_output3_path, temp_output4_path]
+        output_files = [temp_output_path, temp_output2_path, temp_output3_path, temp_output4_path, os.path.join(temp_directory, "dataset_77.dat")]
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
-        requirements = []
-        test_requirement = getattr(options, "test_requirement", False)
-        if test_requirement:
-            requirements.append(TEST_REQUIREMENT)
         client_outputs = ClientOutputs(
             working_directory=temp_work_dir,
-            work_dir_outputs=[],
+            work_dir_outputs=[(temp_output_workdir, temp_output_workdir_destination)],
             output_files=output_files,
             version_file=temp_version_output_path,
         )
@@ -149,38 +148,20 @@ def run(options):
             input_files=input_files,
             client_outputs=client_outputs,
             working_directory=temp_work_dir,
-            requirements=requirements,
+            **__extra_job_description_kwargs(options)
         )
         submit_job(client, job_description)
         result_status = waiter.wait()
-        lwr_outputs = LwrOutputs.from_status_response(result_status)
-        client_outputs = ClientOutputs(
-            working_directory=temp_work_dir,
-            work_dir_outputs=[],
-            output_files=output_files,
-            version_file=temp_version_output_path,
-        )
-        cleanup_job = 'always'
-        if not getattr(options, 'cleanup', True):
-            cleanup_job = 'never'
-        finish_args = dict(
-            client=client,
-            job_completed_normally=True,
-            cleanup_job=cleanup_job,  # Default should 'always' if overridden via options.
-            client_outputs=client_outputs,
-            lwr_outputs=lwr_outputs,
-        )
-        failed = finish_job(**finish_args)
-        if failed:
-            failed_message_template = "Failed to complete job correctly, final status %s, finish exceptions %s."
-            failed_message = failed_message_template % (result_status, failed)
-            assert False, failed_message
+
+        __finish(options, client, client_outputs, result_status)
         __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)
         __assert_contents(temp_output2_path, cmd_text, result_status)
         __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON", result_status)
         __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS", result_status)
+        if job_description.env:
+            __assert_contents(temp_output_workdir_destination, b"TEST_ENV_VALUE", result_status)
         __assert_contents(temp_version_output_path, b"1.0.1", result_status)
-        if test_requirement:
+        if job_description.requirements:
             __assert_contents(temp_output3_path, "moo_override", result_status)
         else:
             __assert_contents(temp_output3_path, "moo_default", result_status)
@@ -313,6 +294,37 @@ def __write_to_file(path, contents):
 def __makedirs(directories):
     for directory in directories:
         os.makedirs(directory)
+
+
+def __extra_job_description_kwargs(options):
+    requirements = []
+    test_requirement = getattr(options, "test_requirement", False)
+    if test_requirement:
+        requirements.append(TEST_REQUIREMENT)
+    test_env = getattr(options, "test_env", False)
+    env = []
+    if test_env:
+        env.append(dict(name="TEST_ENV", value="TEST_ENV_VALUE"))
+    return dict(requirements=requirements, env=env)
+
+
+def __finish(options, client, client_outputs, lwr_outputs, result_status):
+    lwr_outputs = LwrOutputs.from_status_response(result_status)
+    cleanup_job = 'always'
+    if not getattr(options, 'cleanup', True):
+        cleanup_job = 'never'
+    finish_args = dict(
+        client=client,
+        job_completed_normally=True,
+        cleanup_job=cleanup_job,  # Default should 'always' if overridden via options.
+        client_outputs=client_outputs,
+        lwr_outputs=lwr_outputs,
+    )
+    failed = finish_job(**finish_args)
+    if failed:
+        failed_message_template = "Failed to complete job correctly, final status %s, finish exceptions %s."
+        failed_message = failed_message_template % (result_status, failed)
+        assert False, failed_message
 
 
 def main():

@@ -10,6 +10,7 @@ JOB_FILE_TOOL_VERSION = "tool_version"
 from lwr.managers.base import BaseManager
 from lwr.managers import LWR_UNKNOWN_RETURN_CODE
 from ..util.job_script import job_script
+from ..util.env import env_to_statement
 
 
 class DirectoryBaseManager(BaseManager):
@@ -80,17 +81,21 @@ class DirectoryBaseManager(BaseManager):
         return tool_id
 
     # Helpers methods related to setting up job script files.
-    def _setup_job_file(self, job_id, command_line, requirements=[]):
+    def _setup_job_file(self, job_id, command_line, requirements=[], env=[]):
         command_line = self._expand_command_line(command_line, requirements)
-        script_env = self._job_template_env(job_id, command_line=command_line)
+        script_env = self._job_template_env(job_id, command_line=command_line, env=env)
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
 
-    def _job_template_env(self, job_id, command_line=None):
+    def _job_template_env(self, job_id, command_line=None, env=[]):
         return_code_path = self._return_code_path(job_id)
+        ## TODO: Add option to ignore remote env.
+        env = env + self.env_vars
+        env_setup_commands = map(env_to_statement, env)
         job_template_env = {
             'job_instrumenter': self.job_metrics.default_job_instrumenter,
             'galaxy_lib': self._galaxy_lib(),
+            'env_setup_commands': env_setup_commands,
             'exit_code_path': return_code_path,
             'working_directory': self.job_directory(job_id).working_directory(),
             'job_id': job_id,
