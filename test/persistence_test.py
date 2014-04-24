@@ -9,6 +9,7 @@ from lwr.tools.authorization import get_authorizer
 from .test_utils import TestDependencyManager
 
 from galaxy.util.bunch import Bunch
+from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 
 
 def test_persistence():
@@ -21,6 +22,7 @@ def test_persistence():
                     persistence_directory=staging_directory,
                     authorizer=get_authorizer(None),
                     dependency_manager=TestDependencyManager(),
+                    job_metrics=Bunch(default_job_instrumenter=NULL_JOB_INSTRUMENTER),
                     )
         assert not exists(join(staging_directory, "queued_jobs"))
         queue1 = StatefulManagerProxy(QueueManager('test', app, num_concurrent_jobs=0))
