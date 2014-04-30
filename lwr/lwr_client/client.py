@@ -247,8 +247,8 @@ class JobClient(BaseJobClient):
         return self._raw_execute(self._upload_file_action(args), args, contents, input_path)
 
     def _upload_file_action(self, args):
-        ## Hack for backward compatibility, instead of using new upload_file
-        ## path. Use old paths.
+        # Hack for backward compatibility, instead of using new upload_file
+        # path. Use old paths.
         input_type = args['input_type']
         action = {
             # For backward compatibility just target upload_input_extra for all

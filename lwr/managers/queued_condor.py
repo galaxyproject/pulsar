@@ -10,10 +10,10 @@ from logging import getLogger
 log = getLogger(__name__)
 
 
-## TODO:
-##  - user_log_sizes and state_cache never expire
-##    elements never expire. This is a small memory
-##    whole that should be fixed.
+# TODO:
+#  - user_log_sizes and state_cache never expire
+#    elements never expire. This is a small memory
+#    whole that should be fixed.
 class CondorQueueManager(ExternalBaseManager):
     """
     Job manager backend that plugs into Condor.

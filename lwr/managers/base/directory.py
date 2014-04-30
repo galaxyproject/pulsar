@@ -89,7 +89,7 @@ class DirectoryBaseManager(BaseManager):
 
     def _job_template_env(self, job_id, command_line=None, env=[]):
         return_code_path = self._return_code_path(job_id)
-        ## TODO: Add option to ignore remote env.
+        # TODO: Add option to ignore remote env.
         env = env + self.env_vars
         env_setup_commands = map(env_to_statement, env)
         job_template_env = {

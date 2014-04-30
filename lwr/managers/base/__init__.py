@@ -121,7 +121,7 @@ class BaseManager(ManagerInterface):
         return galaxy_lib
 
     def _setup_staging_directory(self, staging_directory):
-        assert not staging_directory is None
+        assert staging_directory is not None
         if not exists(staging_directory):
             makedirs(staging_directory)
         assert isdir(staging_directory)

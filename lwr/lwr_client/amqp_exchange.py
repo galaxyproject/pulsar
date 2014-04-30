@@ -13,8 +13,8 @@ KOMBU_UNAVAILABLE = "Attempting to bind to AMQP message queue, but kombu depende
 
 DEFAULT_EXCHANGE_NAME = "lwr"
 DEFAULT_EXCHANGE_TYPE = "direct"
-DEFAULT_TIMEOUT = 0.2  # Set timeout to periodically give up looking and check
-                       # if polling should end.
+# Set timeout to periodically give up looking and check if polling should end.
+DEFAULT_TIMEOUT = 0.2
 
 
 class LwrExchange(object):

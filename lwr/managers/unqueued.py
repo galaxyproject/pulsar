@@ -17,13 +17,13 @@ JOB_FILE_CANCELLED = "cancelled"
 JOB_FILE_PID = "pid"
 
 
-## Job Locks (for status updates). Following methods are locked.
-##    _finish_execution(self, job_id)
-##    _get_status(self, job_id)
-##    _is_cancelled(self, job_id)
-##    _record_pid(self, job_id, pid)
-##    _get_pid_for_killing_or_cancel(self, job_id)
-##
+# Job Locks (for status updates). Following methods are locked.
+#    _finish_execution(self, job_id)
+#    _get_status(self, job_id)
+#    _is_cancelled(self, job_id)
+#    _record_pid(self, job_id, pid)
+#    _get_pid_for_killing_or_cancel(self, job_id)
+#
 class Manager(DirectoryBaseManager):
     """
     A simple job manager that just directly runs jobs as given (no

@@ -87,8 +87,8 @@ def kill(manager, job_id):
     manager.kill(job_id)
 
 
-## Following routes allow older clients to talk to new LWR, should be considered
-## deprecated in favor of generic upload_file route.
+# Following routes allow older clients to talk to new LWR, should be considered
+# deprecated in favor of generic upload_file route.
 @LwrController(response_type='json')
 def upload_tool_file(manager, file_cache, job_id, name, body, cache_token=None):
     path = manager.job_directory(job_id).calculate_path(name, 'tool')
@@ -157,7 +157,7 @@ def upload_unstructured_file(manager, file_cache, job_id, name, body, cache_toke
 
 @LwrController(response_type='json')
 def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
-    ## Input type should be one of input, config, workdir, tool, or unstructured.
+    # Input type should be one of input, config, workdir, tool, or unstructured.
     path = manager.job_directory(job_id).calculate_path(name, input_type)
     return _handle_upload(file_cache, path, body, cache_token=cache_token)
 
@@ -175,7 +175,7 @@ def download_output(manager, job_id, name, output_type="direct"):
 
 @LwrController(response_type='json')
 def output_path(manager, job_id, name, output_type="directory"):
-    ## Added for non-transfer downloading.
+    # Added for non-transfer downloading.
     return {"path": _output_path(manager, job_id, name, output_type)}
 
 
