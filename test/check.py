@@ -308,7 +308,7 @@ def __extra_job_description_kwargs(options):
     return dict(requirements=requirements, env=env)
 
 
-def __finish(options, client, client_outputs, lwr_outputs, result_status):
+def __finish(options, client, client_outputs, result_status):
     lwr_outputs = LwrOutputs.from_status_response(result_status)
     cleanup_job = 'always'
     if not getattr(options, 'cleanup', True):
