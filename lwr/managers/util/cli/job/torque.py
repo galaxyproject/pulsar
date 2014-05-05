@@ -20,7 +20,8 @@ __all__ = ('Torque',)
 from logging import getLogger
 log = getLogger(__name__)
 
-argmap = {'Execution_Time': '-a',
+argmap = {'destination': '-q',
+          'Execution_Time': '-a',
           'Account_Name': '-A',
           'Checkpoint': '-c',
           'Error_Path': '-e',
@@ -122,6 +123,7 @@ class Torque(BaseJobExec):
                 'E': job_states.RUNNING,
                 'R': job_states.RUNNING,
                 'Q': job_states.QUEUED,
+                'C': job_states.OK
             }.get(state)
         except KeyError:
             raise KeyError("Failed to map torque status code [%s] to job state." % state)
