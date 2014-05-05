@@ -5,6 +5,9 @@ from subprocess import Popen, PIPE
 from ..shell import BaseShellExec
 from ....util import Bunch, kill_pid
 
+from logging import getLogger
+log = getLogger(__name__)
+
 TIMEOUT_ERROR_MESSAGE = u'Execution timed out'
 TIMEOUT_RETURN_CODE = -1
 DEFAULT_TIMEOUT = 60
@@ -33,7 +36,7 @@ class LocalShell(BaseShellExec):
     def __init__(self, **kwds):
         pass
 
-    def execute(self, cmd, timeout=DEFAULT_TIMEOUT, timeout_check_interval=DEFAULT_TIMEOUT_CHECK_INTERVAL, **kwds):
+    def execute(self, cmd, persist=False, timeout=DEFAULT_TIMEOUT, timeout_check_interval=DEFAULT_TIMEOUT_CHECK_INTERVAL, **kwds):
         outf = TemporaryFile()
         p = Popen(cmd, shell=True, stdin=None, stdout=outf, stderr=PIPE)
         # poll until timeout
