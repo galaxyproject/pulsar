@@ -12,8 +12,6 @@ except ImportError:
     job_states = enum(RUNNING='running', OK='complete', QUEUED='queued')
 
 from ..job import BaseJobExec
-from ...job_script import job_script
-from ...env import env_to_statement
 
 __all__ = ('Torque',)
 
@@ -49,7 +47,7 @@ class Torque(BaseJobExec):
         for k, v in params.items():
             self.params[k] = v
 
-    def get_job_template(self, ofile, efile, job_name, working_directory, command_line, ecfile, env=[]):
+    def job_script_kwargs(self, ofile, efile, job_name):
         pbsargs = {'-o': ofile,
                    '-e': efile,
                    '-N': job_name}
@@ -65,14 +63,7 @@ class Torque(BaseJobExec):
         template_pbsargs = ''
         for k, v in pbsargs.items():
             template_pbsargs += '#PBS %s %s\n' % (k, v)
-        template_env = {
-            'headers': template_pbsargs,
-            'working_directory': working_directory,
-            'env_setup_commands': map(env_to_statement, env),
-            'exit_code_path': ecfile,
-            'command': command_line,
-        }
-        return job_script(**template_env)
+        return dict(headers=template_pbsargs)
 
     def submit(self, script_file):
         return 'qsub %s' % script_file
@@ -106,18 +97,18 @@ class Torque(BaseJobExec):
                 if id in job_ids:
                     state = job.find('job_state').text
                     # map PBS job states to Galaxy job states.
-                    rval[id] = self.__get_job_state(state)
+                    rval[id] = self._get_job_state(state)
         return rval
 
     def parse_single_status(self, status, job_id):
         for line in status.splitlines():
             line = line.split(' = ')
             if line[0] == 'job_state':
-                return self.__get_job_state(line[1].strip())
+                return self._get_job_state(line[1].strip())
         # no state found, job has exited
         return job_states.OK
 
-    def __get_job_state(self, state):
+    def _get_job_state(self, state):
         try:
             return {
                 'E': job_states.RUNNING,

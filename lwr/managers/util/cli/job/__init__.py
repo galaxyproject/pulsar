@@ -13,11 +13,11 @@ class BaseJobExec(object):
         Constructor for CLI job executor.
         """
 
-    @abstractmethod
-    def get_job_template(self, ofile, efile, job_name, working_directory, command_line, ecfile, env=[]):
+    def job_script_kwargs(self, ofile, efile, job_name):
+        """ Return extra keyword argument for consumption by job script
+        module.
         """
-        Given specified inputs, return job script file template.
-        """
+        return {}
 
     @abstractmethod
     def submit(self, script_file):
