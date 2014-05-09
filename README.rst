@@ -16,29 +16,10 @@ Full documentation for the project can be found on `Read The Docs
 Configuring Galaxy
 ------------------
 
-Galaxy job runners can be configured in a newer XML based format or in a
-legacy format directly in ``universe_wsgi.ini``. For demonstration of the
-newer format see ``job_conf.xml.sample_advanced`` in your Galaxy code base or
-on `Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_.
-
-Legacy
-------
-
-A Galaxy tool can be configured to be executed remotely via LWR by
-adding a line to the ``universe_wsgi.ini`` file under the
-``galaxy:tool_runners`` section with the format::
-
-    <tool_id> = lwr://http://<lwr_host>:<lwr_port>
-
-As an example, if a host named remotehost is running the LWR server
-application on port ``8913``, then the tool with id ``test_tool`` can
-be configured to run remotely on remotehost by adding the following
-line to ``universe.ini``::
-
-    test_tool = lwr://http://remotehost:8913
-
-Remember this must be added after the ``[galaxy:tool_runners]`` header
-in the ``universe.ini`` file.
+Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. See ``job_conf.xml.sample_advanced``
+in your Galaxy code base or on
+`Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
+for information on how to configure Galaxy to interact with the LWR.
 
 ---------------
 Downloading LWR
@@ -172,8 +153,8 @@ to modify.
 
 Some advanced configuration topics are discussed below.
 
-Securing the LWR
-----------------
+Securing the LWR Web Server
+---------------------------
 
 Out of the box the LWR essentially allows anyone with network access
 to the LWR server to execute arbitrary code and read and write any
@@ -202,13 +183,14 @@ More information can be found in the `paste httpserver documentation
 To specify a private token, simply set to ``private_key`` to some long
 random string in ``server.ini``.
 
-Once SSL has been enabled a private token configured, Galaxy job
-runners need to be updated to use https and pass along this same
-token.::
+Once SSL has been enabled and a private token configured, Galaxy job
+destinations should include a ``private_token`` parameter to authenticate
+these jobs.
 
-    <tool_id> = lwr://https://<lwr_private_token>@<lwr_host>:<lwr_port>
-
-
+In the newer, experimental message queue driven LWR operation the underlying
+security mechanisms of the message queue should be used to secure the LWR
+communication - configuring SSL with the LWR and a ``private_token`` are not
+required.
 
 Job Managers (Queues)
 ---------------------
@@ -230,6 +212,38 @@ these tools will not run under Windows, but on \*nix hosts the LWR can be
 configured to add the required Galaxy code a jobs ``PYTHON_PATH`` by setting
 copying ``local_env.sh.sample`` to ``local_env.sh`` and setting the
 ``GALAXY_HOME`` environment variable.
+
+Caching (Experimental)
+----------------------
+
+LWR and its clients can be configured to cache job input files. For some
+workflows this can result in a significant decrease in data transfer and
+greater throughput. On the LWR side - the property ``file_cache_dir`` in
+``server.ini`` must be set. See Galaxy's 
+`job_conf.xml <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
+for information on configuring the client.
+
+More discussion on this can be found in `this galaxy-dev mailing list thread <http://dev.list.galaxyproject.org/Re-Missing-module-in-the-lwr-repository-tc4664474.html>`_
+and future plans and progress can be tracked on `this Trello card <https://trello.com/c/MPlt8DHJ>`_.
+
+Message Queue (Experimental)
+----------------------------
+
+Galaxy and the LWR can be configured to communicate via a message queue
+instead of an LWR web server. In this mode, the LWR will download files
+from and upload files to Galaxy instead of the inverse - this may be very
+advantageous if the LWR needs to be deployed behind a firewall or if the
+Galaxy server is already setup (via proxy web server) for large file
+transfers.
+
+To bind the LWR server to a message queue, one needs to first ensure the
+`kombu` Python dependency is installed (``pip install kombu``). Once this
+available, simply set the ``message_queue_url`` property to the correct
+URL of your configured `AMQP <http://en.wikipedia.org/wiki/AMQP>`_ endpoint.
+
+Configuring your AMQP compatible message queue is beyond the scope of this
+document - see `RabbitMQ <http://en.wikipedia.org/wiki/RabbitMQ>`_ for instance
+for more details (other MQs should work also).
 
 ------
 Puppet
