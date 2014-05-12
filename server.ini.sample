@@ -42,6 +42,14 @@ persistence_directory = persisted_data
 ## encouraged if multiple Galaxy servers are targetting one LWR server.
 #assign_ids = uuid
 
+## LWR-equivalent of Galaxy's tool_dependency_dir. The default directory
+## used by tool dependency resolves to find dependency scripts. Used
+## if Galaxy configures remote dependency resolution.
+#tool_dependency_dir = dependencies
+
+## LWR-equivalent of Galaxy's tool_dependency_resolves_conf.
+# dependency_resolvers_config_file = dependency_resolvers_conf.xml
+
 ## Comma separated list of paths to toolbox files. If this is set, LWR
 ## will use the information contained in the tools to lock down what
 ## the LWR can execute. This absolutely *SHOULD* be enabled if the LWR
