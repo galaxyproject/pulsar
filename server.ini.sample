@@ -66,6 +66,17 @@ persistence_directory = persisted_data
 ## Python library is available and start the LWR normally.
 #message_queue_url = amqp://guest:guest@localhost:5672//
 
+## The AMQP client can provide an SSL client certificate (e.g. for
+## validation), the following options configure that certificate
+## (see for reference:
+##   http://kombu.readthedocs.org/en/latest/reference/kombu.connection.html
+## ). If you simply want to use SSL but not use/validate a client
+## cert, just use the ?ssl=1 query on the amqp URL instead.
+#amqp_connect_ssl_ca_certs = /path/to/cacert.pem
+#amqp_connect_ssl_keyfile = /path/to/key.pem
+#amqp_connect_ssl_certfile = /path/to/cert.pem
+#amqp_connect_ssl_cert_reqs = cert_required
+
 ## *Experimental*. Enable file caching by specifing a directory here. 
 ## Directory used to store incoming file cache. It works fine for HTTP
 ## transfer, have not tested with staging by coping. Also there is no

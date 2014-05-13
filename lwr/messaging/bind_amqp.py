@@ -7,8 +7,8 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def bind_manager_to_queue(manager, queue_state, connection_string):
-    lwr_exchange = amqp_exchange.LwrExchange(connection_string, manager.name)
+def bind_manager_to_queue(manager, queue_state, connection_string, connect_ssl=None):
+    lwr_exchange = amqp_exchange.LwrExchange(connection_string, manager.name, connect_ssl=connect_ssl)
 
     process_setup_messages = functools.partial(__process_setup_message, manager)
     process_kill_messages = functools.partial(__process_kill_message, manager)

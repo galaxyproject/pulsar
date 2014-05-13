@@ -11,6 +11,7 @@ from lwr.framework import RoutingApp
 from lwr.tools import ToolBox
 from lwr.tools.authorization import get_authorizer
 from lwr import messaging
+from lwr.lwr_client.util import parse_amqp_connect_ssl_params
 import lwr.routes
 from galaxy.objectstore import build_object_store_from_config
 from galaxy.tools.deps import DependencyManager
@@ -71,9 +72,10 @@ class LwrApp(RoutingApp):
 
     def __setup_bind_to_message_queue(self, conf):
         message_queue_url = conf.get("message_queue_url", None)
+        connect_ssl = parse_amqp_connect_ssl_params(conf)
         queue_state = None
         if message_queue_url:
-            queue_state = messaging.bind_app(self, message_queue_url)
+            queue_state = messaging.bind_app(self, message_queue_url, connect_ssl=connect_ssl)
         self.__queue_state = queue_state
 
     def __setup_tool_config(self, conf):
