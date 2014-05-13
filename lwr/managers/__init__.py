@@ -62,7 +62,7 @@ class ManagerInterface(object):
         """
 
     @abstractmethod
-    def launch(self, job_id, command_line, submit_params={}, requirements=[], env=[]):
+    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[]):
         """
         Called to indicate that the client is ready for this job with specified
         job id and command line to be executed (i.e. run or queue this job

@@ -5,6 +5,7 @@ from .test_utils import TempDirectoryTestCase
 from .test_common import write_json_config
 from lwr.lwr_client import submit_job, ClientJobDescription
 from lwr.lwr_client import ClientOutputs
+from galaxy.tools.deps.dependencies import DependenciesDescription
 from galaxy.tools.deps.requirements import ToolRequirement
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
@@ -27,7 +28,7 @@ class TestStager(TempDirectoryTestCase):
             input_files=inputs,
             client_outputs=ClientOutputs("/galaxy/database/working_directory/1", []),
             working_directory="/galaxy/database/working_directory/1",
-            requirements=[TEST_REQUIREMENT_1, TEST_REQUIREMENT_2],
+            dependencies_description=DependenciesDescription(requirements=[TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]),
             env=[TEST_ENV_1],
             rewrite_paths=False,
         )
@@ -153,12 +154,12 @@ class MockClient(object):
         assert tool_version == self.expected_tool.version
         return {}
 
-    def launch(self, command_line, requirements, job_config={}, remote_staging={}, env=[]):
+    def launch(self, command_line, dependencies_description, job_config={}, remote_staging={}, env=[]):
         # TODO: test env
         if self.expected_command_line is not None:
             message = "Excepected command line %s, got %s" % (self.expected_command_line, command_line)
             assert self.expected_command_line == command_line, message
-        assert requirements == [TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]
+        assert dependencies_description.requirements == [TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]
         assert env == [TEST_ENV_1]
 
     def expect_command_line(self, expected_command_line):

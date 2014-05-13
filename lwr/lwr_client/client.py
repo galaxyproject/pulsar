@@ -82,7 +82,7 @@ class JobClient(BaseJobClient):
         super(JobClient, self).__init__(destination_params, job_id)
         self.job_manager_interface = job_manager_interface
 
-    def launch(self, command_line, requirements=[], env=[], remote_staging=[], job_config=None):
+    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -97,8 +97,8 @@ class JobClient(BaseJobClient):
         submit_params_dict = submit_params(self.destination_params)
         if submit_params_dict:
             launch_params['params'] = dumps(submit_params_dict)
-        if requirements:
-            launch_params['requirements'] = dumps([requirement.to_dict() for requirement in requirements])
+        if dependencies_description:
+            launch_params['dependencies_description'] = dumps(dependencies_description.to_dict())
         if env:
             launch_params['env'] = dumps(env)
         if remote_staging:
@@ -294,15 +294,15 @@ class MessageJobClient(BaseJobClient):
             raise Exception(error_message)
         self.client_manager = client_manager
 
-    def launch(self, command_line, requirements=[], env=[], remote_staging=[], job_config=None):
+    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None):
         """
         """
         launch_params = dict(command_line=command_line, job_id=self.job_id)
         submit_params_dict = submit_params(self.destination_params)
         if submit_params_dict:
             launch_params['params'] = submit_params_dict
-        if requirements:
-            launch_params['requirements'] = [requirement.to_dict() for requirement in requirements]
+        if dependencies_description:
+            launch_params['dependencies_description'] = dependencies_description.to_dict()
         if env:
             launch_params['env'] = env
         if remote_staging:

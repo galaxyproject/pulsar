@@ -26,9 +26,9 @@ class CondorQueueManager(ExternalBaseManager):
         self.user_log_sizes = {}
         self.state_cache = {}
 
-    def launch(self, job_id, command_line, submit_params={}, requirements=[], env=[]):
+    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[]):
         self._check_execution_with_tool_file(job_id, command_line)
-        job_file_path = self._setup_job_file(job_id, command_line, requirements=requirements, env=env)
+        job_file_path = self._setup_job_file(job_id, command_line, dependencies_description=dependencies_description, env=env)
         log_path = self.__condor_user_log(job_id)
         open(log_path, 'w')  # Touch log file
         build_submit_params = dict(

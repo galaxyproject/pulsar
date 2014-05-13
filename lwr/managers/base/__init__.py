@@ -161,8 +161,16 @@ class BaseManager(ManagerInterface):
             authorization.authorize_config_file(job_directory, file, path)
         authorization.authorize_execution(job_directory, command_line)
 
-    def _expand_command_line(self, command_line, requirements):
-        dependency_commands = self.dependency_manager.dependency_shell_commands(requirements)
+    def _expand_command_line(self, command_line, dependencies_description):
+        if dependencies_description is None:
+            return command_line
+
+        requirements = dependencies_description.requirements
+        installed_tool_dependencies = dependencies_description.installed_tool_dependencies
+        dependency_commands = self.dependency_manager.dependency_shell_commands(
+            requirements=requirements,
+            installed_tool_dependencies=installed_tool_dependencies
+        )
         if dependency_commands:
             command_line = "%s; %s" % ("; ".join(dependency_commands), command_line)
         return command_line

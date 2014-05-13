@@ -15,6 +15,7 @@ from lwr.lwr_client import LwrOutputs
 from lwr.lwr_client import ClientOutputs
 from lwr.lwr_client import build_client_manager
 from lwr.lwr_client import ClientJobDescription
+from galaxy.tools.deps.dependencies import DependenciesDescription
 from galaxy.tools.deps.requirements import ToolRequirement
 from .test_common import write_json_config
 
@@ -66,6 +67,7 @@ finally:
 EXPECTED_OUTPUT = b"hello world output"
 EXAMPLE_UNICODE_TEXT = u'єχαмρℓє συтρυт'
 TEST_REQUIREMENT = ToolRequirement(name="dep1", version="1.1", type="package")
+TEST_DEPENDENCIES = DependenciesDescription(requirements=[TEST_REQUIREMENT])
 
 
 class MockTool(object):
@@ -161,7 +163,7 @@ def run(options):
         if job_description.env:
             __assert_contents(temp_output_workdir_destination, b"TEST_ENV_VALUE", result_status)
         __assert_contents(temp_version_output_path, b"1.0.1", result_status)
-        if job_description.requirements:
+        if job_description.dependencies_description:
             __assert_contents(temp_output3_path, "moo_override", result_status)
         else:
             __assert_contents(temp_output3_path, "moo_default", result_status)
@@ -297,15 +299,16 @@ def __makedirs(directories):
 
 
 def __extra_job_description_kwargs(options):
-    requirements = []
+    dependencies_description = None
     test_requirement = getattr(options, "test_requirement", False)
     if test_requirement:
-        requirements.append(TEST_REQUIREMENT)
+        requirements = [TEST_REQUIREMENT]
+        dependencies_description = DependenciesDescription(requirements=requirements)
     test_env = getattr(options, "test_env", False)
     env = []
     if test_env:
         env.append(dict(name="TEST_ENV", value="TEST_ENV_VALUE"))
-    return dict(requirements=requirements, env=env)
+    return dict(dependencies_description=dependencies_description, env=env)
 
 
 def __finish(options, client, client_outputs, result_status):

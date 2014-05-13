@@ -3,7 +3,7 @@ and message queue.
 """
 from lwr.lwr_client.setup_handler import build_job_config
 from lwr.managers import status
-from galaxy.tools.deps.requirements import ToolRequirement
+from galaxy.tools.deps import dependencies
 
 
 def full_status(manager, job_status, job_id):
@@ -44,7 +44,7 @@ def submit_job(manager, job_config):
     command_line = job_config.get('command_line')
     setup_params = job_config.get('setup_params')
     remote_staging = job_config.get('remote_staging', {})
-    requirements = job_config.get('requirements', [])
+    dependencies_description = job_config.get('dependencies_description', None)
     env = job_config.get('env', [])
     submit_params = job_config.get('submit_params', {})
 
@@ -57,8 +57,8 @@ def submit_job(manager, job_config):
     if remote_staging:
         manager.handle_remote_staging(job_id, remote_staging)
 
-    requirements = [ToolRequirement.from_dict(r) for r in requirements]
-    manager.launch(job_id, command_line, submit_params, requirements=requirements, env=env)
+    dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
+    manager.launch(job_id, command_line, submit_params, dependencies_description=dependencies_description, env=env)
 
 
 def setup_job(manager, job_id, tool_id, tool_version):
