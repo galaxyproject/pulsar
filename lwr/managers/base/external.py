@@ -5,6 +5,9 @@ from .directory import DirectoryBaseManager
 DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
 JOB_FILE_EXTERNAL_ID = "external_id"
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class ExternalBaseManager(DirectoryBaseManager):
     """ Base class for managers that interact with external distributed
@@ -50,7 +53,7 @@ class ExternalBaseManager(DirectoryBaseManager):
         return Template(self.job_name_template).safe_substitute(env)
 
     def _recover_active_job(self, job_id):
-        external_id = self._read_job_file(job_id, JOB_FILE_EXTERNAL_ID, None)
+        external_id = self._read_job_file(job_id, JOB_FILE_EXTERNAL_ID)
         if external_id:
             self._external_ids[job_id] = external_id
 

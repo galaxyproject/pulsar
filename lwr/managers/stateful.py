@@ -149,7 +149,7 @@ class StatefulManagerProxy(ManagerProxy):
             try:
                 recover_method(job_id)
             except Exception:
-                log.warn("Failed to recover active job %s" % job_id)
+                log.exception("Failed to recover active job %s" % job_id)
 
 
 class ActiveJobs(object):
