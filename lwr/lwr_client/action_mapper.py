@@ -132,6 +132,22 @@ class FileActionMapper(object):
         self.mappers = mappers_from_dicts(config.get("paths", []))
         self.files_endpoint = config.get("files_endpoint", None)
 
+    def action(self, path, type, mapper=None):
+        mapper = self.__find_mapper(path, type, mapper)
+        action_class = self.__action_class(path, type, mapper)
+        file_lister = DEFAULT_FILE_LISTER
+        if mapper:
+            file_lister = mapper.file_lister
+        action = action_class(path, file_lister=file_lister)
+        self.__process_action(action, type)
+        return action
+
+    def unstructured_mappers(self):
+        """ Return mappers that will map 'unstructured' files (i.e. go beyond
+        mapping inputs, outputs, and config files).
+        """
+        return filter(lambda m: path_type.UNSTRUCTURED in m.path_types, self.mappers)
+
     def to_dict(self):
         return dict(
             default_action=self.default_action,
@@ -176,22 +192,6 @@ class FileActionMapper(object):
             message_args = (action_type, path)
             raise Exception(message_template % message_args)
         return action_class
-
-    def action(self, path, type, mapper=None):
-        mapper = self.__find_mapper(path, type, mapper)
-        action_class = self.__action_class(path, type, mapper)
-        file_lister = DEFAULT_FILE_LISTER
-        if mapper:
-            file_lister = mapper.file_lister
-        action = action_class(path, file_lister=file_lister)
-        self.__process_action(action, type)
-        return action
-
-    def unstructured_mappers(self):
-        """ Return mappers that will map 'unstructured' files (i.e. go beyond
-        mapping inputs, outputs, and config files).
-        """
-        return filter(lambda m: path_type.UNSTRUCTURED in m.path_types, self.mappers)
 
     def __process_action(self, action, file_type):
         """ Extension point to populate extra action information after an
