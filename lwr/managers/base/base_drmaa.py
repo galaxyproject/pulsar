@@ -7,6 +7,9 @@ try:
 except ImportError:
     JobState = None
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class BaseDrmaaManager(ExternalBaseManager):
 
@@ -39,7 +42,7 @@ class BaseDrmaaManager(ExternalBaseManager):
             JobState.FAILED: status.COMPLETE,  # Should be a FAILED state here as well
         }[drmaa_state]
 
-    def _build_template_attributes(self, job_id, command_line, dependencies_description=None, env=[]):
+    def _build_template_attributes(self, job_id, command_line, dependencies_description=None, env=[], submit_params={}):
         stdout_path = self._stdout_path(job_id)
         stderr_path = self._stderr_path(job_id)
 
@@ -51,4 +54,6 @@ class BaseDrmaaManager(ExternalBaseManager):
         }
         if self.native_specification:
             attributes["nativeSpecification"] = self.native_specification
+        elif submit_params.get("native_specification", None):
+            attributes["nativeSpecification"] = submit_params["native_specification"]
         return attributes
