@@ -1,5 +1,4 @@
 #!/bin/bash
-## ./update_galaxy_client.sh /path/to/galaxy
 
 usage() {
 cat << EOF
