@@ -153,18 +153,19 @@ class FileActionMapper(object):
         config = load(open(path, 'rb'))
         self.mappers = mappers_from_dicts(config.get('paths', []))
 
-    def action(self, path, type, mapper=None):
-        action_type = self.default_action if type in ACTION_DEFAULT_PATH_TYPES else "none"
-        file_lister = DEFAULT_FILE_LISTER
-        normalized_path = abspath(path)
+    def __find_mapper(self, path, type, mapper=None):
         if not mapper:
+            normalized_path = abspath(path)
             for query_mapper in self.mappers:
                 if query_mapper.matches(normalized_path, type):
                     mapper = query_mapper
                     break
+        return mapper
+
+    def __action_class(self, path, type, mapper):
+        action_type = self.default_action if type in ACTION_DEFAULT_PATH_TYPES else "none"
         if mapper:
             action_type = mapper.action_type
-            file_lister = mapper.file_lister
         if type in ["workdir", "output_workdir"] and action_type == "none":
             # We are changing the working_directory relative to what
             # Galaxy would use, these need to be copied over.
@@ -174,6 +175,14 @@ class FileActionMapper(object):
             message_template = "Unknown action_type encountered %s while trying to map path %s"
             message_args = (action_type, path)
             raise Exception(message_template % message_args)
+        return action_class
+
+    def action(self, path, type, mapper=None):
+        mapper = self.__find_mapper(path, type, mapper)
+        action_class = self.__action_class(path, type, mapper)
+        file_lister = DEFAULT_FILE_LISTER
+        if mapper:
+            file_lister = mapper.file_lister
         action = action_class(path, file_lister=file_lister)
         self.__process_action(action, type)
         return action
