@@ -15,6 +15,7 @@ def bind_manager_to_queue(manager, queue_state, connection_string, connect_ssl=N
 
     def drain(callback, name):
         __drain(name, queue_state, lwr_exchange, callback)
+        log.info("Finished consuming %s queue - no more messages will be processed." % (name))
 
     __start_consumer("setup", lwr_exchange, functools.partial(drain, process_setup_messages, "setup"))
     __start_consumer("kill", lwr_exchange, functools.partial(drain, process_kill_messages, "kill"))
@@ -22,8 +23,13 @@ def bind_manager_to_queue(manager, queue_state, connection_string, connect_ssl=N
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
     # has occurred.
     def bind_on_status_change(new_status, job_id):
-        payload = manager_endpoint_util.full_status(manager, new_status, job_id)
-        lwr_exchange.publish("status_update", payload)
+        try:
+            log.debug("Publishing LWR state change with status %s" % new_status)
+            payload = manager_endpoint_util.full_status(manager, new_status, job_id)
+            lwr_exchange.publish("status_update", payload)
+        except:
+            log.exception("Failure to publish LWR state change.")
+            raise
 
     manager.set_state_change_callback(bind_on_status_change)
 

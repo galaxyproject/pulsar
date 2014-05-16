@@ -1,5 +1,8 @@
 from .base.base_drmaa import BaseDrmaaManager
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class DrmaaQueueManager(BaseDrmaaManager):
     """
@@ -17,6 +20,7 @@ class DrmaaQueueManager(BaseDrmaaManager):
             submit_params=submit_params,
         )
         external_id = self.drmaa_session.run_job(**attributes)
+        log.info("Submitted DRMAA job with LWR job id %s and external id %s" % (external_id, job_id))
         self._register_external_id(job_id, external_id)
 
     def _kill_external(self, external_id):
