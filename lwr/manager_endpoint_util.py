@@ -46,7 +46,7 @@ def submit_job(manager, job_config):
     remote_staging = job_config.get('remote_staging', {})
     dependencies_description = job_config.get('dependencies_description', None)
     env = job_config.get('env', [])
-    submit_params = job_config.get('params', {})
+    submit_params = job_config.get('submit_params', {})
 
     if setup_params:
         input_job_id = setup_params.get("job_id", job_id)
