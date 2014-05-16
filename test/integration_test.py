@@ -86,7 +86,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
 
 
 class IntegrationTests(BaseIntegrationTest):
-    default_kwargs = dict(direct_interface=False, test_requirement=True, test_unicode=True, test_env=True)
+    default_kwargs = dict(direct_interface=False, test_requirement=True, test_unicode=True, test_env=True, test_rewrite_action=True)
 
     def test_integration_no_requirement(self):
         self._run(private_token=None, **self.default_kwargs)

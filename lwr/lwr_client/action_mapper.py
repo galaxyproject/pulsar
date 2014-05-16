@@ -136,9 +136,11 @@ class FileActionMapper(object):
         mapper = self.__find_mapper(path, type, mapper)
         action_class = self.__action_class(path, type, mapper)
         file_lister = DEFAULT_FILE_LISTER
+        action_kwds = {}
         if mapper:
             file_lister = mapper.file_lister
-        action = action_class(path, file_lister=file_lister)
+            action_kwds = mapper.action_kwds
+        action = action_class(path, file_lister=file_lister, **action_kwds)
         self.__process_action(action, type)
         return action
 
@@ -217,12 +219,20 @@ class BaseAction(object):
         self.path = path
         self.file_lister = file_lister or DEFAULT_FILE_LISTER
 
-    def unstructured_map(self):
+    def unstructured_map(self, path_helper):
         unstructured_map = self.file_lister.unstructured_map(self.path)
-        # To ensure uniqueness, prepend unique prefix to each name
-        prefix = unique_path_prefix(self.path)
-        for path, name in unstructured_map.iteritems():
-            unstructured_map[path] = join(prefix, name)
+        if self.staging_needed:
+            # To ensure uniqueness, prepend unique prefix to each name
+            prefix = unique_path_prefix(self.path)
+            for path, name in unstructured_map.iteritems():
+                unstructured_map[path] = join(prefix, name)
+        else:
+            path_rewrites = {}
+            for path in unstructured_map:
+                rewrite = self.path_rewrite(path_helper, path)
+                if rewrite:
+                    path_rewrites[path] = rewrite
+            unstructured_map = path_rewrites
         return unstructured_map
 
     @property
@@ -249,7 +259,7 @@ class NoneAction(BaseAction):
     def from_dict(cls, action_dict):
         return NoneAction(path=action_dict["path"])
 
-    def path_rewrite(self, path_helper):
+    def path_rewrite(self, path_helper, path=None):
         return None
 
 
@@ -286,8 +296,10 @@ class RewriteAction(BaseAction):
             destination_directory=action_dict["destination_directory"],
         )
 
-    def path_rewrite(self, path_helper):
-        new_path = path_helper.from_posix_with_new_base(self.path, self.from_posix_with_new_base, self.destination_directory)
+    def path_rewrite(self, path_helper, path=None):
+        if not path:
+            path = self.path
+        new_path = path_helper.from_posix_with_new_base(self.path, self.source_directory, self.destination_directory)
         return None if new_path == self.path else new_path
 
 
@@ -416,9 +428,10 @@ class BasePathMapper(object):
         action_type = config.get('action', DEFAULT_MAPPED_ACTION)
         action_class = actions.get(action_type, None)
         action_kwds = action_class.action_spec.copy()
-        action_kwds.update(config)
         for key, value in action_kwds.items():
-            if value is REQUIRED_ACTION_KWD:
+            if key in config:
+                action_kwds[key] = config[key]
+            elif value is REQUIRED_ACTION_KWD:
                 message_template = "action_type %s requires key word argument %s"
                 message = message_template % (action_type, key)
                 raise Exception( message )
@@ -535,10 +548,11 @@ DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
 
 ACTION_CLASSES = [
     NoneAction,
+    RewriteAction,
     TransferAction,
     CopyAction,
     RemoteCopyAction,
-    RemoteTransferAction
+    RemoteTransferAction,
 ]
 actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
 

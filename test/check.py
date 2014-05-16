@@ -47,6 +47,7 @@ try:
     output.write(contents)
     open("workdir_output", "w").write("WORK DIR OUTPUT")
     open("env_test", "w").write(getenv("TEST_ENV", "DEFAULT"))
+    open("rewrite_action_test", "w").write(sys.argv[12])
     output2.write(output2_contents)
     with open("galaxy.json", "w") as f: f.write("GALAXY_JSON")
     output3.write(getenv("MOO", "moo_default"))
@@ -83,10 +84,11 @@ def run(options):
         temp_directory = tempfile.mkdtemp()
         temp_index_dir = os.path.join(temp_directory, "idx", "bwa")
         temp_index_dir_sibbling = os.path.join(temp_directory, "idx", "seq")
+        temp_shared_dir = os.path.join(temp_directory, "shared", "test1")
         temp_work_dir = os.path.join(temp_directory, "w")
         temp_tool_dir = os.path.join(temp_directory, "t")
 
-        __makedirs([temp_tool_dir, temp_work_dir, temp_index_dir, temp_index_dir_sibbling])
+        __makedirs([temp_tool_dir, temp_work_dir, temp_index_dir, temp_index_dir_sibbling, temp_shared_dir])
 
         temp_input_path = os.path.join(temp_directory, "dataset_0.dat")
         temp_input_extra_path = os.path.join(temp_directory, "dataset_0_files", "input_subdir", "extra")
@@ -101,6 +103,9 @@ def run(options):
         temp_version_output_path = os.path.join(temp_directory, "GALAXY_VERSION_1234")
         temp_output_workdir_destination = os.path.join(temp_directory, "dataset_77.dat")
         temp_output_workdir = os.path.join(temp_work_dir, "env_test")
+
+        temp_output_workdir_destination2 = os.path.join(temp_directory, "dataset_78.dat")
+        temp_output_workdir2 = os.path.join(temp_work_dir, "rewrite_action_test")
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
@@ -128,17 +133,21 @@ def run(options):
             temp_version_output_path,
             temp_index_path,
             temp_output4_path,
+            temp_shared_dir,
         )
         assert os.path.exists(temp_index_path)
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
-        output_files = [temp_output_path, temp_output2_path, temp_output3_path, temp_output4_path, os.path.join(temp_directory, "dataset_77.dat")]
+        output_files = [temp_output_path, temp_output2_path, temp_output3_path, temp_output4_path, temp_output_workdir_destination, temp_output_workdir_destination2]
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
         client_outputs = ClientOutputs(
             working_directory=temp_work_dir,
-            work_dir_outputs=[(temp_output_workdir, temp_output_workdir_destination)],
+            work_dir_outputs=[
+                (temp_output_workdir, temp_output_workdir_destination),
+                (temp_output_workdir2, temp_output_workdir_destination2),
+            ],
             output_files=output_files,
             version_file=temp_version_output_path,
         )
@@ -160,6 +169,8 @@ def run(options):
         __assert_contents(temp_output2_path, cmd_text, result_status)
         __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON", result_status)
         __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS", result_status)
+        if getattr(options, "test_rewrite_action", False):
+            __assert_contents(temp_output_workdir_destination2, os.path.join(temp_directory, "shared2", "test1"), result_status)
         if job_description.env:
             __assert_contents(temp_output_workdir_destination, b"TEST_ENV_VALUE", result_status)
         __assert_contents(temp_version_output_path, b"1.0.1", result_status)
@@ -251,12 +262,16 @@ def __exercise_errors(options, client, temp_output_path, temp_directory):
 def __client(temp_directory, options):
     default_file_action = getattr(options, "default_file_action", None)
     unstructured_action = default_file_action or "transfer"
+    path_defs = [
+        dict(path=os.path.join(temp_directory, "idx"), path_types="unstructured", depth=2, action=unstructured_action),
+    ]
+    if getattr(options, "test_rewrite_action", False):
+        rewrite_def = dict(path=os.path.join(temp_directory, "shared"), path_types="unstructured", action="rewrite", source_directory=os.path.join(temp_directory, "shared"), destination_directory=os.path.join(temp_directory, "shared2"))
+        path_defs.append(rewrite_def)
     client_options = {
         "url": getattr(options, "url", None),
         "private_token": getattr(options, "private_token", None),
-        "file_action_config": write_json_config(temp_directory, dict(paths=[
-            dict(path=os.path.join(temp_directory, "idx"), path_types="unstructured", depth=2, action=unstructured_action)
-        ])),
+        "file_action_config": write_json_config(temp_directory, dict(paths=path_defs)),
     }
     if default_file_action:
         client_options["default_file_action"] = default_file_action
