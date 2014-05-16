@@ -207,8 +207,11 @@ class FileActionMapper(object):
             url = "%s&path=%s&file_type=%s" % (url_base, action.path, file_type)
             action.url = url
 
+REQUIRED_ACTION_KWD = object()
+
 
 class BaseAction(object):
+    action_spec = {}
 
     def __init__(self, path, file_lister=None):
         self.path = path
@@ -238,6 +241,54 @@ class NoneAction(BaseAction):
     paths. """
     action_type = "none"
     staging = STAGING_ACTION_NONE
+
+    def to_dict(self):
+        return dict(path=self.path, action_type=self.action_type)
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return NoneAction(path=action_dict["path"])
+
+    def path_rewrite(self, path_helper):
+        return None
+
+
+class RewriteAction(BaseAction):
+    """ This actin indicates the LWR server should simply rewrite the path
+    to the specified file.
+    """
+    action_spec = dict(
+        source_directory=REQUIRED_ACTION_KWD,
+        destination_directory=REQUIRED_ACTION_KWD
+    )
+    action_type = "rewrite"
+    staging = STAGING_ACTION_NONE
+
+    def __init__(self, path, file_lister=None, source_directory=None, destination_directory=None):
+        self.path = path
+        self.file_lister = file_lister or DEFAULT_FILE_LISTER
+        self.source_directory = source_directory
+        self.destination_directory = destination_directory
+
+    def to_dict(self):
+        return dict(
+            path=self.path,
+            action_type=self.action_type,
+            source_directory=self.source_directory,
+            destination_directory=self.destination_directory,
+        )
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return RewriteAction(
+            path=action_dict["path"],
+            source_directory=action_dict["source_directory"],
+            destination_directory=action_dict["destination_directory"],
+        )
+
+    def path_rewrite(self, path_helper):
+        new_path = path_helper.from_posix_with_new_base(self.path, self.from_posix_with_new_base, self.destination_directory)
+        return None if new_path == self.path else new_path
 
 
 class TransferAction(BaseAction):
@@ -362,7 +413,17 @@ def from_dict(action_dict):
 class BasePathMapper(object):
 
     def __init__(self, config):
-        self.action_type = config.get('action', DEFAULT_MAPPED_ACTION)
+        action_type = config.get('action', DEFAULT_MAPPED_ACTION)
+        action_class = actions.get(action_type, None)
+        action_kwds = action_class.action_spec.copy()
+        action_kwds.update(config)
+        for key, value in action_kwds.items():
+            if value is REQUIRED_ACTION_KWD:
+                message_template = "action_type %s requires key word argument %s"
+                message = message_template % (action_type, key)
+                raise Exception( message )
+        self.action_type = action_type
+        self.action_kwds = action_kwds
         path_types_str = config.get('path_types', "*defaults*")
         path_types_str = path_types_str.replace("*defaults*", ",".join(ACTION_DEFAULT_PATH_TYPES))
         path_types_str = path_types_str.replace("*any*", ",".join(ALL_PATH_TYPES))
@@ -377,9 +438,10 @@ class BasePathMapper(object):
         base_dict = dict(
             action=self.action_type,
             path_types=",".join(self.path_types),
-            match_type=self.match_type,
-            **self.file_lister.to_dict()
+            match_type=self.match_type
         )
+        base_dict.update(self.file_lister.to_dict())
+        base_dict.update(self.action_kwds)
         base_dict.update(**kwds)
         return base_dict
 
