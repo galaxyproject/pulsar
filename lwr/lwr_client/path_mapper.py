@@ -59,11 +59,7 @@ class PathMapper(object):
         path = str(local_path)  # Use false_path if needed.
         action = self.action_mapper.action(path, path_type.UNSTRUCTURED)
         if not action.staging_needed:
-            new_path = action.effective_path()
-            if new_path != path:
-                return new_path, []
-            else:
-                return None, []
+            return action.path_rewrite(self.path_helper), []
         unique_names = action.unstructured_map()
         name = unique_names[path]
         remote_path = self.path_helper.remote_join(self.unstructured_files_directory, name)
