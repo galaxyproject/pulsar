@@ -50,6 +50,7 @@ done
 if hash circusd 2>/dev/null; then
     circusd server.ini "$@"
 elif hash chaussette 2>/dev/null; then
+    echo "Attempting to use chaussette instead of paster, you must specify port on command-line (--port 8913)."
     chaussette paste:server.ini "$@"
 else
     paster serve server.ini "$@"
