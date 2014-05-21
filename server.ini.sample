@@ -85,6 +85,14 @@ persistence_directory = persisted_data
 #file_cache_dir = cache
 
 
+## Configure uWSGI (if used).
+[uwsgi]
+master = True
+paste-logger = True
+socket = 127.0.0.1:3031
+processes = 1
+
+
 ## Configure circus and chaussette (if used).
 [circus]
 endpoint = tcp://127.0.0.1:5555

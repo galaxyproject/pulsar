@@ -114,7 +114,8 @@ the LWR.::
 These commands will start and stop the WSGI web server in daemon mode. In this
 mode, logs are writtin to ``paster.log``.
 
-If `circus <http://circus.readthedocs.org/en/0.9.2/>`_ and/or `chassuette
+If `uWSGI <http://uwsgi-docs.readthedocs.org/>`_, `circus
+<http://circus.readthedocs.org/en/0.9.2/>`_ and/or `chassuette
 <https://chaussette.readthedocs.org/>`_, are available, more sophisticated web
 servers can be launched via this ``run.sh`` command. See the script for more
 details.
