@@ -67,3 +67,13 @@ max_concurrent_jobs=1
 ## at some point soon.
 #[manager:_default_]
 #type=unqueued
+
+
+## MQ-Options:
+## If using a message queue the LWR will actively monitor status of jobs
+## in order to issue status update messages. The following options are
+## then available to any managers.
+
+## Minimum seconds between polling intervals (increase to reduce resources
+## consumed by the LWR).
+#min_polling_interval = 0.5 

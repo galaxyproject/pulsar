@@ -1,4 +1,6 @@
+import datetime
 import os
+import time
 import threading
 
 from lwr.managers import ManagerProxy
@@ -19,6 +21,8 @@ JOB_FILE_POSTPROCESSED = "postprocessed"
 JOB_FILE_PREPROCESSED = "preprocessed"
 JOB_METADATA_RUNNING = "running"
 
+DEFAULT_MIN_POLLING_INTERVAL = 0.5
+
 
 class StatefulManagerProxy(ManagerProxy):
     """
@@ -26,6 +30,8 @@ class StatefulManagerProxy(ManagerProxy):
 
     def __init__(self, manager, **manager_options):
         super(StatefulManagerProxy, self).__init__(manager)
+        min_polling_interval = manager_options.get("min_polling_interval", DEFAULT_MIN_POLLING_INTERVAL)
+        self.min_polling_interval = datetime.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs(manager)
         self.__state_change_callback = lambda status, job_id: None
         self.__recover_active_jobs()
@@ -225,11 +231,17 @@ class ManagerMonitor(object):
 
     def _monitor_active_jobs(self):
         active_job_ids = self.stateful_manager.active_jobs.active_job_ids()
+        iteration_start = datetime.datetime.now()
         for active_job_id in active_job_ids:
             try:
                 self._check_active_job_status(active_job_id)
             except Exception:
                 log.exception("Failed checking active job status for job_id %s" % active_job_id)
+        iteration_end = datetime.datetime.now()
+        iteration_length = iteration_end - iteration_start
+        if iteration_length < self.stateful_manager.min_polling_interval:
+            to_sleep = (self.stateful_manager.min_polling_interval - iteration_length)
+            time.sleep(to_sleep.total_seconds())
 
     def _check_active_job_status(self, active_job_id):
         # Manager itself will handle state transitions when status changes,
