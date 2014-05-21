@@ -41,7 +41,7 @@ class ExternalBaseManager(DirectoryBaseManager):
         return str(self.id_assigner(input_job_id))
 
     def _register_external_id(self, job_id, external_id):
-        self._write_job_file(job_id, JOB_FILE_EXTERNAL_ID, external_id)
+        self._job_directory(job_id).store_metadata(JOB_FILE_EXTERNAL_ID, external_id)
         self._external_ids[job_id] = external_id
         return external_id
 
@@ -53,7 +53,7 @@ class ExternalBaseManager(DirectoryBaseManager):
         return Template(self.job_name_template).safe_substitute(env)
 
     def _recover_active_job(self, job_id):
-        external_id = self._read_job_file(job_id, JOB_FILE_EXTERNAL_ID)
+        external_id = self._job_directory(job_id).load_metadata(JOB_FILE_EXTERNAL_ID)
         if external_id:
             self._external_ids[job_id] = external_id
 

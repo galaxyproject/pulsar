@@ -90,10 +90,10 @@ class StatefulManagerProxy(ManagerProxy):
         complete status from proxy.
         """
         state_change = None
-        if not job_directory.contains_file(JOB_FILE_PREPROCESSED):
+        if not job_directory.has_metadata(JOB_FILE_PREPROCESSED):
             proxy_status = status.PREPROCESSING
-        elif job_directory.contains_file(JOB_FILE_FINAL_STATUS):
-            proxy_status = job_directory.read_file(JOB_FILE_FINAL_STATUS)
+        elif job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
+            proxy_status = job_directory.load_metadata(JOB_FILE_FINAL_STATUS)
         else:
             proxy_status = self._proxied_manager.get_status(job_id)
             if proxy_status == status.RUNNING:
@@ -101,7 +101,7 @@ class StatefulManagerProxy(ManagerProxy):
                     job_directory.store_metadata(JOB_METADATA_RUNNING, True)
                     state_change = "to_running"
             elif proxy_status in [status.COMPLETE, status.CANCELLED]:
-                job_directory.write_file(JOB_FILE_FINAL_STATUS, proxy_status)
+                job_directory.store_metadata(JOB_FILE_FINAL_STATUS, proxy_status)
                 state_change = "to_complete"
         return proxy_status, state_change
 
@@ -110,7 +110,7 @@ class StatefulManagerProxy(ManagerProxy):
         (stateful) status of job.
         """
         if proxy_status == status.COMPLETE:
-            if not job_directory.contains_file(JOB_FILE_POSTPROCESSED):
+            if not job_directory.has_metadata(JOB_FILE_POSTPROCESSED):
                 job_status = status.POSTPROCESSING
             else:
                 job_status = status.COMPLETE

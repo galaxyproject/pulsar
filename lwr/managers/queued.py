@@ -47,13 +47,13 @@ class QueueManager(Manager):
     def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[]):
         command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env)
         try:
-            self._job_directory(job_id).write_file(JOB_FILE_COMMAND_LINE, command_line)
+            self._job_directory(job_id).store_metadata(JOB_FILE_COMMAND_LINE, command_line)
         except Exception:
             log.info("Failed to persist command line for job %s, will not be able to recover." % job_id)
         self.work_queue.put((RUN, (job_id, command_line)))
 
     def _recover_active_job(self, job_id):
-        command_line = self._job_directory(job_id).read_file(JOB_FILE_COMMAND_LINE, None)
+        command_line = self._job_directory(job_id).load_metadata(JOB_FILE_COMMAND_LINE, None)
         if command_line:
             self.work_queue.put((RUN, (job_id, command_line)))
 

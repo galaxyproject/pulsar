@@ -274,7 +274,7 @@ class JobDirectory(RemoteJobDirectory):
                     contents.append(name)
         return contents
 
-    # Following abstractions store.
+    # Following abstractions store metadata related to jobs.
     def store_metadata(self, metadata_name, metadata_value):
         self.write_file(metadata_name, json.dumps(metadata_value))
 
@@ -288,6 +288,9 @@ class JobDirectory(RemoteJobDirectory):
 
     def has_metadata(self, metadata_name):
         return self.contains_file(metadata_name)
+
+    def remove_metadata(self, metadata_name):
+        self.remove_file(metadata_name)
 
 
 def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):

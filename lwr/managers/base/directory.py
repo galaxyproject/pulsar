@@ -60,8 +60,8 @@ class DirectoryBaseManager(BaseManager):
 
     def _write_tool_info(self, job_id, tool_id, tool_version):
         job_directory = self._job_directory(job_id)
-        job_directory.write_file(JOB_FILE_TOOL_ID, tool_id)
-        job_directory.write_file(JOB_FILE_TOOL_VERSION, tool_version)
+        job_directory.store_metadata(JOB_FILE_TOOL_ID, tool_id)
+        job_directory.store_metadata(JOB_FILE_TOOL_VERSION, tool_version)
 
     def _open_standard_output(self, job_id):
         return self._job_directory(job_id).open_file(JOB_FILE_STANDARD_OUTPUT, 'w')
@@ -76,8 +76,8 @@ class DirectoryBaseManager(BaseManager):
     def _tool_id(self, job_id):
         tool_id = None
         job_directory = self._job_directory(job_id)
-        if job_directory.contains_file(JOB_FILE_TOOL_ID):
-            tool_id = job_directory.read_file(JOB_FILE_TOOL_ID)
+        if job_directory.has_metadata(JOB_FILE_TOOL_ID):
+            tool_id = job_directory.load_metadata(JOB_FILE_TOOL_ID)
         return tool_id
 
     # Helpers methods related to setting up job script files.

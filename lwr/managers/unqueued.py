@@ -38,15 +38,15 @@ class Manager(DirectoryBaseManager):
         super(Manager, self).__init__(name, app, **kwds)
 
     def _record_cancel(self, job_id):
-        self._write_job_file(job_id, JOB_FILE_CANCELLED, 'true')
+        self._job_directory(job_id).store_metadata(JOB_FILE_CANCELLED, 'true')
 
     def _record_submission(self, job_id):
-        self._write_job_file(job_id, JOB_FILE_SUBMITTED, 'true')
+        self._job_directory(job_id).store_metadata(JOB_FILE_SUBMITTED, 'true')
 
     def __get_pid(self, job_id):
         pid = None
         try:
-            pid = self._read_job_file(job_id, JOB_FILE_PID)
+            pid = self._job_directory(job_id).load_metadata(JOB_FILE_PID)
             if pid is not None:
                 pid = int(pid)
         except:
@@ -82,6 +82,7 @@ class Manager(DirectoryBaseManager):
             stdout.close()
             stderr.close()
             return_code = proc.returncode
+            # TODO: This is invalid if we have written a job script.
             self._write_return_code(job_id, str(return_code))
         finally:
             with self._get_job_lock(job_id):
@@ -89,17 +90,17 @@ class Manager(DirectoryBaseManager):
 
     # with job lock
     def _finish_execution(self, job_id):
-        self._job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
-        self._job_directory(job_id).remove_file(JOB_FILE_PID)
+        self._job_directory(job_id).remove_metadata(JOB_FILE_SUBMITTED)
+        self._job_directory(job_id).remove_metadata(JOB_FILE_PID)
 
     # with job lock
     def _get_status(self, job_id):
         job_directory = self._job_directory(job_id)
         if self._is_cancelled(job_id):
             job_status = status.CANCELLED
-        elif job_directory.contains_file(JOB_FILE_PID):
+        elif job_directory.has_metadata(JOB_FILE_PID):
             job_status = status.RUNNING
-        elif job_directory.contains_file(JOB_FILE_SUBMITTED):
+        elif job_directory.has_metadata(JOB_FILE_SUBMITTED):
             job_status = status.QUEUED
         else:
             job_status = status.COMPLETE
@@ -107,11 +108,11 @@ class Manager(DirectoryBaseManager):
 
     # with job lock
     def _is_cancelled(self, job_id):
-        return self._job_directory(job_id).contains_file(JOB_FILE_CANCELLED)
+        return self._job_directory(job_id).has_metadata(JOB_FILE_CANCELLED)
 
     # with job lock
     def _record_pid(self, job_id, pid):
-        self._write_job_file(job_id, JOB_FILE_PID, str(pid))
+        self._job_directory(job_id).store_metadata(JOB_FILE_PID, str(pid))
 
     # with job lock
     def _get_pid_for_killing_or_cancel(self, job_id):
@@ -122,7 +123,7 @@ class Manager(DirectoryBaseManager):
         pid = self.__get_pid(job_id)
         if pid is None:
             self._record_cancel(job_id)
-            self._job_directory(job_id).remove_file(JOB_FILE_SUBMITTED)
+            self._job_directory(job_id).remove_metadata(JOB_FILE_SUBMITTED)
         return pid
 
     def _run(self, job_id, command_line, async=True):
