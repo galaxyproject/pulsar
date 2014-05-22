@@ -44,10 +44,10 @@ class DrmaaSession(object):
             self.session.deleteJobTemplate(template)
 
     def kill(self, external_job_id):
-        return self.session.control(external_job_id, JobControlAction.TERMINATE)
+        return self.session.control(str(external_job_id), JobControlAction.TERMINATE)
 
     def job_status(self, external_job_id):
-        return self.session.jobStatus(external_job_id)
+        return self.session.jobStatus(str(external_job_id))
 
     def close(self):
         return self.session.exit()
