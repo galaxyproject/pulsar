@@ -47,12 +47,24 @@ def __drain(name, queue_state, lwr_exchange, callback):
 
 
 def __process_kill_message(manager, body, message):
-    job_id = body.get("job_id", None)
-    if job_id:
-        manager.kill(job_id)
+    try:
+        job_id = __client_job_id_from_body(body)
+        if job_id:
+            manager.kill(job_id)
+    except Exception:
+        log.exception("Failed to kill job.")
     message.ack()
 
 
 def __process_setup_message(manager, body, message):
-    manager_endpoint_util.submit_job(manager, body)
+    try:
+        manager_endpoint_util.submit_job(manager, body)
+    except Exception:
+        job_id = __client_job_id_from_body(body)
+        log.warn("Failed to setup job %s obtained via message queue." % job_id)
     message.ack()
+
+
+def __client_job_id_from_body(body):
+    job_id = body.get("job_id", None)
+    return job_id
