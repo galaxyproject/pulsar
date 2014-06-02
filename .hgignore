@@ -20,3 +20,4 @@ persisted_data/*
 dependencies
 job_metrics.xml
 dependency_resolvers_conf.xml
+job_metrics_conf.xml
