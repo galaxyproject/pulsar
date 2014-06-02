@@ -33,7 +33,14 @@ class LwrExchange(object):
     name _default_.
     """
 
-    def __init__(self, url, manager_name, connect_ssl=None, timeout=DEFAULT_TIMEOUT):
+    def __init__(
+        self,
+        url,
+        manager_name,
+        connect_ssl=None,
+        timeout=DEFAULT_TIMEOUT,
+        publish_kwds={},
+    ):
         """
         """
         if not kombu:
@@ -43,6 +50,7 @@ class LwrExchange(object):
         self.__connect_ssl = connect_ssl
         self.__exchange = kombu.Exchange(DEFAULT_EXCHANGE_NAME, DEFAULT_EXCHANGE_TYPE)
         self.__timeout = timeout
+        self.__publish_kwds = publish_kwds
 
     @property
     def url(self):
@@ -54,9 +62,8 @@ class LwrExchange(object):
         while check:
             heartbeat_thread = None
             try:
-                # TODO: configurable heartbeat
-                with self.connection(self.__url, ssl=self.__connect_ssl, heartbeat=DEFAULT_HEARTBEAT, **connection_kwargs) as connection:
-                    with kombu.Consumer(connection, queues=[queue], callbacks=[callback], accept=['json']) as consumer:
+                with self.connection(self.__url, heartbeat=DEFAULT_HEARTBEAT, **connection_kwargs) as connection:
+                    with kombu.Consumer(connection, queues=[queue], callbacks=[callback], accept=['json']):
                         heartbeat_thread = self.__start_heartbeat(queue_name, connection)
                         while check and connection.connected:
                             try:
@@ -76,7 +83,7 @@ class LwrExchange(object):
         log.debug('AMQP heartbeat thread exiting')
 
     def publish(self, name, payload):
-        with self.connection(self.__url, ssl=self.__connect_ssl) as connection:
+        with self.connection(self.__url) as connection:
             with pools.producers[connection].acquire() as producer:
                 key = self.__queue_name(name)
                 producer.publish(
@@ -85,9 +92,12 @@ class LwrExchange(object):
                     exchange=self.__exchange,
                     declare=[self.__exchange],
                     routing_key=key,
+                    **self.__publish_kwds
                 )
 
     def connection(self, connection_string, **kwargs):
+        if "ssl" not in kwargs:
+            kwargs["ssl"] = self.__connect_ssl
         return kombu.Connection(connection_string, **kwargs)
 
     def __queue(self, name):

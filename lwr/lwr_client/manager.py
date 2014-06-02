@@ -14,6 +14,7 @@ from .object_client import ObjectStoreClient
 from .transport import get_transport
 from .util import TransferEventManager
 from .util import parse_amqp_connect_ssl_params
+from .util import parse_amqp_publish_kwds
 from .destination import url_to_destination_params
 from .amqp_exchange import LwrExchange
 
@@ -44,7 +45,7 @@ class ClientManager(object):
             self.job_manager_interface_args = dict(job_manager=kwds['job_manager'], file_cache=kwds['file_cache'])
         else:
             self.job_manager_interface_class = HttpLwrInterface
-            transport_type = kwds.get('transport_type', None)
+            transport_type = kwds.get('transport', None)
             transport = get_transport(transport_type)
             self.job_manager_interface_args = dict(transport=transport)
         cache = kwds.get('cache', None)
@@ -77,12 +78,16 @@ class MessageQueueClientManager(object):
     def __init__(self, **kwds):
         self.url = kwds.get('url')
         self.manager_name = kwds.get("manager", None) or "_default_"
-        self.connect_ssl = parse_amqp_connect_ssl_params(kwds.get('amqp_connect_ssl_args', None))
-        timeout = kwds.get('amqp_consumer_timeout', False)
-        if timeout is False:
-            self.exchange = LwrExchange(self.url, self.manager_name, self.connect_ssl)
-        else:
-            self.exchange = LwrExchange(self.url, self.manager_name, self.connect_ssl, timeout=timeout)
+        self.connect_ssl = parse_amqp_connect_ssl_params(kwds)
+        exchange_kwds = dict(
+            manager_name=self.manager_name,
+            connect_ssl=self.connect_ssl,
+            publish_kwds=parse_amqp_publish_kwds(kwds)
+        )
+        timeout = kwds.get('amqp_consumer_timeout', None)
+        if timeout is not None:
+            exchange_kwds['timeout'] = timeout
+        self.exchange = LwrExchange(self.url, **exchange_kwds)
         self.status_cache = {}
         self.callback_lock = threading.Lock()
         self.callback_thread = None
@@ -135,7 +140,7 @@ class ObjectStoreClientManager(object):
             self.interface_args = dict(object_store=kwds['object_store'])
         else:
             self.interface_class = HttpLwrInterface
-            transport_type = kwds.get('transport_type', None)
+            transport_type = kwds.get('transport', None)
             transport = get_transport(transport_type)
             self.interface_args = dict(transport=transport)
         self.extra_client_kwds = {}

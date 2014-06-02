@@ -294,7 +294,7 @@ def __client_manager(options):
         if getattr(options, client_manager_option, None):
             manager_args[client_manager_option] = getattr(options, client_manager_option)
     if getattr(options, 'transport', None):
-        manager_args['transport_type'] = options.transport
+        manager_args['transport'] = options.transport
     if getattr(options, 'manager_url', None):
         manager_args['url'] = options.manager_url
     return build_client_manager(**manager_args)
