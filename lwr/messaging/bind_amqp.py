@@ -1,3 +1,4 @@
+from galaxy.util import asbool
 from lwr.lwr_client import amqp_exchange_factory
 from lwr import manager_endpoint_util
 import functools
@@ -10,10 +11,15 @@ log = logging.getLogger(__name__)
 def bind_manager_to_queue(manager, queue_state, connection_string, conf):
     # HACK: Fixup non-string parameters - utlimately this should reuse spec
     # stuff from Galaxy.
-    for param in "amqp_consumer_timeout", "amqp_publish_retry":
+    for param in [ "amqp_consumer_timeout" ]:
         if param in conf:
             val = conf[param]
             new_val = None if str(val) == "None" else float(val)
+            conf[param] = new_val
+    for param in [ "amqp_publish_retry" ]:
+        if param in conf:
+            val = conf[param]
+            new_val = asbool(val)
             conf[param] = new_val
 
     lwr_exchange = amqp_exchange_factory.get_exchange(
