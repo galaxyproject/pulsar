@@ -1,13 +1,44 @@
 #!/bin/bash
 
-## Usage:
-## Start LWR server as daemon process (paster or circus):
-##   run.sh --daemon   
-## Stop LWR daemon process (paster):
-##   run.sh --stop-daemon
-## Stop LWR daemon process (circusd):
-##   circusctl quit
+show_help() {
+cat <<EOF
+Usage:
 
+${0##*/} --daemon
+    Start LWR server as daemon process (paster or circus):
+${0##*/} --stop-daemon
+    Stop LWR daemon process (paster/chaussette) with circus use
+    'circusctl quit'
+EOF
+}
+
+MODE=""
+while :
+do
+    case "$1" in
+      -h|--help|-\?) 
+          show_help
+          exit 0
+          ;;
+      -m|--mode)
+          if [ $# -gt 1 ]; then
+              MODE=$2
+              shift 2
+          else 
+              echo "--mode requires explicit argument" 1>&2
+              exit 1
+          fi
+          ;;
+
+      --) 
+          shift
+          break
+          ;;
+      *)
+          break;
+          ;;
+    esac
+done
 
 # Ensure working directory is lwr project. 
 PROJECT_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -47,13 +78,29 @@ for file in 'server.ini'; do
     fi
 done
 
-if hash uwsgi 2>/dev/null; then
+if [ -z "$MODE" ]; 
+then
+    if hash uwsgi 2>/dev/null; then
+        MODE="uwsgi"
+    elif hash circusd 2>/dev/null; then
+        MODE="circusd"
+    elif hash chaussette 2>/dev/null; then
+        MODE="chaussette"
+    else
+        MODE="paster"
+    fi
+fi
+
+if [ "$MODE" == "uwsgi" ]; then
     uwsgi --ini-paste server.ini "$@"
-elif hash circusd 2>/dev/null; then
+elif [ "$MODE" == "circusd" ]; then
     circusd server.ini "$@"
-elif hash chaussette 2>/dev/null; then
+elif [ "$MODE" == "chaussette" ]; then
     echo "Attempting to use chaussette instead of paster, you must specify port on command-line (--port 8913)."
     chaussette paste:server.ini "$@"
-else
+elif [ "$MODE" == "paster" ]; then
     paster serve server.ini "$@"
+else
+    echo "Unknown mode passed to --mode argument." 1>&2
+    exit 1
 fi
