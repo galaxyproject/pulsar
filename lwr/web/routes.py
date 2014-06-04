@@ -7,9 +7,9 @@ from galaxy.util import (
     copy_to_temp,
 )
 from lwr.lwr_client.job_directory import verify_is_in_directory
-from lwr.framework import Controller
+from lwr.web.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
-from .manager_endpoint_util import (
+from lwr.manager_endpoint_util import (
     submit_job,
     setup_job,
     full_status,

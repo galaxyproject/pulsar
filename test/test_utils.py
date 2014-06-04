@@ -25,7 +25,7 @@ from webtest.http import StopableWSGIServer
 import galaxy.util
 from lwr.tools import ToolBox
 from lwr.managers.base import JobDirectory
-from lwr.framework import file_response
+from lwr.web.framework import file_response
 
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)
