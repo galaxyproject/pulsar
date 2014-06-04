@@ -29,24 +29,11 @@ NOT_WHITELIST_WARNING = "Starting the LWR without a toolbox to white-list." + \
                         "Ensure this application is protected by firewall or a configured private token."
 
 
-def app_factory(global_conf, **local_conf):
-    """
-    Returns the LWR WSGI application.
-    """
-    webapp = LwrApp(global_conf=global_conf, **local_conf)
-    atexit.register(webapp.shutdown)
-    return webapp
-
-
-class LwrApp(RoutingApp):
-    """
-    Central application logic for LWR server.
-    """
+class LwrApp(object):
 
     def __init__(self, **conf):
         if conf is None:
             conf = {}
-        RoutingApp.__init__(self)
         self.__setup_staging_directory(conf.get("staging_directory", DEFAULT_STAGING_DIRECTORY))
         self.__setup_private_key(conf.get("private_key", DEFAULT_PRIVATE_KEY))
         self.__setup_persistence_directory(conf.get("persistence_directory", None))
@@ -56,7 +43,6 @@ class LwrApp(RoutingApp):
         self.__setup_job_metrics(conf)
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
-        self.__setup_routes()
         self.__setup_bind_to_message_queue(conf)
 
     def shutdown(self):
@@ -139,6 +125,31 @@ class LwrApp(RoutingApp):
         job_metrics_config_file = conf.get("job_metrics_config_file", "job_metrics_conf.xml")
         self.job_metrics = JobMetrics(job_metrics_config_file)
 
+
+def app_factory(global_conf, **local_conf):
+    """
+    Returns the LWR WSGI application.
+    """
+    lwr_app = LwrApp(global_conf=global_conf, **local_conf)
+    webapp = LwrWebApp(lwr_app=lwr_app)
+    atexit.register(webapp.shutdown)
+    return webapp
+
+
+class LwrWebApp(RoutingApp):
+    """
+    Web application for LWR web server.
+    """
+
+    def __init__(self, lwr_app):
+        super(LwrWebApp, self).__init__()
+        self.lwr_app = lwr_app
+        self.__setup_routes()
+
+    def __setup_routes(self):
+        for func_name, func in inspect.getmembers(lwr.routes, lambda x: getattr(x, '__controller__', False)):
+            self.__add_route_for_function(func)
+
     def __add_route_for_function(self, function):
         route_suffix = '/%s' % function.__name__
         # Default or old-style route without explicit manager specified,
@@ -148,3 +159,6 @@ class LwrApp(RoutingApp):
         # Add route for named manager as well.
         named_manager_route = '/managers/{manager_name}%s' % route_suffix
         self.add_route(named_manager_route, function)
+
+    def __getattr__(self, name):
+        return getattr(self.lwr_app, name)
