@@ -61,7 +61,13 @@ def submit_job(manager, job_config):
         manager.handle_remote_staging(job_id, remote_staging)
 
     dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
-    manager.launch(job_id, command_line, submit_params, dependencies_description=dependencies_description, env=env)
+    return manager.launch(
+        job_id,
+        command_line,
+        submit_params,
+        dependencies_description=dependencies_description,
+        env=env
+    )
 
 
 def setup_job(manager, job_id, tool_id, tool_version):

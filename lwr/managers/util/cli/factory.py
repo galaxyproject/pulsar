@@ -3,7 +3,7 @@ try:
         CliInterface,
         split_params
     )
-    code_dir = None
+    code_dir = 'lib'
 except ImportError:
     from lwr.managers.util.cli import (
         CliInterface,
@@ -12,7 +12,7 @@ except ImportError:
     code_dir = '.'
 
 
-def get_plugins(params):
+def get_shell(params):
     cli_interface = CliInterface(code_dir=code_dir)
-    shell_params, job_params = split_params(params)
-    return cli_interface(shell_params, job_params)
+    shell_params, _ = split_params(params)
+    return cli_interface.get_shell_plugin(shell_params)

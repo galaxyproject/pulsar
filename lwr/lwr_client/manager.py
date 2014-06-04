@@ -97,7 +97,8 @@ class MessageQueueClientManager(object):
             def callback_wrapper(body, message):
                 try:
                     if "job_id" in body:
-                        self.status_cache[body["job_id"]] = body
+                        job_id = body["job_id"]
+                        self.status_cache[job_id] = body
                     log.debug("Handling asynchronous status update from remote LWR.")
                     callback(body)
                 except Exception:
@@ -123,11 +124,12 @@ class MessageQueueClientManager(object):
         return self.active
 
     def get_client(self, destination_params, job_id, **kwargs):
+        if job_id is None:
+            raise Exception("Cannot generate LWR client for empty job_id.")
         destination_params = _parse_destination_params(destination_params)
         destination_params.update(**kwargs)
-
         if 'shell_plugin' in destination_params:
-            shell, _ = cli_factory.get_plugins(kwargs)
+            shell = cli_factory.get_shell(destination_params)
             return MessageCLIJobClient(destination_params, job_id, self, shell)
         else:
             return MessageJobClient(destination_params, job_id, self)

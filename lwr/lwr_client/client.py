@@ -350,8 +350,8 @@ class MessageJobClient(BaseMessageJobClient):
 class MessageCLIJobClient(BaseMessageJobClient):
 
     def __init__(self, destination_params, job_id, client_manager, shell):
-        super(MessageCLIJobClient, self).__init__(destination_params, job_id)
-        self.remote_lwr_path = destination_params.get("remote_lwr_path", ".")
+        super(MessageCLIJobClient, self).__init__(destination_params, job_id, client_manager)
+        self.remote_lwr_path = destination_params["remote_lwr_path"]
         self.shell = shell
 
     def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None):
@@ -365,8 +365,9 @@ class MessageCLIJobClient(BaseMessageJobClient):
             job_config=job_config
         )
         base64_message = to_base64_json(launch_params)
-        submit_command = os.path.join(self.remote_lwr_path, "scripts", "submit")
-        self.shell.execute("%s --base64 %s" % (submit_command, base64_message))
+        submit_command = os.path.join(self.remote_lwr_path, "scripts", "submit.bash")
+        # TODO: Allow configuration of manager, app, and ini path...
+        self.shell.execute("nohup %s --base64 %s &" % (submit_command, base64_message))
 
     def kill(self):
         # TODO
