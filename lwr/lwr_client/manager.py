@@ -72,7 +72,13 @@ class ClientManager(object):
         pass
 
 
-class BaseMessageQueueClientManager(object):
+try:
+    from galaxy.jobs.runners.util.cli import factory as cli_factory
+except ImportError:
+    from lwr.managers.util.cli import factory as cli_factory
+
+
+class MessageQueueClientManager(object):
 
     def __init__(self, **kwds):
         self.url = kwds.get('url')
@@ -116,31 +122,15 @@ class BaseMessageQueueClientManager(object):
     def __nonzero__(self):
         return self.active
 
-
-class MessageQueueClientManager(BaseMessageQueueClientManager):
-
     def get_client(self, destination_params, job_id, **kwargs):
         destination_params = _parse_destination_params(destination_params)
         destination_params.update(**kwargs)
-        return MessageJobClient(destination_params, job_id, self)
 
-
-try:
-    from galaxy.jobs.runners.util.cli import factory as cli_factory
-except ImportError:
-    from lwr.managers.util.cli import factory as cli_factory
-
-
-class MessageCLIClientManager(BaseMessageQueueClientManager):
-
-    def __init__(self, **kwds):
-        super(MessageCLIClientManager, self).__init__(**kwds)
-
-    def get_client(self, destination_params, job_id, **kwargs):
-        destination_params = _parse_destination_params(destination_params)
-        destination_params.update(**kwargs)
-        shell, _ = cli_factory.get_plugins(kwargs)
-        return MessageCLIJobClient(destination_params, job_id, self, shell)
+        if 'shell_plugin' in destination_params:
+            shell, _ = cli_factory.get_plugins(kwargs)
+            return MessageCLIJobClient(destination_params, job_id, self, shell)
+        else:
+            return MessageJobClient(destination_params, job_id, self)
 
 
 class ObjectStoreClientManager(object):
