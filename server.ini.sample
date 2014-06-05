@@ -91,6 +91,7 @@ master = True
 paste-logger = True
 socket = 127.0.0.1:3031
 processes = 1
+enable-threads = True
 
 
 ## Configure circus and chaussette (if used).
