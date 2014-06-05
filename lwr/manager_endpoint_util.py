@@ -32,6 +32,7 @@ def __job_complete_dict(complete_status, manager, job_id):
         returncode=return_code,
         stdout=stdout_contents,
         stderr=stderr_contents,
+        working_directory=job_directory.working_directory(),
         working_directory_contents=job_directory.working_directory_contents(),
         outputs_directory_contents=job_directory.outputs_directory_contents(),
         system_properties=manager.system_properties(),
