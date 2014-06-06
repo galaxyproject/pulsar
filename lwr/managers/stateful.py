@@ -65,6 +65,7 @@ class StatefulManagerProxy(ManagerProxy):
                     job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
                 self.active_jobs.activate_job(job_id)
             except Exception:
+                log.exception("Failed job preprocess for %s:", job_id)
                 self.__state_change_callback(status.FAILED, job_id)
 
         new_thread_for_manager(self, "preprocess", do_preprocess, daemon=False)
