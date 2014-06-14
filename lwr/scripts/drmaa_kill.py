@@ -1,6 +1,6 @@
 from json import load
 from lwr.managers.util.drmaa import DrmaaSessionFactory
-from lwr.scripts.util.args import ArgumentParser
+from lwr.daemon import ArgumentParser
 
 
 DESCRIPTION = "Kill a job via DRMAA interface."
