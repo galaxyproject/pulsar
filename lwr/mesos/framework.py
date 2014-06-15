@@ -28,14 +28,16 @@ DEFAULT_EXECUTOR_SOURCE = "LWR"
 
 class LwrScheduler(Scheduler):
 
-    def __init__(self, executor, manager_options):
+    def __init__(self, executor, manager_options, mesos_url):
         self.executor = executor
+        self.manager_options = manager_options
+        self.mesos_url = mesos_url
+
         self.taskData = {}
         self.tasksLaunched = 0
         self.tasksFinished = 0
         self.messagesSent = 0
         self.messagesReceived = 0
-        self.manager_options = manager_options
         # HACK: Storing these messages in a non-persistent queue is a bad idea,
         # obviously. Need something persistent - or possibly better - just not
         # removing them from message queue.
@@ -80,8 +82,7 @@ class LwrScheduler(Scheduler):
         task.name = "task %d" % tid
         task.executor.MergeFrom(self.executor)
 
-        task_data = dict(job=next_job, manager=self.manager_options)
-        task.data = to_base64_json(task_data)
+        self._populate_task_data_for_job(task, next_job)
 
         cpus = task.resources.add()
         cpus.name = "cpus"
@@ -122,8 +123,29 @@ class LwrScheduler(Scheduler):
         finally:
             message.ack()
 
+    def _populate_task_data_for_job(self, task, job):
+        if "env" not in job:
+            job["env"] = []
+
+        job["env"].extend(self._mesos_env_vars())
+
+        # In case job itself wants to utilize Mesos
+        # populate environment variables.
+        task_data = dict(
+            job=job,
+            manager=self.manager_options
+        )
+        task.data = to_base64_json(
+            task_data
+        )
+
     def __queue_setup_message(self, body):
         self.in_memory_queue.appendleft(body)
+
+    def _mesos_env_vars(self):
+        return [
+            dict(name="MESOS_URL", value=self.mesos_url),
+        ]
 
 
 def run(master, manager_options, config):
@@ -142,12 +164,12 @@ def run(master, manager_options, config):
     framework.name = DEFAULT_FRAMEWORK_NAME
 
     # TODO: Handle authenticate...
-
     framework.principal = DEFAULT_FRAMEWORK_PRINCIPAL
 
     scheduler = LwrScheduler(
         executor,
-        manager_options=manager_options
+        manager_options=manager_options,
+        mesos_url=master,
     )
     driver = MesosSchedulerDriver(
         scheduler,
