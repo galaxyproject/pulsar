@@ -8,15 +8,15 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def bind_manager_to_queue(manager, queue_state, connection_string, conf):
+def get_exchange(connection_string, manager_name, conf):
     # HACK: Fixup non-string parameters - utlimately this should reuse spec
     # stuff from Galaxy.
-    for param in [ "amqp_consumer_timeout" ]:
+    for param in ["amqp_consumer_timeout"]:
         if param in conf:
             val = conf[param]
             new_val = None if str(val) == "None" else float(val)
             conf[param] = new_val
-    for param in [ "amqp_publish_retry" ]:
+    for param in ["amqp_publish_retry"]:
         if param in conf:
             val = conf[param]
             new_val = asbool(val)
@@ -24,9 +24,15 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
 
     lwr_exchange = amqp_exchange_factory.get_exchange(
         connection_string,
-        manager.name,
+        manager_name,
         conf
     )
+    return lwr_exchange
+
+
+def bind_manager_to_queue(manager, queue_state, connection_string, conf):
+    lwr_exchange = get_exchange(connection_string, manager.name, conf)
+
     process_setup_messages = functools.partial(__process_setup_message, manager)
     process_kill_messages = functools.partial(__process_kill_message, manager)
 
@@ -35,8 +41,8 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
         log.info("Finished consuming %s queue - no more messages will be processed." % (name))
 
     if conf.get("message_queue_consume", True):
-        __start_consumer("setup", lwr_exchange, functools.partial(drain, process_setup_messages, "setup"))
-        __start_consumer("kill", lwr_exchange, functools.partial(drain, process_kill_messages, "kill"))
+        start_setup_consumer(lwr_exchange, functools.partial(drain, process_setup_messages, "setup"))
+        start_kill_consumer(lwr_exchange, functools.partial(drain, process_kill_messages, "kill"))
 
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
     # has occurred.
@@ -60,6 +66,9 @@ def __start_consumer(name, exchange, target):
     thread.daemon = False
     thread.start()
     return thread
+
+start_setup_consumer = functools.partial(__start_consumer, "setup")
+start_kill_consumer = functools.partial(__start_consumer, "kill")
 
 
 def __drain(name, queue_state, lwr_exchange, callback):

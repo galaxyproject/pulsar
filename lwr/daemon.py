@@ -45,7 +45,7 @@ DESCRIPTION = "Daemonized entry point for LWR services."
 
 
 def load_lwr_app(
-    args,
+    config_builder,
     config_env=False,
     log=None,
     **kwds
@@ -68,7 +68,6 @@ def load_lwr_app(
             log.exception("Failed to add LWR to sys.path")
             raise
 
-    config_builder = LwrConfigBuilder(args)
     config_builder.setup_logging()
     config = config_builder.load()
 
@@ -97,8 +96,9 @@ def __app_config(ini_path, app_name):
 
 def app_loop(args):
     try:
+        config_builder = LwrConfigBuilder(args)
         lwr_app = load_lwr_app(
-            args,
+            config_builder,
             config_env=True,
             log=log,
         )
@@ -122,15 +122,15 @@ class LwrConfigBuilder(object):
     """ Generate paste-like configuration from supplied command-line arguments.
     """
 
-    def __init__(self, args):
-        ini_path = args.ini_path
+    def __init__(self, args=None, **kwds):
+        ini_path = kwds.get("ini_path", None) or args.ini_path
         if ini_path is None:
             ini_path = "server.ini"
         if not os.path.isabs(ini_path):
             ini_path = os.path.join(LWR_ROOT_DIR, ini_path)
 
         self.ini_path = ini_path
-        self.app_name = args.app_name
+        self.app_name = kwds.get("app") or args.app
 
     @classmethod
     def populate_options(clazz, arg_parser):
@@ -153,6 +153,29 @@ class LwrConfigBuilder(object):
                 config_file,
                 dict(__file__=config_file, here=os.path.dirname(config_file))
             )
+
+    def to_dict(self):
+        return dict(
+            ini_path=self.ini_path,
+            app=self.app_name
+        )
+
+
+class LwrManagerConfigBuilder(LwrConfigBuilder):
+
+    def __init__(self, args=None, **kwds):
+        super(LwrManagerConfigBuilder, self).__init__(args=args, **kwds)
+        self.manager = kwds.get("manager", None) or args.manager
+
+    def to_dict(self):
+        as_dict = super(LwrManagerConfigBuilder, self).to_dict()
+        as_dict["manager"] = self.manager
+        return as_dict
+
+    @classmethod
+    def populate_options(clazz, arg_parser):
+        LwrConfigBuilder.populate_options(arg_parser)
+        arg_parser.add_argument("--manager", default="_default_")
 
 
 def main():

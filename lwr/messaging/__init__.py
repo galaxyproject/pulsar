@@ -1,4 +1,3 @@
-
 from ..messaging import bind_amqp
 from six import itervalues
 

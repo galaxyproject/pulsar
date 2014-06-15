@@ -5,7 +5,7 @@ from lwr.daemon import ArgumentParser
 from lwr.lwr_client.util import from_base64_json
 from lwr.daemon import (
     load_lwr_app,
-    LwrConfigBuilder
+    LwrManagerConfigBuilder
 )
 from lwr.manager_endpoint_util import submit_job
 from lwr.managers.status import is_job_done
@@ -21,22 +21,23 @@ def main():
     arg_parser = ArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--file", default=None)
     arg_parser.add_argument("--base64", default=None)
-    populate_manager_args(arg_parser)
+    LwrManagerConfigBuilder.populate_options(arg_parser)
     args = arg_parser.parse_args()
 
-    manager, app = manager_from_args(args)
+    config_builder = LwrManagerConfigBuilder(args)
+    manager, app = manager_from_args(config_builder)
     try:
         job_config = __load_job_config(args)
         submit_job(manager, job_config)
-        job_id = job_config.get('job_id')
-        __wait_for_job_id(manager, job_id)
+        wait_for_job(manager, job_config)
     except BaseException:
         log.exception("Failure submitting or waiting on job.")
     finally:
         app.shutdown()
 
 
-def __wait_for_job_id(manager, job_id, poll_time=DEFAULT_POLL_TIME):
+def wait_for_job(manager, job_config, poll_time=DEFAULT_POLL_TIME):
+    job_id = job_config.get('job_id')
     while True:
         status = manager.get_status(job_id)
         if is_job_done(status):
@@ -53,16 +54,11 @@ def __load_job_config(args):
     return job_config
 
 
-def populate_manager_args(arg_parser):
-    arg_parser.add_argument("--manager", default="_default_")
-    LwrConfigBuilder.populate_options(arg_parser)
-
-
-def manager_from_args(args):
-    manager_name = args.manager
+def manager_from_args(config_builder):
+    manager_name = config_builder.manager
 
     lwr_app = load_lwr_app(
-        args,
+        config_builder,
         # Set message_queue_consume so this LWR app doesn't try to consume
         # setup/kill messages and only publishes status updates to configured
         # queue.
