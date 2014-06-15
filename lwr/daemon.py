@@ -2,6 +2,7 @@ import logging
 from logging.config import fileConfig
 
 import os
+import functools
 import time
 import sys
 from six.moves import configparser
@@ -44,8 +45,7 @@ DESCRIPTION = "Daemonized entry point for LWR services."
 
 
 def load_lwr_app(
-    ini_path=None,
-    app_name="main",
+    args,
     config_env=False,
     log=None,
     **kwds
@@ -68,14 +68,10 @@ def load_lwr_app(
             log.exception("Failed to add LWR to sys.path")
             raise
 
-    if ini_path is None:
-        ini_path = "server.ini"
-    if not os.path.isabs(ini_path):
-        ini_path = os.path.join(LWR_ROOT_DIR, ini_path)
+    config_builder = LwrConfigBuilder(args)
+    config_builder.setup_logging()
+    config = config_builder.load()
 
-    __setup_logging(ini_path)
-
-    config = __app_config(ini_path, app_name)
     config.update(kwds)
     import lwr.core
     lwr_app = lwr.core.LwrApp(**config)
@@ -99,9 +95,10 @@ def __app_config(ini_path, app_name):
     return config
 
 
-def app_loop():
+def app_loop(args):
     try:
         lwr_app = load_lwr_app(
+            args,
             config_env=True,
             log=log,
         )
@@ -121,12 +118,50 @@ def app_loop():
         raise
 
 
+class LwrConfigBuilder(object):
+    """ Generate paste-like configuration from supplied command-line arguments.
+    """
+
+    def __init__(self, args):
+        ini_path = args.ini_path
+        if ini_path is None:
+            ini_path = "server.ini"
+        if not os.path.isabs(ini_path):
+            ini_path = os.path.join(LWR_ROOT_DIR, ini_path)
+
+        self.ini_path = ini_path
+        self.app_name = args.app_name
+
+    @classmethod
+    def populate_options(clazz, arg_parser):
+        arg_parser.add_argument("--ini_path", default=None)
+        arg_parser.add_argument("--app", default="main")
+
+    def load(self):
+        ini_path = self.ini_path
+        app_name = self.app_name
+        config = ConfigLoader(ini_path).app_context(app_name).config()
+        return config
+
+    def setup_logging(self):
+        raw_config = configparser.ConfigParser()
+        raw_config.read([self.ini_path])
+        # https://github.com/mozilla-services/chaussette/pull/32/files
+        if raw_config.has_section('loggers'):
+            config_file = os.path.abspath(self.ini_path)
+            fileConfig(
+                config_file,
+                dict(__file__=config_file, here=os.path.dirname(config_file))
+            )
+
+
 def main():
     if Daemonize is None:
         raise ImportError("Attempted to use LWR in daemon mode, but daemonize is unavailable.")
 
     arg_parser = ArgumentParser(description=DESCRIPTION)
-    arg_parser.parse_args()
+    LwrConfigBuilder.populate_options(arg_parser)
+    args = arg_parser.parse_args()
 
     log.setLevel(logging.DEBUG)
     log.propagate = False
@@ -138,7 +173,7 @@ def main():
     daemon = Daemonize(
         app="lwr",
         pid=DEFAULT_PID,
-        action=app_loop,
+        action=functools.partial(app_loop, args),
         verbose=DEFAULT_VERBOSE,
         keep_fds=keep_fds,
     )

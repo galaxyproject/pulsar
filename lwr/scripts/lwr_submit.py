@@ -3,7 +3,10 @@ import json
 
 from lwr.daemon import ArgumentParser
 from lwr.lwr_client.util import from_base64_json
-from lwr.daemon import load_lwr_app
+from lwr.daemon import (
+    load_lwr_app,
+    LwrConfigBuilder
+)
 from lwr.manager_endpoint_util import submit_job
 from lwr.managers.status import is_job_done
 
@@ -52,18 +55,14 @@ def __load_job_config(args):
 
 def populate_manager_args(arg_parser):
     arg_parser.add_argument("--manager", default="_default_")
-    arg_parser.add_argument("--app", default="main")
-    arg_parser.add_argument("--ini_path", default=None)
+    LwrConfigBuilder.populate_options(arg_parser)
 
 
 def manager_from_args(args):
     manager_name = args.manager
-    app_name = args.app
-    ini_path = args.ini_path
 
     lwr_app = load_lwr_app(
-        ini_path=ini_path,
-        app_name=app_name,
+        args,
         # Set message_queue_consume so this LWR app doesn't try to consume
         # setup/kill messages and only publishes status updates to configured
         # queue.
