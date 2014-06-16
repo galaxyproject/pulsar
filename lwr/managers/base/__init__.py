@@ -2,6 +2,31 @@
 
 Base Classes and Infrastructure Supporting Concret Manager Implementations.
 
+
+:mod:`lwr.managers.base.base_drmaa` Module
+-------------------------------
+
+.. automodule:: lwr.managers.base.base_drmaa
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.base.directory` Module
+-------------------------------
+
+.. automodule:: lwr.managers.base.directory
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.base.external` Module
+-------------------------------
+
+.. automodule:: lwr.managers.base.external
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 """
 from collections import deque
 import os

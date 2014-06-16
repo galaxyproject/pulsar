@@ -1,5 +1,4 @@
 webob
-pyOpenSSL
 psutil
 PasteDeploy
 six

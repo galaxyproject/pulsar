@@ -1,27 +1,11 @@
 """
 
-Managers
+Job Managers
 
 :mod:`lwr.managers.base` Module
 -------------------------------
 
 .. automodule:: lwr.managers.base
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`lwr.managers.drmaa` Module
---------------------------------
-
-.. automodule:: lwr.managers.drmaa
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`lwr.managers.pbs` Module
-------------------------------
-
-.. automodule:: lwr.managers.pbs
     :members:
     :undoc-members:
     :show-inheritance:
@@ -34,6 +18,78 @@ Managers
     :undoc-members:
     :show-inheritance:
 
+:mod:`lwr.managers.queued_drmaa` Module
+------------------------------
+
+.. automodule:: lwr.managers.queued_drmaa
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.queued_external_drmaa` Module
+------------------------------
+
+.. automodule:: lwr.managers.queued_external_drmaa
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.queued_condor` Module
+------------------------------
+
+.. automodule:: lwr.managers.queued_condor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.queued_pbs` Module
+------------------------------
+
+.. automodule:: lwr.managers.queued_pbs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.unqueued` Module
+------------------------------
+
+.. automodule:: lwr.managers.unqueued
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.stateful` Module
+------------------------------
+
+.. automodule:: lwr.managers.stateful
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.status` Module
+------------------------------
+
+.. automodule:: lwr.managers.status
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`lwr.managers.util` Module
+------------------------------
+
+.. automodule:: lwr.managers.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+:mod:`lwr.managers.staging` Module
+------------------------------
+
+.. automodule:: lwr.managers.staging
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 """
 from abc import ABCMeta, abstractmethod

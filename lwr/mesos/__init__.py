@@ -1,3 +1,14 @@
+""" This module and submodules contain code for interfacing the Apache Mesos framework.
+
+:mod:`lwr.mesos.framework` Module
+-------------------------------
+
+.. automodule:: lwr.mesos.framework
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+"""
 try:
     from mesos import (
         Scheduler,
