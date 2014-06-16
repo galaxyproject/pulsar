@@ -33,7 +33,7 @@
         </destination>
     </destinations>
     <tools>
-        <tool id="trinity" handler="remote_cluster" />
-        <tool id="abyss" handler="remote_cluster" />
+        <tool id="trinity" destination="remote_cluster" />
+        <tool id="abyss" destination="remote_cluster" />
 	</tools>
 </job_conf>

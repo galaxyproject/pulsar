@@ -15,7 +15,7 @@
         </destination>
     </destinations>
     <tools>
-        <tool id="msconvert" handler="win_lwr" />
-        <tool id="proteinpilot" handler="win_lwr" />
+        <tool id="msconvert" destination="win_lwr" />
+        <tool id="proteinpilot" destination="win_lwr" />
 	</tools>    
 </job_conf>
