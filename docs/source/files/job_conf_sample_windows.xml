@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<job_conf>
+    <plugins>
+        <plugin id="local" type="runner" load="galaxy.jobs.runners.local:LocalJobRunner"/>
+        <plugin id="lwr" type="runner" load="galaxy.jobs.runners.lwr:LwrJobRunner"/>
+    </plugins>
+    <handlers>
+        <handler id="main"/>        
+    </handlers>
+    <destinations default="local">
+        <destination id="local" runner="local"/>
+        <destination id="win_lwr" runner="lwr">
+            <param id="url">https://windowshost.examle.com:8913/</param>
+            <param id="private_token">123456789changeme</param>
+        </destination>
+    </destinations>
+    <tools>
+        <tool id="msconvert" handler="win_lwr" />
+        <tool id="proteinpilot" handler="win_lwr" />
+	</tools>    
+</job_conf>

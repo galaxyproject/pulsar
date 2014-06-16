@@ -6,9 +6,11 @@
 
 .. include:: ../../README.rst
 
-.. include:: public_server.rst
-
 .. include:: job_managers.rst
+
+.. include:: galaxy_conf.rst
+
+.. include:: public_server.rst
 
 -----------
 Server Code

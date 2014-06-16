@@ -16,10 +16,10 @@ Full documentation for the project can be found on `Read The Docs
 Configuring Galaxy
 ------------------
 
-Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. See ``job_conf.xml.sample_advanced``
+Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small examples of how to configure this can be found `here <https://lwr.readthedocs.org/#galaxy-conf>`_, but be sure to checkout ``job_conf.xml.sample_advanced``
 in your Galaxy code base or on
 `Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
-for information on how to configure Galaxy to interact with the LWR.
+for complete information.
 
 ---------------
 Downloading LWR
