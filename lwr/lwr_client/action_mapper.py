@@ -434,7 +434,7 @@ class BasePathMapper(object):
             elif value is REQUIRED_ACTION_KWD:
                 message_template = "action_type %s requires key word argument %s"
                 message = message_template % (action_type, key)
-                raise Exception( message )
+                raise Exception(message)
         self.action_type = action_type
         self.action_kwds = action_kwds
         path_types_str = config.get('path_types', "*defaults*")

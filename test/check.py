@@ -139,7 +139,14 @@ def run(options):
         command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
-        output_files = [temp_output_path, temp_output2_path, temp_output3_path, temp_output4_path, temp_output_workdir_destination, temp_output_workdir_destination2]
+        output_files = [
+            temp_output_path,
+            temp_output2_path,
+            temp_output3_path,
+            temp_output4_path,
+            temp_output_workdir_destination,
+            temp_output_workdir_destination2
+        ]
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
         client_outputs = ClientOutputs(
@@ -266,7 +273,13 @@ def __client(temp_directory, options):
         dict(path=os.path.join(temp_directory, "idx"), path_types="unstructured", depth=2, action=unstructured_action),
     ]
     if getattr(options, "test_rewrite_action", False):
-        rewrite_def = dict(path=os.path.join(temp_directory, "shared"), path_types="unstructured", action="rewrite", source_directory=os.path.join(temp_directory, "shared"), destination_directory=os.path.join(temp_directory, "shared2"))
+        rewrite_def = dict(
+            path=os.path.join(temp_directory, "shared"),
+            path_types="unstructured",
+            action="rewrite",
+            source_directory=os.path.join(temp_directory, "shared"),
+            destination_directory=os.path.join(temp_directory, "shared2")
+        )
         path_defs.append(rewrite_def)
     client_options = {
         "url": getattr(options, "url", None),

@@ -10,4 +10,7 @@ POSTPROCESSING = "postprocessing"
 
 
 def is_job_done(status):
-    return status in [ COMPLETE, CANCELLED, FAILED ]
+    """ Does the supplied status correspond to a finished
+    job (done processing).
+    """
+    return status in [COMPLETE, CANCELLED, FAILED]

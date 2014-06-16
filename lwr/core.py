@@ -1,6 +1,5 @@
 """
 """
-import inspect
 import os
 from tempfile import tempdir
 
