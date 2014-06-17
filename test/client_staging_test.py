@@ -2,7 +2,7 @@ from collections import deque
 import os
 
 from .test_utils import TempDirectoryTestCase
-from .test_common import write_json_config
+from .test_common import write_config
 from lwr.lwr_client import submit_job, ClientJobDescription
 from lwr.lwr_client import ClientOutputs
 from galaxy.tools.deps.dependencies import DependenciesDescription
@@ -144,7 +144,7 @@ class MockClient(object):
         self.put_files = []
 
     def set_action_map_config(self, config):
-        self.action_config_path = write_json_config(self, config)
+        self.action_config_path = write_config(self, config, name="actions.yaml")
 
     def expect_put_paths(self, paths):
         self.put_paths = deque(paths)

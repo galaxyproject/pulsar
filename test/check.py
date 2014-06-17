@@ -17,7 +17,7 @@ from lwr.lwr_client import build_client_manager
 from lwr.lwr_client import ClientJobDescription
 from galaxy.tools.deps.dependencies import DependenciesDescription
 from galaxy.tools.deps.requirements import ToolRequirement
-from .test_common import write_json_config
+from .test_common import write_config
 
 TEST_SCRIPT = b"""
 import sys
@@ -284,7 +284,7 @@ def __client(temp_directory, options):
     client_options = {
         "url": getattr(options, "url", None),
         "private_token": getattr(options, "private_token", None),
-        "file_action_config": write_json_config(temp_directory, dict(paths=path_defs)),
+        "file_action_config": write_config(temp_directory, dict(paths=path_defs)),
     }
     if default_file_action:
         client_options["default_file_action"] = default_file_action

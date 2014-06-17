@@ -11,6 +11,7 @@ from re import compile
 from re import escape
 import galaxy.util
 from galaxy.util.bunch import Bunch
+from .config_util import read_file
 from .util import directory_files
 from .util import unique_path_prefix
 from .transport import get_file
@@ -160,7 +161,7 @@ class FileActionMapper(object):
     def __client_to_config(self, client):
         action_config_path = client.action_config_path
         if action_config_path:
-            config = load(open(action_config_path, 'rb'))
+            config = read_file(action_config_path)
         else:
             config = dict()
         config["default_action"] = client.default_file_action
