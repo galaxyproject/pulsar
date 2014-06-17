@@ -48,8 +48,8 @@ then
     rm -rf $GALAXY_LIB_DIR/tools/deps
     cp -r $LWR_DIRECTORY/galaxy/tools/deps $GALAXY_LIB_DIR/tools
 
-    rm -rf $GALAXY_LIB_DIR/galaxy/jobs/metrics
-    cp -r $LWR_DIRECTORY/galaxy/jobs/metrics $GALAXY_LIB_DIR/galaxy/jobs
+    rm -rf $GALAXY_LIB_DIR/jobs/metrics
+    cp -r $LWR_DIRECTORY/galaxy/jobs/metrics $GALAXY_LIB_DIR/jobs
 
 else
     rm -rf $LWR_DIRECTORY/lwr/managers/util
