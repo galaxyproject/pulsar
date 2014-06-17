@@ -34,13 +34,34 @@ shift "$((OPTIND-1))" # Shift off the options and optional --.
 
 LWR_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 GALAXY_DIRECTORY=$1
-GALAXY_RUNNERS_DIRECTORY=$GALAXY_DIRECTORY/lib/galaxy/jobs/runners
+GALAXY_LIB_DIR=$GALAXY_DIRECTORY/lib/galaxy
+GALAXY_RUNNERS_DIRECTORY=$GALAXY_LIB_DIR/jobs/runners
 
 if [ "$invert" -ne "1" ];
 then
     rm -rf $GALAXY_RUNNERS_DIRECTORY/util
     cp -r $LWR_DIRECTORY/lwr/managers/util $GALAXY_RUNNERS_DIRECTORY
+
+    rm -rf $GALAXY_LIB_DIR/objectstore 
+    cp -r $LWR_DIRECTORY/galaxy/objectstore $GALAXY_LIB_DIR
+
+    rm -rf $GALAXY_LIB_DIR/tools/deps
+    cp -r $LWR_DIRECTORY/galaxy/tools/deps $GALAXY_LIB_DIR/tools
+
+    rm -rf $GALAXY_LIB_DIR/galaxy/jobs/metrics
+    cp -r $LWR_DIRECTORY/galaxy/jobs/metrics $GALAXY_LIB_DIR/galaxy/jobs
+
 else
     rm -rf $LWR_DIRECTORY/lwr/managers/util
     cp -r $GALAXY_RUNNERS_DIRECTORY/util $LWR_DIRECTORY/lwr/managers
+
+    rm -rf $LWR_DIRECTORY/galaxy/objectstore
+    cp -r $GALAXY_LIB_DIR/objectstore $LWR_DIRECTORY/galaxy
+
+    rm -rf $LWR_DIRECTORY/galaxy/tools/deps
+    cp -r $GALAXY_LIB_DIR/tools/deps $LWR_DIRECTORY/galaxy/tools
+
+    rm -rf $LWR_DIRECTORY/galaxy/jobs/metrics
+    cp -r $GALAXY_LIB_DIR/jobs/metrics $LWR_DIRECTORY/galaxy/jobs
+
 fi
