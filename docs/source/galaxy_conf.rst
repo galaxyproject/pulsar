@@ -64,6 +64,11 @@ a high-performance proxy but not the LWR.
 .. literalinclude:: files/job_conf_sample_mq.xml
    :language: xml
 
+Targeting Apache Mesos (Prototype)
+``````````````````````````````````
+
+See `commit message <https://bitbucket.org/jmchilton/lwr/commits/555438d2fe266899338474b25c540fef42bcece7>`_ for initial work on this and `this post on galaxy-dev <http://dev.list.galaxyproject.org/Using-Mesos-to-Enable-distributed-computing-under-Galaxy-tp4662310p4664829.html>`_.
+
 Etc...
 ``````
 
