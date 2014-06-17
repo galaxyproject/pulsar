@@ -122,7 +122,7 @@ class TestDependencyManager(object):
 def server_for_test_app(app):
     try:
         from paste.exceptions.errormiddleware import ErrorMiddleware
-        error_app = ErrorMiddleware(app.app, debug=True, error_log="errors")
+        error_app = ErrorMiddleware(app.app, debug=True, error_log="errors.log")
     except ImportError:
         # paste.exceptions not available for Python 3.
         error_app = app
