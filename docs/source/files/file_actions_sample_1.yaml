@@ -1,0 +1,31 @@
+paths: 
+  # Use transfer (or remote_transfer) if only Galaxy mounts a directory.
+  - path: /galaxy/files/store/1
+    action: transfer
+
+  # Use copy (or remote_copy) if remote LWR server also mounts the directory
+  # but the actual compute servers do not.
+  - path: /galaxy/files/store/2
+    action: copy
+
+  # If Galaxy, the LWR, and the compute nodes all mount the same directory
+  # staging can be disabled altogether for given paths.
+  - path: /galaxy/files/store/3
+    action: none
+
+  # Following block demonstrates specifying paths by globs as well as rewriting
+  # unstructured data in .loc files.
+  - path: /mnt/indices/**/bwa/**/*.fa
+    match_type: glob
+    path_types: unstructured  # Set to *any* to apply to defaults & unstructured paths.
+    action: transfer
+    depth: 1  # Stage whole directory with job and just file.
+
+  # Following block demonstrates rewriting paths without staging. Useful for
+  # instance if Galaxy's data indices are mounted on both servers but with
+  # different paths.
+  - path: /galaxy/data
+    path_types: unstructured
+    action: rewrite
+    source_directory: /galaxy/data
+    destination_directory: /work/galaxy/data
