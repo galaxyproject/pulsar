@@ -174,7 +174,9 @@ def download_output(manager, job_id, name, output_type="direct"):
 
 
 @LwrController(response_type='json')
-def output_path(manager, job_id, name, output_type="directory"):
+def output_path(manager, job_id, name, output_type="direct"):
+    # output_type should be one of...
+    #   work_dir, direct
     # Added for non-transfer downloading.
     return {"path": _output_path(manager, job_id, name, output_type)}
 
@@ -191,25 +193,18 @@ def _output_path(manager, job_id, name, output_type):
 
 
 @LwrController(response_type='json')
-def get_output_type(manager, job_id, name):
-    job_directory = manager.job_directory(job_id)
-    outputs_directory = job_directory.outputs_directory()
-    working_directory = job_directory.working_directory()
-    if os.path.exists(os.path.join(outputs_directory, name)):
-        return "direct"
-    elif os.path.exists(os.path.join(working_directory, name)):
-        return "task"
-    else:
-        return "none"
-
-
-@LwrController(response_type='json')
 def file_available(file_cache, ip, path):
+    """ Returns {token: <token>, ready: <bool>}
+    """
     return file_cache.file_available(ip, path)
 
 
 @LwrController(response_type='json')
 def cache_required(file_cache, ip, path):
+    """ Returns bool indicating whether this client should
+    execute cache_insert. Either way client should be follow up
+    with file_available.
+    """
     return file_cache.cache_required(ip, path)
 
 
