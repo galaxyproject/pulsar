@@ -22,10 +22,10 @@ from pulsar.daemon import (
 import logging
 log = logging.getLogger(__name__)
 
-DESCRIPTION = "Mesos executor for the LWR"
+DESCRIPTION = "Mesos executor for Pulsar"
 
 
-class LwrExecutor(Executor):
+class PulsarExecutor(Executor):
 
     def __task_update(self, driver, task, state, data=None):
         try:
@@ -74,7 +74,7 @@ def run_executor():
 
     ensure_mesos_libs()
     log.info("Starting LWR executor")
-    driver = MesosExecutorDriver(LwrExecutor())
+    driver = MesosExecutorDriver(PulsarExecutor())
     exit_code = 0
     if not driver.run() == mesos_pb2.DRIVER_STOPPED:
         exit_code = 1

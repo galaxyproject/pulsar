@@ -18,15 +18,15 @@ from pulsar.messaging import bind_amqp
 
 
 DEFAULT_FRAMEWORK_USER = ""  # Let Mesos auto-fill this.
-DEFAULT_FRAMEWORK_NAME = "LWR Framework"
-DEFAULT_FRAMEWORK_PRINCIPAL = "LWR"
+DEFAULT_FRAMEWORK_NAME = "Pulsar Framework"
+DEFAULT_FRAMEWORK_PRINCIPAL = "Pulsar"
 
 DEFAULT_EXECUTOR_ID = "default"
-DEFAULT_EXECUTOR_NAME = "LWR Executor"
-DEFAULT_EXECUTOR_SOURCE = "LWR"
+DEFAULT_EXECUTOR_NAME = "Pulsar Executor"
+DEFAULT_EXECUTOR_SOURCE = "Pulsar"
 
 
-class LwrScheduler(Scheduler):
+class PulsarScheduler(Scheduler):
 
     def __init__(self, executor, manager_options, mesos_url):
         self.executor = executor
@@ -44,7 +44,7 @@ class LwrScheduler(Scheduler):
         self.in_memory_queue = collections.deque()
 
     def registered(self, driver, frameworkId, masterInfo):
-        log.info("Registered with LWR mesos framework ID %s" % frameworkId.value)
+        log.info("Registered with Pulsar mesos framework ID %s" % frameworkId.value)
 
     def resourceOffers(self, driver, offers):
         log.info("Got %d resource offers" % len(offers))
@@ -166,7 +166,7 @@ def run(master, manager_options, config):
     # TODO: Handle authenticate...
     framework.principal = DEFAULT_FRAMEWORK_PRINCIPAL
 
-    scheduler = LwrScheduler(
+    scheduler = PulsarScheduler(
         executor,
         manager_options=manager_options,
         mesos_url=master,
@@ -186,7 +186,7 @@ def run(master, manager_options, config):
     def drain():
         exchange.consume("setup", callback=scheduler.handle_setup_message, check=True)
 
-    log.info("Binding to LWR framework to queue.")
+    log.info("Binding to Pulsar framework to queue.")
     bind_amqp.start_setup_consumer(
         exchange,
         drain,

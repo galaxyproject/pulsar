@@ -8,7 +8,7 @@ from pulsar.daemon import (
     PulsarManagerConfigBuilder,
 )
 
-DESCRIPTION = "LWR Mesos Framework Entry Point."
+DESCRIPTION = "Pulsar Mesos Framework Entry Point."
 
 
 def main():
