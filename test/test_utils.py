@@ -137,14 +137,14 @@ def server_for_test_app(app):
 @nottest
 @contextmanager
 def test_lwr_server(global_conf={}, app_conf={}, test_conf={}):
-    with test_lwr_app(global_conf, app_conf, test_conf) as app:
+    with test_pulsar_app(global_conf, app_conf, test_conf) as app:
         with server_for_test_app(app) as test_lwr_server:
             yield test_lwr_server
 
 
 @nottest
 @contextmanager
-def test_lwr_app(global_conf={}, app_conf={}, test_conf={}):
+def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}):
     staging_directory = mkdtemp()
     # Make staging directory world executable for run as user tests.
     mode = stat(staging_directory).st_mode

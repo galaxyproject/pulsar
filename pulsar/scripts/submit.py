@@ -4,7 +4,7 @@ import json
 from pulsar.daemon import ArgumentParser
 from pulsar.client.util import from_base64_json
 from pulsar.daemon import (
-    load_lwr_app,
+    load_pulsar_app,
     LwrManagerConfigBuilder
 )
 from pulsar.manager_endpoint_util import submit_job
@@ -57,15 +57,15 @@ def __load_job_config(args):
 def manager_from_args(config_builder):
     manager_name = config_builder.manager
 
-    lwr_app = load_lwr_app(
+    pulsar_app = load_pulsar_app(
         config_builder,
         # Set message_queue_consume so this LWR app doesn't try to consume
         # setup/kill messages and only publishes status updates to configured
         # queue.
         message_queue_consume=False,
     )
-    manager = lwr_app.managers[manager_name]
-    return manager, lwr_app
+    manager = pulsar_app.managers[manager_name]
+    return manager, pulsar_app
 
 if __name__ == "__main__":
     main()

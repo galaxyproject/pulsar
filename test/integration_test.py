@@ -4,7 +4,7 @@ from six import next, itervalues
 from six.moves import configparser
 from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessModule
 
-from .test_utils import test_lwr_app
+from .test_utils import test_pulsar_app
 from .test_utils import test_lwr_server
 from .test_utils import files_server
 
@@ -45,7 +45,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
             run(options)
 
     def _run_direct(self, app_conf, **kwds):
-        with test_lwr_app({}, app_conf, {}) as app:
+        with test_pulsar_app({}, app_conf, {}) as app:
             options = Bunch(job_manager=next(itervalues(app.app.managers)), file_cache=app.app.file_cache, **kwds)
             self._update_options_for_app(options, app.app, **kwds)
             run(options)

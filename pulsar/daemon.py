@@ -44,7 +44,7 @@ DEFAULT_VERBOSE = True
 DESCRIPTION = "Daemonized entry point for LWR services."
 
 
-def load_lwr_app(
+def load_pulsar_app(
     config_builder,
     config_env=False,
     log=None,
@@ -73,8 +73,8 @@ def load_lwr_app(
 
     config.update(kwds)
     import pulsar.core
-    lwr_app = pulsar.core.LwrApp(**config)
-    return lwr_app
+    pulsar_app = pulsar.core.LwrApp(**config)
+    return pulsar_app
 
 
 def __setup_logging(ini_path):
@@ -97,7 +97,7 @@ def __app_config(ini_path, app_name):
 def app_loop(args):
     try:
         config_builder = LwrConfigBuilder(args)
-        lwr_app = load_lwr_app(
+        pulsar_app = load_pulsar_app(
             config_builder,
             config_env=True,
             log=log,
@@ -112,7 +112,7 @@ def app_loop(args):
     except Exception:
         pass
     try:
-        lwr_app.shutdown()
+        pulsar_app.shutdown()
     except Exception:
         log.exception("Failed to shutdown LWR application")
         raise

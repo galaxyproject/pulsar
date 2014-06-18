@@ -8,9 +8,9 @@ def test_standard_requests():
     """ Tests app controller methods. These tests should be
     compartmentalized. Also these methods should be made to not retest
     the behavior of the associated Manager class. """
-    from .test_utils import test_lwr_app
+    from .test_utils import test_pulsar_app
 
-    with test_lwr_app(test_conf={"extra_environ": {"REMOTE_ADDR": "127.101.101.98"}}) as app:
+    with test_pulsar_app(test_conf={"extra_environ": {"REMOTE_ADDR": "127.101.101.98"}}) as app:
         staging_directory = app.app.staging_directory
         setup_response = app.post("/jobs?job_id=12345")
         setup_config = json.loads(setup_response.body)

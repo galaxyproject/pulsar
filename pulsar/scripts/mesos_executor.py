@@ -49,13 +49,13 @@ class LwrExecutor(Executor):
                 task_data = from_base64_json(task.data)
                 manager_options = task_data["manager"]
                 config_builder = LwrManagerConfigBuilder(**manager_options)
-                manager, lwr_app = manager_from_args(config_builder)
+                manager, pulsar_app = manager_from_args(config_builder)
                 job_config = task_data["job"]
                 submit_job(manager, job_config)
                 self.__task_update(driver, task, mesos_pb2.TASK_RUNNING)
                 wait_for_job(manager, job_config)
                 self.__task_update(driver, task, mesos_pb2.TASK_FINISHED)
-                lwr_app.shutdown()
+                pulsar_app.shutdown()
             except Exception:
                 log.exception("Failed to run, update, or monitor task %s" % task)
                 raise
