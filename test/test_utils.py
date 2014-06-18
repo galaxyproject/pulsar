@@ -153,7 +153,7 @@ def test_lwr_app(global_conf={}, app_conf={}, test_conf={}):
     try:
         app_conf["staging_directory"] = staging_directory
         app_conf["file_cache_dir"] = cache_directory
-        from pulsar.app import app_factory
+        from pulsar.web.wsgi import app_factory
 
         app = app_factory(global_conf, **app_conf)
         yield TestApp(app, **test_conf)
