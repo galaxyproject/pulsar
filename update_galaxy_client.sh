@@ -31,15 +31,15 @@ while getopts ":i" opt; do
     esac
 done
 shift "$((OPTIND-1))" # Shift off the options and optional --.
-LWR_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PULSAR_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 GALAXY_DIRECTORY=$1
 GALAXY_PULSAR_DIRECTORY=$GALAXY_DIRECTORY/lib/pulsar/
 
 if [ "$invert" -ne "1" ];
 then
 	rm -rf $GALAXY_RUNNERS_DIRECTORY/client
-	cp -r $LWR_DIRECTORY/pulsar/client $GALAXY_PULSAR_DIRECTORY
+	cp -r $PULSAR_DIRECTORY/pulsar/client $GALAXY_PULSAR_DIRECTORY
 else
-	rm -rf $LWR_DIRECTORY/pulsar/client
-	cp -r $GALAXY_PULSAR_DIRECTORY/client $LWR_DIRECTORY/pulsar
+	rm -rf $PULSAR_DIRECTORY/pulsar/client
+	cp -r $GALAXY_PULSAR_DIRECTORY/client $PULSAR_DIRECTORY/pulsar
 fi
