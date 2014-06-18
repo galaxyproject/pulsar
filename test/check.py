@@ -228,6 +228,7 @@ class Waiter(object):
                     final_status = complete_response
                     break
                 time.sleep(1)
+                i = i + 1
         else:
             self.event.wait(5)
             if self.event.is_set():

@@ -43,7 +43,7 @@ class LwrObjectStoreTest(TempDirectoryTestCase):
             proxy_object_store_config_file = join(self.temp_directory, "proxy_object_store_conf.xml")
             with open(proxy_object_store_config_file, "w") as configf:
                 config_template = Template("""<?xml version="1.0"?>
-<object_store type="lwr" url="$url" private_token="12345" transport="python">
+<object_store type="lwr" url="$url" private_token="12345" transport="urllib">
   <!-- private_token is optional - see lwr documentation for more information. -->
   <!-- transport is optional, set to curl to use libcurl instead of urllib for communication with LWR. -->
 </object_store>

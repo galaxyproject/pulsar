@@ -149,6 +149,7 @@ class IntegrationTests(BaseIntegrationTest):
 class DirectIntegrationTests(IntegrationTests):
     default_kwargs = dict(direct_interface=True, test_requirement=False)
 
+    @skipUnlessModule("pycurl")
     def test_integration_remote_transfer(self):
         self._run(
             private_token=None,
