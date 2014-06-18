@@ -8,7 +8,7 @@ from pulsar.mesos import (
     ensure_mesos_libs,
 )
 from pulsar.client.util import from_base64_json
-from pulsar.scripts.lwr_submit import (
+from pulsar.scripts.submit import (
     manager_from_args,
     wait_for_job
 )
