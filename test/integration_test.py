@@ -5,7 +5,7 @@ from six.moves import configparser
 from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessModule
 
 from .test_utils import test_pulsar_app
-from .test_utils import test_lwr_server
+from .test_utils import test_pulsar_server
 from .test_utils import files_server
 
 from galaxy.util.bunch import Bunch
@@ -39,7 +39,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
             self._run_in_test_server(app_conf, **kwds)
 
     def _run_in_test_server(self, app_conf, **kwds):
-        with test_lwr_server(app_conf=app_conf) as server:
+        with test_pulsar_server(app_conf=app_conf) as server:
             options = Bunch(url=server.application_url, **kwds)
             self._update_options_for_app(options, server.test_app.application, **kwds)
             run(options)

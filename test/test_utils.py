@@ -136,10 +136,10 @@ def server_for_test_app(app):
 
 @nottest
 @contextmanager
-def test_lwr_server(global_conf={}, app_conf={}, test_conf={}):
+def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
     with test_pulsar_app(global_conf, app_conf, test_conf) as app:
-        with server_for_test_app(app) as test_lwr_server:
-            yield test_lwr_server
+        with server_for_test_app(app) as test_pulsar_server:
+            yield test_pulsar_server
 
 
 @nottest

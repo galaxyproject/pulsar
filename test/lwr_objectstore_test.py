@@ -36,8 +36,8 @@ class LwrObjectStoreTest(TempDirectoryTestCase):
             object_store_config_file=object_store_config_file,
             private_key="12345",
         )
-        from .test_utils import test_lwr_server
-        with test_lwr_server(app_conf=app_conf) as server:
+        from .test_utils import test_pulsar_server
+        with test_pulsar_server(app_conf=app_conf) as server:
             url = server.application_url
             # Define a proxy LWR object store.
             proxy_object_store_config_file = join(self.temp_directory, "proxy_object_store_conf.xml")
