@@ -12,18 +12,18 @@ def app_factory(global_conf, **local_conf):
     Returns the LWR WSGI application.
     """
     pulsar_app = PulsarApp(global_conf=global_conf, **local_conf)
-    webapp = LwrWebApp(pulsar_app=pulsar_app)
+    webapp = PulsarWebApp(pulsar_app=pulsar_app)
     atexit.register(webapp.shutdown)
     return webapp
 
 
-class LwrWebApp(RoutingApp):
+class PulsarWebApp(RoutingApp):
     """
     Web application for LWR web server.
     """
 
     def __init__(self, pulsar_app):
-        super(LwrWebApp, self).__init__()
+        super(PulsarWebApp, self).__init__()
         self.pulsar_app = pulsar_app
         self.__setup_routes()
 
