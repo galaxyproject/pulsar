@@ -1,6 +1,6 @@
-""" This module contains entry points into various LWR scripts. Corresponding
+""" This module contains entry points into various Pulsar scripts. Corresponding
 shell scripts that setup the deployment specific environments and then
-delegate to these Python scripts can be found in ``LWR_ROOT/scripts``.
+delegate to these Python scripts can be found in ``PULSAR_ROOT/scripts``.
 
 
 :mod:`pulsar.scripts.chown_working_directory` Module
@@ -28,10 +28,10 @@ delegate to these Python scripts can be found in ``LWR_ROOT/scripts``.
     :show-inheritance:
 
 
-:mod:`pulsar.scripts.lwr_submit` Module
+:mod:`pulsar.scripts.submit` Module
 --------------------------
 
-.. automodule:: pulsar.scripts.lwr_submit
+.. automodule:: pulsar.scripts.submit
     :members:
     :undoc-members:
     :show-inheritance:
