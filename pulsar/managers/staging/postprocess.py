@@ -28,7 +28,7 @@ def __collect_outputs(job_directory, staging_config):
         file_action_mapper = action_mapper.FileActionMapper(config=staging_config["action_mapper"])
         client_outputs = staging.ClientOutputs.from_dict(staging_config["client_outputs"])
         pulsar_outputs = __pulsar_outputs(job_directory)
-        output_collector = LwrServerOutputCollector(job_directory)
+        output_collector = PulsarServerOutputCollector(job_directory)
         results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, pulsar_outputs)
         collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
@@ -37,7 +37,7 @@ def __collect_outputs(job_directory, staging_config):
     return collected
 
 
-class LwrServerOutputCollector(object):
+class PulsarServerOutputCollector(object):
 
     def __init__(self, job_directory):
         self.job_directory = job_directory
