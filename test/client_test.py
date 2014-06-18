@@ -106,7 +106,7 @@ class RequestChecker(object):
 def test_setup():
     """ Test the setup method of Client """
     client = TestClient()
-    request_checker = RequestChecker("setup")
+    request_checker = RequestChecker("jobs")
     response_json = b'{"working_directory":"C:\\\\home\\\\dir","outputs_directory" : "C:\\\\outputs","path_separator" : "\\\\"}'
     client.expect_open(request_checker, response_json)
     setup_response = client.setup()
@@ -119,7 +119,7 @@ def test_setup():
 def test_launch():
     """ Test the launch method of client. """
     client = TestClient()
-    request_checker = RequestChecker("submit", {"command_line": "python"})
+    request_checker = RequestChecker("jobs/543/submit", {"command_line": "python"})
     client.expect_open(request_checker, b'OK')
     client.launch("python")
     request_checker.assert_called()
@@ -133,7 +133,7 @@ def __test_upload(upload_type):
         temp_file.write("Hello World!")
     finally:
         temp_file.close()
-    request_checker = RequestChecker("upload_file", {"name": os.path.basename(temp_file_path), "input_type": upload_type}, b"Hello World!")
+    request_checker = RequestChecker("jobs/543/files", {"name": os.path.basename(temp_file_path), "type": upload_type}, b"Hello World!")
     client.expect_open(request_checker, b'{"path" : "C:\\\\tools\\\\foo"}')
 
     if upload_type == 'tool':
@@ -162,7 +162,7 @@ def test_upload_config():
     finally:
         temp_file.close()
     modified_contents = "Hello World! <Modified>"
-    request_checker = RequestChecker("upload_file", {"name": os.path.basename(temp_file_path), "input_type": "config"}, modified_contents)
+    request_checker = RequestChecker("jobs/543/files", {"name": os.path.basename(temp_file_path), "type": "config"}, modified_contents)
     client.expect_open(request_checker, b'{"path" : "C:\\\\tools\\\\foo"}')
     upload_result = client.put_file(temp_file_path, 'config', contents=modified_contents)
     request_checker.assert_called()
@@ -174,9 +174,7 @@ def test_download_output():
     client = TestClient()
     temp_file = tempfile.NamedTemporaryFile()
     temp_file.close()
-    request_checker = RequestChecker("get_output_type", {"name": os.path.basename(temp_file.name)})
-    client.expect_open(request_checker, b'"direct"')
-    request_checker = RequestChecker("download_output", {"name": os.path.basename(temp_file.name), "output_type": "direct"})
+    request_checker = RequestChecker("jobs/543/files", {"name": os.path.basename(temp_file.name), "type": "output"})
     client.expect_open(request_checker, b"test output contents")
     client._fetch_output(temp_file.name)
 
@@ -187,7 +185,7 @@ def test_download_output():
 
 def test_get_status_queued():
     client = TestClient()
-    request_checker = RequestChecker("status")
+    request_checker = RequestChecker("jobs/543/status")
     client.expect_open(request_checker, b'{"complete": "false", "status" : "queued"}')
     assert client.get_status() == "queued"
     request_checker.assert_called()
@@ -195,7 +193,7 @@ def test_get_status_queued():
 
 def test_kill():
     client = TestClient()
-    request_checker = RequestChecker("cancel")
+    request_checker = RequestChecker("jobs/543/cancel")
     client.expect_open(request_checker, b'OK')
     client.kill()
     request_checker.assert_called()
@@ -203,7 +201,7 @@ def test_kill():
 
 def test_clean():
     client = TestClient()
-    request_checker = RequestChecker("clean")
+    request_checker = RequestChecker("jobs/543")
     client.expect_open(request_checker, b'OK')
     client.clean()
     request_checker.assert_called()
