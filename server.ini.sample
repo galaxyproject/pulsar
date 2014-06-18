@@ -115,7 +115,7 @@ port = 8913
 
 ## Configure Python loggers.
 [loggers]
-keys = root,lwr
+keys = root,pulsar
 
 [handlers]
 keys = console
@@ -127,10 +127,10 @@ keys = generic
 level = INFO
 handlers = console
 
-[logger_lwr]
+[logger_pulsar]
 level = DEBUG
 handlers = console
-qualname = lwr
+qualname = pulsar
 propagate = 0
 
 [handler_console]
