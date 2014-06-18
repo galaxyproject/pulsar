@@ -192,7 +192,7 @@ class JobClient(BaseJobClient):
             self._fetch_output(path=path, name=name, action_type=action_type)
         else:
             raise Exception("Unknown output_type %s" % output_type)
- 
+
     def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
         return self.job_manager_interface.execute(command, args, data, input_path, output_path)
 
