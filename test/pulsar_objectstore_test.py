@@ -8,7 +8,7 @@ from .test_utils import TempDirectoryTestCase
 from .test_objectstore import MockDataset
 
 
-class LwrObjectStoreTest(TempDirectoryTestCase):
+class PulsarObjectStoreTest(TempDirectoryTestCase):
 
     def __write(self, contents, name):
         path = join(self.temp_directory, name)
@@ -18,7 +18,7 @@ class LwrObjectStoreTest(TempDirectoryTestCase):
         open(path, "w").write(contents)
         return path
 
-    def test_lwr_objectstore(self):
+    def test_pulsar_objectstore(self):
         # Define real object store used by Pulsar server.
         object_store_config_file = join(self.temp_directory, "object_store_conf.xml")
         with open(object_store_config_file, "w") as configf:
@@ -43,9 +43,9 @@ class LwrObjectStoreTest(TempDirectoryTestCase):
             proxy_object_store_config_file = join(self.temp_directory, "proxy_object_store_conf.xml")
             with open(proxy_object_store_config_file, "w") as configf:
                 config_template = Template("""<?xml version="1.0"?>
-<object_store type="lwr" url="$url" private_token="12345" transport="urllib">
-  <!-- private_token is optional - see lwr documentation for more information. -->
-  <!-- transport is optional, set to curl to use libcurl instead of urllib for communication with LWR. -->
+<object_store type="pulsar" url="$url" private_token="12345" transport="urllib">
+  <!-- private_token is optional - see Pulsar documentation for more information. -->
+  <!-- transport is optional, set to curl to use libcurl instead of urllib for communication with Pulsar. -->
 </object_store>
 """)
                 contents = config_template.safe_substitute(url=url)
