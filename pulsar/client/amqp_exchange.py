@@ -23,7 +23,7 @@ DEFAULT_RECONNECT_CONSUMER_WAIT = 1
 DEFAULT_HEARTBEAT_WAIT = 1
 
 
-class LwrExchange(object):
+class PulsarExchange(object):
     """ Utility for publishing and consuming structured Pulsar queues using kombu.
     This is shared between the server and client - an exchange should be setup
     for each manager (or in the case of the client, each manager one wished to

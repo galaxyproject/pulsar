@@ -1,4 +1,4 @@
-from .amqp_exchange import LwrExchange
+from .amqp_exchange import PulsarExchange
 from .util import filter_destination_params
 
 
@@ -12,7 +12,7 @@ def get_exchange(url, manager_name, params):
     timeout = params.get('amqp_consumer_timeout', False)
     if timeout is not False:
         exchange_kwds['timeout'] = timeout
-    exchange = LwrExchange(url, **exchange_kwds)
+    exchange = PulsarExchange(url, **exchange_kwds)
     return exchange
 
 

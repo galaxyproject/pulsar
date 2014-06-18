@@ -8,9 +8,9 @@ TEST_CONNECTION = "memory://test_amqp"
 
 @skipUnlessModule("kombu")
 def test_amqp():
-    manager1_exchange = amqp_exchange.LwrExchange(TEST_CONNECTION, "manager_test")
-    manager3_exchange = amqp_exchange.LwrExchange(TEST_CONNECTION, "manager3_test")
-    manager2_exchange = amqp_exchange.LwrExchange(TEST_CONNECTION, "manager2_test")
+    manager1_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager_test")
+    manager3_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager3_test")
+    manager2_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager2_test")
     thread1 = TestThread("manager_test", manager1_exchange)
     thread2 = TestThread("manager2_test", manager2_exchange)
     thread3 = TestThread("manager3_test", manager3_exchange)
