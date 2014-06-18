@@ -156,14 +156,14 @@ class JobClient(BaseJobClient):
     def put_file(self, path, input_type, name=None, contents=None, action_type='transfer'):
         if not name:
             name = os.path.basename(path)
-        args = {"job_id": self.job_id, "name": name, "input_type": input_type}
+        args = {"job_id": self.job_id, "name": name, "type": input_type}
         input_path = path
         if contents:
             input_path = None
         if action_type == 'transfer':
             return self._upload_file(args, contents, input_path)
         elif action_type == 'copy':
-            lwr_path = self._raw_execute('input_path', args)
+            lwr_path = self._raw_execute('path', args)
             copy(path, lwr_path)
             return {'path': lwr_path}
 
@@ -221,24 +221,21 @@ class JobClient(BaseJobClient):
 
     @parseJson()
     def _upload_file(self, args, contents, input_path):
-        return self._raw_execute(self._upload_file_action(args), args, contents, input_path)
-
-    def _upload_file_action(self, args):
-        return "upload_file"
+        return self._raw_execute("upload_file", args, contents, input_path)
 
     @parseJson()
     def _output_path(self, name, job_id, output_type):
-        return self._raw_execute("output_path",
+        return self._raw_execute("path",
                                  {"name": name,
                                   "job_id": self.job_id,
-                                  "output_type": output_type})
+                                  "type": output_type})
 
     @retry()
     def __raw_download_output(self, name, job_id, output_type, output_path):
         output_params = {
             "name": name,
             "job_id": self.job_id,
-            "output_type": output_type
+            "type": output_type
         }
         self._raw_execute("download_output", output_params, output_path=output_path)
 
@@ -341,7 +338,7 @@ class InputCachingJobClient(JobClient):
 
     @parseJson()
     def _upload_file(self, args, contents, input_path):
-        action = self._upload_file_action(args)
+        action = "upload_file"
         if contents:
             input_path = None
             return self._raw_execute(action, args, contents, input_path)

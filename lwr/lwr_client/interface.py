@@ -35,6 +35,8 @@ class LwrInteface(object):
 
 
 COMMAND_TO_PATH = {
+    "path": Template("jobs/${job_id}/files/path"),
+
     "file_available": Template("cache/status"),
     "cache_required": Template("cache"),
     "cache_insert": Template("cache"),

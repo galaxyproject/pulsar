@@ -89,29 +89,31 @@ def cancel(manager, job_id):
 
 
 @LwrController(response_type='json')
-def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
+def upload_file(manager, type, file_cache, job_id, name, body, cache_token=None):
     # Input type should be one of input, config, workdir, tool, or unstructured (see action_mapper.path_type)
-    path = manager.job_directory(job_id).calculate_path(name, input_type)
+    path = manager.job_directory(job_id).calculate_path(name, type)
     return _handle_upload(file_cache, path, body, cache_token=cache_token)
 
 
-@LwrController(response_type='json')
-def input_path(manager, input_type, job_id, name):
-    path = manager.job_directory(job_id).calculate_path(name, input_type)
+@LwrController(path="/jobs/{job_id}/files/path", method="GET", response_type='json')
+def path(manager, type, job_id, name):
+    if type in [path_type.OUTPUT, path_type.OUTPUT_WORKDIR]:
+        path = _output_path(manager, job_id, name, type)
+    else:
+        path = manager.job_directory(job_id).calculate_path(name, type)
     return {'path': path}
 
 
 @LwrController(response_type='file')
-def download_output(manager, job_id, name, output_type=path_type.OUTPUT):
-    return _output_path(manager, job_id, name, output_type)
+def download_output(manager, job_id, name, type=path_type.OUTPUT):
+    return _output_path(manager, job_id, name, type)
 
 
-@LwrController(response_type='json')
-def output_path(manager, job_id, name, output_type=path_type.OUTPUT):
+def output_path(manager, job_id, name, type=path_type.OUTPUT):
     # output_type should be one of...
     #   work_dir, direct
     # Added for non-transfer downloading.
-    return {"path": _output_path(manager, job_id, name, output_type)}
+    return {"path": _output_path(manager, job_id, name, type)}
 
 
 def _output_path(manager, job_id, name, output_type):
