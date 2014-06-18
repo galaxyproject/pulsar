@@ -1,6 +1,6 @@
 """ This module contains the server-side only code for interfacing with
 message queues. Code shared between client and server can be found in
-submodules of ``lwr.lwr_client``.
+submodules of ``lwr.client``.
 
 
 :mod:`lwr.messaging.bind_amqp` Module

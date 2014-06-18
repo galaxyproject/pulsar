@@ -1,7 +1,7 @@
 import os
 
 from .test_utils import files_server
-from lwr.lwr_client.action_mapper import RemoteTransferAction
+from lwr.client.action_mapper import RemoteTransferAction
 
 
 def test_write_to_file():
@@ -26,4 +26,4 @@ def test_write_from_file():
         RemoteTransferAction(to_path, url=url).write_from_path(from_path)
 
         posted_contents = open(to_path, "rb").read()
-        assert posted_contents == u"123456",  posted_contents
+        assert posted_contents == u"123456", posted_contents

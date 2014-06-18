@@ -1,4 +1,4 @@
-from lwr.lwr_client.action_mapper import from_dict
+from lwr.client.action_mapper import from_dict
 
 
 def preprocess(job_directory, setup_actions):

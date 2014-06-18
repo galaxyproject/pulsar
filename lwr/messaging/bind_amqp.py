@@ -1,5 +1,5 @@
 from galaxy.util import asbool
-from lwr.lwr_client import amqp_exchange_factory
+from lwr.client import amqp_exchange_factory
 from lwr import manager_endpoint_util
 import functools
 import threading

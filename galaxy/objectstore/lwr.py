@@ -1,9 +1,9 @@
 from __future__ import absolute_import  # Need to import lwr_client absolutely.
 from ..objectstore import ObjectStore
 try:
-    from galaxy.jobs.runners.lwr_client.manager import ObjectStoreClientManager
+    from pulsar.client.manager import ObjectStoreClientManager
 except ImportError:
-    from lwr.lwr_client.manager import ObjectStoreClientManager
+    from lwr.client.manager import ObjectStoreClientManager
 
 
 class LwrObjectStore(ObjectStore):

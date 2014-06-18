@@ -6,7 +6,7 @@ from lwr.mesos import (
     MesosSchedulerDriver,
     mesos_pb2,
 )
-from lwr.lwr_client.util import to_base64_json
+from lwr.client.util import to_base64_json
 
 import logging
 log = logging.getLogger(__name__)

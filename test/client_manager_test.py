@@ -1,6 +1,6 @@
 from os import environ
 
-from lwr.lwr_client.manager import ClientManager
+from lwr.client.manager import ClientManager
 
 
 def test_environment_variables_config():

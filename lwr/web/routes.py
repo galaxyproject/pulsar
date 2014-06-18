@@ -6,7 +6,7 @@ from galaxy.util import (
     copy_to_path,
     copy_to_temp,
 )
-from lwr.lwr_client.job_directory import verify_is_in_directory
+from lwr.client.job_directory import verify_is_in_directory
 from lwr.web.framework import Controller
 from lwr.manager_factory import DEFAULT_MANAGER_NAME
 from lwr.manager_endpoint_util import (
@@ -14,7 +14,7 @@ from lwr.manager_endpoint_util import (
     setup_job,
     full_status,
 )
-from lwr.lwr_client.action_mapper import path_type
+from lwr.client.action_mapper import path_type
 
 import logging
 log = logging.getLogger(__name__)

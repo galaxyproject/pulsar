@@ -1,7 +1,7 @@
-:mod:`lwr.lwr_client` Module
+:mod:`lwr.client` Module
 ---------------------------------
 
-.. automodule:: lwr.lwr_client
+.. automodule:: lwr.client
     :members:
     :undoc-members:
     :show-inheritance:

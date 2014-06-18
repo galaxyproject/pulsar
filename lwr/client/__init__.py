@@ -1,6 +1,6 @@
 """
-lwr_client
-==========
+client
+======
 
 This module contains logic for interfacing with an external LWR server.
 

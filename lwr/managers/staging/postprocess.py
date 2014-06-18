@@ -2,10 +2,10 @@
 """
 import os
 
-from lwr.lwr_client import action_mapper
-from lwr.lwr_client import staging
-from lwr.lwr_client.staging import LwrOutputs
-from lwr.lwr_client.staging.down import ResultsCollector
+from lwr.client import action_mapper
+from lwr.client import staging
+from lwr.client.staging import LwrOutputs
+from lwr.client.staging.down import ResultsCollector
 
 import logging
 log = logging.getLogger(__name__)

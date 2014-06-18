@@ -33,13 +33,13 @@ done
 shift "$((OPTIND-1))" # Shift off the options and optional --.
 LWR_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 GALAXY_DIRECTORY=$1
-GALAXY_RUNNERS_DIRECTORY=$GALAXY_DIRECTORY/lib/galaxy/jobs/runners/
+GALAXY_PULSAR_DIRECTORY=$GALAXY_DIRECTORY/lib/pulsar/
 
 if [ "$invert" -ne "1" ];
 then
-	rm -rf $GALAXY_RUNNERS_DIRECTORY/lwr_client
-	cp -r $LWR_DIRECTORY/lwr/lwr_client $GALAXY_RUNNERS_DIRECTORY
+	rm -rf $GALAXY_RUNNERS_DIRECTORY/client
+	cp -r $LWR_DIRECTORY/lwr/client $GALAXY_PULSAR_DIRECTORY
 else
-	rm -rf $LWR_DIRECTORY/lwr/lwr_client
-	cp -r $GALAXY_RUNNERS_DIRECTORY/lwr_client $LWR_DIRECTORY/lwr
+	rm -rf $LWR_DIRECTORY/lwr/client
+	cp -r $GALAXY_PULSAR_DIRECTORY/client $LWR_DIRECTORY/lwr
 fi

@@ -2,7 +2,7 @@ import time
 import json
 
 from lwr.daemon import ArgumentParser
-from lwr.lwr_client.util import from_base64_json
+from lwr.client.util import from_base64_json
 from lwr.daemon import (
     load_lwr_app,
     LwrManagerConfigBuilder

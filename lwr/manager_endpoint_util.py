@@ -1,7 +1,7 @@
 """ Composite actions over managers shared between HTTP endpoint (routes.py)
 and message queue.
 """
-from lwr.lwr_client.setup_handler import build_job_config
+from lwr.client.setup_handler import build_job_config
 from lwr.managers import status
 from lwr.managers import LWR_UNKNOWN_RETURN_CODE
 from galaxy.tools.deps import dependencies

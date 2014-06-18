@@ -7,7 +7,7 @@ from lwr.mesos import (
     mesos_pb2,
     ensure_mesos_libs,
 )
-from lwr.lwr_client.util import from_base64_json
+from lwr.client.util import from_base64_json
 from lwr.scripts.lwr_submit import (
     manager_from_args,
     wait_for_job

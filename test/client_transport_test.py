@@ -1,6 +1,6 @@
-from lwr.lwr_client.transport.standard import Urllib2Transport
-from lwr.lwr_client.transport.curl import PycurlTransport
-from lwr.lwr_client.transport import get_transport
+from lwr.client.transport.standard import Urllib2Transport
+from lwr.client.transport.curl import PycurlTransport
+from lwr.client.transport import get_transport
 from tempfile import NamedTemporaryFile
 
 
