@@ -32,14 +32,16 @@ class LwrWebApp(RoutingApp):
             self.__add_route_for_function(func)
 
     def __add_route_for_function(self, function):
-        route_suffix = '/%s' % function.__name__
+        path = function.__path__
+        method = function.__method__
+
         # Default or old-style route without explicit manager specified,
         # will be routed to manager '_default_'.
-        default_manager_route = route_suffix
-        self.add_route(default_manager_route, function)
+        default_manager_route = path
+        self.add_route(default_manager_route, method, function)
         # Add route for named manager as well.
-        named_manager_route = '/managers/{manager_name}%s' % route_suffix
-        self.add_route(named_manager_route, function)
+        named_manager_route = '/managers/{manager_name}%s' % path
+        self.add_route(named_manager_route, method, function)
 
     def __getattr__(self, name):
         return getattr(self.lwr_app, name)

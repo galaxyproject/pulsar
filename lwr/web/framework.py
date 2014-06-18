@@ -21,14 +21,14 @@ class RoutingApp(object):
     def __init__(self):
         self.routes = []
 
-    def add_route(self, route, controller, **args):
+    def add_route(self, route, method, controller, **args):
         route_regex = self.__template_to_regex(route)
-        self.routes.append((route_regex, controller, args))
+        self.routes.append((route_regex, method, controller, args))
 
     def __call__(self, environ, start_response):
         req = Request(environ)
         req.app = self
-        for route, controller, args in self.routes:
+        for route, method, controller, args in self.routes:
             match = route.match(req.path_info)
             if match:
                 request_args = dict(args)
@@ -78,7 +78,9 @@ class Controller(object):
     Wraps python functions into controller methods.
     """
 
-    def __init__(self, response_type='OK'):
+    def __init__(self, method="GET", path=None, response_type='OK'):
+        self.method = method
+        self.path = path
         self.response_type = response_type
 
     def __get_client_address(self, environ):
@@ -147,6 +149,8 @@ class Controller(object):
         controller_replacement.body = self.body
         controller_replacement.__name__ = func.__name__
         controller_replacement.__controller__ = True
+        controller_replacement.__method__ = self.method
+        controller_replacement.__path__ = self.path or "/%s" % func.__name__
         return controller_replacement
 
     def body(self, result):
