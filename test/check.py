@@ -11,7 +11,7 @@ from io import open
 
 from pulsar.client import submit_job
 from pulsar.client import finish_job
-from pulsar.client import LwrOutputs
+from pulsar.client import PulsarOutputs
 from pulsar.client import ClientOutputs
 from pulsar.client import build_client_manager
 from pulsar.client import ClientJobDescription
@@ -341,7 +341,7 @@ def __extra_job_description_kwargs(options):
 
 
 def __finish(options, client, client_outputs, result_status):
-    pulsar_outputs = LwrOutputs.from_status_response(result_status)
+    pulsar_outputs = PulsarOutputs.from_status_response(result_status)
     cleanup_job = 'always'
     if not getattr(options, 'cleanup', True):
         cleanup_job = 'never'

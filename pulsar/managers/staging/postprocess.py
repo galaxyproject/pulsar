@@ -4,7 +4,7 @@ import os
 
 from pulsar.client import action_mapper
 from pulsar.client import staging
-from pulsar.client.staging import LwrOutputs
+from pulsar.client.staging import PulsarOutputs
 from pulsar.client.staging.down import ResultsCollector
 
 import logging
@@ -60,7 +60,7 @@ class LwrServerOutputCollector(object):
 def __pulsar_outputs(job_directory):
     working_directory_contents = job_directory.working_directory_contents()
     output_directory_contents = job_directory.outputs_directory_contents()
-    return LwrOutputs(
+    return PulsarOutputs(
         working_directory_contents,
         output_directory_contents,
     )

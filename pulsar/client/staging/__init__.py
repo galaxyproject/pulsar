@@ -119,7 +119,7 @@ class ClientOutputs(object):
         )
 
 
-class LwrOutputs(object):
+class PulsarOutputs(object):
     """ Abstraction describing the output files PRODUCED by the remote LWR
     server. """
 
@@ -138,7 +138,7 @@ class LwrOutputs(object):
         # so this should only be used when reasoning about outputs in
         # subdirectories (which was not previously supported prior to that).
         remote_separator = complete_response.get("system_properties", {}).get("separator", sep)
-        return LwrOutputs(
+        return PulsarOutputs(
             working_directory_contents,
             output_directory_contents,
             remote_separator

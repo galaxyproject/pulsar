@@ -42,7 +42,7 @@ in the ``universe.ini`` file.
 from .staging.down import finish_job
 from .staging.up import submit_job
 from .staging import ClientJobDescription
-from .staging import LwrOutputs
+from .staging import PulsarOutputs
 from .staging import ClientOutputs
 from .client import OutputNotFoundException
 from .manager import build_client_manager
@@ -56,7 +56,7 @@ __all__ = [
     finish_job,
     submit_job,
     ClientJobDescription,
-    LwrOutputs,
+    PulsarOutputs,
     ClientOutputs,
     PathMapper,
 ]
