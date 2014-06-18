@@ -117,7 +117,7 @@ def install_dependencies(venv=VENV):
 
 def print_summary():
     summary = """
-lwr environment setup is complete.
+pulsar environment setup is complete.
 
 To activate the virtualenv for the extent of your current shell session you
 can run:
