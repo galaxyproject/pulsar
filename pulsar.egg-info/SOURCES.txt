@@ -1,0 +1,8 @@
+setup.cfg
+pulsar/__init__.py
+pulsar.egg-info/PKG-INFO
+pulsar.egg-info/SOURCES.txt
+pulsar.egg-info/dependency_links.txt
+pulsar.egg-info/entry_points.txt
+pulsar.egg-info/not-zip-safe
+pulsar.egg-info/top_level.txt

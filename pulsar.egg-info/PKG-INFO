@@ -1,10 +1,10 @@
 Metadata-Version: 1.0
-Name: lwr
-Version: 0.1dev
-Summary: Light Weight Galaxy Job Runner
+Name: pulsar
+Version: 0.3dev
+Summary: Pulsar Job Execution Platform
 Home-page: UNKNOWN
 Author: John Chilton
 Author-email: jmchilton@gmail.com
-License: UNKNOWN
+License: Apache
 Description: UNKNOWN
 Platform: UNKNOWN
