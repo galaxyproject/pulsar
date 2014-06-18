@@ -201,8 +201,7 @@ class JobClient(BaseJobClient):
             # Extra files will send in the path.
             name = os.path.basename(path)
 
-        output_type = "direct"  # Task/from_work_dir outputs now handled with fetch_work_dir_output
-        self.__populate_output_path(name, path, output_type, action_type)
+        self.__populate_output_path(name, path, action_type)
 
     def _fetch_work_dir_output(self, name, working_directory, output_path, action_type='transfer'):
         ensure_directory(output_path)
@@ -212,12 +211,12 @@ class JobClient(BaseJobClient):
             lwr_path = self._output_path(name, self.job_id, 'work_dir')['path']
             copy(lwr_path, output_path)
 
-    def __populate_output_path(self, name, output_path, output_type, action_type):
+    def __populate_output_path(self, name, output_path, action_type):
         ensure_directory(output_path)
         if action_type == 'transfer':
-            self.__raw_download_output(name, self.job_id, output_type, output_path)
+            self.__raw_download_output(name, self.job_id, "direct", output_path)
         elif action_type == 'copy':
-            lwr_path = self._output_path(name, self.job_id, output_type)['path']
+            lwr_path = self._output_path(name, self.job_id, "direct")['path']
             copy(lwr_path, output_path)
 
     @parseJson()
