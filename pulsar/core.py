@@ -17,8 +17,9 @@ from logging import getLogger
 log = getLogger(__name__)
 
 DEFAULT_PRIVATE_KEY = None
-DEFAULT_STAGING_DIRECTORY = "lwr_staging"
-DEFAULT_PERSISTENCE_DIRECTORY = "persisted_data"
+DEFAULT_FILES_DIRECTORY = "files"
+DEFAULT_STAGING_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "staging")
+DEFAULT_PERSISTENCE_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "persisted_data")
 
 
 NOT_WHITELIST_WARNING = "Starting the LWR without a toolbox to white-list." + \

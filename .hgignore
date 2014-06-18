@@ -6,7 +6,8 @@ cache
 .coverage
 local_env.sh
 coverage_html_report
-lwr_staging
+files/staging
+files/persisted_data
 server.ini
 job_managers.ini
 *.pem

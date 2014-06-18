@@ -20,8 +20,8 @@ host = localhost
 paste.app_factory = pulsar.web.wsgi:app_factory
 
 ## Directory to stage files to. This should likely be updated to point
-## to an absolute path, such as /tmp/lwr_staging or C:\\lwr_staging
-staging_directory = lwr_staging
+## to an absolute path, such as /tmp/pulsar_staging or C:\\pulsar_staging
+staging_directory = files/staging
 
 ## Private key or password that must be sent as part of the request to
 ## authorize use. If security is important, please use this in
@@ -35,7 +35,7 @@ staging_directory = lwr_staging
 ## do this). If user the LWR runs as cannot write to the LWR root
 ## directory, this should be updated to point to some directory which
 ## it can write to.
-persistence_directory = persisted_data
+persistence_directory = files/persisted_data
 
 ## How are ids assigned. galaxy (default) just passes through ids as
 ## is. Setting this uuid assigns each job a UUID, this is strongly

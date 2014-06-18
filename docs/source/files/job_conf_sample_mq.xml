@@ -21,7 +21,7 @@
             <!-- Tell Galaxy where files are being store on remote system, no
                  web server it can simply ask for this information.
             -->
-            <param id="jobs_directory">/path/to/remote/lwr/lwr_staging/</param>
+            <param id="jobs_directory">/path/to/remote/pulsar/files/staging/</param>
             <!-- Invert file transfers - have LWR initiate downloads during preprocessing
                  and uploads during postprocessing. -->
             <param id="default_file_action">remote_transfer</param>
