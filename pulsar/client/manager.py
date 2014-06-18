@@ -9,8 +9,8 @@ from .client import JobClient
 from .client import InputCachingJobClient
 from .client import MessageJobClient
 from .client import MessageCLIJobClient
-from .interface import HttpLwrInterface
-from .interface import LocalLwrInterface
+from .interface import HttpPulsarInterface
+from .interface import LocalPulsarInterface
 from .object_client import ObjectStoreClient
 from .transport import get_transport
 from .util import TransferEventManager
@@ -40,10 +40,10 @@ class ClientManager(object):
     """
     def __init__(self, **kwds):
         if 'job_manager' in kwds:
-            self.job_manager_interface_class = LocalLwrInterface
+            self.job_manager_interface_class = LocalPulsarInterface
             self.job_manager_interface_args = dict(job_manager=kwds['job_manager'], file_cache=kwds['file_cache'])
         else:
-            self.job_manager_interface_class = HttpLwrInterface
+            self.job_manager_interface_class = HttpPulsarInterface
             transport_type = kwds.get('transport', None)
             transport = get_transport(transport_type)
             self.job_manager_interface_args = dict(transport=transport)
@@ -142,10 +142,10 @@ class ObjectStoreClientManager(object):
 
     def __init__(self, **kwds):
         if 'object_store' in kwds:
-            self.interface_class = LocalLwrInterface
+            self.interface_class = LocalPulsarInterface
             self.interface_args = dict(object_store=kwds['object_store'])
         else:
-            self.interface_class = HttpLwrInterface
+            self.interface_class = HttpPulsarInterface
             transport_type = kwds.get('transport', None)
             transport = get_transport(transport_type)
             self.interface_args = dict(transport=transport)
@@ -220,4 +220,4 @@ def _environ_default_int(variable, default="0"):
         int_val = int(val)
     return int_val
 
-__all__ = [ClientManager, ObjectStoreClientManager, HttpLwrInterface]
+__all__ = [ClientManager, ObjectStoreClientManager, HttpPulsarInterface]

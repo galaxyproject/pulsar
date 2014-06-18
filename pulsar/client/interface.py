@@ -16,7 +16,7 @@ except ImportError:
     from urllib.parse import urlencode
 
 
-class LwrInteface(object):
+class PulsarInterface(object):
     """
     Abstract base class describes how synchronous client communicates with
     (potentially remote) LWR procedures. Obvious implementation is HTTP based
@@ -80,7 +80,7 @@ COMMAND_TO_METHOD = {
 }
 
 
-class HttpLwrInterface(LwrInteface):
+class HttpPulsarInterface(PulsarInterface):
 
     def __init__(self, destination_params, transport):
         self.transport = transport
@@ -109,7 +109,7 @@ class HttpLwrInterface(LwrInteface):
         return url
 
 
-class LocalLwrInterface(LwrInteface):
+class LocalPulsarInterface(PulsarInterface):
 
     def __init__(self, destination_params, job_manager=None, file_cache=None, object_store=None):
         self.job_manager = job_manager

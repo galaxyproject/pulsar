@@ -5,7 +5,7 @@ import os
 from six import text_type, binary_type
 
 from pulsar.client.client import JobClient
-from pulsar.client.manager import HttpLwrInterface
+from pulsar.client.manager import HttpPulsarInterface
 from pulsar.client.transport import Urllib2Transport
 from pulsar.client.decorators import retry, MAX_RETRY_COUNT
 
@@ -60,7 +60,7 @@ class TestClient(JobClient):
     method so that requests can be inspected and responses faked."""
 
     def __init__(self):
-        JobClient.__init__(self, {}, "543", HttpLwrInterface({"url": "http://test:803/"}, TestTransport(self)))
+        JobClient.__init__(self, {}, "543", HttpPulsarInterface({"url": "http://test:803/"}, TestTransport(self)))
         self.expects = deque([])
 
     def expect_open(self, checker, response):
