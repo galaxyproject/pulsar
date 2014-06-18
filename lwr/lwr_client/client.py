@@ -9,7 +9,7 @@ from .decorators import retry
 from .util import copy
 from .util import ensure_directory
 from .util import to_base64_json
-
+from .action_mapper import path_type
 
 import logging
 log = logging.getLogger(__name__)
@@ -206,17 +206,17 @@ class JobClient(BaseJobClient):
     def _fetch_work_dir_output(self, name, working_directory, output_path, action_type='transfer'):
         ensure_directory(output_path)
         if action_type == 'transfer':
-            self.__raw_download_output(name, self.job_id, "work_dir", output_path)
+            self.__raw_download_output(name, self.job_id, path_type.OUTPUT_WORKDIR, output_path)
         else:  # Even if action is none - LWR has a different work_dir so this needs to be copied.
-            lwr_path = self._output_path(name, self.job_id, 'work_dir')['path']
+            lwr_path = self._output_path(name, self.job_id, path_type.OUTPUT_WORKDIR)['path']
             copy(lwr_path, output_path)
 
     def __populate_output_path(self, name, output_path, action_type):
         ensure_directory(output_path)
         if action_type == 'transfer':
-            self.__raw_download_output(name, self.job_id, "direct", output_path)
+            self.__raw_download_output(name, self.job_id, path_type.OUTPUT, output_path)
         elif action_type == 'copy':
-            lwr_path = self._output_path(name, self.job_id, "direct")['path']
+            lwr_path = self._output_path(name, self.job_id, path_type.OUTPUT)['path']
             copy(lwr_path, output_path)
 
     @parseJson()

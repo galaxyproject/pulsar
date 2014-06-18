@@ -14,6 +14,7 @@ from lwr.manager_endpoint_util import (
     setup_job,
     full_status,
 )
+from lwr.lwr_client.action_mapper import path_type
 
 import logging
 log = logging.getLogger(__name__)
@@ -101,12 +102,12 @@ def input_path(manager, input_type, job_id, name):
 
 
 @LwrController(response_type='file')
-def download_output(manager, job_id, name, output_type="direct"):
+def download_output(manager, job_id, name, output_type=path_type.OUTPUT):
     return _output_path(manager, job_id, name, output_type)
 
 
 @LwrController(response_type='json')
-def output_path(manager, job_id, name, output_type="direct"):
+def output_path(manager, job_id, name, output_type=path_type.OUTPUT):
     # output_type should be one of...
     #   work_dir, direct
     # Added for non-transfer downloading.
@@ -117,7 +118,7 @@ def _output_path(manager, job_id, name, output_type):
     """
     """
     directory = manager.job_directory(job_id).outputs_directory()
-    if output_type == "task" or output_type == "work_dir":
+    if output_type == path_type.OUTPUT_WORKDIR:  # action_mapper.path_type.OUTPUT_WORKDIR
         directory = manager.job_directory(job_id).working_directory()
     path = os.path.join(directory, name)
     verify_is_in_directory(path, directory)
