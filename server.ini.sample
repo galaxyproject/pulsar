@@ -17,7 +17,7 @@ host = localhost
 # ssl_pem = host.pem
 
 [app:main]
-paste.app_factory = lwr.web.wsgi:app_factory
+paste.app_factory = pulsar.web.wsgi:app_factory
 
 ## Directory to stage files to. This should likely be updated to point
 ## to an absolute path, such as /tmp/lwr_staging or C:\\lwr_staging
