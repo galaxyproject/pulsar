@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 KOMBU_UNAVAILABLE = "Attempting to bind to AMQP message queue, but kombu dependency unavailable"
 
-DEFAULT_EXCHANGE_NAME = "lwr"
+DEFAULT_EXCHANGE_NAME = "pulsar"
 DEFAULT_EXCHANGE_TYPE = "direct"
 # Set timeout to periodically give up looking and check if polling should end.
 DEFAULT_TIMEOUT = 0.2
@@ -24,15 +24,15 @@ DEFAULT_HEARTBEAT_WAIT = 1
 
 
 class LwrExchange(object):
-    """ Utility for publishing and consuming structured LWR queues using kombu.
+    """ Utility for publishing and consuming structured Pulsar queues using kombu.
     This is shared between the server and client - an exchange should be setup
     for each manager (or in the case of the client, each manager one wished to
     communicate with.)
 
-    Each LWR manager is defined solely by name in the scheme, so only one LWR
+    Each Pulsar manager is defined solely by name in the scheme, so only one Pulsar
     should target each AMQP endpoint or care should be taken that unique
-    manager names are used across LWR servers targetting same AMQP endpoint -
-    and in particular only one such LWR should define an default manager with
+    manager names are used across Pulsar servers targetting same AMQP endpoint -
+    and in particular only one such Pulsar should define an default manager with
     name _default_.
     """
 
@@ -127,9 +127,9 @@ class LwrExchange(object):
 
     def __key_prefix(self):
         if self.__manager_name == "_default_":
-            key_prefix = "lwr_"
+            key_prefix = "pulsar_"
         else:
-            key_prefix = "lwr_%s_" % self.__manager_name
+            key_prefix = "pulsar_%s_" % self.__manager_name
         return key_prefix
 
     def __start_heartbeat(self, queue_name, connection):

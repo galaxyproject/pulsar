@@ -218,7 +218,7 @@ def object_store_get_store_usage_percent(object_store):
 
 
 class LwrDataset(object):
-    """Intermediary between lwr and objectstore."""
+    """Intermediary between Pulsar and objectstore."""
 
     def __init__(self, id):
         self.id = id

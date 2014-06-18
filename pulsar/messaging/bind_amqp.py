@@ -26,27 +26,27 @@ def get_exchange(connection_string, manager_name, conf):
             val = conf[param]
             conf[param] = to_type(val)
 
-    lwr_exchange = amqp_exchange_factory.get_exchange(
+    pulsar_exchange = amqp_exchange_factory.get_exchange(
         connection_string,
         manager_name,
         conf
     )
-    return lwr_exchange
+    return pulsar_exchange
 
 
 def bind_manager_to_queue(manager, queue_state, connection_string, conf):
-    lwr_exchange = get_exchange(connection_string, manager.name, conf)
+    pulsar_exchange = get_exchange(connection_string, manager.name, conf)
 
     process_setup_messages = functools.partial(__process_setup_message, manager)
     process_kill_messages = functools.partial(__process_kill_message, manager)
 
     def drain(callback, name):
-        __drain(name, queue_state, lwr_exchange, callback)
+        __drain(name, queue_state, pulsar_exchange, callback)
         log.info("Finished consuming %s queue - no more messages will be processed." % (name))
 
     if conf.get("message_queue_consume", True):
-        start_setup_consumer(lwr_exchange, functools.partial(drain, process_setup_messages, "setup"))
-        start_kill_consumer(lwr_exchange, functools.partial(drain, process_kill_messages, "kill"))
+        start_setup_consumer(pulsar_exchange, functools.partial(drain, process_setup_messages, "setup"))
+        start_kill_consumer(pulsar_exchange, functools.partial(drain, process_kill_messages, "kill"))
 
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
     # has occurred.
@@ -55,7 +55,7 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
             message = "Publishing LWR state change with status %s for job_id %s" % (new_status, job_id)
             log.debug(message)
             payload = manager_endpoint_util.full_status(manager, new_status, job_id)
-            lwr_exchange.publish("status_update", payload)
+            pulsar_exchange.publish("status_update", payload)
         except:
             log.exception("Failure to publish LWR state change.")
             raise
@@ -75,8 +75,8 @@ start_setup_consumer = functools.partial(__start_consumer, "setup")
 start_kill_consumer = functools.partial(__start_consumer, "kill")
 
 
-def __drain(name, queue_state, lwr_exchange, callback):
-    lwr_exchange.consume(name, callback=callback, check=queue_state)
+def __drain(name, queue_state, pulsar_exchange, callback):
+    pulsar_exchange.consume(name, callback=callback, check=queue_state)
 
 
 def __process_kill_message(manager, body, message):

@@ -19,14 +19,14 @@ def url_to_destination_params(url):
     'https://example.com:8914/managers/longqueue/'
     >>> params_advanced["private_token"]
     '1234x'
-    >>> runner_url = "lwr://http://localhost:8913/"
+    >>> runner_url = "pulsar://http://localhost:8913/"
     >>> runner_params = url_to_destination_params(runner_url)
     >>> runner_params['url']
     'http://localhost:8913/'
     """
 
-    if url.startswith("lwr://"):
-        url = url[len("lwr://"):]
+    if url.startswith("pulsar://"):
+        url = url[len("pulsar://"):]
 
     if not url.endswith("/"):
         url += "/"

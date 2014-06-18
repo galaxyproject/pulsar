@@ -17,7 +17,7 @@ log = getLogger(__name__)
 COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|__instrument_.*|dataset_\d+_files.+")
 
 
-def finish_job(client, cleanup_job, job_completed_normally, client_outputs, lwr_outputs):
+def finish_job(client, cleanup_job, job_completed_normally, client_outputs, pulsar_outputs):
     """ Responsible for downloading results from remote server and cleaning up
     LWR staging directory (if needed.)
     """
@@ -25,7 +25,7 @@ def finish_job(client, cleanup_job, job_completed_normally, client_outputs, lwr_
     if job_completed_normally:
         output_collector = ClientOutputCollector(client)
         action_mapper = FileActionMapper(client)
-        results_stager = ResultsCollector(output_collector, action_mapper, client_outputs, lwr_outputs)
+        results_stager = ResultsCollector(output_collector, action_mapper, client_outputs, pulsar_outputs)
         collection_failure_exceptions = results_stager.collect()
     __clean(collection_failure_exceptions, cleanup_job, client)
     return collection_failure_exceptions
@@ -54,15 +54,15 @@ class ClientOutputCollector(object):
 
 class ResultsCollector(object):
 
-    def __init__(self, output_collector, action_mapper, client_outputs, lwr_outputs):
+    def __init__(self, output_collector, action_mapper, client_outputs, pulsar_outputs):
         self.output_collector = output_collector
         self.action_mapper = action_mapper
         self.client_outputs = client_outputs
-        self.lwr_outputs = lwr_outputs
+        self.pulsar_outputs = pulsar_outputs
         self.downloaded_working_directory_files = []
         self.exception_tracker = DownloadExceptionTracker()
         self.output_files = client_outputs.output_files
-        self.working_directory_contents = lwr_outputs.working_directory_contents or []
+        self.working_directory_contents = pulsar_outputs.working_directory_contents or []
 
     def collect(self):
         self.__collect_working_directory_outputs()
@@ -76,9 +76,9 @@ class ResultsCollector(object):
         # Fetch explicit working directory outputs.
         for source_file, output_file in self.client_outputs.work_dir_outputs:
             name = relpath(source_file, working_directory)
-            lwr_name = self.lwr_outputs.path_helper.remote_name(name)
-            if self._attempt_collect_output('output_workdir', path=output_file, name=lwr_name):
-                self.downloaded_working_directory_files.append(lwr_name)
+            pulsar = self.pulsar_outputs.path_helper.remote_name(name)
+            if self._attempt_collect_output('output_workdir', path=output_file, name=pulsar):
+                self.downloaded_working_directory_files.append(pulsar)
             # Remove from full output_files list so don't try to download directly.
             try:
                 self.output_files.remove(output_file)
@@ -90,18 +90,18 @@ class ResultsCollector(object):
         # expected outputs for tool.
         for output_file in self.output_files:
             # Fetch output directly...
-            output_generated = self.lwr_outputs.has_output_file(output_file)
+            output_generated = self.pulsar_outputs.has_output_file(output_file)
             if output_generated:
                 self._attempt_collect_output('output', output_file)
 
-            for galaxy_path, lwr_name in self.lwr_outputs.output_extras(output_file).iteritems():
-                self._attempt_collect_output('output', path=galaxy_path, name=lwr_name)
+            for galaxy_path, pulsar in self.pulsar_outputs.output_extras(output_file).iteritems():
+                self._attempt_collect_output('output', path=galaxy_path, name=pulsar)
             # else not output generated, do not attempt download.
 
     def __collect_version_file(self):
         version_file = self.client_outputs.version_file
-        lwr_output_directory_contents = self.lwr_outputs.output_directory_contents
-        if version_file and COMMAND_VERSION_FILENAME in lwr_output_directory_contents:
+        pulsar_output_directory_contents = self.pulsar_outputs.output_directory_contents
+        if version_file and COMMAND_VERSION_FILENAME in pulsar_output_directory_contents:
             self._attempt_collect_output('output', version_file, name=COMMAND_VERSION_FILENAME)
 
     def __collect_other_working_directory_files(self):
@@ -111,7 +111,7 @@ class ResultsCollector(object):
             if name in self.downloaded_working_directory_files:
                 continue
             if COPY_FROM_WORKING_DIRECTORY_PATTERN.match(name):
-                output_file = join(working_directory, self.lwr_outputs.path_helper.local_name(name))
+                output_file = join(working_directory, self.pulsar_outputs.path_helper.local_name(name))
                 if self._attempt_collect_output(output_type='output_workdir', path=output_file, name=name):
                     self.downloaded_working_directory_files.append(name)
 

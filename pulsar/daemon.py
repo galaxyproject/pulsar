@@ -39,9 +39,9 @@ log = logging.getLogger(__name__)
 
 LWR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-DEFAULT_PID = "lwr.pid"
+DEFAULT_PID = "pulsar.pid"
 DEFAULT_VERBOSE = True
-DESCRIPTION = "Daemonized entry point for LWR services."
+DESCRIPTION = "Daemonized entry point for Pulsar services."
 
 
 def load_pulsar_app(
@@ -194,7 +194,7 @@ def main():
     keep_fds = [fh.stream.fileno()]
 
     daemon = Daemonize(
-        app="lwr",
+        app="pulsar",
         pid=DEFAULT_PID,
         action=functools.partial(app_loop, args),
         verbose=DEFAULT_VERBOSE,

@@ -13,19 +13,19 @@ class PathMapperTestCase(TempDirectoryTestCase):
         local_path = os.path.join(os.path.dirname(self.temp_directory), "dataset1.dat")
         path_mapper = self._path_mapper(local_path, path_type.INPUT)
         new_path = path_mapper.remote_input_path_rewrite(local_path)
-        assert new_path == "/lwr/staging/1/inputs/dataset1.dat"
+        assert new_path == "/scratch/staging/1/inputs/dataset1.dat"
 
     def test_output(self):
         local_path = os.path.join(os.path.dirname(self.temp_directory), "dataset1.dat")
         path_mapper = self._path_mapper(local_path, path_type.OUTPUT)
         new_path = path_mapper.remote_output_path_rewrite(local_path)
-        assert new_path == "/lwr/staging/1/outputs/dataset1.dat"
+        assert new_path == "/scratch/staging/1/outputs/dataset1.dat"
 
     def test_output_workdir(self):
         local_path = os.path.join(self.temp_directory, "dataset1.dat")
         path_mapper = self._path_mapper(local_path, path_type.OUTPUT_WORKDIR)
         new_path = path_mapper.remote_output_path_rewrite(local_path)
-        assert new_path == "/lwr/staging/1/working/dataset1.dat"
+        assert new_path == "/scratch/staging/1/working/dataset1.dat"
 
     def test_input_with_no_staging(self):
         local_path = os.path.join(os.path.dirname(self.temp_directory), "dataset1.dat")
@@ -43,7 +43,7 @@ class PathMapperTestCase(TempDirectoryTestCase):
         local_path = os.path.join(os.path.dirname(self.temp_directory), "GALAXY_VERSION_234")
         path_mapper = self._path_mapper(local_path, path_type.OUTPUT)
         new_path = path_mapper.remote_version_path_rewrite(local_path)
-        assert new_path == "/lwr/staging/1/outputs/COMMAND_VERSION"
+        assert new_path == "/scratch/staging/1/outputs/COMMAND_VERSION"
 
     def _path_mapper(self, expected_path, expected_type, staging_needed=True):
         action_mapper = TestActionMapper(expected_path, expected_type, staging_needed)
@@ -57,11 +57,11 @@ class PathMapperTestCase(TempDirectoryTestCase):
 
     def __test_remote_config(self):
         return dict(
-            inputs_directory="/lwr/staging/1/inputs",
-            outputs_directory="/lwr/staging/1/outputs",
-            configs_directory="/lwr/staging/1/configs",
-            working_directory="/lwr/staging/1/working",
-            unstructured_files_directory="/lwr/staging/1/unstructured",
+            inputs_directory="/scratch/staging/1/inputs",
+            outputs_directory="/scratch/staging/1/outputs",
+            configs_directory="/scratch/staging/1/configs",
+            working_directory="/scratch/staging/1/working",
+            unstructured_files_directory="/scratch/staging/1/unstructured",
             system_properties=dict(separator="/"),
         )
 

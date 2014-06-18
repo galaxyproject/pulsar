@@ -3,8 +3,8 @@ from .decorators import parseJson
 
 class ObjectStoreClient(object):
 
-    def __init__(self, lwr_interface):
-        self.lwr_interface = lwr_interface
+    def __init__(self, pulsar_interface):
+        self.pulsar_interface = pulsar_interface
 
     @parseJson()
     def exists(self, **kwds):
@@ -50,4 +50,4 @@ class ObjectStoreClient(object):
         return kwds
 
     def _raw_execute(self, command, args={}):
-        return self.lwr_interface.execute(command, args, data=None, input_path=None, output_path=None)
+        return self.pulsar_interface.execute(command, args, data=None, input_path=None, output_path=None)

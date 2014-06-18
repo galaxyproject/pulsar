@@ -60,10 +60,10 @@ DEFAULT_ID_ASSIGNER = "galaxy"
 
 ID_ASSIGNER = {
     # Generate a random id, needed if multiple
-    # Galaxy instances submitting to same LWR.
+    # Galaxy instances submitting to same Pulsar.
     'uuid': lambda galaxy_job_id: uuid4().hex,
     # Pass galaxy id through, default for single
-    # Galaxy LWR instance.
+    # Galaxy Pulsar instance.
     'galaxy': lambda galaxy_job_id: galaxy_job_id
 }
 
@@ -322,11 +322,11 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
     """
 
     >>> import ntpath
-    >>> get_mapped_file(r'C:\\lwr\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
-    'C:\\\\lwr\\\\staging\\\\101\\\\dataset_1_files\\\\moo\\\\cow'
-    >>> get_mapped_file(r'C:\\lwr\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=False, local_path_module=ntpath)
-    'C:\\\\lwr\\\\staging\\\\101\\\\cow'
-    >>> get_mapped_file(r'C:\\lwr\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
+    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
+    'C:\\\\pulsar\\\\staging\\\\101\\\\dataset_1_files\\\\moo\\\\cow'
+    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=False, local_path_module=ntpath)
+    'C:\\\\pulsar\\\\staging\\\\101\\\\cow'
+    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
     Traceback (most recent call last):
     Exception: Attempt to read or write file outside an authorized directory.
     """

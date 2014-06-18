@@ -19,7 +19,7 @@ class LwrObjectStoreTest(TempDirectoryTestCase):
         return path
 
     def test_lwr_objectstore(self):
-        # Define real object store used by LWR server.
+        # Define real object store used by Pulsar server.
         object_store_config_file = join(self.temp_directory, "object_store_conf.xml")
         with open(object_store_config_file, "w") as configf:
             config_template = Template("""<?xml version="1.0"?>
@@ -39,7 +39,7 @@ class LwrObjectStoreTest(TempDirectoryTestCase):
         from .test_utils import test_pulsar_server
         with test_pulsar_server(app_conf=app_conf) as server:
             url = server.application_url
-            # Define a proxy LWR object store.
+            # Define a proxy Pulsar object store.
             proxy_object_store_config_file = join(self.temp_directory, "proxy_object_store_conf.xml")
             with open(proxy_object_store_config_file, "w") as configf:
                 config_template = Template("""<?xml version="1.0"?>

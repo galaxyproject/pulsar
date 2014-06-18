@@ -33,8 +33,8 @@ class TestStager(TempDirectoryTestCase):
             rewrite_paths=False,
         )
         self.job_config = dict(
-            working_directory="/lwr/staging/1/working",
-            outputs_directory="/lwr/staging/1/outputs",
+            working_directory="/pulsar/staging/1/working",
+            outputs_directory="/pulsar/staging/1/outputs",
             system_properties=dict(
                 separator="\\",
             ),
@@ -55,8 +55,8 @@ class TestStager(TempDirectoryTestCase):
         tool_dir = os.path.abspath(self.tool.tool_dir)
         command_line = "python %s/tool1_wrapper.py" % tool_dir
         self.client_job_description.command_line = command_line
-        rewritten_command_line = "python /lwr/staging/1/tools/tool1_wrapper.py"
-        self.client.expect_put_paths(["/lwr/staging/1/tools/tool1_wrapper.py"])
+        rewritten_command_line = "python /pulsar/staging/1/tools/tool1_wrapper.py"
+        self.client.expect_put_paths(["/pulsar/staging/1/tools/tool1_wrapper.py"])
         self.client.expect_command_line(rewritten_command_line)
         self._submit()
         uploaded_file1 = self.client.put_files[0]
@@ -70,8 +70,8 @@ class TestStager(TempDirectoryTestCase):
         open(extra_file, "w").write("Hello World!")
         command_line = "test.exe %s" % extra_file
         self.client_job_description.command_line = command_line
-        self.client.expect_command_line("test.exe /lwr/staging/1/inputs/dataset_1_files/moo/cow.txt")
-        self.client.expect_put_paths(["/lwr/staging/1/inputs/dataset_1_files/moo/cow.txt"])
+        self.client.expect_command_line("test.exe /pulsar/staging/1/inputs/dataset_1_files/moo/cow.txt")
+        self.client.expect_put_paths(["/pulsar/staging/1/inputs/dataset_1_files/moo/cow.txt"])
         self._submit()
         uploaded_file1 = self.client.put_files[0]
         assert uploaded_file1[1] == "input"
@@ -86,8 +86,8 @@ class TestStager(TempDirectoryTestCase):
         open(local_unstructured_file, "wb").write(b"Hello World!")
         command_line = "foo.exe %s" % local_unstructured_file
         self.client_job_description.command_line = command_line
-        self.client.expect_put_paths(["/lwr/staging/1/other/A_RANDOM_FILE"])
-        self.client.expect_command_line("foo.exe /lwr/staging/1/other/A_RANDOM_FILE")
+        self.client.expect_put_paths(["/pulsar/staging/1/other/A_RANDOM_FILE"])
+        self.client.expect_command_line("foo.exe /pulsar/staging/1/other/A_RANDOM_FILE")
         self._submit()
         uploaded_file1 = self.client.put_files[0]
         assert uploaded_file1[1] == "unstructured"
@@ -107,8 +107,8 @@ class TestStager(TempDirectoryTestCase):
         command_line_template = "run_test.exe --input1=%s --input2=%s"
         self.client_job_description.command_line = command_line_template % (self.input1, self.input2)
         rewritten_paths = (
-            '/lwr/staging/1/inputs/dataset_1.dat',
-            '/lwr/staging/1/inputs/dataset_2.dat',
+            '/pulsar/staging/1/inputs/dataset_1.dat',
+            '/pulsar/staging/1/inputs/dataset_2.dat',
         )
         self.client.expect_command_line(command_line_template % rewritten_paths)
         self._submit()
@@ -138,8 +138,8 @@ class MockClient(object):
         self.job_id = "1234"
         self.expected_command_line = None
         self.expect_put_paths([
-            '/lwr/staging/1/inputs/dataset_1.dat',
-            '/lwr/staging/1/inputs/dataset_2.dat',
+            '/pulsar/staging/1/inputs/dataset_1.dat',
+            '/pulsar/staging/1/inputs/dataset_2.dat',
         ])
         self.put_files = []
 

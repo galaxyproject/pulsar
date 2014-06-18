@@ -2,7 +2,7 @@ from string import Template
 
 from .directory import DirectoryBaseManager
 
-DEFAULT_JOB_NAME_TEMPLATE = "lwr_$job_id"
+DEFAULT_JOB_NAME_TEMPLATE = "pulsar_$job_id"
 JOB_FILE_EXTERNAL_ID = "external_id"
 
 import logging

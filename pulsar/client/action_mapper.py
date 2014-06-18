@@ -339,12 +339,12 @@ class RemoteCopyAction(BaseAction):
     def write_to_path(self, path):
         galaxy.util.copy_to_path(open(self.path, "rb"), path)
 
-    def write_from_path(self, lwr_path):
+    def write_from_path(self, pulsar_path):
         destination = self.path
         parent_directory = dirname(destination)
         if not exists(parent_directory):
             makedirs(parent_directory)
-        with open(lwr_path, "rb") as f:
+        with open(pulsar_path, "rb") as f:
             galaxy.util.copy_to_path(f, destination)
 
 
@@ -371,8 +371,8 @@ class RemoteTransferAction(BaseAction):
     def write_to_path(self, path):
         get_file(self.url, path)
 
-    def write_from_path(self, lwr_path):
-        post_file(self.url, lwr_path)
+    def write_from_path(self, pulsar_path):
+        post_file(self.url, pulsar_path)
 
 
 class MessageAction(object):

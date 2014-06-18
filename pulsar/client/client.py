@@ -163,9 +163,9 @@ class JobClient(BaseJobClient):
         if action_type == 'transfer':
             return self._upload_file(args, contents, input_path)
         elif action_type == 'copy':
-            lwr_path = self._raw_execute('path', args)
-            copy(path, lwr_path)
-            return {'path': lwr_path}
+            pulsar_path = self._raw_execute('path', args)
+            copy(path, pulsar_path)
+            return {'path': pulsar_path}
 
     def fetch_output(self, path, name, working_directory, action_type, output_type):
         """
@@ -208,16 +208,16 @@ class JobClient(BaseJobClient):
         if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, path_type.OUTPUT_WORKDIR, output_path)
         else:  # Even if action is none - LWR has a different work_dir so this needs to be copied.
-            lwr_path = self._output_path(name, self.job_id, path_type.OUTPUT_WORKDIR)['path']
-            copy(lwr_path, output_path)
+            pulsar_path = self._output_path(name, self.job_id, path_type.OUTPUT_WORKDIR)['path']
+            copy(pulsar_path, output_path)
 
     def __populate_output_path(self, name, output_path, action_type):
         ensure_directory(output_path)
         if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, path_type.OUTPUT, output_path)
         elif action_type == 'copy':
-            lwr_path = self._output_path(name, self.job_id, path_type.OUTPUT)['path']
-            copy(lwr_path, output_path)
+            pulsar_path = self._output_path(name, self.job_id, path_type.OUTPUT)['path']
+            copy(pulsar_path, output_path)
 
     @parseJson()
     def _upload_file(self, args, contents, input_path):
@@ -304,7 +304,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
 
     def __init__(self, destination_params, job_id, client_manager, shell):
         super(MessageCLIJobClient, self).__init__(destination_params, job_id, client_manager)
-        self.remote_lwr_path = destination_params["remote_lwr_path"]
+        self.remote_pulsar_path = destination_params["remote_pulsar_path"]
         self.shell = shell
 
     def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None):
@@ -318,7 +318,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
             job_config=job_config
         )
         base64_message = to_base64_json(launch_params)
-        submit_command = os.path.join(self.remote_lwr_path, "scripts", "submit.bash")
+        submit_command = os.path.join(self.remote_pulsar_path, "scripts", "submit.bash")
         # TODO: Allow configuration of manager, app, and ini path...
         self.shell.execute("nohup %s --base64 %s &" % (submit_command, base64_message))
 

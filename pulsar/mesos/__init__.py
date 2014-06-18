@@ -3,7 +3,7 @@
 :mod:`pulsar.mesos.framework` Module
 -------------------------------
 
-.. automodule:: lwr.mesos.framework
+.. automodule:: pulsar.mesos.framework
     :members:
     :undoc-members:
     :show-inheritance:

@@ -27,9 +27,9 @@ def __collect_outputs(job_directory, staging_config):
     if "action_mapper" in staging_config:
         file_action_mapper = action_mapper.FileActionMapper(config=staging_config["action_mapper"])
         client_outputs = staging.ClientOutputs.from_dict(staging_config["client_outputs"])
-        lwr_outputs = __lwr_outputs(job_directory)
+        pulsar_outputs = __pulsar_outputs(job_directory)
         output_collector = LwrServerOutputCollector(job_directory)
-        results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, lwr_outputs)
+        results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, pulsar_outputs)
         collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
             log.warn("Failures collecting results %s" % collection_failure_exceptions)
@@ -53,11 +53,11 @@ class LwrServerOutputCollector(object):
             # remote_transfer action for Windows?
             name = os.path.basename(action.path)
 
-        lwr_path = self.job_directory.calculate_path(name, output_type)
-        action.write_from_path(lwr_path)
+        pulsar_path = self.job_directory.calculate_path(name, output_type)
+        action.write_from_path(pulsar_path)
 
 
-def __lwr_outputs(job_directory):
+def __pulsar_outputs(job_directory):
     working_directory_contents = job_directory.working_directory_contents()
     output_directory_contents = job_directory.outputs_directory_contents()
     return LwrOutputs(

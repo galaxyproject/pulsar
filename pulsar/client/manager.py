@@ -99,7 +99,7 @@ class MessageQueueClientManager(object):
                     if "job_id" in body:
                         job_id = body["job_id"]
                         self.status_cache[job_id] = body
-                    log.debug("Handling asynchronous status update from remote LWR.")
+                    log.debug("Handling asynchronous status update from remote Pulsar.")
                     callback(body)
                 except Exception:
                     log.exception("Failure processing job status update message.")
@@ -110,10 +110,10 @@ class MessageQueueClientManager(object):
 
             def run():
                 self.exchange.consume("status_update", callback_wrapper, check=self)
-                log.debug("Leaving LWR client status update thread, no additional LWR updates will be processed.")
+                log.debug("Leaving Pulsar client status update thread, no additional Pulsar updates will be processed.")
 
             thread = threading.Thread(
-                name="lwr_client_%s_status_update_callback" % self.manager_name,
+                name="pulsar_client_%s_status_update_callback" % self.manager_name,
                 target=run
             )
             thread.daemon = False  # Lets not interrupt processing of this.

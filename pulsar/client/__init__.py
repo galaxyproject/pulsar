@@ -2,7 +2,7 @@
 pulsar client
 ======
 
-This module contains logic for interfacing with an external LWR server.
+This module contains logic for interfacing with an external Pulsar server.
 
 ------------------
 Configuring Galaxy
@@ -11,27 +11,27 @@ Configuring Galaxy
 Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. See ``job_conf.xml.sample_advanced``
 in your Galaxy code base or on
 `Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
-for information on how to configure Galaxy to interact with the LWR.
+for information on how to configure Galaxy to interact with the Pulsar.
 
 Galaxy also supports an older, less rich configuration of job runners directly
 in its main ``universe_wsgi.ini`` file. The following section describes how to
-configure Galaxy to communicate with the LWR in this legacy mode.
+configure Galaxy to communicate with the Pulsar in this legacy mode.
 
 Legacy
 ------
 
-A Galaxy tool can be configured to be executed remotely via LWR by
+A Galaxy tool can be configured to be executed remotely via Pulsar by
 adding a line to the ``universe_wsgi.ini`` file under the
 ``galaxy:tool_runners`` section with the format::
 
-    <tool_id> = lwr://http://<lwr_host>:<lwr_port>
+    <tool_id> = pulsar://http://<pulsar_host>:<pulsar_port>
 
-As an example, if a host named remotehost is running the LWR server
+As an example, if a host named remotehost is running the Pulsar server
 application on port ``8913``, then the tool with id ``test_tool`` can
 be configured to run remotely on remotehost by adding the following
 line to ``universe.ini``::
 
-    test_tool = lwr://http://remotehost:8913
+    test_tool = pulsar://http://remotehost:8913
 
 Remember this must be added after the ``[galaxy:tool_runners]`` header
 in the ``universe.ini`` file.

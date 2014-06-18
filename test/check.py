@@ -239,15 +239,15 @@ class Waiter(object):
         return final_status
 
 
-def __assert_contents(path, expected_contents, lwr_state):
+def __assert_contents(path, expected_contents, pulsar_state):
     if not os.path.exists(path):
-        raise AssertionError("File %s not created. Final LWR response state [%s]" % (path, lwr_state))
+        raise AssertionError("File %s not created. Final Pulsar response state [%s]" % (path, pulsar_state))
     file = open(path, 'r', encoding="utf-8")
     try:
         contents = file.read()
         if contents != expected_contents:
             message = "File (%s) contained invalid contents [%s]." % (path, contents)
-            message = "%s Expected contents [%s]. Final LWR response state [%s]" % (message, expected_contents, lwr_state)
+            message = "%s Expected contents [%s]. Final Pulsar response state [%s]" % (message, expected_contents, pulsar_state)
             raise AssertionError(message)
     finally:
         file.close()
@@ -341,7 +341,7 @@ def __extra_job_description_kwargs(options):
 
 
 def __finish(options, client, client_outputs, result_status):
-    lwr_outputs = LwrOutputs.from_status_response(result_status)
+    pulsar_outputs = LwrOutputs.from_status_response(result_status)
     cleanup_job = 'always'
     if not getattr(options, 'cleanup', True):
         cleanup_job = 'never'
@@ -350,7 +350,7 @@ def __finish(options, client, client_outputs, result_status):
         job_completed_normally=True,
         cleanup_job=cleanup_job,  # Default should 'always' if overridden via options.
         client_outputs=client_outputs,
-        lwr_outputs=lwr_outputs,
+        pulsar_outputs=pulsar_outputs,
     )
     failed = finish_job(**finish_args)
     if failed:
@@ -360,7 +360,7 @@ def __finish(options, client, client_outputs, result_status):
 
 
 def main():
-    """ Exercises a running lwr server application with the lwr client. """
+    """ Exercises a running Pulsar server application with the Pulsar client. """
     parser = optparse.OptionParser()
     parser.add_option('--url', dest='url', default='http://localhost:8913/')
     parser.add_option('--private_token', default=None)

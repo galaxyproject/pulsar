@@ -23,7 +23,7 @@ TYPES_TO_METHOD = dict(
 
 
 class RemoteJobDirectory(object):
-    """ Representation of a (potentially) remote LWR-style staging directory.
+    """ Representation of a (potentially) remote Pulsar-style staging directory.
     """
 
     def __init__(self, remote_staging_directory, remote_id, remote_sep):
@@ -60,7 +60,7 @@ class RemoteJobDirectory(object):
         return self.path_helper.separator
 
     def calculate_path(self, remote_relative_path, input_type):
-        """ Only for used by LWR client, should override for managers to
+        """ Only for used by Pulsar client, should override for managers to
         enforce security and make the directory if needed.
         """
         directory, allow_nested_files = self._directory_for_file_type(input_type)
@@ -86,11 +86,11 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
     """
 
     >>> import ntpath
-    >>> get_mapped_file(r'C:\\lwr\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
-    'C:\\\\lwr\\\\staging\\\\101\\\\dataset_1_files\\\\moo\\\\cow'
-    >>> get_mapped_file(r'C:\\lwr\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=False, local_path_module=ntpath)
-    'C:\\\\lwr\\\\staging\\\\101\\\\cow'
-    >>> get_mapped_file(r'C:\\lwr\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
+    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
+    'C:\\\\pulsar\\\\staging\\\\101\\\\dataset_1_files\\\\moo\\\\cow'
+    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=False, local_path_module=ntpath)
+    'C:\\\\pulsar\\\\staging\\\\101\\\\cow'
+    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
     Traceback (most recent call last):
     Exception: Attempt to read or write file outside an authorized directory.
     """
