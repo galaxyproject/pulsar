@@ -58,7 +58,7 @@ def clean(manager, job_id):
 
 
 @LwrController()
-def launch(manager, job_id, command_line, params='{}', dependencies_description='null', setup_params='{}', remote_staging='[]', env='[]'):
+def submit(manager, job_id, command_line, params='{}', dependencies_description='null', setup_params='{}', remote_staging='[]', env='[]'):
     submit_params = loads(params)
     setup_params = loads(setup_params)
     dependencies_description = loads(dependencies_description)
@@ -76,88 +76,20 @@ def launch(manager, job_id, command_line, params='{}', dependencies_description=
     submit_job(manager, submit_config)
 
 
-@LwrController(response_type='json')
-def check_complete(manager, job_id):
+@LwrController(path="/jobs/{job_id}/status", method="GET", response_type='json')
+def status(manager, job_id):
     status = manager.get_status(job_id)
     return full_status(manager, status, job_id)
 
 
-@LwrController()
-def kill(manager, job_id):
+@LwrController(path="/jobs/{job_id}/cancel", method="PUT")
+def cancel(manager, job_id):
     manager.kill(job_id)
 
 
-# Following routes allow older clients to talk to new LWR, should be considered
-# deprecated in favor of generic upload_file route.
-@LwrController(response_type='json')
-def upload_tool_file(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_path(name, 'tool')
-    return _handle_upload(
-        file_cache,
-        path,
-        body,
-        cache_token=cache_token
-    )
-
-
-@LwrController(response_type='json')
-def upload_input(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_path(name, 'input')
-    return _handle_upload(
-        file_cache,
-        path,
-        body,
-        cache_token=cache_token
-    )
-
-
-@LwrController(response_type='json')
-def upload_extra_input(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_path(name, 'input')
-    return _handle_upload(
-        file_cache,
-        path,
-        body,
-        cache_token=cache_token
-    )
-
-
-@LwrController(response_type='json')
-def upload_config_file(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_path(name, 'config')
-    return _handle_upload(
-        file_cache,
-        path,
-        body,
-        cache_token=cache_token,
-    )
-
-
-@LwrController(response_type='json')
-def upload_working_directory_file(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_path(name, 'workdir')
-    return _handle_upload(
-        file_cache,
-        path,
-        body,
-        cache_token=cache_token,
-    )
-
-
-@LwrController(response_type='json')
-def upload_unstructured_file(manager, file_cache, job_id, name, body, cache_token=None):
-    path = manager.job_directory(job_id).calculate_path(name, 'unstructured')
-    return _handle_upload(
-        file_cache,
-        path,
-        body,
-        cache_token=cache_token,
-    )
-
-
-@LwrController(response_type='json')
+@LwrController(path="/jobs/{job_id}/files", method="POST", response_type='json')
 def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
-    # Input type should be one of input, config, workdir, tool, or unstructured.
+    # Input type should be one of input, config, workdir, tool, or unstructured (see action_mapper.path_type)
     path = manager.job_directory(job_id).calculate_path(name, input_type)
     return _handle_upload(file_cache, path, body, cache_token=cache_token)
 

@@ -111,7 +111,7 @@ class JobClient(BaseJobClient):
             # before queueing.
             setup_params = _setup_params_from_job_config(job_config)
             launch_params["setup_params"] = dumps(setup_params)
-        return self._raw_execute("launch", launch_params)
+        return self._raw_execute("submit", launch_params)
 
     def full_status(self):
         """ Return a dictionary summarizing final state of job.
@@ -122,7 +122,7 @@ class JobClient(BaseJobClient):
         """
         Cancel remote job, either removing from the queue or killing it.
         """
-        return self._raw_execute("kill", {"job_id": self.job_id})
+        return self._raw_execute("cancel", {"job_id": self.job_id})
 
     @retry()
     @parseJson()
@@ -130,7 +130,7 @@ class JobClient(BaseJobClient):
         """
         Get check_complete response from the remote server.
         """
-        check_complete_response = self._raw_execute("check_complete", {"job_id": self.job_id})
+        check_complete_response = self._raw_execute("status", {"job_id": self.job_id})
         return check_complete_response
 
     def get_status(self):
@@ -138,12 +138,6 @@ class JobClient(BaseJobClient):
         # Older LWR instances won't set status so use 'complete', at some
         # point drop backward compatibility.
         status = check_complete_response.get("status", None)
-        if status in ["status", None]:
-            # LEGACY: Bug in certains older LWR instances returned literal
-            # "status".
-            complete = check_complete_response["complete"] == "true"
-            old_status = "complete" if complete else "running"
-            status = old_status
         return status
 
     def clean(self):
@@ -192,33 +186,15 @@ class JobClient(BaseJobClient):
             used if targetting an older LWR server that didn't return statuses
             allowing this to be inferred.
         """
-        if output_type == 'legacy':
-            self._fetch_output_legacy(path, working_directory, action_type=action_type)
-        elif output_type == 'output_workdir':
+        if output_type == 'output_workdir':
             self._fetch_work_dir_output(name, working_directory, path, action_type=action_type)
         elif output_type == 'output':
             self._fetch_output(path=path, name=name, action_type=action_type)
         else:
             raise Exception("Unknown output_type %s" % output_type)
-
+ 
     def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
         return self.job_manager_interface.execute(command, args, data, input_path, output_path)
-
-    # Deprecated
-    def _fetch_output_legacy(self, path, working_directory, action_type='transfer'):
-        # Needs to determine if output is task/working directory or standard.
-        name = os.path.basename(path)
-
-        output_type = self._get_output_type(name)
-        if output_type == "none":
-            # Just make sure the file was created.
-            if not os.path.exists(path):
-                raise OutputNotFoundException(path)
-            return
-        elif output_type in ["task"]:
-            path = os.path.join(working_directory, name)
-
-        self.__populate_output_path(name, path, output_type, action_type)
 
     def _fetch_output(self, path, name=None, check_exists_remotely=False, action_type='transfer'):
         if not name:
@@ -249,26 +225,7 @@ class JobClient(BaseJobClient):
         return self._raw_execute(self._upload_file_action(args), args, contents, input_path)
 
     def _upload_file_action(self, args):
-        # Hack for backward compatibility, instead of using new upload_file
-        # path. Use old paths.
-        input_type = args['input_type']
-        action = {
-            # For backward compatibility just target upload_input_extra for all
-            # inputs, it allows nested inputs. Want to do away with distinction
-            # inputs and extra inputs.
-            'input': 'upload_extra_input',
-            'config': 'upload_config_file',
-            'workdir': 'upload_working_directory_file',
-            'tool': 'upload_tool_file',
-            'unstructured': 'upload_unstructured_file',
-        }[input_type]
-        del args['input_type']
-        return action
-
-    @parseJson()
-    def _get_output_type(self, name):
-        return self._raw_execute("get_output_type", {"name": name,
-                                                     "job_id": self.job_id})
+        return "upload_file"
 
     @parseJson()
     def _output_path(self, name, job_id, output_type):

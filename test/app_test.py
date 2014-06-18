@@ -21,7 +21,7 @@ def test_standard_requests():
         job_id = setup_config["job_id"]
 
         def test_upload(upload_type):
-            url = "/upload_%s?job_id=%s&name=input1" % (upload_type, job_id)
+            url = "/upload_file?job_id=%s&name=input1&input_type=%s" % (job_id, upload_type)
             upload_input_response = app.post(url, "Test Contents")
             upload_input_config = json.loads(upload_input_response.body)
             staged_input_path = upload_input_config["path"]
@@ -31,7 +31,7 @@ def test_standard_requests():
             finally:
                 staged_input.close()
         test_upload("input")
-        test_upload("tool_file")
+        test_upload("tool")
 
         test_output = open(os.path.join(outputs_directory, "test_output"), "w")
         try:
@@ -48,21 +48,21 @@ def test_standard_requests():
             pass
 
         command_line = urllib.quote("""python -c "import sys; sys.stdout.write('test_out')" """)
-        launch_response = app.get("/launch?job_id=%s&command_line=%s" % (job_id, command_line))
+        launch_response = app.get("/submit?job_id=%s&command_line=%s" % (job_id, command_line))
         assert launch_response.body == 'OK'
 
         # Hack: Call twice to ensure postprocessing occurs and has time to
         # complete. Monitor thread should get this.
         time.sleep(.2)
-        check_response = app.get("/check_complete?job_id=%s" % job_id)
+        check_response = app.get("/status?job_id=%s" % job_id)
         time.sleep(.2)
-        check_response = app.get("/check_complete?job_id=%s" % job_id)
+        check_response = app.get("/status?job_id=%s" % job_id)
         check_config = json.loads(check_response.body)
         assert check_config['returncode'] == 0
         assert check_config['stdout'] == "test_out"
         assert check_config['stderr'] == ""
 
-        kill_response = app.get("/kill?job_id=%s" % job_id)
+        kill_response = app.get("/cancel?job_id=%s" % job_id)
         assert kill_response.body == 'OK'
 
         clean_response = app.get("/clean?job_id=%s" % job_id)

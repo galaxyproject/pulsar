@@ -91,9 +91,7 @@ class ResultsCollector(object):
         for output_file in self.output_files:
             # Fetch output directly...
             output_generated = self.lwr_outputs.has_output_file(output_file)
-            if output_generated is None:
-                self._attempt_collect_output('legacy', output_file)
-            elif output_generated:
+            if output_generated:
                 self._attempt_collect_output('output', output_file)
 
             for galaxy_path, lwr_name in self.lwr_outputs.output_extras(output_file).iteritems():
@@ -102,8 +100,7 @@ class ResultsCollector(object):
 
     def __collect_version_file(self):
         version_file = self.client_outputs.version_file
-        # output_directory_contents may be none for legacy LWR servers.
-        lwr_output_directory_contents = (self.lwr_outputs.output_directory_contents or [])
+        lwr_output_directory_contents = self.lwr_outputs.output_directory_contents
         if version_file and COMMAND_VERSION_FILENAME in lwr_output_directory_contents:
             self._attempt_collect_output('output', version_file, name=COMMAND_VERSION_FILENAME)
 
@@ -124,11 +121,7 @@ class ResultsCollector(object):
         # path.
         collected = False
         with self.exception_tracker():
-            # output_action_type cannot be 'legacy' but output_type may be
-            # eventually drop support for legacy mode (where type wasn't known)
-            # ahead of time.
-            output_action_type = 'output_workdir' if output_type == 'output_workdir' else 'output'
-            action = self.action_mapper.action(path, output_action_type)
+            action = self.action_mapper.action(path, output_type)
             if self._collect_output(output_type, action, name):
                 collected = True
 

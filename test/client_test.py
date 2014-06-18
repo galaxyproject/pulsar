@@ -119,7 +119,7 @@ def test_setup():
 def test_launch():
     """ Test the launch method of client. """
     client = TestClient()
-    request_checker = RequestChecker("launch", {"command_line": "python"})
+    request_checker = RequestChecker("submit", {"command_line": "python"})
     client.expect_open(request_checker, b'OK')
     client.launch("python")
     request_checker.assert_called()
@@ -133,10 +133,10 @@ def __test_upload(upload_type):
         temp_file.write("Hello World!")
     finally:
         temp_file.close()
-    request_checker = RequestChecker("upload_%s" % upload_type, {"name": os.path.basename(temp_file_path)}, b"Hello World!")
+    request_checker = RequestChecker("upload_file", {"name": os.path.basename(temp_file_path), "input_type": upload_type}, b"Hello World!")
     client.expect_open(request_checker, b'{"path" : "C:\\\\tools\\\\foo"}')
 
-    if(upload_type == 'tool_file'):
+    if upload_type == 'tool':
         upload_result = client.put_file(temp_file_path, 'tool')
     else:
         upload_result = client.put_file(temp_file_path, 'input')
@@ -146,11 +146,11 @@ def __test_upload(upload_type):
 
 
 def test_upload_tool():
-    __test_upload("tool_file")
+    __test_upload("tool")
 
 
 def test_upload_input():
-    __test_upload("extra_input")
+    __test_upload("input")
 
 
 def test_upload_config():
@@ -162,7 +162,7 @@ def test_upload_config():
     finally:
         temp_file.close()
     modified_contents = "Hello World! <Modified>"
-    request_checker = RequestChecker("upload_config_file", {"name": os.path.basename(temp_file_path)}, modified_contents)
+    request_checker = RequestChecker("upload_file", {"name": os.path.basename(temp_file_path), "input_type": "config"}, modified_contents)
     client.expect_open(request_checker, b'{"path" : "C:\\\\tools\\\\foo"}')
     upload_result = client.put_file(temp_file_path, 'config', contents=modified_contents)
     request_checker.assert_called()
@@ -185,42 +185,17 @@ def test_download_output():
         assert contents == "test output contents", "Unxpected contents %s" % contents
 
 
-def test_get_status_complete_legacy():
-    client = TestClient()
-    request_checker = RequestChecker("check_complete")
-    client.expect_open(request_checker, b'{"complete": "true", "stdout" : "output"}')
-    assert client.get_status() == "complete"
-    request_checker.assert_called()
-
-
-def test_get_status_running_legacy():
-    client = TestClient()
-    request_checker = RequestChecker("check_complete")
-    client.expect_open(request_checker, b'{"complete": "false"}')
-    assert client.get_status() == "running"
-    request_checker.assert_called()
-
-
 def test_get_status_queued():
     client = TestClient()
-    request_checker = RequestChecker("check_complete")
+    request_checker = RequestChecker("status")
     client.expect_open(request_checker, b'{"complete": "false", "status" : "queued"}')
     assert client.get_status() == "queued"
     request_checker.assert_called()
 
 
-def test_get_status_invalid():
-    client = TestClient()
-    request_checker = RequestChecker("check_complete")
-    # Mimic bug in specific older LWR instances.
-    client.expect_open(request_checker, b'{"complete": "false", "status" : "status"}')
-    assert client.get_status() == "running"
-    request_checker.assert_called()
-
-
 def test_kill():
     client = TestClient()
-    request_checker = RequestChecker("kill")
+    request_checker = RequestChecker("cancel")
     client.expect_open(request_checker, b'OK')
     client.kill()
     request_checker.assert_called()

@@ -132,8 +132,8 @@ class LwrOutputs(object):
     def from_status_response(complete_response):
         # Default to None instead of [] to distinguish between empty contents and it not set
         # by the LWR - older LWR instances will not set these in complete response.
-        working_directory_contents = complete_response.get("working_directory_contents", None)
-        output_directory_contents = complete_response.get("outputs_directory_contents", None)
+        working_directory_contents = complete_response.get("working_directory_contents")
+        output_directory_contents = complete_response.get("outputs_directory_contents")
         # Older (pre-2014) LWR servers will not include separator in response,
         # so this should only be used when reasoning about outputs in
         # subdirectories (which was not previously supported prior to that).
@@ -145,25 +145,12 @@ class LwrOutputs(object):
         )
 
     def has_output_file(self, output_file):
-        if self.output_directory_contents is None:
-            # Legacy LWR doesn't report this, return None indicating unsure if
-            # output was generated.
-            return None
-        else:
-            return basename(output_file) in self.output_directory_contents
-
-    def has_output_directory_listing(self):
-        return self.output_directory_contents is not None
+        return basename(output_file) in self.output_directory_contents
 
     def output_extras(self, output_file):
         """
         Returns dict mapping local path to remote name.
         """
-        if not self.has_output_directory_listing():
-            # Fetching $output.extra_files_path is not supported with legacy
-            # LWR (pre-2014) severs.
-            return {}
-
         output_directory = dirname(output_file)
 
         def local_path(name):

@@ -13,11 +13,9 @@ log = getLogger(__name__)
 
 TYPES_TO_METHOD = dict(
     input="inputs_directory",
-    input_extra="inputs_directory",
     unstructured="unstructured_files_directory",
     config="configs_directory",
     tool="tool_files_directory",
-    work_dir="working_directory",
     workdir="working_directory",
     output="outputs_directory",
     output_workdir="working_directory",
@@ -74,7 +72,7 @@ class RemoteJobDirectory(object):
         # Obviously this client won't be legacy because this is in the
         # client module, but this code is reused on server which may
         # serve legacy clients.
-        allow_nested_files = file_type in ['input', 'input_extra', 'unstructured', 'output', 'output_workdir']
+        allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir']
         directory_function = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
         if not directory_function:
             raise Exception("Unknown file_type specified %s" % file_type)
