@@ -1,6 +1,6 @@
-===
-LWR
-===
+======
+Pulsar
+======
 
 This project is a Python server application that allows a `Galaxy
 <http://galaxyproject.org>`_ server to run jobs on remote systems (including
@@ -10,32 +10,32 @@ to the remote system, the job is executed, and the result downloaded back to
 the Galaxy server.
 
 Full documentation for the project can be found on `Read The Docs
-<https://lwr.readthedocs.org/>`_.
+<https://pulsar.readthedocs.org/>`_.
 
 ------------------
 Configuring Galaxy
 ------------------
 
-Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small examples of how to configure this can be found `here <https://lwr.readthedocs.org/en/latest/#galaxy-configuration-examples>`_, but be sure to checkout ``job_conf.xml.sample_advanced``
+Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small examples of how to configure this can be found `here <https://pulsar.readthedocs.org/en/latest/#galaxy-configuration-examples>`_, but be sure to checkout ``job_conf.xml.sample_advanced``
 in your Galaxy code base or on
 `Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
 for complete information.
 
----------------
-Downloading LWR
----------------
+------------------
+Downloading Pulsar
+------------------
 
-The LWR server application is distributed as a Python project and can
+The Pulsar server application is distributed as a Python project and can
 be obtained via mercurial from bitbucket.org using the following
 command::
 
     hg clone http://bitbucket.org/jmchilton/lwr
 
-----------------
-LWR Dependencies
-----------------
+-------------------
+Pulsar Dependencies
+-------------------
 
-Several Python packages must be installed to run the LWR server. These can
+Several Python packages must be installed to run the Pulsar server. These can
 either be installed into a Python ``virtualenv`` or into your system wide
 Python environment using ``easy_install``. Instructions for both are outlined
 below. Additionally, if DRMAA is going to be used to communicate with a
@@ -44,7 +44,7 @@ cluster, this dependency must be installed as well - again see note below.
 virtualenv
 ----------
 
-The script ``setup_venv.sh`` distributed with the LWR server is a
+The script ``setup_venv.sh`` distributed with Pulsar is a
 short-cut for \*nix machines to setup a Python environment (including
 the installation of virtualenv). Full details for installation
 suitable for \*nix are as follows. These instructions can work for Windows
@@ -88,7 +88,7 @@ packages via ``easy_install``::
 DRMAA
 -----
 
-If your LWR instance is going to communicate with a cluster via DRMAA, in
+If your Pulsar instance is going to communicate with a cluster via DRMAA, in
 addition to the above dependencies, a DRMAA library will need to be installed
 and the python dependency drmaa will need to be installed as well.::
 
@@ -98,15 +98,14 @@ or::
 
     easy_install drmaa
 
-----------------------------------
-Running the LWR Server Application
-----------------------------------
+--------------
+Running Pulsar
+--------------
 
 \*nix Instructions
 ------------------
 
-The LWR can be started and stopped via the ``run.sh`` script distributed with
-the LWR.::
+Pulsar can be started and stopped via the ``run.sh`` script distributed with the project.::
 
     ./run.sh --daemon
     ./run.sh --stop-daemon
@@ -125,7 +124,7 @@ Alternative Cross Platform Instructions (Windows and \*nix)
 
 The ``paster`` command line application will be installed as part of the
 previous dependency installation process. This application can be used to
-start and stop a paste web server running the LWR. This can be done by
+start and stop a paste web server running the Pulsar. This can be done by
 executing the following command::
 
 The server may be ran as a daemon via the command::
@@ -136,19 +135,19 @@ When running as daemon, the server may be stopped with the following command::
 
     paster serve server.ini --stop-daemon
 
-If you setup a virtual environment for the LWR you will need
+If you setup a virtual environment for the Pulsar you will need
 to activate this before executing these commands.
 
---------------------------------------
-Configuring the LWR Server Application
---------------------------------------
+------------------
+Configuring Pulsar
+------------------
 
-Rename the ``server.ini.sample`` file distributed with LWR to ``server.ini``,
+Rename the ``server.ini.sample`` file distributed with Pulsar to ``server.ini``,
 and edit the values therein to configure the server
 application. Default values are specified for all configuration
-options that will work if LWR is running on the same host as
+options that will work if Pulsar is running on the same host as
 Galaxy. However, the parameter "host" must be specified for remote
-submissions to the LWR server to run properly. The ``server.ini`` file
+submissions to the Pulsar server to run properly. The ``server.ini`` file
 contains documentation for many configuration parameters you may want
 to modify.
 
@@ -157,18 +156,18 @@ Some advanced configuration topics are discussed below.
 Security
 --------
 
-Out of the box the LWR essentially allows anyone with network access
-to the LWR server to execute arbitrary code and read and write any
+Out of the box the Pulsar essentially allows anyone with network access
+to the Pulsar server to execute arbitrary code and read and write any
 files the web server can. Hence, in most settings steps should be
-taken to secure the LWR server.
+taken to secure the Pulsar server.
 
-LWR Web Server
-``````````````
+Pulsar Web Server
+`````````````````
 
-The LWR web server can be configured to use SSL and to require the client
+The Pulsar web server can be configured to use SSL and to require the client
 (i.e. Galaxy) to pass along a private token authorizing use.
 
-``pyOpenSSL`` is required to configure an LWR web server to server content via
+``pyOpenSSL`` is required to configure a Pulsar web server to server content via
 HTTPS/SSL. This dependency can be difficult to install and seems to be getting
 more difficult. Under Linux you will want to ensure the needed dependencies to
 compile pyOpenSSL are available - for instance in a fresh Ubuntu image you
@@ -209,12 +208,12 @@ Once SSL has been enabled and a private token configured, Galaxy job
 destinations should include a ``private_token`` parameter to authenticate
 these jobs.
 
-LWR Message Queue
-`````````````````
+Pulsar Message Queue
+````````````````````
 
-If LWR is processing Galaxy requests via a message queue instead of a web
-server the underlying security mechanisms of the message queue should be used
-to secure the LWR communication - configuring SSL with the LWR and a
+If Pulsar is processing requests via a message queue instead of a web server
+the underlying security mechanisms of the message queue should be used to
+secure the LWR communication - configuring SSL with the LWR and a
 ``private_token`` above are not required.
 
 This will likely consist of setting some combination of
@@ -225,27 +224,27 @@ documentation
 <http://kombu.readthedocs.org/en/latest/reference/kombu.connection.html>`_ for
 even more information.
 
-Customizing the LWR Environment
+Customizing the Pulsar Environment
 -------------------------------
 
-In more sophisticated deployments, the LWR's environment will need to be
+In more sophisticated deployments, the Pulsar's environment will need to be
 tweaked - for instance to define a ``DRMAA_LIBRARY_PATH`` environment variable
 for the ``drmaa`` Python module or to define the location to a find a location
 of Galaxy (via ``GALAXY_HOME``) if certain Galaxy tools require it or if
-Galaxy metadata is being set by the LWR. The recommend way to do this is to
+Galaxy metadata is being set by the Pulsar. The recommend way to do this is to
 copy ``local_env.sh.sample`` to ``local_env.sh`` and customize it.
 
 This file of deployment specific environment tweaks will be source by
-``run.sh`` if it exists as well as by other LWR scripts in more advanced usage
-scenarios.
+``run.sh`` if it exists as well as by other Pulsar scripts in more advanced
+usage scenarios.
 
 Job Managers (Queues)
 ---------------------
 
-By default the LWR will maintain its own queue of jobs. While ideal for simple
-deployments such as those targetting a single Windows instance, if the LWR is
-going to be used on more sophisticate clusters, it can be configured to
-maintain multiple such queues with different properties or to delegate to
+By default the Pulsar will maintain its own queue of jobs. While ideal for
+simple deployments such as those targetting a single Windows instance, if the
+Pulsar is going to be used on more sophisticate clusters, it can be configured
+to maintain multiple such queues with different properties or to delegate to
 external job queues (via DRMAA, qsub/qstat CLI commands, or Condor).
 
 For more information on configured external job managers, see 
@@ -266,12 +265,13 @@ configured to add the required Galaxy code a jobs ``PYTHON_PATH`` by setting
 Caching (Experimental)
 ----------------------
 
-LWR and its clients can be configured to cache job input files. For some
+Pulsar and its client can be configured to cache job input files. For some
 workflows this can result in a significant decrease in data transfer and
-greater throughput. On the LWR side - the property ``file_cache_dir`` in
-``server.ini`` must be set. See Galaxy's 
-`job_conf.xml <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
-for information on configuring the client.
+greater throughput. On the Pulsar server side - the property
+``file_cache_dir`` in ``server.ini`` must be set. See Galaxy's  `job_conf.xml
+<https://bitbucket.org/galaxy/galaxy-
+dist/src/tip/job_conf.xml.sample_advanced?at=default>`_ for information on
+configuring the client.
 
 More discussion on this can be found in `this galaxy-dev mailing list thread <http://dev.list.galaxyproject.org/Re-Missing-module-in-the-lwr-repository-tc4664474.html>`_
 and future plans and progress can be tracked on `this Trello card <https://trello.com/c/MPlt8DHJ>`_.
@@ -279,14 +279,14 @@ and future plans and progress can be tracked on `this Trello card <https://trell
 Message Queue (Experimental)
 ----------------------------
 
-Galaxy and the LWR can be configured to communicate via a message queue
-instead of an LWR web server. In this mode, the LWR will download files
+Galaxy and the Pulsar can be configured to communicate via a message queue
+instead of an Pulsar web server. In this mode, the Pulsar will download files
 from and upload files to Galaxy instead of the inverse - this may be very
-advantageous if the LWR needs to be deployed behind a firewall or if the
+advantageous if the Pulsar needs to be deployed behind a firewall or if the
 Galaxy server is already setup (via proxy web server) for large file
 transfers.
 
-To bind the LWR server to a message queue, one needs to first ensure the
+To bind the PUlsar server to a message queue, one needs to first ensure the
 ``kombu`` Python dependency is installed (``pip install kombu``). Once this
 available, simply set the ``message_queue_url`` property in ``server.ini`` to
 the correct URL of your configured `AMQP <http://en.wikipedia.org/wiki/AMQP>`_
@@ -305,7 +305,7 @@ Testing
 .. image:: https://coveralls.io/repos/jmchilton/lwr/badge.png?branch=master 
     :target: https://coveralls.io/r/jmchilton/lwr?branch=master
 
-A simple sanity test can be run against a running LWR server by
+A simple sanity test can be run against a running Pular server by
 executing the following command (replace the URL command with the URL
 of your running LWR application)::
 

@@ -3,7 +3,7 @@
 usage() {
 cat << EOF
 Usage: ${0##*/} [-i] /path/to/galaxy...
-Sync LWR client to with copy in specified Galaxy directory (or vice versa if -i).
+Sync Pulsar client to with copy in specified Galaxy directory (or vice versa if -i).
 
 EOF
 }

@@ -5,9 +5,9 @@ cat <<EOF
 Usage:
 
 ${0##*/} --daemon
-    Start LWR server as daemon process (paster or circus):
+    Start Pulsar server as daemon process (paster or circus):
 ${0##*/} --stop-daemon
-    Stop LWR daemon process (paster/chaussette) with circus use
+    Stop Pulsar daemon process (paster/chaussette) with circus use
     'circusctl quit'
 EOF
 }
@@ -40,7 +40,7 @@ do
     esac
 done
 
-# Ensure working directory is lwr project. 
+# Ensure working directory is pulsar project. 
 PROJECT_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $PROJECT_DIRECTORY
 
@@ -55,7 +55,7 @@ then
 fi
 
 # If TEST_GALAXY_LIBS is set, this script will attempt to verify
-# Galaxy is properly placed on the LWR's PYTHONPATH before starting
+# Galaxy is properly placed on the Pulsar's PYTHONPATH before starting
 # the server.
 if [ -n "$TEST_GALAXY_LIBS" ];
 then

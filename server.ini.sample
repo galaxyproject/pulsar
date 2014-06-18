@@ -32,29 +32,29 @@ staging_directory = files/staging
 #job_managers_config = job_managers.ini
 
 ## Comment out to disable persistent mappings (probably don't want do
-## do this). If user the LWR runs as cannot write to the LWR root
+## do this). If user the Pulsar runs as cannot write to the Pulsar root
 ## directory, this should be updated to point to some directory which
 ## it can write to.
 persistence_directory = files/persisted_data
 
 ## How are ids assigned. galaxy (default) just passes through ids as
 ## is. Setting this uuid assigns each job a UUID, this is strongly
-## encouraged if multiple Galaxy servers are targetting one LWR server.
+## encouraged if multiple Galaxy servers are targetting one Pulsar server.
 #assign_ids = uuid
 
-## LWR-equivalent of Galaxy's tool_dependency_dir. The default directory
+## Pulsar-equivalent of Galaxy's tool_dependency_dir. The default directory
 ## used by tool dependency resolves to find dependency scripts. Used
 ## if Galaxy configures remote dependency resolution.
 #tool_dependency_dir = dependencies
 
-## LWR-equivalent of Galaxy's tool_dependency_resolves_conf.
+## Pulsar-equivalent of Galaxy's tool_dependency_resolves_conf.
 # dependency_resolvers_config_file = dependency_resolvers_conf.xml
 
-## Comma separated list of paths to toolbox files. If this is set, LWR
+## Comma separated list of paths to toolbox files. If this is set, Pulsar
 ## will use the information contained in the tools to lock down what
-## the LWR can execute. This absolutely *SHOULD* be enabled if the LWR
+## the Pulsar can execute. This absolutely *SHOULD* be enabled if the Pulsar
 ## server is being opened to the world. See the documentation
-## (lwr.readthedocs.org) for more information about securing LWR.
+## (pulsar.readthedocs.org) for more information about securing Pulsar.
 #tool_config_files = toolbox/conf.xml
 
 ## Setup job metrics file. See Galaxy documentaiton for more
@@ -62,8 +62,8 @@ persistence_directory = files/persisted_data
 ## this will be used unless overridden by this option.
 #job_metrics_config_file = job_metrics_conf.xml
 
-## *Experimental*. Bind the LWR to an AMQP endpoint. Ensure kombu
-## Python library is available and start the LWR normally.
+## Bind the Pulsar to an AMQP endpoint. Ensure kombu
+## Python library is available and start the Pulsar normally.
 #message_queue_url = amqp://guest:guest@localhost:5672//
 
 ## The AMQP client can provide an SSL client certificate (e.g. for
@@ -103,7 +103,7 @@ pubsub_endpoint = tcp://127.0.0.1:5556
 [watcher:web]
 cmd = chaussette --fd $(circus.sockets.web) paste:server.ini
 use_sockets = True
-# LWR must be single-process for now...
+# Pulsar must be single-process for now...
 numprocesses = 1
 
 

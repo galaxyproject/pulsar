@@ -3,7 +3,7 @@
 usage() {
 cat << EOF
 Usage: ${0##*/} [-i] /path/to/galaxy...
-Sync LWR shared modules to those same modules in Galaxy directory (or vice versa if -i).
+Sync Pulsar shared modules to those same modules in Galaxy directory (or vice versa if -i).
 
 EOF
 }

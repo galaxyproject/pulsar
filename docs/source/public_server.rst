@@ -1,31 +1,31 @@
--------------------------------
-Configuring a Public LWR Server
--------------------------------
+----------------------------------
+Configuring a Public Pulsar Server
+----------------------------------
 
-An LWR server can be pointed at a Galaxy toolbox XML file and opened
-to the world. By default, an LWR is allowed to run anything Galaxy (or
+An Pulsar server can be pointed at a Galaxy toolbox XML file and opened
+to the world. By default, an Pulsar is allowed to run anything Galaxy (or
 other client) sends it. The toolbox and referenced tool files are used
-to restrict what what the LWR will run.
+to restrict what what the Pulsar will run.
 
 This can be sort of thought of as web services defined by Galaxy tool
 files - with all the advantages (dead simple configuration for
 clients, ability to hide details related date and computation) and
-disadvantages (lack of reproducibility if the LWR server goes away,
+disadvantages (lack of reproducibility if the Pulsar server goes away,
 potential lack of transparency).
 
-Securing a Public LWR
+Securing a Public Pulsar
 ---------------------
 
 The following options should be set in ``server.ini`` to configure a
-public `LWR` server.
+public `Pulsar` server.
 
-- ``assign_ids=uuid`` - By default the `LWR` will just the ids Galaxy
+- ``assign_ids=uuid`` - By default the `Pulsar` will just the ids Galaxy
   instances. Setting this setting to ``uuid`` will result in each job
   being assigned a UUID, ensuring different clients will not and
   cannot interfer with each other.
 
 - ``tool_config_files=/path/to/tools.xml`` - As noted above, this is used to
-  restrict what tools clients can run. All tools on public LWR servers
+  restrict what tools clients can run. All tools on public Pulsar servers
   should have validators for commands (and optionally for configfiles)
   defined. The syntax for these elements can be found in the
   `ValidatorTest <https://bitbucket.org/jmchilton/lwr/src/tip/test/validator_test.py>`_ test case.

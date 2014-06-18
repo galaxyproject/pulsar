@@ -4,7 +4,7 @@ type = queued_python
 max_concurrent_jobs=1
 
 ## Create a named queued (example) and run as many concurrent jobs as
-## server has cores. The Galaxy LWR url should have /managers/example 
+## server has cores. The Galaxy Pulsar url should have /managers/example 
 ## appended to it to use a named manager such as this.
 #[manager:example]
 #type=queued_python
@@ -62,18 +62,11 @@ max_concurrent_jobs=1
 #[manager:_default_]
 #type=queued_pbs
 
-## Disable server-side LWR queuing (suitable for older style LWR use
-## when queues were maintained in Galaxy.) Deprecated, will be removed
-## at some point soon.
-#[manager:_default_]
-#type=unqueued
-
-
 ## MQ-Options:
-## If using a message queue the LWR will actively monitor status of jobs
+## If using a message queue the Pulsar will actively monitor status of jobs
 ## in order to issue status update messages. The following options are
 ## then available to any managers.
 
 ## Minimum seconds between polling intervals (increase to reduce resources
-## consumed by the LWR).
+## consumed by the Pulsar).
 #min_polling_interval = 0.5 
