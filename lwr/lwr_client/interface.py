@@ -1,5 +1,7 @@
 from abc import ABCMeta
 from abc import abstractmethod
+from string import Template
+
 try:
     from StringIO import StringIO as BytesIO
 except ImportError:
@@ -32,6 +34,34 @@ class LwrInteface(object):
         """
 
 
+COMMAND_TO_PATH = {
+    "file_available": Template("cache/status"),
+    "cache_required": Template("cache"),
+    "cache_insert": Template("cache"),
+
+    "object_store_exists": Template("objects/${object_id}/exists"),
+    "object_store_file_ready": Template("objects/${object_id}/file_ready"),
+    "object_store_update_from_file": Template("objects/${object_id}"),
+    "object_store_create": Template("objects/${object_id}"),
+    "object_store_empty": Template("objects/${object_id}/empty"),
+    "object_store_size": Template("objects/${object_id}/size"),
+    "object_store_delete": Template("objects/${object_id}"),
+    "object_store_get_data": Template("objects/${object_id}"),
+    "object_store_get_filename": Template("objects/${object_id}/filename"),
+    "object_store_get_store_usage_percent": Template("object_store_usage_percent")
+}
+
+COMMAND_TO_METHOD = {
+    "object_store_update_from_file": "PUT",
+    "object_store_create": "POST",
+    "object_store_delete": "DELETE",
+
+    "file_available": "GET",
+    "cache_required": "PUT",
+    "cache_insert": "POST",
+}
+
+
 class HttpLwrInterface(LwrInteface):
 
     def __init__(self, destination_params, transport):
@@ -47,15 +77,17 @@ class HttpLwrInterface(LwrInteface):
 
     def execute(self, command, args={}, data=None, input_path=None, output_path=None):
         url = self.__build_url(command, args)
-        response = self.transport.execute(url, data=data, input_path=input_path, output_path=output_path)
+        method = COMMAND_TO_METHOD.get(command, None)  # Default to GET is no data, POST otherwise
+        response = self.transport.execute(url, method=method, data=data, input_path=input_path, output_path=output_path)
         return response
 
     def __build_url(self, command, args):
+        path = COMMAND_TO_PATH.get(command, Template(command)).safe_substitute(args)
         if self.private_key:
             args["private_key"] = self.private_key
         arg_bytes = dict([(k, text_type(args[k]).encode('utf-8')) for k in args])
         data = urlencode(arg_bytes)
-        url = self.remote_host + command + "?" + data
+        url = self.remote_host + path + "?" + data
         return url
 
 

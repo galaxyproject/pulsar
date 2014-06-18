@@ -29,6 +29,8 @@ class RoutingApp(object):
         req = Request(environ)
         req.app = self
         for route, method, controller, args in self.routes:
+            if method and not req.method == method:
+                continue
             match = route.match(req.path_info)
             if match:
                 request_args = dict(args)
@@ -78,7 +80,7 @@ class Controller(object):
     Wraps python functions into controller methods.
     """
 
-    def __init__(self, method="GET", path=None, response_type='OK'):
+    def __init__(self, method=None, path=None, response_type='OK'):
         self.method = method
         self.path = path
         self.response_type = response_type

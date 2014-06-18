@@ -77,18 +77,18 @@ def submit(manager, job_id, command_line, params='{}', dependencies_description=
     submit_job(manager, submit_config)
 
 
-@LwrController(path="/jobs/{job_id}/status", method="GET", response_type='json')
+@LwrController(response_type='json')
 def status(manager, job_id):
     status = manager.get_status(job_id)
     return full_status(manager, status, job_id)
 
 
-@LwrController(path="/jobs/{job_id}/cancel", method="PUT")
+@LwrController()
 def cancel(manager, job_id):
     manager.kill(job_id)
 
 
-@LwrController(path="/jobs/{job_id}/files", method="POST", response_type='json')
+@LwrController(response_type='json')
 def upload_file(manager, input_type, file_cache, job_id, name, body, cache_token=None):
     # Input type should be one of input, config, workdir, tool, or unstructured (see action_mapper.path_type)
     path = manager.job_directory(job_id).calculate_path(name, input_type)
@@ -125,14 +125,14 @@ def _output_path(manager, job_id, name, output_type):
     return path
 
 
-@LwrController(response_type='json')
+@LwrController(path="/cache/status", method="GET", response_type='json')
 def file_available(file_cache, ip, path):
     """ Returns {token: <token>, ready: <bool>}
     """
     return file_cache.file_available(ip, path)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/cache", method="PUT", response_type='json')
 def cache_required(file_cache, ip, path):
     """ Returns bool indicating whether this client should
     execute cache_insert. Either way client should be follow up
@@ -141,7 +141,7 @@ def cache_required(file_cache, ip, path):
     return file_cache.cache_required(ip, path)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/cache", method="POST", response_type='json')
 def cache_insert(file_cache, ip, path, body):
     temp_path = copy_to_temp(body)
     file_cache.cache_file(temp_path, ip, path)
@@ -149,13 +149,13 @@ def cache_insert(file_cache, ip, path, body):
 
 # TODO: coerce booleans and None values into correct types - simplejson may
 # do this already but need to check.
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}/exists", response_type='json')
 def object_store_exists(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
     return object_store.exists(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}/file_ready", response_type='json')
 def object_store_file_ready(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
     return object_store.file_ready(obj, base_dir=base_dir, dir_only=dir_only,
@@ -163,31 +163,31 @@ def object_store_file_ready(object_store, object_id, base_dir=None, dir_only=Fal
                                    alt_name=alt_name)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}", method="POST", response_type='json')
 def object_store_create(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
     return object_store.create(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}/empty", response_type='json')
 def object_store_empty(object_store, object_id, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
     return object_store.empty(obj, base_dir=base_dir, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}/size", response_type='json')
 def object_store_size(object_store, object_id, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
     return object_store.size(obj, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}", method="DELETE", response_type='json')
 def object_store_delete(object_store, object_id, entire_dir=False, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
     return object_store.delete(obj, entire_dir=False, base_dir=None, extra_dir=extra_dir, extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}", method="GET", response_type='json')
 def object_store_get_data(object_store, object_id, start=0, count=-1, base_dir=None, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
     return object_store.get_data(obj, start=int(start), count=int(count), entire_dir=False,
@@ -195,14 +195,14 @@ def object_store_get_data(object_store, object_id, start=0, count=-1, base_dir=N
                                  alt_name=alt_name)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}/filename", response_type='json')
 def object_store_get_filename(object_store, object_id, base_dir=None, dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None):
     obj = LwrDataset(object_id)
     return object_store.get_filename(obj, base_dir=base_dir, dir_only=dir_only, extra_dir=extra_dir,
                                      extra_dir_at_root=extra_dir_at_root, alt_name=alt_name)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/objects/{object_id}", method="PUT", response_type='json')
 def object_store_update_from_file(object_store, object_id, base_dir=None, extra_dir=None, extra_dir_at_root=False,
                                   alt_name=None, file_name=None, create=False):
     obj = LwrDataset(object_id)
@@ -210,7 +210,7 @@ def object_store_update_from_file(object_store, object_id, base_dir=None, extra_
                                          alt_name=alt_name, file_name=file_name, create=create)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/object_store_usage_percent", response_type='json')
 def object_store_get_store_usage_percent(object_store):
     return object_store.get_store_usage_percent()
 

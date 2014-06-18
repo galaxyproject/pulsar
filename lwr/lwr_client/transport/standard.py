@@ -19,8 +19,10 @@ class Urllib2Transport(object):
     def _url_open(self, request, data):
         return urlopen(request, data)
 
-    def execute(self, url, data=None, input_path=None, output_path=None):
+    def execute(self, url, method=None, data=None, input_path=None, output_path=None):
         request = Request(url=url, data=data)
+        if method:
+            request.get_method = lambda: method
         input = None
         try:
             if input_path:
