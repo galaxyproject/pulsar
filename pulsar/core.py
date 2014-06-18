@@ -26,7 +26,7 @@ NOT_WHITELIST_WARNING = "Starting the LWR without a toolbox to white-list." + \
                         "Ensure this application is protected by firewall or a configured private token."
 
 
-class LwrApp(object):
+class PulsarApp(object):
 
     def __init__(self, **conf):
         if conf is None:
@@ -86,7 +86,7 @@ class LwrApp(object):
     def __setup_private_key(self, private_key):
         self.private_key = private_key
         if private_key:
-            log.info("Securing LWR web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic.")
+            log.info("Securing Pulsar web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic.")
 
     def __setup_persistence_directory(self, persistence_directory):
         self.persistence_directory = persistence_directory or DEFAULT_PERSISTENCE_DIRECTORY

@@ -73,7 +73,7 @@ def load_pulsar_app(
 
     config.update(kwds)
     import pulsar.core
-    pulsar_app = pulsar.core.LwrApp(**config)
+    pulsar_app = pulsar.core.PulsarApp(**config)
     return pulsar_app
 
 

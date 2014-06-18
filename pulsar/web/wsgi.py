@@ -1,7 +1,7 @@
 import atexit
 import inspect
 
-from pulsar.core import LwrApp
+from pulsar.core import PulsarApp
 from pulsar.web.framework import RoutingApp
 
 import pulsar.web.routes
@@ -11,7 +11,7 @@ def app_factory(global_conf, **local_conf):
     """
     Returns the LWR WSGI application.
     """
-    pulsar_app = LwrApp(global_conf=global_conf, **local_conf)
+    pulsar_app = PulsarApp(global_conf=global_conf, **local_conf)
     webapp = LwrWebApp(pulsar_app=pulsar_app)
     atexit.register(webapp.shutdown)
     return webapp

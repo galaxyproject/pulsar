@@ -117,7 +117,7 @@ class LocalPulsarInterface(PulsarInterface):
         self.object_store = object_store
 
     def __app_args(self):
-        # Arguments that would be specified from LwrApp if running
+        # Arguments that would be specified from PulsarApp if running
         # in web server.
         return {
             'manager': self.job_manager,
