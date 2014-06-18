@@ -36,6 +36,8 @@ class LwrInteface(object):
 
 COMMAND_TO_PATH = {
     "path": Template("jobs/${job_id}/files/path"),
+    "upload_file": Template("jobs/${job_id}/files"),
+    "download_output": Template("jobs/${job_id}/files"),
 
     "file_available": Template("cache/status"),
     "cache_required": Template("cache"),
@@ -54,6 +56,9 @@ COMMAND_TO_PATH = {
 }
 
 COMMAND_TO_METHOD = {
+    "upload_file": "POST",
+    "download_output": "GET",
+
     "object_store_update_from_file": "PUT",
     "object_store_create": "POST",
     "object_store_delete": "DELETE",

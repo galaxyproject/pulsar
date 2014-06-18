@@ -88,7 +88,7 @@ def cancel(manager, job_id):
     manager.kill(job_id)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/jobs/{job_id}/files", method="POST", response_type='json')
 def upload_file(manager, type, file_cache, job_id, name, body, cache_token=None):
     # Input type should be one of input, config, workdir, tool, or unstructured (see action_mapper.path_type)
     path = manager.job_directory(job_id).calculate_path(name, type)
@@ -104,7 +104,7 @@ def path(manager, type, job_id, name):
     return {'path': path}
 
 
-@LwrController(response_type='file')
+@LwrController(path="/jobs/{job_id}/files", method="GET", response_type='file')
 def download_output(manager, job_id, name, type=path_type.OUTPUT):
     return _output_path(manager, job_id, name, type)
 
