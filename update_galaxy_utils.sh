@@ -40,7 +40,7 @@ GALAXY_RUNNERS_DIRECTORY=$GALAXY_LIB_DIR/jobs/runners
 if [ "$invert" -ne "1" ];
 then
     rm -rf $GALAXY_RUNNERS_DIRECTORY/util
-    cp -r $LWR_DIRECTORY/lwr/managers/util $GALAXY_RUNNERS_DIRECTORY
+    cp -r $LWR_DIRECTORY/pulsar/managers/util $GALAXY_RUNNERS_DIRECTORY
 
     rm -rf $GALAXY_LIB_DIR/objectstore 
     cp -r $LWR_DIRECTORY/galaxy/objectstore $GALAXY_LIB_DIR
@@ -52,8 +52,8 @@ then
     cp -r $LWR_DIRECTORY/galaxy/jobs/metrics $GALAXY_LIB_DIR/jobs
 
 else
-    rm -rf $LWR_DIRECTORY/lwr/managers/util
-    cp -r $GALAXY_RUNNERS_DIRECTORY/util $LWR_DIRECTORY/lwr/managers
+    rm -rf $LWR_DIRECTORY/pulsar/managers/util
+    cp -r $GALAXY_RUNNERS_DIRECTORY/util $LWR_DIRECTORY/pulsar/managers
 
     rm -rf $LWR_DIRECTORY/galaxy/objectstore
     cp -r $GALAXY_LIB_DIR/objectstore $LWR_DIRECTORY/galaxy

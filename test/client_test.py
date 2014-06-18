@@ -4,10 +4,10 @@ import os
 
 from six import text_type, binary_type
 
-from lwr.client.client import JobClient
-from lwr.client.manager import HttpLwrInterface
-from lwr.client.transport import Urllib2Transport
-from lwr.client.decorators import retry, MAX_RETRY_COUNT
+from pulsar.client.client import JobClient
+from pulsar.client.manager import HttpLwrInterface
+from pulsar.client.transport import Urllib2Transport
+from pulsar.client.decorators import retry, MAX_RETRY_COUNT
 
 
 def test_with_retry():

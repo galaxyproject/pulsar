@@ -1,5 +1,5 @@
 from .test_utils import TempDirectoryTestCase
-from lwr.managers.base import JobDirectory
+from pulsar.managers.base import JobDirectory
 import os
 
 TEST_JOB_ID = "1234"

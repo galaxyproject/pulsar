@@ -1,7 +1,7 @@
-:mod:`lwr.client` Module
+:mod:`pulsar.client` Module
 ---------------------------------
 
-.. automodule:: lwr.client
+.. automodule:: pulsar.client
     :members:
     :undoc-members:
     :show-inheritance:

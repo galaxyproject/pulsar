@@ -23,7 +23,7 @@ install:
   - pip install drmaa 
   - sudo adduser --quiet --disabled-password --gecos TEST u1  ## Create user for run-as-user test.  
 #  - sudo apt-get install condor
-script: . local_env.sh; pyflakes lwr test && flake8 --exclude test_tool_deps.py --max-complexity 9 lwr test && nosetests
+script: . local_env.sh; pyflakes pulsar test && flake8 --exclude test_tool_deps.py --max-complexity 9 pulsar test && nosetests
 after_success:
   - coveralls
 

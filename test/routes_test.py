@@ -1,6 +1,6 @@
 from os.path import join
 
-from lwr.web.routes import _output_path
+from pulsar.web.routes import _output_path
 from .test_utils import test_manager
 
 

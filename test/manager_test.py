@@ -1,7 +1,7 @@
 import tempfile
 from time import sleep
 
-from lwr.managers.unqueued import Manager
+from pulsar.managers.unqueued import Manager
 from galaxy.util.bunch import Bunch
 from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 

@@ -3,9 +3,9 @@ import shutil
 import tempfile
 import time
 
-from lwr.managers.queued import QueueManager
-from lwr.managers.stateful import StatefulManagerProxy
-from lwr.tools.authorization import get_authorizer
+from pulsar.managers.queued import QueueManager
+from pulsar.managers.stateful import StatefulManagerProxy
+from pulsar.tools.authorization import get_authorizer
 from .test_utils import TestDependencyManager
 
 from galaxy.util.bunch import Bunch

@@ -9,12 +9,12 @@ import threading
 import time
 from io import open
 
-from lwr.client import submit_job
-from lwr.client import finish_job
-from lwr.client import LwrOutputs
-from lwr.client import ClientOutputs
-from lwr.client import build_client_manager
-from lwr.client import ClientJobDescription
+from pulsar.client import submit_job
+from pulsar.client import finish_job
+from pulsar.client import LwrOutputs
+from pulsar.client import ClientOutputs
+from pulsar.client import build_client_manager
+from pulsar.client import ClientJobDescription
 from galaxy.tools.deps.dependencies import DependenciesDescription
 from galaxy.tools.deps.requirements import ToolRequirement
 from .test_common import write_config

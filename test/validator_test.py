@@ -1,7 +1,7 @@
 from .test_utils import TempDirectoryTestCase
 
-from lwr.managers.base import JobDirectory
-from lwr.tools.validator import ExpressionValidator
+from pulsar.managers.base import JobDirectory
+from pulsar.tools.validator import ExpressionValidator
 
 from os.path import join
 

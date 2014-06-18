@@ -1,7 +1,7 @@
 import threading
 
 from .test_utils import skipUnlessModule
-from lwr.client import amqp_exchange
+from pulsar.client import amqp_exchange
 
 TEST_CONNECTION = "memory://test_amqp"
 

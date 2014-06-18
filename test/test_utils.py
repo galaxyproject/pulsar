@@ -23,9 +23,9 @@ from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
 import galaxy.util
-from lwr.tools import ToolBox
-from lwr.managers.base import JobDirectory
-from lwr.web.framework import file_response
+from pulsar.tools import ToolBox
+from pulsar.managers.base import JobDirectory
+from pulsar.web.framework import file_response
 
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)
@@ -153,7 +153,7 @@ def test_lwr_app(global_conf={}, app_conf={}, test_conf={}):
     try:
         app_conf["staging_directory"] = staging_directory
         app_conf["file_cache_dir"] = cache_directory
-        from lwr.app import app_factory
+        from pulsar.app import app_factory
 
         app = app_factory(global_conf, **app_conf)
         yield TestApp(app, **test_conf)

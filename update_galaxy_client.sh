@@ -38,8 +38,8 @@ GALAXY_PULSAR_DIRECTORY=$GALAXY_DIRECTORY/lib/pulsar/
 if [ "$invert" -ne "1" ];
 then
 	rm -rf $GALAXY_RUNNERS_DIRECTORY/client
-	cp -r $LWR_DIRECTORY/lwr/client $GALAXY_PULSAR_DIRECTORY
+	cp -r $LWR_DIRECTORY/pulsar/client $GALAXY_PULSAR_DIRECTORY
 else
-	rm -rf $LWR_DIRECTORY/lwr/client
-	cp -r $GALAXY_PULSAR_DIRECTORY/client $LWR_DIRECTORY/lwr
+	rm -rf $LWR_DIRECTORY/pulsar/client
+	cp -r $GALAXY_PULSAR_DIRECTORY/client $LWR_DIRECTORY/pulsar
 fi

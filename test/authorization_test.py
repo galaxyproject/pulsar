@@ -1,4 +1,4 @@
-from lwr.tools.authorization import get_authorizer
+from pulsar.tools.authorization import get_authorizer
 from .test_utils import get_test_toolbox, TestCase
 
 

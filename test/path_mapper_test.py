@@ -1,7 +1,7 @@
 import os.path
 
-from lwr.client import PathMapper
-from lwr.client.action_mapper import path_type
+from pulsar.client import PathMapper
+from pulsar.client.action_mapper import path_type
 from .test_utils import TempDirectoryTestCase
 
 from galaxy.util.bunch import Bunch
