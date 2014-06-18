@@ -5,7 +5,7 @@ from pulsar.daemon import ArgumentParser
 from pulsar.client.util import from_base64_json
 from pulsar.daemon import (
     load_pulsar_app,
-    LwrManagerConfigBuilder
+    PulsarManagerConfigBuilder
 )
 from pulsar.manager_endpoint_util import submit_job
 from pulsar.managers.status import is_job_done
@@ -21,10 +21,10 @@ def main():
     arg_parser = ArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--file", default=None)
     arg_parser.add_argument("--base64", default=None)
-    LwrManagerConfigBuilder.populate_options(arg_parser)
+    PulsarManagerConfigBuilder.populate_options(arg_parser)
     args = arg_parser.parse_args()
 
-    config_builder = LwrManagerConfigBuilder(args)
+    config_builder = PulsarManagerConfigBuilder(args)
     manager, app = manager_from_args(config_builder)
     try:
         job_config = __load_job_config(args)

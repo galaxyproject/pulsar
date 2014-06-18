@@ -16,7 +16,7 @@ from pulsar.manager_endpoint_util import submit_job
 
 from pulsar.daemon import (
     ArgumentParser,
-    LwrManagerConfigBuilder,
+    PulsarManagerConfigBuilder,
 )
 
 import logging
@@ -48,7 +48,7 @@ class LwrExecutor(Executor):
                 log.info("Running task %s" % task.task_id.value)
                 task_data = from_base64_json(task.data)
                 manager_options = task_data["manager"]
-                config_builder = LwrManagerConfigBuilder(**manager_options)
+                config_builder = PulsarManagerConfigBuilder(**manager_options)
                 manager, pulsar_app = manager_from_args(config_builder)
                 job_config = task_data["job"]
                 submit_job(manager, job_config)

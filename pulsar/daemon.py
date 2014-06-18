@@ -96,7 +96,7 @@ def __app_config(ini_path, app_name):
 
 def app_loop(args):
     try:
-        config_builder = LwrConfigBuilder(args)
+        config_builder = PulsarConfigBuilder(args)
         pulsar_app = load_pulsar_app(
             config_builder,
             config_env=True,
@@ -118,7 +118,7 @@ def app_loop(args):
         raise
 
 
-class LwrConfigBuilder(object):
+class PulsarConfigBuilder(object):
     """ Generate paste-like configuration from supplied command-line arguments.
     """
 
@@ -161,20 +161,20 @@ class LwrConfigBuilder(object):
         )
 
 
-class LwrManagerConfigBuilder(LwrConfigBuilder):
+class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
     def __init__(self, args=None, **kwds):
-        super(LwrManagerConfigBuilder, self).__init__(args=args, **kwds)
+        super(PulsarManagerConfigBuilder, self).__init__(args=args, **kwds)
         self.manager = kwds.get("manager", None) or args.manager
 
     def to_dict(self):
-        as_dict = super(LwrManagerConfigBuilder, self).to_dict()
+        as_dict = super(PulsarManagerConfigBuilder, self).to_dict()
         as_dict["manager"] = self.manager
         return as_dict
 
     @classmethod
     def populate_options(clazz, arg_parser):
-        LwrConfigBuilder.populate_options(arg_parser)
+        PulsarConfigBuilder.populate_options(arg_parser)
         arg_parser.add_argument("--manager", default="_default_")
 
 
@@ -183,7 +183,7 @@ def main():
         raise ImportError("Attempted to use LWR in daemon mode, but daemonize is unavailable.")
 
     arg_parser = ArgumentParser(description=DESCRIPTION)
-    LwrConfigBuilder.populate_options(arg_parser)
+    PulsarConfigBuilder.populate_options(arg_parser)
     args = arg_parser.parse_args()
 
     log.setLevel(logging.DEBUG)

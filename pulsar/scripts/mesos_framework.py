@@ -5,7 +5,7 @@ from pulsar.mesos.framework import run
 
 from pulsar.daemon import (
     ArgumentParser,
-    LwrManagerConfigBuilder,
+    PulsarManagerConfigBuilder,
 )
 
 DESCRIPTION = "LWR Mesos Framework Entry Point."
@@ -17,10 +17,10 @@ def main():
         description=DESCRIPTION,
     )
     arg_parser.add_argument("--master", default=None, required=True)
-    LwrManagerConfigBuilder.populate_options(arg_parser)
+    PulsarManagerConfigBuilder.populate_options(arg_parser)
     args = arg_parser.parse_args()
 
-    config_builder = LwrManagerConfigBuilder(args)
+    config_builder = PulsarManagerConfigBuilder(args)
     config_builder.setup_logging()
     config = config_builder.load()
 
