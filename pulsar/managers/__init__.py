@@ -94,7 +94,7 @@ Job Managers
 """
 from abc import ABCMeta, abstractmethod
 
-LWR_UNKNOWN_RETURN_CODE = '__unknown__'
+PULSAR_UNKNOWN_RETURN_CODE = '__unknown__'
 
 
 class ManagerInterface(object):
@@ -136,7 +136,7 @@ class ManagerInterface(object):
     def return_code(self, job_id):
         """
         Return integer indicating return code of specified execution or
-        LWR_UNKNOWN_RETURN_CODE.
+        PULSAR_UNKNOWN_RETURN_CODE.
         """
 
     @abstractmethod

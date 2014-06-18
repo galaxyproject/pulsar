@@ -49,7 +49,7 @@ class ClientManager(object):
             self.job_manager_interface_args = dict(transport=transport)
         cache = kwds.get('cache', None)
         if cache is None:
-            cache = _environ_default_int('LWR_CACHE_TRANSFERS')
+            cache = _environ_default_int('PULSAR_CACHE_TRANSFERS')
         if cache:
             log.info("Setting Pulsar client class to caching variant.")
             self.client_cacher = ClientCacher(**kwds)
@@ -162,7 +162,7 @@ class ClientCacher(object):
 
     def __init__(self, **kwds):
         self.event_manager = TransferEventManager()
-        default_transfer_threads = _environ_default_int('LWR_CACHE_THREADS', DEFAULT_TRANSFER_THREADS)
+        default_transfer_threads = _environ_default_int('PULSAR_CACHE_THREADS', DEFAULT_TRANSFER_THREADS)
         num_transfer_threads = int(kwds.get('transfer_threads', default_transfer_threads))
         self.__init_transfer_threads(num_transfer_threads)
 

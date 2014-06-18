@@ -3,7 +3,7 @@ and message queue.
 """
 from pulsar.client.setup_handler import build_job_config
 from pulsar.managers import status
-from pulsar.managers import LWR_UNKNOWN_RETURN_CODE
+from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from galaxy.tools.deps import dependencies
 
 
@@ -20,7 +20,7 @@ def __job_complete_dict(complete_status, manager, job_id):
     Pulsar client.
     """
     return_code = manager.return_code(job_id)
-    if return_code == LWR_UNKNOWN_RETURN_CODE:
+    if return_code == PULSAR_UNKNOWN_RETURN_CODE:
         return_code = None
     stdout_contents = manager.stdout_contents(job_id)
     stderr_contents = manager.stderr_contents(job_id)

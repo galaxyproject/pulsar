@@ -12,7 +12,7 @@ import logging
 log = logging.getLogger(__name__)
 
 from pulsar.daemon import (
-    LWR_ROOT_DIR,
+    PULSAR_ROOT_DIR,
 )
 from pulsar.messaging import bind_amqp
 
@@ -152,7 +152,7 @@ def run(master, manager_options, config):
     executor = mesos_pb2.ExecutorInfo()
     executor.executor_id.value = DEFAULT_EXECUTOR_ID
     executor.command.value = os.path.join(
-        LWR_ROOT_DIR,
+        PULSAR_ROOT_DIR,
         "scripts",
         "mesos_executor"
     )

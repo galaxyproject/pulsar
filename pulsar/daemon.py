@@ -37,7 +37,7 @@ from paste.deploy.loadwsgi import ConfigLoader
 
 log = logging.getLogger(__name__)
 
-LWR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+PULSAR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 DEFAULT_PID = "pulsar.pid"
 DEFAULT_VERBOSE = True
@@ -58,12 +58,12 @@ def load_pulsar_app(
     # sys.path.
     if config_env:
         try:
-            os.chdir(LWR_ROOT_DIR)
+            os.chdir(PULSAR_ROOT_DIR)
         except Exception:
             log.exception("Failed to chdir")
             raise
         try:
-            sys.path.append(os.path.join(LWR_ROOT_DIR))
+            sys.path.append(os.path.join(PULSAR_ROOT_DIR))
         except Exception:
             log.exception("Failed to add Pulsar to sys.path")
             raise
@@ -127,7 +127,7 @@ class PulsarConfigBuilder(object):
         if ini_path is None:
             ini_path = "server.ini"
         if not os.path.isabs(ini_path):
-            ini_path = os.path.join(LWR_ROOT_DIR, ini_path)
+            ini_path = os.path.join(PULSAR_ROOT_DIR, ini_path)
 
         self.ini_path = ini_path
         self.app_name = kwds.get("app") or args.app

@@ -8,7 +8,7 @@ JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
 
 from pulsar.managers.base import BaseManager
-from pulsar.managers import LWR_UNKNOWN_RETURN_CODE
+from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from ..util.job_script import job_script
 from ..util.env import env_to_statement
 
@@ -19,8 +19,8 @@ class DirectoryBaseManager(BaseManager):
         return self._job_directory(job_id)._job_file(name)
 
     def return_code(self, job_id):
-        return_code_str = self._read_job_file(job_id, JOB_FILE_RETURN_CODE, default=LWR_UNKNOWN_RETURN_CODE)
-        return int(return_code_str) if return_code_str and return_code_str != LWR_UNKNOWN_RETURN_CODE else return_code_str
+        return_code_str = self._read_job_file(job_id, JOB_FILE_RETURN_CODE, default=PULSAR_UNKNOWN_RETURN_CODE)
+        return int(return_code_str) if return_code_str and return_code_str != PULSAR_UNKNOWN_RETURN_CODE else return_code_str
 
     def stdout_contents(self, job_id):
         return self._read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT, default="")
