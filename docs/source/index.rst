@@ -10,6 +10,8 @@
 
 .. include:: galaxy_conf.rst
 
+.. include:: upgrading.rst
+
 .. include:: public_server.rst
 
 -----------
