@@ -39,6 +39,12 @@ COMMAND_TO_PATH = {
     "upload_file": Template("jobs/${job_id}/files"),
     "download_output": Template("jobs/${job_id}/files"),
 
+    "setup": Template("jobs"),
+    "clean": Template("jobs/${job_id}"),
+    "status": Template("jobs/${job_id}/status"),
+    "cancel": Template("jobs/${job_id}/cancel"),
+    "submit": Template("jobs/${job_id}/submit"),
+
     "file_available": Template("cache/status"),
     "cache_required": Template("cache"),
     "cache_insert": Template("cache"),
@@ -58,6 +64,11 @@ COMMAND_TO_PATH = {
 COMMAND_TO_METHOD = {
     "upload_file": "POST",
     "download_output": "GET",
+
+    "setup": "POST",
+    "submit": "POST",
+    "clean": "DELETE",
+    "cancel": "PUT",
 
     "object_store_update_from_file": "PUT",
     "object_store_create": "POST",

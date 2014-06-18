@@ -42,7 +42,7 @@ class LwrController(Controller):
         return app_args
 
 
-@LwrController(response_type='json')
+@LwrController(path="/jobs", method="POST", response_type='json')
 def setup(manager, job_id, tool_id=None, tool_version=None):
     return __setup(manager, job_id, tool_id=tool_id, tool_version=tool_version)
 
@@ -53,12 +53,12 @@ def __setup(manager, job_id, tool_id, tool_version):
     return response
 
 
-@LwrController()
+@LwrController(path="/jobs/{job_id}", method="DELETE")
 def clean(manager, job_id):
     manager.clean(job_id)
 
 
-@LwrController()
+@LwrController(path="/jobs/{job_id}/submit", method="POST")
 def submit(manager, job_id, command_line, params='{}', dependencies_description='null', setup_params='{}', remote_staging='[]', env='[]'):
     submit_params = loads(params)
     setup_params = loads(setup_params)
@@ -77,13 +77,13 @@ def submit(manager, job_id, command_line, params='{}', dependencies_description=
     submit_job(manager, submit_config)
 
 
-@LwrController(response_type='json')
+@LwrController(path="/jobs/{job_id}/status", response_type='json')
 def status(manager, job_id):
     status = manager.get_status(job_id)
     return full_status(manager, status, job_id)
 
 
-@LwrController()
+@LwrController(path="/jobs/{job_id}/cancel", method="PUT")
 def cancel(manager, job_id):
     manager.kill(job_id)
 
