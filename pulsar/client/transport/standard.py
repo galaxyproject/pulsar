@@ -1,5 +1,5 @@
 """
-LWR HTTP Client layer based on Python Standard Library (urllib2)
+Pulsar HTTP Client layer based on Python Standard Library (urllib2)
 """
 from __future__ import with_statement
 from os.path import getsize

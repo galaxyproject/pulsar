@@ -248,7 +248,7 @@ class BaseAction(object):
 class NoneAction(BaseAction):
     """ This action indicates the corresponding path does not require any
     additional action. This should indicate paths that are available both on
-    the LWR client (i.e. Galaxy server) and remote LWR server with the same
+    the Pulsar client (i.e. Galaxy server) and remote Pulsar server with the same
     paths. """
     action_type = "none"
     staging = STAGING_ACTION_NONE
@@ -265,7 +265,7 @@ class NoneAction(BaseAction):
 
 
 class RewriteAction(BaseAction):
-    """ This actin indicates the LWR server should simply rewrite the path
+    """ This actin indicates the Pulsar server should simply rewrite the path
     to the specified file.
     """
     action_spec = dict(
@@ -305,25 +305,25 @@ class RewriteAction(BaseAction):
 
 
 class TransferAction(BaseAction):
-    """ This actions indicates that the LWR client should initiate an HTTP
-    transfer of the corresponding path to the remote LWR server before
+    """ This actions indicates that the Pulsar client should initiate an HTTP
+    transfer of the corresponding path to the remote Pulsar server before
     launching the job. """
     action_type = "transfer"
     staging = STAGING_ACTION_LOCAL
 
 
 class CopyAction(BaseAction):
-    """ This action indicates that the LWR client should execute a file system
-    copy of the corresponding path to the LWR staging directory prior to
+    """ This action indicates that the Pulsar client should execute a file system
+    copy of the corresponding path to the Pulsar staging directory prior to
     launching the corresponding job. """
     action_type = "copy"
     staging = STAGING_ACTION_LOCAL
 
 
 class RemoteCopyAction(BaseAction):
-    """ This action indicates the LWR server should copy the file before
+    """ This action indicates the Pulsar server should copy the file before
     execution via direct file system copy. This is like a CopyAction, but
-    it indicates the action should occur on the LWR server instead of on
+    it indicates the action should occur on the Pulsar server instead of on
     the client.
     """
     action_type = "remote_copy"
@@ -349,9 +349,9 @@ class RemoteCopyAction(BaseAction):
 
 
 class RemoteTransferAction(BaseAction):
-    """ This action indicates the LWR server should copy the file before
+    """ This action indicates the Pulsar server should copy the file before
     execution via direct file system copy. This is like a CopyAction, but
-    it indicates the action should occur on the LWR server instead of on
+    it indicates the action should occur on the Pulsar server instead of on
     the client.
     """
     action_type = "remote_transfer"

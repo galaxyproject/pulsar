@@ -54,7 +54,7 @@ def load_pulsar_app(
     if log is None:
         log = logging.getLogger(__name__)
 
-    # If called in daemon mode, set the ROOT directory and ensure LWR is on
+    # If called in daemon mode, set the ROOT directory and ensure Pulsar is on
     # sys.path.
     if config_env:
         try:
@@ -65,7 +65,7 @@ def load_pulsar_app(
         try:
             sys.path.append(os.path.join(LWR_ROOT_DIR))
         except Exception:
-            log.exception("Failed to add LWR to sys.path")
+            log.exception("Failed to add Pulsar to sys.path")
             raise
 
     config_builder.setup_logging()
@@ -103,7 +103,7 @@ def app_loop(args):
             log=log,
         )
     except BaseException:
-        log.exception("Failed to initialize LWR application")
+        log.exception("Failed to initialize Pulsar application")
         raise
     try:
         # Hmmmm... not sure what to do in here this was example though...
@@ -114,7 +114,7 @@ def app_loop(args):
     try:
         pulsar_app.shutdown()
     except Exception:
-        log.exception("Failed to shutdown LWR application")
+        log.exception("Failed to shutdown Pulsar application")
         raise
 
 
@@ -180,7 +180,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
 def main():
     if Daemonize is None:
-        raise ImportError("Attempted to use LWR in daemon mode, but daemonize is unavailable.")
+        raise ImportError("Attempted to use Pulsar in daemon mode, but daemonize is unavailable.")
 
     arg_parser = ArgumentParser(description=DESCRIPTION)
     PulsarConfigBuilder.populate_options(arg_parser)

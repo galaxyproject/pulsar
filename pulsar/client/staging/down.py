@@ -19,7 +19,7 @@ COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_
 
 def finish_job(client, cleanup_job, job_completed_normally, client_outputs, pulsar_outputs):
     """ Responsible for downloading results from remote server and cleaning up
-    LWR staging directory (if needed.)
+    Pulsar staging directory (if needed.)
     """
     collection_failure_exceptions = []
     if job_completed_normally:
@@ -37,7 +37,7 @@ class ClientOutputCollector(object):
         self.client = client
 
     def collect_output(self, results_collector, output_type, action, name):
-        # This output should have been handled by the LWR.
+        # This output should have been handled by the Pulsar.
         if not action.staging_action_local:
             return False
 
@@ -86,7 +86,7 @@ class ResultsCollector(object):
                 raise Exception("Failed to remove %s from %s" % (output_file, self.output_files))
 
     def __collect_outputs(self):
-        # Legacy LWR not returning list of files, iterate over the list of
+        # Legacy Pulsar not returning list of files, iterate over the list of
         # expected outputs for tool.
         for output_file in self.output_files:
             # Fetch output directly...
@@ -117,7 +117,7 @@ class ResultsCollector(object):
 
     def _attempt_collect_output(self, output_type, path, name=None):
         # path is final path on galaxy server (client)
-        # name is the 'name' of the file on the LWR server (possible a relative)
+        # name is the 'name' of the file on the Pulsar server (possible a relative)
         # path.
         collected = False
         with self.exception_tracker():
@@ -150,6 +150,6 @@ def __clean(collection_failure_exceptions, cleanup_job, client):
         try:
             client.clean()
         except Exception:
-            log.warn("Failed to cleanup remote LWR job")
+            log.warn("Failed to cleanup remote Pulsar job")
 
 __all__ = [finish_job]

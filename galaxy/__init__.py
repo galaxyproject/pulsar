@@ -1,3 +1,3 @@
 """
-Compat. layer between LWR and Galaxy.
+Compat. layer between Pulsar and Galaxy.
 """

@@ -46,13 +46,13 @@ def submit_job(client, client_job_description, job_config=None):
 
 class FileStager(object):
     """
-    Objects of the FileStager class interact with an LWR client object to
-    stage the files required to run jobs on a remote LWR server.
+    Objects of the FileStager class interact with an Pulsar client object to
+    stage the files required to run jobs on a remote Pulsar server.
 
     **Parameters**
 
     client : JobClient
-        LWR client object.
+        Pulsar client object.
     client_job_description : client_job_description
         Description of client view of job to stage and execute remotely.
     """
@@ -74,7 +74,7 @@ class FileStager(object):
         self.rewrite_paths = client_job_description.rewrite_paths
 
         # Setup job inputs, these will need to be rewritten before
-        # shipping off to remote LWR server.
+        # shipping off to remote Pulsar server.
         self.job_inputs = JobInputs(self.command_line, self.config_files)
 
         self.action_mapper = FileActionMapper(client)
@@ -109,23 +109,23 @@ class FileStager(object):
         self.new_working_directory = job_config['working_directory']
         self.new_outputs_directory = job_config['outputs_directory']
         # Default configs_directory to match remote working_directory to mimic
-        # behavior of older LWR servers.
+        # behavior of older Pulsar servers.
         self.new_configs_directory = job_config.get('configs_directory', self.new_working_directory)
         self.remote_separator = self.__parse_remote_separator(job_config)
         self.path_helper = PathHelper(self.remote_separator)
-        # If remote LWR server assigned job id, use that otherwise
+        # If remote Pulsar server assigned job id, use that otherwise
         # just use local job_id assigned.
         galaxy_job_id = self.client.job_id
         self.job_id = job_config.get('job_id', galaxy_job_id)
         if self.job_id != galaxy_job_id:
-            # Remote LWR server assigned an id different than the
+            # Remote Pulsar server assigned an id different than the
             # Galaxy job id, update client to reflect this.
             self.client.job_id = self.job_id
         self.job_config = job_config
 
     def __parse_remote_separator(self, job_config):
         separator = job_config.get("system_properties", {}).get("separator", None)
-        if not separator:  # Legacy LWR
+        if not separator:  # Legacy Pulsar
             separator = job_config["path_separator"]  # Poorly named
         return separator
 
@@ -165,7 +165,7 @@ class FileStager(object):
             if exists(input_file):
                 self.transfer_tracker.handle_transfer(input_file, path_type.INPUT)
             else:
-                message = "LWR: __upload_input_file called on empty or missing dataset." + \
+                message = "Pulsar: __upload_input_file called on empty or missing dataset." + \
                           " So such file: [%s]" % input_file
                 log.debug(message)
 

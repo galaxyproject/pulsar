@@ -19,8 +19,8 @@ except ImportError:
 class PulsarInterface(object):
     """
     Abstract base class describes how synchronous client communicates with
-    (potentially remote) LWR procedures. Obvious implementation is HTTP based
-    but LWR objects wrapped in routes can also be directly communicated with
+    (potentially remote) Pulsar procedures. Obvious implementation is HTTP based
+    but Pulsar objects wrapped in routes can also be directly communicated with
     if in memory.
     """
     __metaclass__ = ABCMeta
@@ -28,7 +28,7 @@ class PulsarInterface(object):
     @abstractmethod
     def execute(self, command, args={}, data=None, input_path=None, output_path=None):
         """
-        Execute the correspond command against configured LWR job manager. Arguments are
+        Execute the correspond command against configured Pulsar job manager. Arguments are
         method parameters and data or input_path describe essentially POST bodies. If command
         results in a file, resulting path should be specified as output_path.
         """
@@ -85,7 +85,7 @@ class HttpPulsarInterface(PulsarInterface):
     def __init__(self, destination_params, transport):
         self.transport = transport
         remote_host = destination_params.get("url")
-        assert remote_host is not None, "Failed to determine url for LWR client."
+        assert remote_host is not None, "Failed to determine url for Pulsar client."
         if not remote_host.endswith("/"):
             remote_host = "%s/" % remote_host
         if not remote_host.startswith("http"):

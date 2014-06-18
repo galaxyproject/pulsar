@@ -27,7 +27,7 @@ JOB_FILE_PID = "pid"
 class Manager(DirectoryBaseManager):
     """
     A simple job manager that just directly runs jobs as given (no
-    queueing). Preserved for compatibilty with older versions of LWR
+    queueing). Preserved for compatibilty with older versions of Pulsar
     client code where Galaxy is used to maintain queue (like Galaxy's
     local job runner).
 

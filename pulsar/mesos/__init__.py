@@ -33,7 +33,7 @@ NO_MESOS_PROTO_EXCEPTION = "Failed to import mesos_pbs module, please install me
 def ensure_mesos_libs():
     """ Raise import error if mesos is not actually available. Original
     import errors above supressed because mesos is meant as an optional
-    dependency for the LWR.
+    dependency for the Pulsar.
     """
 
     if MesosSchedulerDriver is None:

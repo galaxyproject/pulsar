@@ -35,7 +35,7 @@ def build_client_manager(**kwargs):
 
 class ClientManager(object):
     """
-    Factory to create LWR clients, used to manage potential shared
+    Factory to create Pulsar clients, used to manage potential shared
     state between multiple client connections.
     """
     def __init__(self, **kwds):
@@ -51,12 +51,12 @@ class ClientManager(object):
         if cache is None:
             cache = _environ_default_int('LWR_CACHE_TRANSFERS')
         if cache:
-            log.info("Setting LWR client class to caching variant.")
+            log.info("Setting Pulsar client class to caching variant.")
             self.client_cacher = ClientCacher(**kwds)
             self.client_class = InputCachingJobClient
             self.extra_client_kwds = {"client_cacher": self.client_cacher}
         else:
-            log.info("Setting LWR client class to standard, non-caching variant.")
+            log.info("Setting Pulsar client class to standard, non-caching variant.")
             self.client_class = JobClient
             self.extra_client_kwds = {}
 
@@ -128,7 +128,7 @@ class MessageQueueClientManager(object):
 
     def get_client(self, destination_params, job_id, **kwargs):
         if job_id is None:
-            raise Exception("Cannot generate LWR client for empty job_id.")
+            raise Exception("Cannot generate Pulsar client for empty job_id.")
         destination_params = _parse_destination_params(destination_params)
         destination_params.update(**kwargs)
         if 'shell_plugin' in destination_params:

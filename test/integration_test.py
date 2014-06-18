@@ -30,7 +30,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
             # Client directory hasn't bee created yet, don't restrict where
             # test files written.
             # Can only run tests using files_server if not constructing a test
-            # server for LWR - webtest doesn't seem to like having two test
+            # server for Pulsar - webtest doesn't seem to like having two test
             # servers alive at same time.
             with files_server("/") as test_files_server:
                 files_endpoint = test_files_server.application_url

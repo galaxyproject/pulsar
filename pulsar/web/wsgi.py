@@ -9,7 +9,7 @@ import pulsar.web.routes
 
 def app_factory(global_conf, **local_conf):
     """
-    Returns the LWR WSGI application.
+    Returns the Pulsar WSGI application.
     """
     pulsar_app = PulsarApp(global_conf=global_conf, **local_conf)
     webapp = PulsarWebApp(pulsar_app=pulsar_app)
@@ -19,7 +19,7 @@ def app_factory(global_conf, **local_conf):
 
 class PulsarWebApp(RoutingApp):
     """
-    Web application for LWR web server.
+    Web application for Pulsar web server.
     """
 
     def __init__(self, pulsar_app):

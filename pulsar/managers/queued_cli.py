@@ -1,5 +1,5 @@
 """
-LWR job manager that uses a CLI interface to a job queue (e.g. Torque's qsub,
+Pulsar job manager that uses a CLI interface to a job queue (e.g. Torque's qsub,
 qstat, etc...).
 """
 

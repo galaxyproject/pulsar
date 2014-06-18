@@ -8,11 +8,11 @@ from galaxy.util import in_directory
 
 class PathMapper(object):
     """ Ties together a FileActionMapper and remote job configuration returned
-    by the LWR setup method to pre-determine the location of files for staging
-    on the remote LWR server.
+    by the Pulsar setup method to pre-determine the location of files for staging
+    on the remote Pulsar server.
 
     This is not useful when rewrite_paths (as has traditionally been done with
-    the LWR) because when doing that the LWR determines the paths as files are
+    the Pulsar) because when doing that the Pulsar determines the paths as files are
     uploaded. When rewrite_paths is disabled however, the destination of files
     needs to be determined prior to transfer so an object of this class can be
     used.

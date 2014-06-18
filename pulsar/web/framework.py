@@ -1,5 +1,5 @@
 """
-Tiny framework used to power LWR application, nothing in here is specific to running
+Tiny framework used to power Pulsar application, nothing in here is specific to running
 or staging jobs. Mostly deals with routing web traffic and parsing parameters.
 """
 from webob import Request

@@ -76,7 +76,7 @@ class QueueManager(Manager):
                 try:
                     os.remove(self._job_file(job_id, JOB_FILE_COMMAND_LINE))
                 except Exception:
-                    log.exception("Running command but failed to delete - command may rerun on LWR boot.")
+                    log.exception("Running command but failed to delete - command may rerun on Pulsar boot.")
                 self._run(job_id, command_line, async=False)
             except:
                 log.warn("Uncaught exception running job with job_id %s" % job_id)

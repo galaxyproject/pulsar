@@ -5,13 +5,13 @@ from pulsar.client.manager import ObjectStoreClientManager
 
 class PulsarObjectStore(ObjectStore):
     """
-    Object store implementation that delegates to a remote LWR server.
+    Object store implementation that delegates to a remote Pulsar server.
 
     This may be more aspirational than practical for now, it would be good to
     Galaxy to a point that a handler thread could be setup that doesn't attempt
     to access the disk files returned by a (this) object store - just passing
-    them along to the LWR unmodified. That modification - along with this
-    implementation and LWR job destinations would then allow Galaxy to fully
+    them along to the Pulsar unmodified. That modification - along with this
+    implementation and Pulsar job destinations would then allow Galaxy to fully
     manage jobs on remote servers with completely different mount points.
 
     This implementation should be considered beta and may be dropped from

@@ -59,7 +59,7 @@ def manager_from_args(config_builder):
 
     pulsar_app = load_pulsar_app(
         config_builder,
-        # Set message_queue_consume so this LWR app doesn't try to consume
+        # Set message_queue_consume so this Pulsar app doesn't try to consume
         # setup/kill messages and only publishes status updates to configured
         # queue.
         message_queue_consume=False,

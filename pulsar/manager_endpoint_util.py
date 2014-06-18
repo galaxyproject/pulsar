@@ -17,7 +17,7 @@ def full_status(manager, job_status, job_id):
 
 def __job_complete_dict(complete_status, manager, job_id):
     """ Build final dictionary describing completed job for consumption by
-    LWR client.
+    Pulsar client.
     """
     return_code = manager.return_code(job_id)
     if return_code == LWR_UNKNOWN_RETURN_CODE:

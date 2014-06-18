@@ -22,7 +22,7 @@ DEFAULT_STAGING_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "staging")
 DEFAULT_PERSISTENCE_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "persisted_data")
 
 
-NOT_WHITELIST_WARNING = "Starting the LWR without a toolbox to white-list." + \
+NOT_WHITELIST_WARNING = "Starting the Pulsar without a toolbox to white-list." + \
                         "Ensure this application is protected by firewall or a configured private token."
 
 

@@ -52,7 +52,7 @@ class BaseJobClient(object):
 
     def setup(self, tool_id=None, tool_version=None):
         """
-        Setup remote LWR server to run this job.
+        Setup remote Pulsar server to run this job.
         """
         setup_args = {"job_id": self.job_id}
         if tool_id:
@@ -70,7 +70,7 @@ class BaseJobClient(object):
 
 class JobClient(BaseJobClient):
     """
-    Objects of this client class perform low-level communication with a remote LWR server.
+    Objects of this client class perform low-level communication with a remote Pulsar server.
 
     **Parameters**
 
@@ -107,7 +107,7 @@ class JobClient(BaseJobClient):
             launch_params['remote_staging'] = dumps(remote_staging)
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
-            # destination arguments. Hence, must have LWR setup job
+            # destination arguments. Hence, must have Pulsar setup job
             # before queueing.
             setup_params = _setup_params_from_job_config(job_config)
             launch_params["setup_params"] = dumps(setup_params)
@@ -135,7 +135,7 @@ class JobClient(BaseJobClient):
 
     def get_status(self):
         check_complete_response = self.raw_check_complete()
-        # Older LWR instances won't set status so use 'complete', at some
+        # Older Pulsar instances won't set status so use 'complete', at some
         # point drop backward compatibility.
         status = check_complete_response.get("status", None)
         return status
@@ -149,7 +149,7 @@ class JobClient(BaseJobClient):
     @parseJson()
     def remote_setup(self, **setup_args):
         """
-        Setup remote LWR server to run this job.
+        Setup remote Pulsar server to run this job.
         """
         return self._raw_execute("setup", setup_args)
 
@@ -169,7 +169,7 @@ class JobClient(BaseJobClient):
 
     def fetch_output(self, path, name, working_directory, action_type, output_type):
         """
-        Fetch (transfer, copy, etc...) an output from the remote LWR server.
+        Fetch (transfer, copy, etc...) an output from the remote Pulsar server.
 
         **Parameters**
 
@@ -181,9 +181,9 @@ class JobClient(BaseJobClient):
         working_directory : str
             Local working_directory for the job.
         action_type : str
-            Where to find file on LWR (output_workdir or output). legacy is also
-            an option in this case LWR is asked for location - this will only be
-            used if targetting an older LWR server that didn't return statuses
+            Where to find file on Pulsar (output_workdir or output). legacy is also
+            an option in this case Pulsar is asked for location - this will only be
+            used if targetting an older Pulsar server that didn't return statuses
             allowing this to be inferred.
         """
         if output_type == 'output_workdir':
@@ -207,7 +207,7 @@ class JobClient(BaseJobClient):
         ensure_directory(output_path)
         if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, path_type.OUTPUT_WORKDIR, output_path)
-        else:  # Even if action is none - LWR has a different work_dir so this needs to be copied.
+        else:  # Even if action is none - Pulsar has a different work_dir so this needs to be copied.
             pulsar_path = self._output_path(name, self.job_id, path_type.OUTPUT_WORKDIR)['path']
             copy(pulsar_path, output_path)
 
@@ -245,7 +245,7 @@ class BaseMessageJobClient(BaseJobClient):
     def __init__(self, destination_params, job_id, client_manager):
         super(BaseMessageJobClient, self).__init__(destination_params, job_id)
         if not self.job_directory:
-            error_message = "Message-queue based LWR client requires destination define a remote job_directory to stage files into."
+            error_message = "Message-queue based Pulsar client requires destination define a remote job_directory to stage files into."
             raise Exception(error_message)
         self.client_manager = client_manager
 
@@ -273,7 +273,7 @@ class BaseMessageJobClient(BaseJobClient):
             launch_params['remote_staging'] = remote_staging
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
-            # destination arguments. Hence, must have LWR setup job
+            # destination arguments. Hence, must have Pulsar setup job
             # before queueing.
             setup_params = _setup_params_from_job_config(job_config)
             launch_params["setup_params"] = setup_params

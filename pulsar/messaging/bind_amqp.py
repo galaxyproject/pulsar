@@ -52,12 +52,12 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
     # has occurred.
     def bind_on_status_change(new_status, job_id):
         try:
-            message = "Publishing LWR state change with status %s for job_id %s" % (new_status, job_id)
+            message = "Publishing Pulsar state change with status %s for job_id %s" % (new_status, job_id)
             log.debug(message)
             payload = manager_endpoint_util.full_status(manager, new_status, job_id)
             pulsar_exchange.publish("status_update", payload)
         except:
-            log.exception("Failure to publish LWR state change.")
+            log.exception("Failure to publish Pulsar state change.")
             raise
 
     if conf.get("message_queue_publish", True):

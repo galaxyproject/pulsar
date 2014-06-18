@@ -20,7 +20,7 @@ class DrmaaQueueManager(BaseDrmaaManager):
             submit_params=submit_params,
         )
         external_id = self.drmaa_session.run_job(**attributes)
-        log.info("Submitted DRMAA job with LWR job id %s and external id %s", job_id, external_id)
+        log.info("Submitted DRMAA job with Pulsar job id %s and external id %s", job_id, external_id)
         self._register_external_id(job_id, external_id)
 
     def _kill_external(self, external_id):

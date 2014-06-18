@@ -18,7 +18,7 @@ class AllowAnyAuthorization(object):
 
 class AllowAnyAuthorizer(object):
     """
-    Allow any, by default LWR is assumed to be secured
+    Allow any, by default Pulsar is assumed to be secured
     using a firewall or private_token.
     """
     ALLOW_ANY_AUTHORIZATION = AllowAnyAuthorization()
@@ -37,7 +37,7 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
 
     def authorize_setup(self):
         if self.tool is None:
-            self.__unauthorized("Attempt to setup a tool with id not registered with LWR toolbox.")
+            self.__unauthorized("Attempt to setup a tool with id not registered with Pulsar toolbox.")
 
     def authorize_tool_file(self, name, contents):
         tool = self.tool
@@ -45,7 +45,7 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
         tool_dir_file = join(tool_dir, name)
         allowed_contents = open(tool_dir_file).read()
         if contents != allowed_contents:
-            self.__unauthorized("Attempt to write tool file with contents differing from LWR copy of tool file.")
+            self.__unauthorized("Attempt to write tool file with contents differing from Pulsar copy of tool file.")
 
     def authorize_config_file(self, job_directory, name, path):
         if not self.__inputs_validator.validate_configfile(job_directory, name, path):

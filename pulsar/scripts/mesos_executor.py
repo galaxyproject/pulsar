@@ -73,7 +73,7 @@ def run_executor():
     arg_parser.parse_args()
 
     ensure_mesos_libs()
-    log.info("Starting LWR executor")
+    log.info("Starting Pulsar executor")
     driver = MesosExecutorDriver(PulsarExecutor())
     exit_code = 0
     if not driver.run() == mesos_pb2.DRIVER_STOPPED:

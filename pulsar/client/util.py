@@ -90,7 +90,7 @@ class PathHelper(object):
     '''
 
     >>> import posixpath
-    >>> # Forcing local path to posixpath because LWR designed to be used with
+    >>> # Forcing local path to posixpath because Pulsar designed to be used with
     >>> # posix client.
     >>> posix_path_helper = PathHelper("/", local_path_module=posixpath)
     >>> windows_slash = "\\\\"

@@ -120,7 +120,7 @@ class ClientOutputs(object):
 
 
 class PulsarOutputs(object):
-    """ Abstraction describing the output files PRODUCED by the remote LWR
+    """ Abstraction describing the output files PRODUCED by the remote Pulsar
     server. """
 
     def __init__(self, working_directory_contents, output_directory_contents, remote_separator=sep):
@@ -131,10 +131,10 @@ class PulsarOutputs(object):
     @staticmethod
     def from_status_response(complete_response):
         # Default to None instead of [] to distinguish between empty contents and it not set
-        # by the LWR - older LWR instances will not set these in complete response.
+        # by the Pulsar - older Pulsar instances will not set these in complete response.
         working_directory_contents = complete_response.get("working_directory_contents")
         output_directory_contents = complete_response.get("outputs_directory_contents")
-        # Older (pre-2014) LWR servers will not include separator in response,
+        # Older (pre-2014) Pulsar servers will not include separator in response,
         # so this should only be used when reasoning about outputs in
         # subdirectories (which was not previously supported prior to that).
         remote_separator = complete_response.get("system_properties", {}).get("separator", sep)
