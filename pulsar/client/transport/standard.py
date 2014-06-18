@@ -20,9 +20,7 @@ class Urllib2Transport(object):
         return urlopen(request, data)
 
     def execute(self, url, method=None, data=None, input_path=None, output_path=None):
-        request = Request(url=url, data=data)
-        if method:
-            request.get_method = lambda: method
+        request = self.__request(url, data, method)
         input = None
         try:
             if input_path:
@@ -45,3 +43,9 @@ class Urllib2Transport(object):
             return response
         else:
             return response.read()
+
+    def __request(self, url, data, method):
+        request = Request(url=url, data=data)
+        if method:
+            request.get_method = lambda: method
+        return request
