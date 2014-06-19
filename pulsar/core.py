@@ -16,7 +16,7 @@ from galaxy.util.bunch import Bunch
 from logging import getLogger
 log = getLogger(__name__)
 
-DEFAULT_PRIVATE_KEY = None
+DEFAULT_PRIVATE_TOKEN = None
 DEFAULT_FILES_DIRECTORY = "files"
 DEFAULT_STAGING_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "staging")
 DEFAULT_PERSISTENCE_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "persisted_data")
@@ -32,7 +32,7 @@ class PulsarApp(object):
         if conf is None:
             conf = {}
         self.__setup_staging_directory(conf.get("staging_directory", DEFAULT_STAGING_DIRECTORY))
-        self.__setup_private_key(conf.get("private_key", DEFAULT_PRIVATE_KEY))
+        self.__setup_private_token(conf.get("private_token", DEFAULT_PRIVATE_TOKEN))
         self.__setup_persistence_directory(conf.get("persistence_directory", None))
         self.__setup_tool_config(conf)
         self.__setup_object_store(conf)
@@ -83,9 +83,9 @@ class PulsarApp(object):
     def __setup_managers(self, conf):
         self.managers = build_managers(self, conf)
 
-    def __setup_private_key(self, private_key):
-        self.private_key = private_key
-        if private_key:
+    def __setup_private_token(self, private_token):
+        self.private_token = private_token
+        if private_token:
             log.info("Securing Pulsar web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic.")
 
     def __setup_persistence_directory(self, persistence_directory):

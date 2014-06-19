@@ -201,7 +201,7 @@ More information can be found in the `paste httpserver documentation
 <http://pythonpaste.org/modules/httpserver.html>`_.
 
 Finally, in order to force Galaxy to authorize itself, you will want to
-specify a private token - by simply setting ``private_key`` to some long
+specify a private token - by simply setting ``private_token`` to some long
 random string in ``server.ini``.
 
 Once SSL has been enabled and a private token configured, Galaxy job

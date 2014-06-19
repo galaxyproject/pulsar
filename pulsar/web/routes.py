@@ -26,9 +26,9 @@ class PulsarController(Controller):
         super(PulsarController, self).__init__(**kwargs)
 
     def _check_access(self, req, environ, start_response):
-        if req.app.private_key:
-            sent_private_key = req.GET.get("private_key", None)
-            if not (req.app.private_key == sent_private_key):
+        if req.app.private_token:
+            sent_private_token = req.GET.get("private_token", None)
+            if not (req.app.private_token == sent_private_token):
                 return exc.HTTPUnauthorized()(environ, start_response)
 
     def _app_args(self, args, req):

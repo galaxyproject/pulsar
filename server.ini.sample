@@ -23,10 +23,10 @@ paste.app_factory = pulsar.web.wsgi:app_factory
 ## to an absolute path, such as /tmp/pulsar_staging or C:\\pulsar_staging
 staging_directory = files/staging
 
-## Private key or password that must be sent as part of the request to
+## Private token that must be sent as part of the request to
 ## authorize use. If security is important, please use this in
 ## combination with SSL.
-#private_key = changemeinproduction
+#private_token = changemeinproduction
 
 ## Define job managers (setup queues with various settings, etc...).
 #job_managers_config = job_managers.ini

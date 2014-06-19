@@ -128,10 +128,10 @@ class IntegrationTests(BaseIntegrationTest):
         self._run(private_token=None, transport="curl", **self.default_kwargs)
 
     def test_integration_token(self):
-        self._run(app_conf={"private_key": "testtoken"}, private_token="testtoken", **self.default_kwargs)
+        self._run(app_conf={"private_token": "testtoken"}, private_token="testtoken", **self.default_kwargs)
 
     def test_integration_errors(self):
-        self._run(app_conf={"private_key": "testtoken"}, private_token="testtoken", test_errors=True, **self.default_kwargs)
+        self._run(app_conf={"private_token": "testtoken"}, private_token="testtoken", test_errors=True, **self.default_kwargs)
 
     @skipUnlessModule("drmaa")
     def test_integration_drmaa(self):

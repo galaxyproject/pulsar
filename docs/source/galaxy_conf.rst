@@ -17,7 +17,7 @@ Simple Windows Pulsar Web Server
 
 The following Galaxy ``job_conf.xml`` assumes you have deployed a simple Pulsar
 web server to the Windows host ``windowshost.examle.com`` on the default port
-(``8913``) with a ``private_key`` (defined in ``server.ini``) of
+(``8913``) with a ``private_token`` (defined in ``server.ini``) of
 ``123456789changeme``. Most Galaxy jobs will just route use Galaxy's local job
 runner but ``msconvert`` and ``proteinpilot`` will be sent to the Pulsar server
 on ``windowshost.examle.com``. Sophisticated tool dependency resolution is not
