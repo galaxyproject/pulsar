@@ -8,19 +8,23 @@ import logging
 log = logging.getLogger(__name__)
 
 
+TYPED_PARAMS = {
+    "amqp_consumer_timeout": lambda val: None if str(val) == "None" else float(val),
+    "amqp_publish_retry": asbool,
+    "amqp_publish_retry_max_retries": int,
+    "amqp_publish_retry_interval_start": int,
+    "amqp_publish_retry_interval_step": int,
+    "amqp_publish_retry_interval_max": int,
+}
+
+
 def get_exchange(connection_string, manager_name, conf):
     # HACK: Fixup non-string parameters - utlimately this should reuse spec
     # stuff from Galaxy.
-    for param in ["amqp_consumer_timeout"]:
+    for param, to_type in TYPED_PARAMS.iteritems():
         if param in conf:
             val = conf[param]
-            new_val = None if str(val) == "None" else float(val)
-            conf[param] = new_val
-    for param in ["amqp_publish_retry"]:
-        if param in conf:
-            val = conf[param]
-            new_val = asbool(val)
-            conf[param] = new_val
+            conf[param] = to_type(val)
 
     lwr_exchange = amqp_exchange_factory.get_exchange(
         connection_string,
