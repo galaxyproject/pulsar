@@ -27,7 +27,7 @@ DEFAULT_TRANSFER_THREADS = 2
 def build_client_manager(**kwargs):
     if 'job_manager' in kwargs:
         return ClientManager(**kwargs)  # TODO: Consider more separation here.
-    elif kwargs.get('url', None):
+    elif kwargs.get('amqp_url', None):
         return MessageQueueClientManager(**kwargs)
     else:
         return ClientManager(**kwargs)
@@ -81,7 +81,7 @@ except ImportError:
 class MessageQueueClientManager(object):
 
     def __init__(self, **kwds):
-        self.url = kwds.get('url')
+        self.url = kwds.get('amqp_url')
         self.manager_name = kwds.get("manager", None) or "_default_"
         self.exchange = get_exchange(self.url, self.manager_name, kwds)
         self.status_cache = {}

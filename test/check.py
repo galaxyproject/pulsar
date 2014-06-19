@@ -310,7 +310,7 @@ def __client_manager(options):
     if getattr(options, 'transport', None):
         manager_args['transport'] = options.transport
     if getattr(options, 'manager_url', None):
-        manager_args['url'] = options.manager_url
+        manager_args['amqp_url'] = options.manager_url
     return build_client_manager(**manager_args)
 
 
