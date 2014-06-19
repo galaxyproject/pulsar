@@ -19,6 +19,9 @@ DEFAULT_EXCHANGE_TYPE = "direct"
 DEFAULT_TIMEOUT = 0.2
 DEFAULT_HEARTBEAT = 580
 
+DEFAULT_RECONNECT_CONSUMER_WAIT = 1
+DEFAULT_HEARTBEAT_WAIT = 1
+
 
 class LwrExchange(object):
     """ Utility for publishing and consuming structured LWR queues using kombu.
@@ -75,12 +78,13 @@ class LwrExchange(object):
                 log.warning('Got %s, will retry: %s', exc.__class__.__name__, exc)
                 if heartbeat_thread:
                     heartbeat_thread.join()
+                sleep(DEFAULT_RECONNECT_CONSUMER_WAIT)
 
     def heartbeat(self, connection):
         log.debug('AMQP heartbeat thread alive')
         while connection.connected:
             connection.heartbeat_check()
-            sleep(1)
+            sleep(DEFAULT_HEARTBEAT_WAIT)
         log.debug('AMQP heartbeat thread exiting')
 
     def publish(self, name, payload):
