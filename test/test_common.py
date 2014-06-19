@@ -19,4 +19,3 @@ def write_config(has_temp_directory, data, name="config.json"):
             import yaml
             yaml.dump(data, f)
     return config_file
-
