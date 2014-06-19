@@ -1,1 +1,1 @@
-This directory contains default persisted LWR data.
+This directory contains default persisted Pulsar data.

@@ -25,11 +25,10 @@ for complete information.
 Downloading Pulsar
 ------------------
 
-The Pulsar server application is distributed as a Python project and can
-be obtained via mercurial from bitbucket.org using the following
-command::
+Pulsar is distributed as a Python project and can be obtained from
+Github using the following command::
 
-    hg clone http://bitbucket.org/jmchilton/lwr
+    git clone https://github.com/galaxyproject/pulsr
 
 -------------------
 Pulsar Dependencies
@@ -211,14 +210,14 @@ these jobs.
 Pulsar Message Queue
 ````````````````````
 
-If Pulsar is processing requests via a message queue instead of a web server
-the underlying security mechanisms of the message queue should be used to
-secure the LWR communication - configuring SSL with the LWR and a
-``private_token`` above are not required.
+If Pulsar is processing requests via a message queue instead of a web
+server the underlying security mechanisms of the message queue should
+be used to secure communication - deploying Pulsar with SSL and a
+``private_token`` described above are not required.
 
 This will likely consist of setting some combination of
 ``amqp_connect_ssl_ca_certs``, ``amqp_connect_ssl_keyfile``,
-``amqp_connect_ssl_certfile``, ``amqp_connect_ssl_cert_reqs``, in LWR's
+``amqp_connect_ssl_certfile``, ``amqp_connect_ssl_cert_reqs``, in Pulsar's
 ``server.ini`` file. See ``server.ini.sample`` for more details and the `Kombo
 documentation
 <http://kombu.readthedocs.org/en/latest/reference/kombu.connection.html>`_ for
@@ -257,9 +256,9 @@ Galaxy Tools
 ------------
 
 Some Galaxy tool wrappers require a copy of the Galaxy codebase itself to run.
-Such tools will not run under Windows, but on \*nix hosts the LWR can be
+Such tools will not run under Windows, but on \*nix hosts the Pulsar can be
 configured to add the required Galaxy code a jobs ``PYTHON_PATH`` by setting
-``GALAXY_HOME`` environment variable in the LWR's ``local_env.sh`` file
+``GALAXY_HOME`` environment variable in the Pulsar's ``local_env.sh`` file
 (described above).
 
 Caching (Experimental)
@@ -300,14 +299,14 @@ for more details (other MQs should work also).
 Testing
 -------
 
-.. image:: https://travis-ci.org/jmchilton/lwr.png?branch=master
-    :target: https://travis-ci.org/jmchilton/lwr
-.. image:: https://coveralls.io/repos/jmchilton/lwr/badge.png?branch=master 
-    :target: https://coveralls.io/r/jmchilton/lwr?branch=master
+.. image:: https://travis-ci.org/galaxyproject/pulsar.png?branch=master
+    :target: https://travis-ci.org/galaxyproject/pulsar
+.. image:: https://coveralls.io/repos/galaxyproject/pulsar/badge.png?branch=master 
+    :target: https://coveralls.io/r/galaxyproject/pulsar?branch=master
 
 A simple sanity test can be run against a running Pular server by
 executing the following command (replace the URL command with the URL
-of your running LWR application)::
+of your running Pulsar application)::
 
     python run_client_tests.py --url=http://localhost:8913
 
