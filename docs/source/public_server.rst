@@ -2,6 +2,8 @@
 Configuring a Public Pulsar Server
 ----------------------------------
 
+(This is highly experimental and not recommended at this time.)
+
 An Pulsar server can be pointed at a Galaxy toolbox XML file and opened
 to the world. By default, an Pulsar is allowed to run anything Galaxy (or
 other client) sends it. The toolbox and referenced tool files are used

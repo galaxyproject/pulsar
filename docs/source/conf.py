@@ -43,7 +43,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Pulsar'
-copyright = u'201, John Chilton'
+copyright = u'2014, Galaxy Project'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

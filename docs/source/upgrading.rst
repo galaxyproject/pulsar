@@ -2,7 +2,14 @@
 Upgrading from the LWR
 ----------------------
 
-Pulsar was born out of the previously, poorly named project the ``LWR``. The tenative plan is to allow Galaxy to support both targets for sometime - but at some point LWR servers should be upgraded to the Pulsar servers.
+Pulsar was born out of the poorly named `LWR
+<https://bitbucket.org/jmchilton/lwr>`_ developed for the `Galaxy-P
+<https://usegalaxyp.org/>`_ project. This section outlines broadly how
+to upgrade from an LWR server to a Pulsar one.
+
+The tenative plan is to allow Galaxy to support both targets for
+sometime - but at some point LWR servers should be upgraded to the
+Pulsar servers.
 
 Rough plan:
 
@@ -17,7 +24,7 @@ Rough plan:
 
 On Galaxy client side:
 
-Replace plugin class.
-
-- Change any destination parameters of remote_lwr_path to remote_pulsar_path.
-- 
+- Open job_conf.xml and replace all LWR plugin definitions
+  (``galaxy.jobs.runners.lwr:LwrJobRunner``) with Pulsar ones
+  (``galaxy.jobs.runners.pulsar:PulsarLegacyJobRunner``).
+- This plugin should behave largely like the LWR one but a few attributes `param` ids are different. The plugin param `url` has changed to `amqp_url` and the destination param `remote_lwr_directory` has become `remote_pulsar_directory`.
