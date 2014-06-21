@@ -361,7 +361,7 @@ def __finish(options, client, client_outputs, result_status):
 
 
 def main():
-    """ Exercises a running Pulsar server application with the Pulsar client. """
+    """ Exercises a running Pulsar with the Pulsar client. """
     parser = optparse.OptionParser()
     parser.add_option('--url', dest='url', default='http://localhost:8913/')
     parser.add_option('--private_token', default=None)

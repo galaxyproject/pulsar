@@ -7,7 +7,7 @@ try:
 except ImportError:
     # Not in Galaxy, map Galaxy job states to Pulsar ones.
     from galaxy.util import enum
-    job_states = enum(RUNNING='running', OK='complete', QUEUED='queued')
+    job_states = enum(RUNNING='running', OK='complete', QUEUED='queued', ERROR="failed")
 
 from ..job import BaseJobExec
 
@@ -80,6 +80,7 @@ class Slurm(BaseJobExec):
             # Job still on cluster and has state.
             id, state = status[1].split()
             return self._get_job_state(state)
+        # else line like "slurm_load_jobs error: Invalid job id specified"
         return job_states.OK
 
     def _get_job_state(self, state):

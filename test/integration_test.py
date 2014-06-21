@@ -142,8 +142,12 @@ class IntegrationTests(BaseIntegrationTest):
         self._run(app_conf={}, job_conf_props={'type': 'queued_condor'}, private_token=None, **self.default_kwargs)
 
     @skipUnlessExecutable("qsub")
-    def test_integration_cli(self):
+    def test_integration_cli_torque(self):
         self._run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Torque'}, private_token=None, **self.default_kwargs)
+
+    @skipUnlessExecutable("sbatch")
+    def test_integration_cli_slurm(self):
+        self._run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Slurm'}, private_token=None, **self.default_kwargs)
 
 
 class DirectIntegrationTests(IntegrationTests):

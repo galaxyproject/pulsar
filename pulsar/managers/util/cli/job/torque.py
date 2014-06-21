@@ -18,6 +18,9 @@ __all__ = ('Torque',)
 from logging import getLogger
 log = getLogger(__name__)
 
+ERROR_MESSAGE_UNRECOGNIZED_ARG = 'Unrecognized long argument passed to Torque CLI plugin: %s'
+
+
 argmap = {'destination': '-q',
           'Execution_Time': '-a',
           'Account_Name': '-A',
@@ -58,8 +61,8 @@ class Torque(BaseJobExec):
                 if not k.startswith('-'):
                     k = argmap[k]
                 pbsargs[k] = v
-            except:
-                log.warning('Unrecognized long argument passed to Torque CLI plugin: %s' % k)
+            except KeyError:
+                log.warning(ERROR_MESSAGE_UNRECOGNIZED_ARG % k)
         template_pbsargs = ''
         for k, v in pbsargs.items():
             template_pbsargs += '#PBS %s %s\n' % (k, v)
