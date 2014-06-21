@@ -218,19 +218,20 @@ class Waiter(object):
 
             self.client_manager.ensure_has_status_update_callback(on_update)
 
-    def wait(self):
+    def wait(self, seconds=5):
         final_status = None
         if not self.async:
             i = 0
-            while i < 5:
+            # Wait for seconds * 2 half second intervals
+            while i < (seconds * 2):
                 complete_response = self.client.raw_check_complete()
                 if complete_response["status"] in ["complete", "cancelled"]:
                     final_status = complete_response
                     break
-                time.sleep(1)
+                time.sleep(.5)
                 i = i + 1
         else:
-            self.event.wait(5)
+            self.event.wait(seconds)
             if self.event.is_set():
                 final_status = self.final_status
         if not final_status:
