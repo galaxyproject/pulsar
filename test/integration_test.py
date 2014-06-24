@@ -2,7 +2,12 @@ from os.path import join
 from os import makedirs, system
 from six import next, itervalues
 from six.moves import configparser
-from .test_utils import TempDirectoryTestCase, skipUnlessExecutable, skipUnlessModule
+from .test_utils import (
+    TempDirectoryTestCase,
+    skipUnlessExecutable,
+    skipUnlessModule,
+    skipUnlessAnyModule
+)
 
 from .test_utils import test_pulsar_app
 from .test_utils import test_pulsar_server
@@ -153,7 +158,7 @@ class IntegrationTests(BaseIntegrationTest):
 class DirectIntegrationTests(IntegrationTests):
     default_kwargs = dict(direct_interface=True, test_requirement=False)
 
-    @skipUnlessModule("pycurl")
+    @skipUnlessAnyModule(["pycurl", "poster"])
     def test_integration_remote_transfer(self):
         self._run(
             private_token=None,

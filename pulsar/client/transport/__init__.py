@@ -25,7 +25,12 @@ def __get_transport_type(transport_type, os_module):
 
 # TODO: Provide urllib implementation if these unavailable,
 # also explore a requests+poster option.
-from .curl import get_file
-from .curl import post_file
+from .curl import curl_available
+if curl_available:
+    from .curl import get_file
+    from .curl import post_file
+else:
+    from .poster import get_file
+    from .poster import post_file
 
 __all__ = [get_transport, get_file, post_file]

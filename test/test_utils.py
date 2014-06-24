@@ -187,6 +187,19 @@ def skipUnlessModule(module):
     return skip("Module %s could not be loaded, dependent test skipped." % module)
 
 
+def skipUnlessAnyModule(modules):
+    available = False
+    for module in modules:
+        try:
+            __import__(module)
+        except ImportError:
+            continue
+        available = True
+    if available:
+        return lambda func: func
+    return skip("None of the modules %s could be loaded, dependent test skipped." % modules)
+
+
 def __which(program):
 
     def is_exe(fpath):
