@@ -1,7 +1,10 @@
+import os
+
 from pulsar.client.transport.standard import Urllib2Transport
 from pulsar.client.transport.curl import PycurlTransport
 from pulsar.client.transport import get_transport
 from tempfile import NamedTemporaryFile
+from .test_utils import files_server
 
 
 def test_urllib_transports():
@@ -13,16 +16,23 @@ def test_pycurl_transport():
 
 
 def _test_transport(transport):
-    # Testing simple get
-    response = transport.execute(u"http://www.google.com", data=None)
-    assert response.find("<title>Google</title>") > 0
+    with files_server() as (server, directory):
+        path = os.path.join(directory, "test_for_GET")
+        open(path, "w").write(" Test123 ")
 
-    # Testing writing to output file
-    temp_file = NamedTemporaryFile(delete=True)
-    output_path = temp_file.name
-    temp_file.close()
-    response = transport.execute(u"http://www.google.com", data=None, output_path=output_path)
-    assert open(output_path, 'r').read().find("<title>Google</title>") > 0
+        server_url = server.application_url
+        request_url = u"%s?path=%s" % (server_url, path)
+
+        # Testing simple get
+        response = transport.execute(request_url, data=None)
+        assert response.find("Test123") >= 0
+
+        # Testing writing to output file
+        temp_file = NamedTemporaryFile(delete=True)
+        output_path = temp_file.name
+        temp_file.close()
+        response = transport.execute(request_url, data=None, output_path=output_path)
+        assert open(output_path, 'r').read().find("Test123") >= 0
 
 
 def test_get_transport():
