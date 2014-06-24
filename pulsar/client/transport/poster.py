@@ -18,7 +18,7 @@ try:
 except ImportError:
     poster = None
 
-POSTER_UNAVAILABLE_MESSAGE = ""
+POSTER_UNAVAILABLE_MESSAGE = "Pulsar configured to use poster module - but it is unavailable. Please install poster."
 
 import logging
 log = logging.getLogger(__name__)
