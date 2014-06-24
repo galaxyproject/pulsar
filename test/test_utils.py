@@ -228,6 +228,8 @@ class JobFilesApp(object):
             resp = self._post(req, params)
         elif method == "GET":
             resp = self._get(req, params)
+        else:
+            raise Exception("Unhandled request method %s" % method)
         return resp(environ, start_response)
 
     def _post(self, request, params):
