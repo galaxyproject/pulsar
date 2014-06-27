@@ -3,6 +3,7 @@ syntax: glob
 docs/_build
 cache
 *.pyc
+*~
 .coverage
 local_env.sh
 coverage_html_report
