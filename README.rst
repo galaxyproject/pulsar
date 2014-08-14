@@ -16,7 +16,7 @@ Full documentation for the project can be found on `Read The Docs
 Configuring Galaxy
 ------------------
 
-Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small examples of how to configure this can be found `here <https://pulsar.readthedocs.org/en/latest/#galaxy-configuration-examples>`_, but be sure to checkout ``job_conf.xml.sample_advanced``
+Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small examples of how to configure this can be found `here <https://pulsar.readthedocs.org/en/latest/#galaxy-configuration>`_, but be sure to checkout ``job_conf.xml.sample_advanced``
 in your Galaxy code base or on
 `Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
 for complete information.
@@ -28,7 +28,7 @@ Downloading Pulsar
 Pulsar is distributed as a Python project and can be obtained from
 Github using the following command::
 
-    git clone https://github.com/galaxyproject/pulsr
+    git clone https://github.com/galaxyproject/pulsar
 
 -------------------
 Pulsar Dependencies
@@ -58,7 +58,7 @@ robust for Window's environments.
 
     virtualenv .venv
 
-3. Activate environment (varies by OS). 
+3. Activate environment (varies by OS).
 
 From a Linux or MacOS terminal::
 
@@ -246,7 +246,7 @@ Pulsar is going to be used on more sophisticate clusters, it can be configured
 to maintain multiple such queues with different properties or to delegate to
 external job queues (via DRMAA, qsub/qstat CLI commands, or Condor).
 
-For more information on configured external job managers, see 
+For more information on configured external job managers, see
 `the job managers documentation <https://lwr.readthedocs.org/#job-managers>`_.
 
 Warning: If you are using DRMAA, be sure to define ``DRMAA_LIBRARY_PATH`` in
@@ -301,7 +301,7 @@ Testing
 
 .. image:: https://travis-ci.org/galaxyproject/pulsar.png?branch=master
     :target: https://travis-ci.org/galaxyproject/pulsar
-.. image:: https://coveralls.io/repos/galaxyproject/pulsar/badge.png?branch=master 
+.. image:: https://coveralls.io/repos/galaxyproject/pulsar/badge.png?branch=master
     :target: https://coveralls.io/r/galaxyproject/pulsar?branch=master
 
 A simple sanity test can be run against a running Pular server by

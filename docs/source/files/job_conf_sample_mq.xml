@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <job_conf>
     <plugins>
-        <plugin id="drmaa" type="runner" load="galaxy.jobs.runners.drmaa:DRMAAJobRunner">
+        <plugin id="drmaa" type="runner" load="galaxy.jobs.runners.drmaa:DRMAAJobRunner"/>
         <plugin id="lwr" type="runner" load="galaxy.jobs.runners.lwr:LwrJobRunner">
             <!-- Must tell LWR where to send files. -->
             <param id="galaxy_url">https://galaxyserver</param>
@@ -11,11 +11,11 @@
         </plugin>
     </plugins>
     <handlers>
-        <handler id="main"/>        
+        <handler id="main"/>
     </handlers>
     <destinations default="drmaa">
         <destination id="local_cluster" runner="drmaa">
-            <param id="native_specification">-P littlenodes -R y -pe threads 4</param>            
+            <param id="native_specification">-P littlenodes -R y -pe threads 4</param>
         </destination>
         <destination id="remote_cluster" runner="lwr">
             <!-- Tell Galaxy where files are being store on remote system, no
@@ -28,8 +28,8 @@
 
             <!-- Remaining parameters same as previous example -->
             <param id="submit_native_specification">-P bignodes -R y -pe threads 16</param>
-            <param id="dependency_resolution">remote</params>
-            <param id="rewrite_parameters">True</params>            
+            <param id="dependency_resolution">remote</param>
+            <param id="rewrite_parameters">True</param>
         </destination>
     </destinations>
     <tools>
