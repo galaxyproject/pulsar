@@ -36,7 +36,7 @@ no need for the Pulsar) and a bigger shared resource that cannot mount Galaxy's
 files requiring the use of the Pulsar. This variant routes some larger assembly
 jobs to the remote cluster - namely the `trinity` and `abyss` tools. Be sure
 the underlying applications required by the ``trinity`` and ``abyss`` tools
-are the Pulsar path or set ``tool_dependency_dir`` in ``server.ini`` and setup
+are on the Pulsar path or set ``tool_dependency_dir`` in ``server.ini`` and setup
 Galaxy env.sh-style packages definitions for these applications).
 
 .. literalinclude:: files/job_conf_sample_remote_cluster.xml

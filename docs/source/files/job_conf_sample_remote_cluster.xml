@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <job_conf>
     <plugins>
-        <plugin id="drmaa" type="runner" load="galaxy.jobs.runners.drmaa:DRMAAJobRunner">
+        <plugin id="drmaa" type="runner" load="galaxy.jobs.runners.drmaa:DRMAAJobRunner"/>
         <plugin id="lwr" type="runner" load="galaxy.jobs.runners.lwr:LwrJobRunner"/>
     </plugins>
     <handlers>
-        <handler id="main"/>        
+        <handler id="main"/>
     </handlers>
     <destinations default="drmaa">
         <destination id="local_cluster" runner="drmaa">
-            <param id="native_specification">-P littlenodes -R y -pe threads 4</param>            
+            <param id="native_specification">-P littlenodes -R y -pe threads 4</param>
         </destination>
         <destination id="remote_cluster" runner="lwr">
             <param id="url">http://remotelogin:8913/</param>
@@ -17,10 +17,10 @@
             <!-- Look for trinity package at remote location - define tool_dependency_dir
             in the LWR server.ini file.
             -->
-            <param id="dependency_resolution">remote</params>
+            <param id="dependency_resolution">remote</param>
             <!-- Use more correct parameter generation for *nix. Needs testing on Windows
                  servers before this becomes default. -->
-            <param id="rewrite_parameters">True</params>
+            <param id="rewrite_parameters">True</param>
         </destination>
     </destinations>
     <tools>
