@@ -82,8 +82,9 @@ def __drain(name, queue_state, pulsar_exchange, callback):
 def __process_kill_message(manager, body, message):
     try:
         job_id = __client_job_id_from_body(body)
-        if job_id:
-            manager.kill(job_id)
+        assert job_id, 'Could not parse job id from body: %s' % body
+        log.debug("Received message in kill queue for Pulsar job id: %s", job_id)
+        manager.kill(job_id)
     except Exception:
         log.exception("Failed to kill job.")
     message.ack()
@@ -91,10 +92,13 @@ def __process_kill_message(manager, body, message):
 
 def __process_setup_message(manager, body, message):
     try:
+        job_id = __client_job_id_from_body(body)
+        assert job_id, 'Could not parse job id from body: %s' % body
+        log.debug("Received message in setup queue for Pulsar job id: %s", job_id)
         manager_endpoint_util.submit_job(manager, body)
     except Exception:
-        job_id = __client_job_id_from_body(body)
-        log.warn("Failed to setup job %s obtained via message queue." % job_id)
+        job_id = job_id or 'unknown'
+        log.exception("Failed to setup job %s obtained via message queue." % job_id)
     message.ack()
 
 

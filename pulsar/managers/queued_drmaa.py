@@ -25,3 +25,4 @@ class DrmaaQueueManager(BaseDrmaaManager):
 
     def _kill_external(self, external_id):
         self.drmaa_session.kill(external_id)
+        log.info("Killed DRMAA job with external id %s", external_id)
