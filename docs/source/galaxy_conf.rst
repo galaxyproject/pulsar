@@ -68,6 +68,13 @@ Targeting Apache Mesos (Prototype)
 
 See `commit message <https://bitbucket.org/jmchilton/lwr/commits/555438d2fe266899338474b25c540fef42bcece7>`_ for initial work on this and `this post on galaxy-dev <http://dev.list.galaxyproject.org/Using-Mesos-to-Enable-distributed-computing-under-Galaxy-tp4662310p4664829.html>`_.
 
+Forcing Pulsar to Generate Galaxy Metadata
+``````````````````````````````````````````
+
+Typically Galaxy will process Pulsar's outputs and generate metadata
+on the Galaxy server. One can force this to happen with Pulsar. (TODO:
+document how here).
+
 Etc...
 ``````
 
