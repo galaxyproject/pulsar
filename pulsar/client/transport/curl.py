@@ -4,7 +4,7 @@ except ImportError:
     from io import StringIO
 curl_available = True
 try:
-    from pycurl import Curl
+    from pycurl import Curl, HTTP_CODE
 except ImportError:
     curl_available = False
 from os.path import getsize
@@ -46,6 +46,11 @@ def post_file(url, path):
     c.setopt(c.URL, url.encode('ascii'))
     c.setopt(c.HTTPPOST, [("file", (c.FORM_FILE, path.encode('ascii')))])
     c.perform()
+    status_code = c.getinfo(HTTP_CODE)
+    if int(status_code) != 200:
+        template = "Failed to post_file properly for url %s, remote server returned status code of %s."
+        message = template % (url, status_code)
+        raise Exception(message)
 
 
 def get_file(url, path):
@@ -55,6 +60,11 @@ def get_file(url, path):
         c.setopt(c.URL, url.encode('ascii'))
         c.setopt(c.WRITEFUNCTION, buf.write)
         c.perform()
+        status_code = c.getinfo(HTTP_CODE)
+        if int(status_code) != 200:
+            template = "Failed to get_file properly for url %s, remote server returned status code of %s."
+            message = template % (url, status_code)
+            raise Exception(message)
     finally:
         buf.close()
 
