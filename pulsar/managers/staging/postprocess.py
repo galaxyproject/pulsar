@@ -11,24 +11,24 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def postprocess(job_directory):
+def postprocess(job_directory, action_executor):
     # Returns True iff outputs were collected.
     try:
         staging_config = job_directory.load_metadata("staging_config", None)
         if staging_config:
-            return __collect_outputs(job_directory, staging_config)
+            return __collect_outputs(job_directory, staging_config, action_executor)
     finally:
         job_directory.write_file("postprocessed", "")
     return False
 
 
-def __collect_outputs(job_directory, staging_config):
+def __collect_outputs(job_directory, staging_config, action_executor):
     collected = True
     if "action_mapper" in staging_config:
         file_action_mapper = action_mapper.FileActionMapper(config=staging_config["action_mapper"])
         client_outputs = staging.ClientOutputs.from_dict(staging_config["client_outputs"])
         pulsar_outputs = __pulsar_outputs(job_directory)
-        output_collector = PulsarServerOutputCollector(job_directory)
+        output_collector = PulsarServerOutputCollector(job_directory, action_executor)
         results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, pulsar_outputs)
         collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
@@ -39,8 +39,9 @@ def __collect_outputs(job_directory, staging_config):
 
 class PulsarServerOutputCollector(object):
 
-    def __init__(self, job_directory):
+    def __init__(self, job_directory, action_executor):
         self.job_directory = job_directory
+        self.action_executor = action_executor
 
     def collect_output(self, results_collector, output_type, action, name):
         # Not using input path, this is because action knows it path
@@ -54,7 +55,7 @@ class PulsarServerOutputCollector(object):
             name = os.path.basename(action.path)
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
-        action.write_from_path(pulsar_path)
+        self.action_executor.execute(lambda: action.write_from_path(pulsar_path))
 
 
 def __pulsar_outputs(job_directory):

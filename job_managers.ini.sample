@@ -62,6 +62,23 @@ max_concurrent_jobs=1
 #[manager:_default_]
 #type=queued_pbs
 
+
+## Pulsar-side action configuration. For actions initiated by Pulsar - the
+## following parameters can be set to control retrying these actions (if they)
+## fail. (XXX_max_retries=-1 => no retry, XXX_max_retries=0 => retry forever -
+## this may be a bit counter-intuitive but I believe it is consistent with
+## Kombu.
+#preprocess_action_max_retries=-1
+#preprocess_action_interval_start=2
+#preprocess_action_interval_step=2
+#preprocess_action_interval_max=30
+
+#postprocess_action_max_retries=-1
+#postprocess_action_interval_start=2
+#postprocess_action_interval_step=2
+#postprocess_action_interval_max=30
+
+
 ## MQ-Options:
 ## If using a message queue the Pulsar will actively monitor status of jobs
 ## in order to issue status update messages. The following options are

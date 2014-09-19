@@ -3,8 +3,10 @@ import os
 import time
 import threading
 
+from pulsar.client.util import filter_destination_params
 from pulsar.managers import ManagerProxy
 from pulsar.managers import status
+from pulsar.managers.util.retry import RetryActionExecutor
 from .staging import preprocess
 from .staging import postprocess
 
@@ -31,6 +33,10 @@ class StatefulManagerProxy(ManagerProxy):
     def __init__(self, manager, **manager_options):
         super(StatefulManagerProxy, self).__init__(manager)
         min_polling_interval = manager_options.get("min_polling_interval", DEFAULT_MIN_POLLING_INTERVAL)
+        preprocess_retry_action_kwds = filter_destination_params(manager_options, "preprocess_action_")
+        postprocess_retry_action_kwds = filter_destination_params(manager_options, "postprocess_action_")
+        self.__preprocess_action_executor = RetryActionExecutor(**preprocess_retry_action_kwds)
+        self.__postprocess_action_executor = RetryActionExecutor(**postprocess_retry_action_kwds)
         self.min_polling_interval = datetime.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs(manager)
         self.__state_change_callback = lambda status, job_id: None
@@ -59,7 +65,7 @@ class StatefulManagerProxy(ManagerProxy):
         def do_preprocess():
             try:
                 staging_config = job_directory.load_metadata("staging_config", {})
-                preprocess(job_directory, staging_config.get("setup", []))
+                preprocess(job_directory, staging_config.get("setup", []), self.__preprocess_action_executor)
                 self._proxied_manager.launch(job_id, *args, **kwargs)
                 with job_directory.lock("status"):
                     job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
@@ -134,7 +140,7 @@ class StatefulManagerProxy(ManagerProxy):
         def do_postprocess():
             postprocess_success = False
             try:
-                postprocess_success = postprocess(self._proxied_manager.job_directory(job_id))
+                postprocess_success = postprocess(self._proxied_manager.job_directory(job_id), self.__postprocess_action_executor)
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
             final_status = status.COMPLETE if postprocess_success else status.FAILED
