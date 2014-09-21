@@ -1,6 +1,8 @@
 from os import system
 from os.path import join, abspath
 from pulsar.daemon import ArgumentParser, PulsarConfigBuilder
+from pulsar.core import DEFAULT_STAGING_DIRECTORY
+
 
 DESCRIPTION = "Change ownership of a job working directory."
 # Switch this to true to tighten up security somewhat in production mode,
@@ -19,7 +21,7 @@ def main():
     job_id = args.job_id
 
     if args.job_id:
-        staging_directory = PulsarConfigBuilder().load()['staging_directory']
+        staging_directory = PulsarConfigBuilder().load().get('staging_directory', DEFAULT_STAGING_DIRECTORY)
         job_directory = abspath(join(staging_directory, job_id))
         assert job_directory.startswith(staging_directory)
     elif FORCE_PRODUCTION:
