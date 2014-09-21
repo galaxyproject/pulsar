@@ -19,22 +19,21 @@ def build_managers(app, conf):
     Takes in a config file as outlined in job_managers.ini.sample and builds
     a dictionary of job manager objects from them.
     """
-    job_managers_config = conf.get("job_managers_config", None)
-
     # Load default options from config file that apply to all
     # managers.
     default_options = _get_default_options(conf)
 
     manager_descriptions = ManagerDescriptions()
     if "job_managers_config" in conf:
-        config = configparser.ConfigParser()
-        config.readfp(open(job_managers_config))
-        for section in config.sections():
-            if not section.startswith(MANAGER_PREFIX):
-                continue
-            manager_name = section[len(MANAGER_PREFIX):]
-            manager_description = ManagerDescription.from_ini_config(config, manager_name)
+        job_managers_config = conf.get("job_managers_config", None)
+        _populate_manager_descriptions_from_ini(manager_descriptions, job_managers_config)
+    elif "managers" in conf:
+        for manager_name, manager_options in conf["managers"].items():
+            manager_description = ManagerDescription.from_dict(manager_options, manager_name)
             manager_descriptions.add(manager_description)
+    elif "manager" in conf:
+        manager_description = ManagerDescription.from_dict(conf["manager"])
+        manager_descriptions.add(manager_description)
     else:
         manager_descriptions.add(ManagerDescription())
 
@@ -49,6 +48,17 @@ def build_managers(app, conf):
         managers[manager_name] = manager
 
     return managers
+
+
+def _populate_manager_descriptions_from_ini(manager_descriptions, job_managers_config):
+    config = configparser.ConfigParser()
+    config.readfp(open(job_managers_config))
+    for section in config.sections():
+        if not section.startswith(MANAGER_PREFIX):
+            continue
+        manager_name = section[len(MANAGER_PREFIX):]
+        manager_description = ManagerDescription.from_ini_config(config, manager_name)
+        manager_descriptions.add(manager_description)
 
 
 def _get_default_options(conf):
@@ -147,3 +157,8 @@ class ManagerDescription(object):
         manager_options = {}
         manager_options.update(dict(config.items(section_name)))
         return ManagerDescription(manager_type, manager_name, manager_options)
+
+    @staticmethod
+    def from_dict(config, manager_name=DEFAULT_MANAGER_NAME):
+        manager_type = config.get("type", DEFAULT_MANAGER_TYPE)
+        return ManagerDescription(manager_type, manager_name, config)
