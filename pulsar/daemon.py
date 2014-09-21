@@ -8,6 +8,11 @@ import sys
 from six.moves import configparser
 
 try:
+    import yaml
+except ImportError:
+    yaml = None
+
+try:
     from daemonize import Daemonize
 except ImportError:
     Daemonize = None
@@ -38,6 +43,10 @@ from paste.deploy.loadwsgi import ConfigLoader
 log = logging.getLogger(__name__)
 
 PULSAR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DEFAULT_INI_APP = "main"
+DEFAULT_INI = "server.ini"
+DEFAULT_APP_YAML = "app.yml"
+DEFAULT_MANAGER = "_default_"
 
 DEFAULT_PID = "pulsar.pid"
 DEFAULT_VERBOSE = True
@@ -77,23 +86,6 @@ def load_pulsar_app(
     return pulsar_app
 
 
-def __setup_logging(ini_path):
-    raw_config = configparser.ConfigParser()
-    raw_config.read([ini_path])
-    # https://github.com/mozilla-services/chaussette/pull/32/files
-    if raw_config.has_section('loggers'):
-        config_file = os.path.abspath(ini_path)
-        fileConfig(
-            config_file,
-            dict(__file__=config_file, here=os.path.dirname(config_file))
-        )
-
-
-def __app_config(ini_path, app_name):
-    config = ConfigLoader(ini_path).app_context(app_name).config()
-    return config
-
-
 def app_loop(args):
     try:
         config_builder = PulsarConfigBuilder(args)
@@ -118,29 +110,82 @@ def app_loop(args):
         raise
 
 
+def absolute_config_path(path, pulsar_root):
+    if path and not os.path.isabs(path):
+        path = os.path.join(pulsar_root, path)
+    return path
+
+
+def __find_default_app_config(*config_dirs):
+    for config_dir in config_dirs:
+        app_config_path = os.path.join(config_dir, DEFAULT_APP_YAML)
+        if os.path.exists(app_config_path):
+            return app_config_path
+    return None
+
+
+def load_app_configuration(ini_path, app_name=None, local_conf=None, pulsar_root=PULSAR_ROOT_DIR):
+    """
+    """
+    if local_conf is None and app_name is None:
+        raise Exception("Must have a local_conf loaded from an ini or an app to pull one out of to use load_app_configuration.")
+    if local_conf is None:
+        local_conf = ConfigLoader(ini_path).app_context(app_name).config()
+    local_conf = local_conf or {}
+    app_config_path = None
+    if "app_config" in local_conf:
+        app_config_path = absolute_config_path(local_conf["app_config"], pulsar_root)
+    elif ini_path:
+        # If not explicit app.yml file found - look next to server.ini -
+        # be it in pulsar root, some temporary staging directory, or /etc.
+        app_config_path = __find_default_app_config(
+            os.path.dirname(ini_path),
+        )
+    if app_config_path:
+        if yaml is None:
+            raise Exception("Cannot load confiuration from file %s, pyyaml is not available." % app_config_path)
+
+        with open(app_config_path, "r") as f:
+            local_conf.update(yaml.load(f))
+
+    return local_conf
+
+
+def find_ini(supplied_ini, pulsar_root):
+    if supplied_ini:
+        return supplied_ini
+
+    # If not explicitly supplied an ini, check server.ini and then
+    # just restort to sample if that has not been configured.
+    for guess in ["server.ini", "server.ini.sample"]:
+        ini_path = os.path.join(pulsar_root, guess)
+        if os.path.exists(ini_path):
+            return ini_path
+
+    return guess
+
+
 class PulsarConfigBuilder(object):
     """ Generate paste-like configuration from supplied command-line arguments.
     """
 
     def __init__(self, args=None, **kwds):
-        ini_path = kwds.get("ini_path", None) or args.ini_path
-        if ini_path is None:
-            ini_path = "server.ini"
-        if not os.path.isabs(ini_path):
-            ini_path = os.path.join(PULSAR_ROOT_DIR, ini_path)
-
+        ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
+        pulsar_root = kwds.get("pulsar_root", PULSAR_ROOT_DIR)
+        ini_path = find_ini(ini_path, pulsar_root)
+        ini_path = absolute_config_path(ini_path, pulsar_root=pulsar_root)
         self.ini_path = ini_path
-        self.app_name = kwds.get("app") or args.app
+        self.app_name = kwds.get("app") or (args and args.app) or DEFAULT_INI_APP
 
     @classmethod
     def populate_options(clazz, arg_parser):
         arg_parser.add_argument("--ini_path", default=None)
-        arg_parser.add_argument("--app", default="main")
+        arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
 
     def load(self):
         ini_path = self.ini_path
         app_name = self.app_name
-        config = ConfigLoader(ini_path).app_context(app_name).config()
+        config = load_app_configuration(ini_path, app_name=app_name)
         return config
 
     def setup_logging(self):
@@ -165,7 +210,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
     def __init__(self, args=None, **kwds):
         super(PulsarManagerConfigBuilder, self).__init__(args=args, **kwds)
-        self.manager = kwds.get("manager", None) or args.manager
+        self.manager = kwds.get("manager", None) or (args and args.manager) or DEFAULT_MANAGER
 
     def to_dict(self):
         as_dict = super(PulsarManagerConfigBuilder, self).to_dict()
@@ -175,7 +220,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
     @classmethod
     def populate_options(clazz, arg_parser):
         PulsarConfigBuilder.populate_options(arg_parser)
-        arg_parser.add_argument("--manager", default="_default_")
+        arg_parser.add_argument("--manager", default=DEFAULT_MANAGER)
 
 
 def main():

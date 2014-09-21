@@ -70,13 +70,15 @@ then
     fi
 fi
 
-# Setup default configuration files (if needed).
-for file in 'server.ini'; do
-    if [ ! -f "$file" -a -f "$file.sample" ]; then
-        echo "Initializing $file from `basename $file.sample`"
-        cp "$file.sample" "$file"
+PULSAR_CONFIG_SAMPLE_FILE=server.ini.sample
+if [ -z "$PULSAR_CONFIG_FILE" ]; then
+    if [ -f server.ini ]; then
+        PULSAR_CONFIG_FILE=server.ini
+    else
+        PULSAR_CONFIG_FILE=$PULSAR_CONFIG_SAMPLE_FILE
     fi
-done
+    export PULSAR_CONFIG_FILE
+fi
 
 if [ -z "$MODE" ]; 
 then
@@ -92,14 +94,14 @@ then
 fi
 
 if [ "$MODE" == "uwsgi" ]; then
-    uwsgi --ini-paste server.ini "$@"
+    uwsgi --ini-paste "$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "circusd" ]; then
     circusd server.ini "$@"
 elif [ "$MODE" == "chaussette" ]; then
     echo "Attempting to use chaussette instead of paster, you must specify port on command-line (--port 8913)."
-    chaussette paste:server.ini "$@"
+    chaussette "paste:$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "paster" ]; then
-    paster serve server.ini "$@"
+    paster serve "$PULSAR_CONFIG_FILE" "$@"
 else
     echo "Unknown mode passed to --mode argument." 1>&2
     exit 1

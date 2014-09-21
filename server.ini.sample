@@ -21,7 +21,7 @@ paste.app_factory = pulsar.web.wsgi:app_factory
 
 ## Directory to stage files to. This should likely be updated to point
 ## to an absolute path, such as /tmp/pulsar_staging or C:\\pulsar_staging
-staging_directory = files/staging
+#staging_directory = files/staging
 
 ## Private token that must be sent as part of the request to
 ## authorize use. If security is important, please use this in
@@ -31,11 +31,11 @@ staging_directory = files/staging
 ## Define job managers (setup queues with various settings, etc...).
 #job_managers_config = job_managers.ini
 
-## Comment out to disable persistent mappings (probably don't want do
-## do this). If user the Pulsar runs as cannot write to the Pulsar root
-## directory, this should be updated to point to some directory which
-## it can write to.
-persistence_directory = files/persisted_data
+## Pulsar stores information about active jobs in the following directory - if
+## user the Pulsar runs as cannot write to the Pulsar root directory this
+## should be updated to point to some directory which it can write to. Set this
+## value to __none__ to disable persisting jobs all together.
+#persistence_directory = files/persisted_data
 
 ## How are ids assigned. galaxy (default) just passes through ids as
 ## is. Setting this uuid assigns each job a UUID, this is strongly
@@ -58,7 +58,7 @@ persistence_directory = files/persisted_data
 #tool_config_files = toolbox/conf.xml
 
 ## Setup job metrics file. See Galaxy documentaiton for more
-## information on job metrics. (If job_metrics.xml is present, 
+## information on job metrics. (If job_metrics_conf.xml is present,
 ## this will be used unless overridden by this option.
 #job_metrics_config_file = job_metrics_conf.xml
 
