@@ -89,7 +89,10 @@ class PulsarApp(object):
             log.info("Securing Pulsar web app with private key, please verify you are using HTTPS so key cannot be obtained by monitoring traffic.")
 
     def __setup_persistence_directory(self, persistence_directory):
-        self.persistence_directory = persistence_directory or DEFAULT_PERSISTENCE_DIRECTORY
+        persistence_directory = persistence_directory or DEFAULT_PERSISTENCE_DIRECTORY
+        if persistence_directory == "__none__":
+            persistence_directory = None
+        self.persistence_directory = persistence_directory
 
     def __setup_file_cache(self, conf):
         file_cache_dir = conf.get('file_cache_dir', None)
