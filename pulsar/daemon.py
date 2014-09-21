@@ -80,23 +80,6 @@ def load_pulsar_app(
     return pulsar_app
 
 
-def __setup_logging(ini_path):
-    raw_config = configparser.ConfigParser()
-    raw_config.read([ini_path])
-    # https://github.com/mozilla-services/chaussette/pull/32/files
-    if raw_config.has_section('loggers'):
-        config_file = os.path.abspath(ini_path)
-        fileConfig(
-            config_file,
-            dict(__file__=config_file, here=os.path.dirname(config_file))
-        )
-
-
-def __app_config(ini_path, app_name):
-    config = ConfigLoader(ini_path).app_context(app_name).config()
-    return config
-
-
 def app_loop(args):
     try:
         config_builder = PulsarConfigBuilder(args)
