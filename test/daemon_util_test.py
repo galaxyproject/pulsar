@@ -11,6 +11,13 @@ def test_pulsar_config_builder_defaults():
         assert config.load()["foo"] == "bar1"
 
 
+def test_pulsar_config_builder_defaults_sample():
+    with temp_directory() as mock_root:
+        __write_mock_ini(join(mock_root, "server.ini.sample"))
+        config = daemon.PulsarConfigBuilder(pulsar_root=mock_root)
+        assert config.load()["foo"] == "bar1"
+
+
 def test_pulsar_config_builder_specified_ini():
     with temp_directory() as mock_root:
         __write_mock_ini(join(mock_root, "moo.ini"))

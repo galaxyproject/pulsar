@@ -151,15 +151,28 @@ def load_app_configuration(ini_path, app_name=None, local_conf=None, pulsar_root
     return local_conf
 
 
+def find_ini(supplied_ini, pulsar_root):
+    if supplied_ini:
+        return supplied_ini
+
+    # If not explicitly supplied an ini, check server.ini and then
+    # just restort to sample if that has not been configured.
+    for guess in ["server.ini", "server.ini.sample"]:
+        ini_path = os.path.join(pulsar_root, guess)
+        if os.path.exists(ini_path):
+            return ini_path
+
+    return guess
+
+
 class PulsarConfigBuilder(object):
     """ Generate paste-like configuration from supplied command-line arguments.
     """
 
     def __init__(self, args=None, **kwds):
         ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
-        if ini_path is None:
-            ini_path = DEFAULT_INI
         pulsar_root = kwds.get("pulsar_root", PULSAR_ROOT_DIR)
+        ini_path = find_ini(ini_path, pulsar_root)
         ini_path = absolute_config_path(ini_path, pulsar_root=pulsar_root)
         self.ini_path = ini_path
         self.app_name = kwds.get("app") or (args and args.app) or DEFAULT_INI_APP
