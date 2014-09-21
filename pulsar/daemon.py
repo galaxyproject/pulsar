@@ -104,6 +104,16 @@ def app_loop(args):
         raise
 
 
+def load_app_configuration(ini_path, app_name=None, local_conf=None):
+    """
+    """
+    if local_conf is None and app_name is None:
+        raise Exception("Must have a local_conf loaded from an ini or an app to pull one out of to use load_app_configuration.")
+    if local_conf is None:
+        local_conf = ConfigLoader(ini_path).app_context(app_name).config()
+    return local_conf
+
+
 class PulsarConfigBuilder(object):
     """ Generate paste-like configuration from supplied command-line arguments.
     """
@@ -127,7 +137,7 @@ class PulsarConfigBuilder(object):
     def load(self):
         ini_path = self.ini_path
         app_name = self.app_name
-        config = ConfigLoader(ini_path).app_context(app_name).config()
+        config = load_app_configuration(ini_path, app_name=app_name)
         return config
 
     def setup_logging(self):

@@ -1,6 +1,7 @@
 import atexit
 import inspect
 
+from pulsar.daemon import load_app_configuration
 from pulsar.core import PulsarApp
 from pulsar.web.framework import RoutingApp
 
@@ -11,7 +12,9 @@ def app_factory(global_conf, **local_conf):
     """
     Returns the Pulsar WSGI application.
     """
-    pulsar_app = PulsarApp(global_conf=global_conf, **local_conf)
+    configuration_file = global_conf.get("__file__", None)
+    app_conf = load_app_configuration(ini_path=configuration_file, local_conf=local_conf)
+    pulsar_app = PulsarApp(**app_conf)
     webapp = PulsarWebApp(pulsar_app=pulsar_app)
     atexit.register(webapp.shutdown)
     return webapp
