@@ -8,6 +8,11 @@ import sys
 from six.moves import configparser
 
 try:
+    import yaml
+except ImportError:
+    yaml = None
+
+try:
     from daemonize import Daemonize
 except ImportError:
     Daemonize = None
@@ -40,6 +45,7 @@ log = logging.getLogger(__name__)
 PULSAR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DEFAULT_INI_APP = "main"
 DEFAULT_INI = "server.ini"
+DEFAULT_APP_YAML = "app.yml"
 DEFAULT_MANAGER = "_default_"
 
 DEFAULT_PID = "pulsar.pid"
@@ -104,13 +110,44 @@ def app_loop(args):
         raise
 
 
-def load_app_configuration(ini_path, app_name=None, local_conf=None):
+def absolute_config_path(path, pulsar_root):
+    if path and not os.path.isabs(path):
+        path = os.path.join(pulsar_root, path)
+    return path
+
+
+def __find_default_app_config(*config_dirs):
+    for config_dir in config_dirs:
+        app_config_path = os.path.join(config_dir, DEFAULT_APP_YAML)
+        if os.path.exists(app_config_path):
+            return app_config_path
+    return None
+
+
+def load_app_configuration(ini_path, app_name=None, local_conf=None, pulsar_root=PULSAR_ROOT_DIR):
     """
     """
     if local_conf is None and app_name is None:
         raise Exception("Must have a local_conf loaded from an ini or an app to pull one out of to use load_app_configuration.")
     if local_conf is None:
         local_conf = ConfigLoader(ini_path).app_context(app_name).config()
+    local_conf = local_conf or {}
+    app_config_path = None
+    if "app_config" in local_conf:
+        app_config_path = absolute_config_path(local_conf["app_config"], pulsar_root)
+    elif ini_path:
+        # If not explicit app.yml file found - look next to server.ini -
+        # be it in pulsar root, some temporary staging directory, or /etc.
+        app_config_path = __find_default_app_config(
+            os.path.dirname(ini_path),
+        )
+    if app_config_path:
+        if yaml is None:
+            raise Exception("Cannot load confiuration from file %s, pyyaml is not available." % app_config_path)
+
+        with open(app_config_path, "r") as f:
+            local_conf.update(yaml.load(f))
+
     return local_conf
 
 
@@ -122,10 +159,8 @@ class PulsarConfigBuilder(object):
         ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
         if ini_path is None:
             ini_path = DEFAULT_INI
-        if not os.path.isabs(ini_path):
-            pulsar_root = kwds.get("pulsar_root", PULSAR_ROOT_DIR)
-            ini_path = os.path.join(pulsar_root, ini_path)
-
+        pulsar_root = kwds.get("pulsar_root", PULSAR_ROOT_DIR)
+        ini_path = absolute_config_path(ini_path, pulsar_root=pulsar_root)
         self.ini_path = ini_path
         self.app_name = kwds.get("app") or (args and args.app) or DEFAULT_INI_APP
 

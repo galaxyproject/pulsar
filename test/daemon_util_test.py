@@ -32,6 +32,23 @@ def test_pulsar_config_builder_specified_app():
         assert config.load()["foo"] == "bar1"
 
 
+def test_pulsar_config_builder_app_yaml():
+    with temp_directory() as mock_root:
+        __write_mock_ini(join(mock_root, "server.ini"))
+        open(join(mock_root, "app.yml"), "w").write("foo: bar2")
+        config = daemon.PulsarConfigBuilder(pulsar_root=mock_root)
+        assert config.load()["foo"] == "bar2"
+
+
+def test_pulsar_config_builder_override_app_yaml():
+    with temp_directory() as mock_root:
+        app_yaml_path = join(mock_root, "new_app.yml")
+        __write_mock_ini(join(mock_root, "server.ini"), extra="app_config=%s" % app_yaml_path)
+        open(app_yaml_path, "w").write("foo: bar2")
+        config = daemon.PulsarConfigBuilder(pulsar_root=mock_root)
+        assert config.load()["foo"] == "bar2"
+
+
 def test_pulsar_manager_config_builder_defaults():
     with temp_directory() as mock_root:
         __write_mock_ini(join(mock_root, "server.ini"))
@@ -66,9 +83,10 @@ def __write_mock_ini(path, **kwds):
     open(path, "w").write(contents)
 
 
-def __mock_ini_contents(app="main"):
+def __mock_ini_contents(app="main", extra=""):
     return """
 [app:%s]
 paste.app_factory = pulsar.web.wsgi:app_factory
 foo=bar1
-""" % app
+%s
+""" % (app, extra)
