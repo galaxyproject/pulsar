@@ -38,6 +38,9 @@ from paste.deploy.loadwsgi import ConfigLoader
 log = logging.getLogger(__name__)
 
 PULSAR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DEFAULT_INI_APP = "main"
+DEFAULT_INI = "server.ini"
+DEFAULT_MANAGER = "_default_"
 
 DEFAULT_PID = "pulsar.pid"
 DEFAULT_VERBOSE = True
@@ -123,19 +126,20 @@ class PulsarConfigBuilder(object):
     """
 
     def __init__(self, args=None, **kwds):
-        ini_path = kwds.get("ini_path", None) or args.ini_path
+        ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
         if ini_path is None:
-            ini_path = "server.ini"
+            ini_path = DEFAULT_INI
         if not os.path.isabs(ini_path):
-            ini_path = os.path.join(PULSAR_ROOT_DIR, ini_path)
+            pulsar_root = kwds.get("pulsar_root", PULSAR_ROOT_DIR)
+            ini_path = os.path.join(pulsar_root, ini_path)
 
         self.ini_path = ini_path
-        self.app_name = kwds.get("app") or args.app
+        self.app_name = kwds.get("app") or (args and args.app) or DEFAULT_INI_APP
 
     @classmethod
     def populate_options(clazz, arg_parser):
         arg_parser.add_argument("--ini_path", default=None)
-        arg_parser.add_argument("--app", default="main")
+        arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
 
     def load(self):
         ini_path = self.ini_path
@@ -165,7 +169,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
     def __init__(self, args=None, **kwds):
         super(PulsarManagerConfigBuilder, self).__init__(args=args, **kwds)
-        self.manager = kwds.get("manager", None) or args.manager
+        self.manager = kwds.get("manager", None) or (args and args.manager) or DEFAULT_MANAGER
 
     def to_dict(self):
         as_dict = super(PulsarManagerConfigBuilder, self).to_dict()
@@ -175,7 +179,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
     @classmethod
     def populate_options(clazz, arg_parser):
         PulsarConfigBuilder.populate_options(arg_parser)
-        arg_parser.add_argument("--manager", default="_default_")
+        arg_parser.add_argument("--manager", default=DEFAULT_MANAGER)
 
 
 def main():
