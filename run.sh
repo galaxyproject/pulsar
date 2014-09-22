@@ -44,14 +44,20 @@ done
 PROJECT_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $PROJECT_DIRECTORY
 
-if [ -e $PROJECT_DIRECTORY/local_env.sh ];
-then 
-    . $PROJECT_DIRECTORY/local_env.sh
+PULSAR_LOCAL_ENV=${PULSAR_LOCAL_ENV:-$PROJECT_DIRECTORY/local_env.sh}
+export PULSAR_LOCAL_ENV
+
+PULSAR_VIRTUALENV=${PULSAR_VIRTUALENV:-$PROJECT_DIRECTORY/.venv}
+export PULSAR_VIRTUALENV
+
+if [ -e $PULSAR_LOCAL_ENV ];
+then
+    . $PULSAR_LOCAL_ENV
 fi
 
-if [ -d .venv ]; 
+if [ -d $PULSAR_VIRTUALENV ]; 
 then
-    . .venv/bin/activate
+    . $PULSAR_VIRTUALENV/bin/activate
 fi
 
 # If TEST_GALAXY_LIBS is set, this script will attempt to verify
