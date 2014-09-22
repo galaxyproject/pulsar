@@ -18,16 +18,9 @@ from .test_utils import TestDependencyManager
 class ManagerTest(TestCase):
 
     def setUp(self):
-        staging_directory = tempfile.mkdtemp()
-        rmtree(staging_directory)
-        self.staging_directory = staging_directory
-        self.authorizer = TestAuthorizer()
-
-        self.app = Bunch(staging_directory=staging_directory,
-                         authorizer=self.authorizer,
-                         job_metrics=NullJobMetrics(),
-                         dependency_manager=TestDependencyManager())
-
+        self.app = build_minimal_app()
+        self.staging_directory = self.app.staging_directory
+        self.authorizer = self.app.authorizer
         self._set_manager()
 
     def _set_manager(self, **kwds):
@@ -100,6 +93,18 @@ class ManagerTest(TestCase):
         while manager.get_status(job_id) not in ['complete', 'cancelled']:
             pass
         manager.clean(job_id)
+
+
+def build_minimal_app():
+    """ Minimimal app description for consumption by managers.
+    """
+    staging_directory = tempfile.mkdtemp()
+    rmtree(staging_directory)
+    authorizer = TestAuthorizer()
+    return Bunch(staging_directory=staging_directory,
+                 authorizer=authorizer,
+                 job_metrics=NullJobMetrics(),
+                 dependency_manager=TestDependencyManager())
 
 
 class NullJobMetrics(object):

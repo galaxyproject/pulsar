@@ -4,7 +4,6 @@ import os
 
 import pulsar.managers
 from pulsar.managers import stateful
-from pulsar.managers.queued import QueueManager
 from six.moves import configparser
 
 log = logging.getLogger(__name__)
@@ -12,6 +11,7 @@ log = logging.getLogger(__name__)
 
 MANAGER_PREFIX = 'manager:'
 DEFAULT_MANAGER_NAME = '_default_'
+DEFAULT_MANAGER_TYPE = 'queued_python'
 
 
 def build_managers(app, conf):
@@ -19,28 +19,46 @@ def build_managers(app, conf):
     Takes in a config file as outlined in job_managers.ini.sample and builds
     a dictionary of job manager objects from them.
     """
-    job_managers_config = conf.get("job_managers_config", None)
-
     # Load default options from config file that apply to all
     # managers.
     default_options = _get_default_options(conf)
 
+    manager_descriptions = ManagerDescriptions()
+    if "job_managers_config" in conf:
+        job_managers_config = conf.get("job_managers_config", None)
+        _populate_manager_descriptions_from_ini(manager_descriptions, job_managers_config)
+    elif "managers" in conf:
+        for manager_name, manager_options in conf["managers"].items():
+            manager_description = ManagerDescription.from_dict(manager_options, manager_name)
+            manager_descriptions.add(manager_description)
+    elif "manager" in conf:
+        manager_description = ManagerDescription.from_dict(conf["manager"])
+        manager_descriptions.add(manager_description)
+    else:
+        manager_descriptions.add(ManagerDescription())
+
     manager_classes = _get_managers_dict()
     managers = {}
+    for manager_name, manager_description in manager_descriptions.descriptions.items():
+        manager_options = dict(default_options)
+        manager_options.update(manager_description.manager_options)
 
-    if not job_managers_config:
-        managers[DEFAULT_MANAGER_NAME] = _build_manager(QueueManager, app, DEFAULT_MANAGER_NAME, default_options)
-    else:
-        config = configparser.ConfigParser()
-        config.readfp(open(job_managers_config))
-        for section in config.sections():
-            if not section.startswith(MANAGER_PREFIX):
-                continue
-            manager_name = section[len(MANAGER_PREFIX):]
-            managers[manager_name] = \
-                _parse_manager(manager_classes, app, manager_name, config, default_options)
+        manager_class = manager_classes[manager_description.manager_type]
+        manager = _build_manager(manager_class, app, manager_name, manager_options)
+        managers[manager_name] = manager
 
     return managers
+
+
+def _populate_manager_descriptions_from_ini(manager_descriptions, job_managers_config):
+    config = configparser.ConfigParser()
+    config.readfp(open(job_managers_config))
+    for section in config.sections():
+        if not section.startswith(MANAGER_PREFIX):
+            continue
+        manager_name = section[len(MANAGER_PREFIX):]
+        manager_description = ManagerDescription.from_ini_config(config, manager_name)
+        manager_descriptions.add(manager_description)
 
 
 def _get_default_options(conf):
@@ -49,22 +67,6 @@ def _get_default_options(conf):
         options["assign_ids"] = conf["assign_ids"]
     options["debug"] = conf.get("debug", False)
     return options
-
-
-def _parse_manager(manager_classes, app, manager_name, config, default_options):
-    section_name = '%s%s' % (MANAGER_PREFIX, manager_name)
-    try:
-        manager_type = config.get(section_name, 'type')
-    except ValueError:
-        manager_type = 'queued_python'
-
-    manager_class = manager_classes[manager_type]
-
-    # Merge default and specific manager options.
-    manager_options = dict(default_options)
-    manager_options.update(dict(config.items(section_name)))
-
-    return _build_manager(manager_class, app, manager_name, manager_options)
 
 
 def _build_manager(manager_class, app, name=DEFAULT_MANAGER_NAME, manager_options={}):
@@ -122,3 +124,41 @@ def _get_managers_dict():
                 managers[getattr(obj, 'manager_type')] = obj
 
     return managers
+
+
+class ManagerDescriptions(object):
+
+    def __init__(self):
+        self.descriptions = {}
+
+    def add(self, manager_description):
+        manager_name = manager_description.manager_name
+        if manager_name in self.descriptions:
+            raise Exception("Problem configuring job managers, multiple managers with name %s" % manager_name)
+        self.descriptions[manager_name] = manager_description
+
+
+class ManagerDescription(object):
+
+    def __init__(self, manager_type=DEFAULT_MANAGER_TYPE, manager_name=DEFAULT_MANAGER_NAME, manager_options={}):
+        self.manager_type = manager_type
+        self.manager_name = manager_name
+        self.manager_options = manager_options
+
+    @staticmethod
+    def from_ini_config(config, manager_name):
+        section_name = '%s%s' % (MANAGER_PREFIX, manager_name)
+        try:
+            manager_type = config.get(section_name, 'type')
+        except ValueError:
+            manager_type = DEFAULT_MANAGER_TYPE
+
+        # Merge default and specific manager options.
+        manager_options = {}
+        manager_options.update(dict(config.items(section_name)))
+        return ManagerDescription(manager_type, manager_name, manager_options)
+
+    @staticmethod
+    def from_dict(config, manager_name=DEFAULT_MANAGER_NAME):
+        manager_type = config.get("type", DEFAULT_MANAGER_TYPE)
+        return ManagerDescription(manager_type, manager_name, config)
