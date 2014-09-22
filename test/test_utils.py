@@ -6,6 +6,7 @@ from os.path import join, dirname, isfile, split
 from os.path import exists
 from tempfile import mkdtemp
 from shutil import rmtree
+import time
 
 from sys import version_info
 if version_info < (2, 7):
@@ -132,6 +133,11 @@ def server_for_test_app(app):
         yield server
     finally:
         server.shutdown()
+    # There seem to be persistent transient problems with the testing, sleeping
+    # between creation of test app instances for greater than .5 seconds seems
+    # to help (async loop length in code is .5 so this maybe makes some sense?)
+    if "TEST_WEBAPP_POST_SHUTDOWN_SLEEP" in environ:
+        time.sleep(int(environ.get("TEST_WEBAPP_POST_SHUTDOWN_SLEEP")))
 
 
 @nottest
