@@ -8,13 +8,21 @@ SCRIPTS_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIRECTORY=$SCRIPTS_DIRECTORY/..
 cd $PROJECT_DIRECTORY
 
-if [ -e local_env.sh ];
+PULSAR_LOCAL_ENV=${PULSAR_LOCAL_ENV:-$PROJECT_DIRECTORY/local_env.sh}
+export PULSAR_LOCAL_ENV
+
+PULSAR_VIRTUALENV=${PULSAR_VIRTUALENV:-$PROJECT_DIRECTORY/.venv}
+export PULSAR_VIRTUALENV
+
+if [ -e $PULSAR_LOCAL_ENV ];
 then
     # Setup Python, DRMAA_LIBRARY_PATH, etc...
-    . local_env.sh
-elif [ -d .venv ];
+    . $PULSAR_LOCAL_ENV
+fi
+
+if [ -d $PULSAR_VIRTUALENV ];
 then
-    . .venv/bin/activate
+    . $PULSAR_VIRTUALENV/bin/activate
 fi
 
 export PYTHONPATH=.:$PYTHONPATH
