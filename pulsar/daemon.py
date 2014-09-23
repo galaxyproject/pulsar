@@ -33,8 +33,8 @@ except ImportError:
                 del kwargs["required"]
             return self.delegate.add_option(*args, **kwargs)
 
-        def parse_args(self):
-            (options, args) = self.delegate.parse_args()
+        def parse_args(self, args=None):
+            (options, args) = self.delegate.parse_args(args)
             return options
 
 
@@ -124,28 +124,25 @@ def __find_default_app_config(*config_dirs):
     return None
 
 
-def load_app_configuration(ini_path, app_name=None, local_conf=None, pulsar_root=PULSAR_ROOT_DIR):
+def load_app_configuration(ini_path, app_conf_path=None, app_name=None, local_conf=None, pulsar_root=PULSAR_ROOT_DIR):
     """
     """
-    if local_conf is None and app_name is None:
-        raise Exception("Must have a local_conf loaded from an ini or an app to pull one out of to use load_app_configuration.")
-    if local_conf is None:
+    if ini_path and local_conf is None:
         local_conf = ConfigLoader(ini_path).app_context(app_name).config()
     local_conf = local_conf or {}
-    app_config_path = None
-    if "app_config" in local_conf:
-        app_config_path = absolute_config_path(local_conf["app_config"], pulsar_root)
+    if app_conf_path is None and "app_config" in local_conf:
+        app_conf_path = absolute_config_path(local_conf["app_config"], pulsar_root)
     elif ini_path:
         # If not explicit app.yml file found - look next to server.ini -
         # be it in pulsar root, some temporary staging directory, or /etc.
-        app_config_path = __find_default_app_config(
+        app_conf_path = __find_default_app_config(
             os.path.dirname(ini_path),
         )
-    if app_config_path:
+    if app_conf_path:
         if yaml is None:
-            raise Exception("Cannot load confiuration from file %s, pyyaml is not available." % app_config_path)
+            raise Exception("Cannot load confiuration from file %s, pyyaml is not available." % app_conf_path)
 
-        with open(app_config_path, "r") as f:
+        with open(app_conf_path, "r") as f:
             local_conf.update(yaml.load(f))
 
     return local_conf
@@ -171,24 +168,36 @@ class PulsarConfigBuilder(object):
 
     def __init__(self, args=None, **kwds):
         ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
-        pulsar_root = kwds.get("pulsar_root", PULSAR_ROOT_DIR)
-        ini_path = find_ini(ini_path, pulsar_root)
-        ini_path = absolute_config_path(ini_path, pulsar_root=pulsar_root)
+        app_conf_path = kwds.get("app_conf_path", None) or (args and args.app_conf_path)
+        print app_conf_path
+        # If given app_conf_path - use that - else we need to ensure we have an
+        # ini path.
+        if not app_conf_path:
+            pulsar_root = kwds.get("pulsar_root", PULSAR_ROOT_DIR)
+            ini_path = find_ini(ini_path, pulsar_root)
+            ini_path = absolute_config_path(ini_path, pulsar_root=pulsar_root)
         self.ini_path = ini_path
+        self.app_conf_path = app_conf_path
         self.app_name = kwds.get("app") or (args and args.app) or DEFAULT_INI_APP
 
     @classmethod
     def populate_options(clazz, arg_parser):
         arg_parser.add_argument("--ini_path", default=None)
+        arg_parser.add_argument("--app_conf_path", default=None)
         arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
 
     def load(self):
-        ini_path = self.ini_path
-        app_name = self.app_name
-        config = load_app_configuration(ini_path, app_name=app_name)
+        config = load_app_configuration(
+            ini_path=self.ini_path,
+            app_conf_path=self.app_conf_path,
+            app_name=self.app_name
+        )
         return config
 
     def setup_logging(self):
+        if not self.ini_path:
+            # TODO: should be possible can configure using dict.
+            return
         raw_config = configparser.ConfigParser()
         raw_config.read([self.ini_path])
         # https://github.com/mozilla-services/chaussette/pull/32/files
@@ -202,6 +211,7 @@ class PulsarConfigBuilder(object):
     def to_dict(self):
         return dict(
             ini_path=self.ini_path,
+            app_conf_path=self.app_conf_path,
             app=self.app_name
         )
 

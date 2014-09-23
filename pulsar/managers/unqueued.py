@@ -1,3 +1,5 @@
+import os
+from subprocess import Popen
 try:
     import thread
 except ImportError:
@@ -7,7 +9,6 @@ import platform
 from .util import kill_pid
 from pulsar.managers.base.directory import DirectoryBaseManager
 from pulsar.managers import status
-from galaxy.util import execute
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -159,5 +160,19 @@ class Manager(DirectoryBaseManager):
         else:
             command_line = self._setup_job_file(job_id, command_line, dependencies_description=dependencies_description, env=env)
         return command_line
+
+
+def execute(command_line, working_directory, stdout, stderr):
+    preexec_fn = None
+    if not (platform.system() == 'Windows'):
+        preexec_fn = os.setpgrp
+    proc = Popen(args=command_line,
+                 shell=True,
+                 cwd=working_directory,
+                 stdout=stdout,
+                 stderr=stderr,
+                 preexec_fn=preexec_fn)
+    return proc
+
 
 __all__ = [Manager]

@@ -82,6 +82,7 @@ class MockArgs(object):
 
     def __init__(self, ini_path, app):
         self.ini_path = ini_path
+        self.app_conf_path = None
         self.app = app
 
 
