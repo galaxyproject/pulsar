@@ -17,12 +17,12 @@ DESCRIPTION = "Submit a job and wait for it."
 DEFAULT_POLL_TIME = 2
 
 
-def main():
+def main(args=None):
     arg_parser = ArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--file", default=None)
     arg_parser.add_argument("--base64", default=None)
     PulsarManagerConfigBuilder.populate_options(arg_parser)
-    args = arg_parser.parse_args()
+    args = arg_parser.parse_args(args)
 
     config_builder = PulsarManagerConfigBuilder(args)
     manager, app = manager_from_args(config_builder)
