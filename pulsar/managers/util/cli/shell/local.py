@@ -1,3 +1,4 @@
+import os
 from tempfile import TemporaryFile
 from time import sleep
 from subprocess import Popen, PIPE
@@ -38,7 +39,9 @@ class LocalShell(BaseShellExec):
 
     def execute(self, cmd, persist=False, timeout=DEFAULT_TIMEOUT, timeout_check_interval=DEFAULT_TIMEOUT_CHECK_INTERVAL, **kwds):
         outf = TemporaryFile()
-        p = Popen(cmd, shell=True, stdin=None, stdout=outf, stderr=PIPE)
+        env = os.environ.copy()
+        del env["COV_CORE_DATA_FILE"]
+        p = Popen(cmd, shell=True, stdin=None, stdout=outf, stderr=PIPE, env=env)
         # poll until timeout
 
         for i in range(int(timeout / timeout_check_interval)):
