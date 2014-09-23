@@ -5,6 +5,7 @@ pyyaml
 
 # For testing
 nose
+nose-cov
 webtest
 coverage
 
