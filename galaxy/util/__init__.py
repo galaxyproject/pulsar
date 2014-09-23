@@ -5,14 +5,12 @@ galaxy.util and the rest should be moved into galaxy.util.pulsar_io or something
 like that.
 """
 import os
-import platform
 import stat
 try:
     import grp
 except ImportError:
     grp = None
 import errno
-from subprocess import Popen
 from tempfile import NamedTemporaryFile
 from logging import getLogger
 log = getLogger(__name__)
@@ -54,19 +52,6 @@ def copy_to_temp(object):
     temp_file = NamedTemporaryFile(delete=False)
     _copy_and_close(object, temp_file)
     return temp_file.name
-
-
-def execute(command_line, working_directory, stdout, stderr):
-    preexec_fn = None
-    if not (platform.system() == 'Windows'):
-        preexec_fn = os.setpgrp
-    proc = Popen(args=command_line,
-                 shell=True,
-                 cwd=working_directory,
-                 stdout=stdout,
-                 stderr=stderr,
-                 preexec_fn=preexec_fn)
-    return proc
 
 
 def is_in_directory(file, directory, local_path_module=os.path):
