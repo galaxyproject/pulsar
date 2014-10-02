@@ -1,33 +1,18 @@
-import tempfile
-from time import sleep
-
 from pulsar.managers.unqueued import Manager
-from galaxy.util.bunch import Bunch
-from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 
-from shutil import rmtree
-
-from os import listdir
 from os.path import join
 
-from .test_utils import TestCase
-from .test_utils import TestAuthorizer
-from .test_utils import TestDependencyManager
+from .test_utils import BaseManagerTestCase
 
 
-class ManagerTest(TestCase):
+class ManagerTest(BaseManagerTestCase):
 
     def setUp(self):
-        self.app = build_minimal_app()
-        self.staging_directory = self.app.staging_directory
-        self.authorizer = self.app.authorizer
+        super(ManagerTest, self).setUp()
         self._set_manager()
 
     def _set_manager(self, **kwds):
         self.manager = Manager('_default_', self.app, **kwds)
-
-    def tearDown(self):
-        rmtree(self.staging_directory)
 
     def test_unauthorized_tool_submission(self):
         self.authorizer.authorization.allow_setup = False
@@ -70,44 +55,7 @@ class ManagerTest(TestCase):
             self.manager.launch(job_id, 'python')
 
     def test_simple_execution(self):
-        manager = self.manager
-        command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stderr.write(\'moo\')" """
-        job_id = manager.setup_job("123", "tool1", "1.0.0")
-        manager.launch(job_id, command)
-        while manager.get_status(job_id) not in ['complete', 'cancelled']:
-            pass
-        self.assertEquals(manager.stderr_contents(job_id), 'moo')
-        self.assertEquals(manager.stdout_contents(job_id), 'Hello World!')
-        self.assertEquals(manager.return_code(job_id), 0)
-        manager.clean(job_id)
-        self.assertEquals(len(listdir(self.staging_directory)), 0)
+        self._test_simple_execution(self.manager)
 
     def test_kill(self):
-        manager = self.manager
-        job_id = manager.setup_job("124", "tool1", "1.0.0")
-        command = """python -c "import time; time.sleep(10000)" """
-        manager.launch(job_id, command)
-        sleep(0.1)
-        manager.kill(job_id)
-        manager.kill(job_id)  # Make sure kill doesn't choke if pid doesn't exist
-        while manager.get_status(job_id) not in ['complete', 'cancelled']:
-            pass
-        manager.clean(job_id)
-
-
-def build_minimal_app():
-    """ Minimimal app description for consumption by managers.
-    """
-    staging_directory = tempfile.mkdtemp()
-    rmtree(staging_directory)
-    authorizer = TestAuthorizer()
-    return Bunch(staging_directory=staging_directory,
-                 authorizer=authorizer,
-                 job_metrics=NullJobMetrics(),
-                 dependency_manager=TestDependencyManager())
-
-
-class NullJobMetrics(object):
-
-    def __init__(self):
-        self.default_job_instrumenter = NULL_JOB_INSTRUMENTER
+        self._test_cancelling(self.manager)

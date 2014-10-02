@@ -4,7 +4,7 @@ import os.path
 from pulsar import manager_factory
 
 from .test_utils import temp_directory
-from .manager_test import build_minimal_app
+from .test_utils import minimal_app_for_managers
 
 
 def test_default():
@@ -59,7 +59,7 @@ def __assert_manager_of_type(manager, expected_type):
 
 @contextmanager
 def __test_managers(conf):
-    app = build_minimal_app()
+    app = minimal_app_for_managers()
     managers = manager_factory.build_managers(app, conf)
     try:
         yield managers

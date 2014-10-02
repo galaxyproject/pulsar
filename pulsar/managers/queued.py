@@ -77,6 +77,7 @@ class QueueManager(Manager):
                     os.remove(self._job_file(job_id, JOB_FILE_COMMAND_LINE))
                 except Exception:
                     log.exception("Running command but failed to delete - command may rerun on Pulsar boot.")
+                # _run will not do anything if job has been cancelled.
                 self._run(job_id, command_line, async=False)
             except:
                 log.warn("Uncaught exception running job with job_id %s" % job_id)
