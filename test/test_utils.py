@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from stat import S_IXOTH
 from os import pardir, stat, chmod, access, X_OK, pathsep, environ
-from os import makedirs
+from os import makedirs, listdir
 from os.path import join, dirname, isfile, split
 from os.path import exists
 from tempfile import mkdtemp
@@ -24,6 +24,9 @@ from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
 import galaxy.util
+from galaxy.util.bunch import Bunch
+from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
+
 from pulsar.tools import ToolBox
 from pulsar.managers.base import JobDirectory
 from pulsar.web.framework import file_response
@@ -116,6 +119,75 @@ class TestDependencyManager(object):
 
     def dependency_shell_commands(self, requirements, **kwds):
         return []
+
+
+class BaseManagerTestCase(TestCase):
+
+    def setUp(self):
+        self.app = minimal_app_for_managers()
+        self.staging_directory = self.app.staging_directory
+        self.authorizer = self.app.authorizer
+
+    def tearDown(self):
+        rmtree(self.staging_directory)
+
+    @nottest
+    def _test_simple_execution(self, manager):
+        command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stderr.write(\'moo\')" """
+        job_id = manager.setup_job("123", "tool1", "1.0.0")
+        manager.launch(job_id, command)
+        while manager.get_status(job_id) not in ['complete', 'cancelled']:
+            pass
+        self.assertEquals(manager.stderr_contents(job_id), 'moo')
+        self.assertEquals(manager.stdout_contents(job_id), 'Hello World!')
+        self.assertEquals(manager.return_code(job_id), 0)
+        manager.clean(job_id)
+        self.assertEquals(len(listdir(self.staging_directory)), 0)
+
+    def _test_cancelling(self, manager):
+        job_id = manager.setup_job("124", "tool1", "1.0.0")
+        command = self._python_to_command("import time; time.sleep(1000)")
+        manager.launch(job_id, command)
+        time.sleep(0.05)
+        manager.kill(job_id)
+        manager.kill(job_id)  # Make sure kill doesn't choke if pid doesn't exist
+        self._assert_status_becomes_cancelled(job_id, manager)
+        manager.clean(job_id)
+
+    def _python_to_command(self, code, quote='"'):
+        assert '"' not in code
+        return 'python -c "%s"' % "; ".join(code.split("\n"))
+
+    def _assert_status_becomes_cancelled(self, job_id, manager):
+        i = 0
+        while True:
+            i += 1
+            status = manager.get_status(job_id)
+            if status in ["complete", "failed"]:
+                raise AssertionError("Expected cancelled status but got %s." % status)
+            elif status == "cancelled":
+                break
+            time.sleep(0.01)
+            if i > 100:  # Wait one second
+                raise AssertionError("Job failed to cancel quickly.")
+
+
+def minimal_app_for_managers():
+    """ Minimimal app description for consumption by managers.
+    """
+    staging_directory = mkdtemp()
+    rmtree(staging_directory)
+    authorizer = TestAuthorizer()
+    return Bunch(staging_directory=staging_directory,
+                 authorizer=authorizer,
+                 job_metrics=NullJobMetrics(),
+                 dependency_manager=TestDependencyManager())
+
+
+class NullJobMetrics(object):
+
+    def __init__(self):
+        self.default_job_instrumenter = NULL_JOB_INSTRUMENTER
 
 
 @nottest

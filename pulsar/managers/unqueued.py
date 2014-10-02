@@ -14,7 +14,6 @@ from logging import getLogger
 log = getLogger(__name__)
 
 JOB_FILE_SUBMITTED = "submitted"
-JOB_FILE_CANCELLED = "cancelled"
 JOB_FILE_PID = "pid"
 
 
@@ -37,9 +36,6 @@ class Manager(DirectoryBaseManager):
 
     def __init__(self, name, app, **kwds):
         super(Manager, self).__init__(name, app, **kwds)
-
-    def _record_cancel(self, job_id):
-        self._job_directory(job_id).store_metadata(JOB_FILE_CANCELLED, 'true')
 
     def _record_submission(self, job_id):
         self._job_directory(job_id).store_metadata(JOB_FILE_SUBMITTED, 'true')
@@ -97,7 +93,7 @@ class Manager(DirectoryBaseManager):
     # with job lock
     def _get_status(self, job_id):
         job_directory = self._job_directory(job_id)
-        if self._is_cancelled(job_id):
+        if self._was_cancelled(job_id):
             job_status = status.CANCELLED
         elif job_directory.has_metadata(JOB_FILE_PID):
             job_status = status.RUNNING
@@ -108,8 +104,8 @@ class Manager(DirectoryBaseManager):
         return job_status
 
     # with job lock
-    def _is_cancelled(self, job_id):
-        return self._job_directory(job_id).has_metadata(JOB_FILE_CANCELLED)
+    def _was_cancelled(self, job_id):
+        return super(Manager, self)._was_cancelled(job_id)
 
     # with job lock
     def _record_pid(self, job_id, pid):
@@ -122,14 +118,14 @@ class Manager(DirectoryBaseManager):
             return
 
         pid = self.__get_pid(job_id)
+        self._record_cancel(job_id)
         if pid is None:
-            self._record_cancel(job_id)
             self._job_directory(job_id).remove_metadata(JOB_FILE_SUBMITTED)
         return pid
 
     def _run(self, job_id, command_line, async=True):
         with self._get_job_lock(job_id):
-            if self._is_cancelled(job_id):
+            if self._was_cancelled(job_id):
                 return
         job_directory = self.job_directory(job_id)
         working_directory = job_directory.working_directory()

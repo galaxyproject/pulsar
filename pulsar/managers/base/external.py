@@ -1,5 +1,6 @@
 from string import Template
 
+from pulsar.managers import status
 from .directory import DirectoryBaseManager
 
 DEFAULT_JOB_NAME_TEMPLATE = "pulsar_$job_id"
@@ -27,11 +28,17 @@ class ExternalBaseManager(DirectoryBaseManager):
         return self._setup_job_for_job_id(job_id, tool_id, tool_version)
 
     def kill(self, job_id):
+        self._record_cancel(job_id)
         external_id = self._external_id(job_id)
         if external_id:
-            self._kill_external(external_id)
+            try:
+                self._kill_external(external_id)
+            except Exception:
+                log.exception("Failed to kill job with id %s and external id %s", job_id, external_id)
 
     def get_status(self, job_id):
+        if self._was_cancelled(job_id):
+            return status.CANCELLED
         external_id = self._external_id(job_id)
         if not external_id:
             raise KeyError("Failed to find external id for job_id %s" % job_id)

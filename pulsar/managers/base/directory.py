@@ -1,16 +1,23 @@
 import os
 import stat
 
+# TODO: Rename these to abstract out the fact they are files - pulsar
+# should be able to replace metadata backing with non-file stuff now that
+# the abstractions are fairly well utilized.
 JOB_FILE_RETURN_CODE = "return_code"
 JOB_FILE_STANDARD_OUTPUT = "stdout"
 JOB_FILE_STANDARD_ERROR = "stderr"
 JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
+JOB_FILE_CANCELLED = "cancelled"
 
 from pulsar.managers.base import BaseManager
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from ..util.job_script import job_script
 from ..util.env import env_to_statement
+
+import logging
+log = logging.getLogger(__name__)
 
 
 class DirectoryBaseManager(BaseManager):
@@ -62,6 +69,19 @@ class DirectoryBaseManager(BaseManager):
         job_directory = self._job_directory(job_id)
         job_directory.store_metadata(JOB_FILE_TOOL_ID, tool_id)
         job_directory.store_metadata(JOB_FILE_TOOL_VERSION, tool_version)
+
+    def _record_cancel(self, job_id):
+        try:
+            self._job_directory(job_id).store_metadata(JOB_FILE_CANCELLED, True)
+        except Exception:
+            log.info("Failed to recod job with id %s was cancelled." % job_id)
+
+    def _was_cancelled(self, job_id):
+        try:
+            return self._job_directory(job_id).load_metadata(JOB_FILE_CANCELLED, None)
+        except Exception:
+            log.info("Failed to determine if job with id %s was cancelled, assuming no." % job_id)
+            return False
 
     def _open_standard_output(self, job_id):
         return self._job_directory(job_id).open_file(JOB_FILE_STANDARD_OUTPUT, 'w')
