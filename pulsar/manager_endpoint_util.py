@@ -47,11 +47,6 @@ def submit_job(manager, job_config):
     # job_config is raw dictionary from JSON (from MQ or HTTP endpoint).
     job_id = job_config.get('job_id')
     command_line = job_config.get('command_line')
-    # Replace the string PULSAR_PATH (given by galaxy) with the actual path,
-    # which prevents the need for pulsar specific configuration in galaxy, when
-    # using MQs
-    PULSAR_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    command_line = command_line.replace('PULSAR_PATH', PULSAR_PATH)
 
     setup_params = job_config.get('setup_params')
     remote_staging = job_config.get('remote_staging', {})
@@ -59,13 +54,20 @@ def submit_job(manager, job_config):
     env = job_config.get('env', [])
     submit_params = job_config.get('submit_params', {})
 
+    job_config = None
     if setup_params:
         input_job_id = setup_params.get("job_id", job_id)
         tool_id = setup_params.get("tool_id", None)
         tool_version = setup_params.get("tool_version", None)
-        setup_job(manager, input_job_id, tool_id, tool_version)
+        job_config = setup_job(manager, input_job_id, tool_id, tool_version)
+
+    if job_config is not None:
+        job_directory = job_config["job_directory"]
+        jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
+        command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
 
     if remote_staging:
+        # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
         manager.handle_remote_staging(job_id, remote_staging)
 
     dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
