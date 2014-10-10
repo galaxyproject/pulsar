@@ -5,6 +5,7 @@ from pulsar.client.setup_handler import build_job_config
 from pulsar.managers import status
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from galaxy.tools.deps import dependencies
+import os
 
 
 def full_status(manager, job_status, job_id):
@@ -46,6 +47,12 @@ def submit_job(manager, job_config):
     # job_config is raw dictionary from JSON (from MQ or HTTP endpoint).
     job_id = job_config.get('job_id')
     command_line = job_config.get('command_line')
+    # Replace the string PULSAR_PATH (given by galaxy) with the actual path,
+    # which prevents the need for pulsar specific configuration in galaxy, when
+    # using MQs
+    PULSAR_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    command_line = command_line.replace('PULSAR_PATH', PULSAR_PATH)
+
     setup_params = job_config.get('setup_params')
     remote_staging = job_config.get('remote_staging', {})
     dependencies_description = job_config.get('dependencies_description', None)
