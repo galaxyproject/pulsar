@@ -5,6 +5,7 @@ from pulsar.client.setup_handler import build_job_config
 from pulsar.managers import status
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from galaxy.tools.deps import dependencies
+import os
 
 
 def full_status(manager, job_status, job_id):
@@ -46,19 +47,27 @@ def submit_job(manager, job_config):
     # job_config is raw dictionary from JSON (from MQ or HTTP endpoint).
     job_id = job_config.get('job_id')
     command_line = job_config.get('command_line')
+
     setup_params = job_config.get('setup_params')
     remote_staging = job_config.get('remote_staging', {})
     dependencies_description = job_config.get('dependencies_description', None)
     env = job_config.get('env', [])
     submit_params = job_config.get('submit_params', {})
 
+    job_config = None
     if setup_params:
         input_job_id = setup_params.get("job_id", job_id)
         tool_id = setup_params.get("tool_id", None)
         tool_version = setup_params.get("tool_version", None)
-        setup_job(manager, input_job_id, tool_id, tool_version)
+        job_config = setup_job(manager, input_job_id, tool_id, tool_version)
+
+    if job_config is not None:
+        job_directory = job_config["job_directory"]
+        jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
+        command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
 
     if remote_staging:
+        # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
         manager.handle_remote_staging(job_id, remote_staging)
 
     dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
