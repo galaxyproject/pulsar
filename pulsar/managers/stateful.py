@@ -32,7 +32,7 @@ class StatefulManagerProxy(ManagerProxy):
 
     def __init__(self, manager, **manager_options):
         super(StatefulManagerProxy, self).__init__(manager)
-        min_polling_interval = manager_options.get("min_polling_interval", DEFAULT_MIN_POLLING_INTERVAL)
+        min_polling_interval = float(manager_options.get("min_polling_interval", DEFAULT_MIN_POLLING_INTERVAL))
         preprocess_retry_action_kwds = filter_destination_params(manager_options, "preprocess_action_")
         postprocess_retry_action_kwds = filter_destination_params(manager_options, "postprocess_action_")
         self.__preprocess_action_executor = RetryActionExecutor(**preprocess_retry_action_kwds)
