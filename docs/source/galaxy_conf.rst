@@ -63,6 +63,9 @@ a high-performance proxy but not the Pulsar.
 .. literalinclude:: files/job_conf_sample_mq.xml
    :language: xml
 
+For those interested in this deployment option and new to Message Queues, there
+is more documentation in :ref:`gx-pulsar-mq-setup`
+
 Targeting Apache Mesos (Prototype)
 ``````````````````````````````````
 

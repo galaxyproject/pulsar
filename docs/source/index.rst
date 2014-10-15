@@ -6,8 +6,10 @@
 
 .. include:: ../../README.rst
 
+.. _job-managers:
 .. include:: job_managers.rst
 
+.. _galaxy-conf:
 .. include:: galaxy_conf.rst
 
 .. include:: upgrading.rst
