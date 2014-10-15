@@ -35,4 +35,7 @@ else:
     from .poster import get_file
     from .poster import post_file
 
-__all__ = [get_transport, get_file, post_file]
+from .ssh import rsync_get_file
+from .ssh import rsync_post_file
+
+__all__ = [get_transport, get_file, post_file, rsync_get_file, rsync_post_file]

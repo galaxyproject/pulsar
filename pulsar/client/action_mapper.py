@@ -16,6 +16,9 @@ from .util import directory_files
 from .util import unique_path_prefix
 from .transport import get_file
 from .transport import post_file
+from .transport import rsync_get_file
+from .transport import rsync_post_file
+import tempfile
 
 
 DEFAULT_MAPPED_ACTION = 'transfer'  # Not really clear to me what this should be, exception?
@@ -130,6 +133,7 @@ class FileActionMapper(object):
         if config is None:
             config = self.__client_to_config(client)
         self.default_action = config.get("default_action", "transfer")
+        self.ssh_key = config.get("ssh_key", None)
         self.mappers = mappers_from_dicts(config.get("paths", []))
         self.files_endpoint = config.get("files_endpoint", None)
 
@@ -155,6 +159,7 @@ class FileActionMapper(object):
         return dict(
             default_action=self.default_action,
             files_endpoint=self.files_endpoint,
+            ssh_key=self.ssh_key,
             paths=map(lambda m: m.to_dict(), self.mappers)
         )
 
@@ -166,6 +171,7 @@ class FileActionMapper(object):
             config = dict()
         config["default_action"] = client.default_file_action
         config["files_endpoint"] = client.files_endpoint
+        config["ssh_key"] = client.ssh_key
         return config
 
     def __load_action_config(self, path):
@@ -209,6 +215,9 @@ class FileActionMapper(object):
             # TODO: URL encode path.
             url = "%s&path=%s&file_type=%s" % (url_base, action.path, file_type)
             action.url = url
+        elif action.action_type == "remote_rsync_transfer":
+            action.url = action.path
+            action.ssh_key = self.ssh_key
 
 REQUIRED_ACTION_KWD = object()
 
@@ -375,6 +384,59 @@ class RemoteTransferAction(BaseAction):
         post_file(self.url, pulsar_path)
 
 
+class RsyncTransferAction(BaseAction):
+    action_spec = dict(
+        ssh_user=REQUIRED_ACTION_KWD,
+        ssh_host=REQUIRED_ACTION_KWD,
+        ssh_port=REQUIRED_ACTION_KWD,
+    )
+    action_type = "remote_rsync_transfer"
+    staging = STAGING_ACTION_REMOTE
+    ssh_key = None
+
+    def __init__(self, path, file_lister=None, url=None, ssh_user=None,
+                 ssh_host=None, ssh_port=None, ssh_key=None):
+        super(RsyncTransferAction, self).__init__(path, file_lister=file_lister)
+        self.url = url
+        self.ssh_user = ssh_user
+        self.ssh_host = ssh_host
+        self.ssh_port = ssh_port
+        self.ssh_key = ssh_key
+
+    def serialize_ssh_key(self):
+        f = tempfile.NamedTemporaryFile()
+        if self.ssh_key is not None:
+            f.write(self.ssh_key)
+        else:
+            raise Exception("SSH_KEY not available")
+        f.close()
+        return f.name
+
+    def to_dict(self):
+        return dict(path=self.path, action_type=self.action_type, url=self.url,
+                    ssh_user=self.ssh_user, ssh_host=self.ssh_host,
+                    ssh_port=self.ssh_port)
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return RsyncTransferAction(path=action_dict["path"],
+                                   url=action_dict["url"],
+                                   ssh_user=action_dict["ssh_user"],
+                                   ssh_host=action_dict["ssh_host"],
+                                   ssh_port=action_dict["ssh_port"],
+                                   ssh_key=action_dict["ssh_key"])
+
+    def write_to_path(self, path):
+        key_file = self.serialize_ssh_key()
+        rsync_get_file(self.url, path, self.ssh_user, self.ssh_host,
+                       self.ssh_port, key_file)
+
+    def write_from_path(self, pulsar_path):
+        key_file = self.serialize_ssh_key()
+        rsync_post_file(pulsar_path, self.url, self.ssh_user,
+                        self.ssh_host, self.ssh_port, key_file)
+
+
 class MessageAction(object):
     """ Sort of pseudo action describing "files" store in memory and
     transferred via message (HTTP, Python-call, MQ, etc...)
@@ -408,7 +470,7 @@ class MessageAction(object):
         open(path, "w").write(self.contents)
 
 
-DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, RemoteTransferAction, MessageAction]
+DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, RemoteTransferAction, MessageAction, RsyncTransferAction]
 
 
 def from_dict(action_dict):
@@ -554,6 +616,7 @@ ACTION_CLASSES = [
     CopyAction,
     RemoteCopyAction,
     RemoteTransferAction,
+    RsyncTransferAction,
 ]
 actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
 
