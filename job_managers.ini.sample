@@ -1,14 +1,14 @@
 ## Default job manager is queued and runs 1 concurrent job.
 [manager:_default_]
 type = queued_python
-max_concurrent_jobs=1
+num_concurrent_jobs=1
 
 ## Create a named queued (example) and run as many concurrent jobs as
 ## server has cores. The Galaxy Pulsar url should have /managers/example 
 ## appended to it to use a named manager such as this.
 #[manager:example]
 #type=queued_python
-#max_concurrent_jobs=*
+#num_concurrent_jobs=*
 
 ## DRMAA backed manager (vanilla).
 ## Be sure drmaa Python module install and DRMAA_LIBRARY_PATH points
