@@ -16,8 +16,8 @@ from .util import directory_files
 from .util import unique_path_prefix
 from .transport import get_file
 from .transport import post_file
-from .transport import rsync_get_file
-from .transport import rsync_post_file
+from .transport import rsync_get_file, scp_get_file
+from .transport import rsync_post_file, scp_post_file
 import tempfile
 
 
@@ -216,8 +216,7 @@ class FileActionMapper(object):
             # TODO: URL encode path.
             url = "%s&path=%s&file_type=%s" % (url_base, action.path, file_type)
             action.url = url
-        elif action.action_type == "remote_rsync_transfer":
-            action.url = action.path
+        elif action.action_type in ["remote_rsync_transfer", "remote_scp_transfer"]:
             # Required, so no check for presence
             action.ssh_key = self.ssh_key
 
@@ -386,24 +385,31 @@ class RemoteTransferAction(BaseAction):
         post_file(self.url, pulsar_path)
 
 
-class RsyncTransferAction(BaseAction):
+class PubkeyAuthenticatedTransferAction(BaseAction):
+    """Base class for file transfers requiring an SSH public/private key
+    """
     action_spec = dict(
         ssh_user=REQUIRED_ACTION_KWD,
         ssh_host=REQUIRED_ACTION_KWD,
         ssh_port=REQUIRED_ACTION_KWD,
     )
-    action_type = "remote_rsync_transfer"
+    action_type = "remote_pubkey_transfer"
     staging = STAGING_ACTION_REMOTE
     ssh_key = None
 
     def __init__(self, path, file_lister=None, url=None, ssh_user=None,
                  ssh_host=None, ssh_port=None, ssh_key=None):
-        super(RsyncTransferAction, self).__init__(path, file_lister=file_lister)
+        super(PubkeyAuthenticatedTransferAction, self).__init__(path, file_lister=file_lister)
         self.url = url
         self.ssh_user = ssh_user
         self.ssh_host = ssh_host
         self.ssh_port = ssh_port
         self.ssh_key = ssh_key
+
+    def to_dict(self):
+        return dict(path=self.path, action_type=self.action_type, url=self.url,
+                    ssh_user=self.ssh_user, ssh_host=self.ssh_host,
+                    ssh_port=self.ssh_port)
 
     def serialize_ssh_key(self):
         f = tempfile.NamedTemporaryFile()
@@ -414,10 +420,9 @@ class RsyncTransferAction(BaseAction):
         f.close()
         return f.name
 
-    def to_dict(self):
-        return dict(path=self.path, action_type=self.action_type, url=self.url,
-                    ssh_user=self.ssh_user, ssh_host=self.ssh_host,
-                    ssh_port=self.ssh_port)
+
+class RsyncTransferAction(PubkeyAuthenticatedTransferAction):
+    action_type = "remote_rsync_transfer"
 
     @classmethod
     def from_dict(cls, action_dict):
@@ -430,13 +435,36 @@ class RsyncTransferAction(BaseAction):
 
     def write_to_path(self, path):
         key_file = self.serialize_ssh_key()
-        rsync_get_file(self.url, path, self.ssh_user, self.ssh_host,
+        rsync_get_file(self.path, path, self.ssh_user, self.ssh_host,
                        self.ssh_port, key_file)
 
     def write_from_path(self, pulsar_path):
         key_file = self.serialize_ssh_key()
-        rsync_post_file(pulsar_path, self.url, self.ssh_user,
+        rsync_post_file(pulsar_path, self.path, self.ssh_user,
                         self.ssh_host, self.ssh_port, key_file)
+
+
+class ScpTransferAction(PubkeyAuthenticatedTransferAction):
+    action_type = "remote_scp_transfer"
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return ScpTransferAction(path=action_dict["path"],
+                                 url=action_dict["url"],
+                                 ssh_user=action_dict["ssh_user"],
+                                 ssh_host=action_dict["ssh_host"],
+                                 ssh_port=action_dict["ssh_port"],
+                                 ssh_key=action_dict["ssh_key"])
+
+    def write_to_path(self, path):
+        key_file = self.serialize_ssh_key()
+        scp_get_file(self.path, path, self.ssh_user, self.ssh_host,
+                     self.ssh_port, key_file)
+
+    def write_from_path(self, pulsar_path):
+        key_file = self.serialize_ssh_key()
+        scp_post_file(pulsar_path, self.path, self.ssh_user, self.ssh_host,
+                      self.ssh_port, key_file)
 
 
 class MessageAction(object):
@@ -472,7 +500,7 @@ class MessageAction(object):
         open(path, "w").write(self.contents)
 
 
-DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, RemoteTransferAction, MessageAction, RsyncTransferAction]
+DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, RemoteTransferAction, MessageAction, RsyncTransferAction, ScpTransferAction]
 
 
 def from_dict(action_dict):
@@ -619,6 +647,7 @@ ACTION_CLASSES = [
     RemoteCopyAction,
     RemoteTransferAction,
     RsyncTransferAction,
+    ScpTransferAction,
 ]
 actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
 
