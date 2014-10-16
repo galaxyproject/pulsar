@@ -171,7 +171,8 @@ class FileActionMapper(object):
             config = dict()
         config["default_action"] = client.default_file_action
         config["files_endpoint"] = client.files_endpoint
-        config["ssh_key"] = client.ssh_key
+        if hasattr(client, 'ssh_key'):
+            config["ssh_key"] = client.ssh_key
         return config
 
     def __load_action_config(self, path):
@@ -217,6 +218,7 @@ class FileActionMapper(object):
             action.url = url
         elif action.action_type == "remote_rsync_transfer":
             action.url = action.path
+            # Required, so no check for presence
             action.ssh_key = self.ssh_key
 
 REQUIRED_ACTION_KWD = object()
