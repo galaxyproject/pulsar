@@ -29,3 +29,17 @@ paths:
     action: rewrite
     source_directory: /galaxy/data
     destination_directory: /work/galaxy/data
+
+  # The following demonstrates use of the Rsync transport layer
+  - path: /galaxy/files/
+    action: remote_rsync_transfer
+    # Additionally the action remote_scp_transfer is available which behaves in
+    # an identical manner
+    ssh_user: galaxy
+    ssh_host: f.q.d.n
+    ssh_port: 22
+    ssh_key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      MIIEowIBAAKCAQEAwWYGEOhiJgbWv8eBV2LJp0MCSgrAPeX9FbsGn1I+UC110PPW
+      ...
+

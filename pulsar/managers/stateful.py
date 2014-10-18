@@ -65,6 +65,12 @@ class StatefulManagerProxy(ManagerProxy):
         def do_preprocess():
             try:
                 staging_config = job_directory.load_metadata("staging_config", {})
+                # TODO: swap out for a generic "job_extra_params"
+                if 'action_mapper' in staging_config and \
+                        'ssh_key' in staging_config['action_mapper'] and \
+                        'setup' in staging_config:
+                    for action in staging_config['setup']:
+                        action['action'].update(ssh_key=staging_config['action_mapper']['ssh_key'])
                 preprocess(job_directory, staging_config.get("setup", []), self.__preprocess_action_executor)
                 self._proxied_manager.launch(job_id, *args, **kwargs)
                 with job_directory.lock("status"):
