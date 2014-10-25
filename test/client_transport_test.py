@@ -2,6 +2,8 @@ import os
 
 from pulsar.client.transport.standard import Urllib2Transport
 from pulsar.client.transport.curl import PycurlTransport
+from pulsar.client.transport.curl import post_file
+from pulsar.client.transport.curl import get_file
 from pulsar.client.transport import get_transport
 from tempfile import NamedTemporaryFile
 from .test_utils import files_server
@@ -33,6 +35,57 @@ def _test_transport(transport):
         temp_file.close()
         response = transport.execute(request_url, data=None, output_path=output_path)
         assert open(output_path, 'r').read().find("Test123") >= 0
+
+
+def test_curl_put_get():
+    with files_server() as (server, directory):
+        server_url = server.application_url
+        path = os.path.join(directory, "test_for_GET")
+        request_url = u"%s?path=%s" % (server_url, path)
+
+        input = os.path.join(directory, "input")
+        output = os.path.join(directory, "output")
+        open(input, "wb").write(u"helloworld")
+
+        post_file(request_url, input)
+        get_file(request_url, output)
+        assert open(output, "rb").read() == u"helloworld"
+
+
+def test_curl_status_code():
+    with files_server() as (server, directory):
+        server_url = server.application_url
+        path = os.path.join(directory, "test_for_GET")
+        request_url = u"%s?path=%s" % (server_url, path)
+        # Verify curl doesn't just silently swallow errors.
+        exception_raised = False
+        try:
+            get_file(request_url, os.path.join(directory, "test"))
+        except Exception:
+            exception_raised = True
+        assert exception_raised
+
+        post_request_url = u"%s?path=%s" % (server_url, "/usr/bin/cow")
+        exception_raised = False
+        try:
+            post_file(post_request_url, os.path.join(directory, "test"))
+        except Exception:
+            exception_raised = True
+        assert exception_raised
+
+
+def test_curl_problems():
+    with files_server() as (server, directory):
+        server_url = server.application_url
+        path = os.path.join(directory, "test_for_GET")
+        request_url = u"%s?path=%s" % (server_url, path)
+        exception_raised = False
+        try:
+            # Valid destination but the file to post doesn't exist.
+            post_file(request_url, os.path.join(directory, "test"))
+        except Exception:
+            exception_raised = True
+        assert exception_raised
 
 
 def test_get_transport():
