@@ -1,13 +1,12 @@
 import subprocess
-import logging
-log = logging.getLogger(__name__)
+SSH_OPTIONS = ('-o', 'StrictHostKeyChecking=no', '-o', 'PreferredAuthentications=pubkey', '-o','PubkeyAuthentication=yes')
 
 
 def rsync_get_file(uri_from, uri_to, user, host, port, key):
     cmd = [
         'rsync',
         '-e',
-        'ssh -i %s -p %s -o StrictHostKeyChecking=no' % (key, port),
+        'ssh -i %s -p %s %s' % (key, port, ' '.join(SSH_OPTIONS)),
         '%s@%s:%s' % (user, host, uri_from),
         uri_to,
     ]
@@ -20,7 +19,7 @@ def rsync_post_file(uri_from, uri_to, user, host, port, key):
     cmd = [
         'rsync',
         '-e',
-        'ssh -i %s -p %s -o StrictHostKeyChecking=no' % (key, port),
+        'ssh -i %s -p %s %s' % (key, port, ' '.join(SSH_OPTIONS)),
         uri_from,
         '%s@%s:%s' % (user, host, uri_to),
     ]
@@ -34,7 +33,7 @@ def scp_get_file(uri_from, uri_to, user, host, port, key):
         'scp',
         '-P', str(port),
         '-i', key,
-        '-o', 'StrictHostKeyChecking=no',
+        SSH_OPTIONS,
         '%s@%s:%s' % (user, host, uri_from),
         uri_to,
     ]
@@ -48,7 +47,7 @@ def scp_post_file(uri_from, uri_to, user, host, port, key):
         'scp',
         '-P', str(port),
         '-i', key,
-        '-o', 'StrictHostKeyChecking=no',
+        SSH_OPTIONS,
         uri_from,
         '%s@%s:%s' % (user, host, uri_to),
     ]
