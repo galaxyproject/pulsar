@@ -1,5 +1,6 @@
 from json import load
 from os import makedirs
+from os import unlink
 from os.path import exists
 from os.path import abspath
 from os.path import dirname
@@ -412,12 +413,11 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
                     ssh_port=self.ssh_port)
 
     def serialize_ssh_key(self):
-        f = tempfile.NamedTemporaryFile()
+        f = tempfile.NamedTemporaryFile(delete=False)
         if self.ssh_key is not None:
             f.write(self.ssh_key)
         else:
             raise Exception("SSH_KEY not available")
-        f.close()
         return f.name
 
 
@@ -437,11 +437,13 @@ class RsyncTransferAction(PubkeyAuthenticatedTransferAction):
         key_file = self.serialize_ssh_key()
         rsync_get_file(self.path, path, self.ssh_user, self.ssh_host,
                        self.ssh_port, key_file)
+        unlink(key_file)
 
     def write_from_path(self, pulsar_path):
         key_file = self.serialize_ssh_key()
         rsync_post_file(pulsar_path, self.path, self.ssh_user,
                         self.ssh_host, self.ssh_port, key_file)
+        unlink(key_file)
 
 
 class ScpTransferAction(PubkeyAuthenticatedTransferAction):
@@ -460,11 +462,13 @@ class ScpTransferAction(PubkeyAuthenticatedTransferAction):
         key_file = self.serialize_ssh_key()
         scp_get_file(self.path, path, self.ssh_user, self.ssh_host,
                      self.ssh_port, key_file)
+        unlink(key_file)
 
     def write_from_path(self, pulsar_path):
         key_file = self.serialize_ssh_key()
         scp_post_file(pulsar_path, self.path, self.ssh_user, self.ssh_host,
                       self.ssh_port, key_file)
+        unlink(key_file)
 
 
 class MessageAction(object):
