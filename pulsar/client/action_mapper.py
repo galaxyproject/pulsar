@@ -420,6 +420,10 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
             raise Exception("SSH_KEY not available")
         return f.name
 
+    def cleanup_ssh_key(self, keyfile):
+        if exists(keyfile):
+            unlink(keyfile)
+
 
 class RsyncTransferAction(PubkeyAuthenticatedTransferAction):
     action_type = "remote_rsync_transfer"
@@ -437,13 +441,13 @@ class RsyncTransferAction(PubkeyAuthenticatedTransferAction):
         key_file = self.serialize_ssh_key()
         rsync_get_file(self.path, path, self.ssh_user, self.ssh_host,
                        self.ssh_port, key_file)
-        unlink(key_file)
+        self.cleanup_ssh_key(key_file)
 
     def write_from_path(self, pulsar_path):
         key_file = self.serialize_ssh_key()
         rsync_post_file(pulsar_path, self.path, self.ssh_user,
                         self.ssh_host, self.ssh_port, key_file)
-        unlink(key_file)
+        self.cleanup_ssh_key(key_file)
 
 
 class ScpTransferAction(PubkeyAuthenticatedTransferAction):
@@ -462,13 +466,13 @@ class ScpTransferAction(PubkeyAuthenticatedTransferAction):
         key_file = self.serialize_ssh_key()
         scp_get_file(self.path, path, self.ssh_user, self.ssh_host,
                      self.ssh_port, key_file)
-        unlink(key_file)
+        self.cleanup_ssh_key(key_file)
 
     def write_from_path(self, pulsar_path):
         key_file = self.serialize_ssh_key()
         scp_post_file(pulsar_path, self.path, self.ssh_user, self.ssh_host,
                       self.ssh_port, key_file)
-        unlink(key_file)
+        self.cleanup_ssh_key(key_file)
 
 
 class MessageAction(object):
