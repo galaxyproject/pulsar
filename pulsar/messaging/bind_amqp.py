@@ -4,6 +4,7 @@ from pulsar import manager_endpoint_util
 import functools
 import threading
 import logging
+import urlparse
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +67,14 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
 
 
 def __start_consumer(name, exchange, target):
-    thread_name = "consume-%s-%s" % (name, exchange.url)
+    parsed = urlparse.urlparse(exchange.url)
+    if parsed.password is not None:
+        exchange_url = '%s://%s:********@%s:%s/%s/%s?%s' % (parsed.scheme, parsed.username, parsed.hostname,
+                                                            parsed.port, parsed.path, parsed.query, parsed.params)
+    else:
+        exchange_url = exchange.url
+
+    thread_name = "consume-%s-%s" % (name, exchange_url)
     thread = threading.Thread(name=thread_name, target=target)
     thread.daemon = False
     thread.start()
