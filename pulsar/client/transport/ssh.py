@@ -1,5 +1,5 @@
 import subprocess
-SSH_OPTIONS = ('-o', 'StrictHostKeyChecking=no', '-o', 'PreferredAuthentications=publickey', '-o','PubkeyAuthentication=yes')
+SSH_OPTIONS = ('-o', 'StrictHostKeyChecking=no', '-o', 'PreferredAuthentications=publickey', '-o', 'PubkeyAuthentication=yes')
 
 
 def rsync_get_file(uri_from, uri_to, user, host, port, key):
