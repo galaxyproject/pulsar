@@ -247,7 +247,7 @@ to maintain multiple such queues with different properties or to delegate to
 external job queues (via DRMAA, qsub/qstat CLI commands, or Condor).
 
 For more information on configured external job managers, see
-`the job managers documentation <https://lwr.readthedocs.org/#job-managers>`_.
+`the job managers documentation <https://pulsar.readthedocs.org/#job-managers>`_.
 
 Warning: If you are using DRMAA, be sure to define ``DRMAA_LIBRARY_PATH`` in
 ``local_env.sh`` defined above.
