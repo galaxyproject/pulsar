@@ -66,6 +66,12 @@ a high-performance proxy but not the Pulsar.
 For those interested in this deployment option and new to Message Queues, there
 is more documentation in :ref:`gx-pulsar-mq-setup`
 
+Additionally, Pulsar now ships with an RSync and SCP transfer action rather
+than making use of the HTTP transport method.
+
+.. literalinclude:: files/job_conf_sample_mq_rsync.xml
+   :language: xml
+
 Targeting Apache Mesos (Prototype)
 ``````````````````````````````````
 

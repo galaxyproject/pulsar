@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<job_conf>
+    <plugins>
+        <plugin id="pulsar_mq" type="runner" load="galaxy.jobs.runners.pulsar:PulsarMQJobRunner">
+            <!-- Must tell LWR where to send files. -->
+            <param id="galaxy_url">https://galaxyserver</param>
+            <!-- Message Queue Connection (should match message_queue_url in
+                 Pulsar's server.ini). pyamqp may be necessary over amqp if SSL is used
+            -->
+            <param id="url">pyamqp://rabbituser:rabb8pa8sw0d@mqserver:5671//?ssl=1</param>
+        </plugin>
+    </plugins>
+    <handlers>
+        <handler id="main"/>
+    </handlers>
+    <destinations default="pulsar_mq">
+        <destination id="remote_cluster" runner="pulsar_mq">
+            <!-- This string is replaced by Pulsar, removing the requirement
+                 of coordinating Pulsar installation directory between cluster
+                 admin and galaxy admin
+            -->
+            <param id="jobs_directory">__PULSAR_JOBS_DIRECTORY__</param>
+            <!-- Provide connection information, should look like:
+
+                    paths:
+                        - path: /home/vagrant/  # Home directory for galaxy user
+                          action: remote_rsync_transfer # _rsync_ and _scp_ are available
+                          ssh_user: vagrant
+                          ssh_host: galaxy-vm.host.edu
+                          ssh_port: 22
+
+            -->
+             <param id="file_action_config">file_actions.yaml</param>
+             <!-- Provide an SSH key for access to the local $GALAXY_ROOT,
+            should be accessible with the username/hostname provided in
+            file_actions.yaml
+             -->
+             <param id="ssh_key">-----BEGIN RSA PRIVATE KEY-----
+            .............
+            </param>
+            <!-- Allow the remote end to know who is running the job, may need
+                 to append @domain.edu after it. Only used if the
+                 "DRMAA (via external users) manager" is used
+             -->
+            <param id="submit_user">$__user_name__</param>
+        </destination>
+    </destinations>
+    <tools>
+        <tool id="trinity" destination="remote_cluster" />
+        <tool id="abyss" destination="remote_cluster" />
+	</tools>
+</job_conf>
