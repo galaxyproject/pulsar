@@ -2,7 +2,7 @@
 <job_conf>
     <plugins>
         <plugin id="pulsar_mq" type="runner" load="galaxy.jobs.runners.pulsar:PulsarMQJobRunner">
-            <!-- Must tell LWR where to send files. -->
+            <!-- Must tell Pulsar where to send files. -->
             <param id="galaxy_url">https://galaxyserver</param>
             <!-- Message Queue Connection (should match message_queue_url in
                  Pulsar's server.ini). pyamqp may be necessary over amqp if SSL is used
