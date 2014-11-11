@@ -38,8 +38,3 @@ paths:
     ssh_user: galaxy
     ssh_host: f.q.d.n
     ssh_port: 22
-    ssh_key: |
-      -----BEGIN RSA PRIVATE KEY-----
-      MIIEowIBAAKCAQEAwWYGEOhiJgbWv8eBV2LJp0MCSgrAPeX9FbsGn1I+UC110PPW
-      ...
-
