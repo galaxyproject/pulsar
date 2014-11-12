@@ -1,3 +1,5 @@
+.. _galaxy-conf:
+
 --------------------
 Galaxy Configuration
 --------------------

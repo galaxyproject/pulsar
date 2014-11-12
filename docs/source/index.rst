@@ -4,39 +4,25 @@
    contain the root `toctree` directive.
 
 
-.. include:: ../../README.rst
+Welcome to Pulsar's documentation!
+======================================
 
-.. _job-managers:
-.. include:: job_managers.rst
-
-.. _galaxy-conf:
-.. include:: galaxy_conf.rst
-
-.. include:: upgrading.rst
-
-.. include:: public_server.rst
-
------------
-Server Code
------------
+Contents:
 
 .. toctree::
    :maxdepth: 5
 
+   readme
+   job_managers
+   galaxy_conf
+   upgrading
+   contributing
    server_code
-
------------
-Client Code
------------
-
-.. toctree::
-   :maxdepth: 5
-
    client_code
 
-------------------
 Indices and tables
-------------------
+==================
+
 
 * :ref:`genindex`
 * :ref:`modindex`
