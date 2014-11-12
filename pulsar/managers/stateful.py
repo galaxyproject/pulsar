@@ -2,6 +2,7 @@ import datetime
 import os
 import time
 import threading
+import contextlib
 
 from pulsar.client.util import filter_destination_params
 from pulsar.managers import ManagerProxy
@@ -244,22 +245,35 @@ class ManagerMonitor(object):
 
     def _monitor_active_jobs(self):
         active_job_ids = self.stateful_manager.active_jobs.active_job_ids()
-        iteration_start = datetime.datetime.now()
-        for active_job_id in active_job_ids:
-            try:
-                self._check_active_job_status(active_job_id)
-            except Exception:
-                log.exception("Failed checking active job status for job_id %s" % active_job_id)
-        iteration_end = datetime.datetime.now()
-        iteration_length = iteration_end - iteration_start
-        if iteration_length < self.stateful_manager.min_polling_interval:
-            to_sleep = (self.stateful_manager.min_polling_interval - iteration_length)
-            time.sleep(to_sleep.total_seconds())
+        with ensure_minimum_runtime(self.stateful_manager.min_polling_interval):
+            for active_job_id in active_job_ids:
+                try:
+                    self._check_active_job_status(active_job_id)
+                except Exception:
+                    log.exception("Failed checking active job status for job_id %s" % active_job_id)
 
     def _check_active_job_status(self, active_job_id):
         # Manager itself will handle state transitions when status changes,
         # just need to poll get_statu
         self.stateful_manager.get_status(active_job_id)
+
+
+@contextlib.contextmanager
+def ensure_minimum_runtime(seconds):
+    iteration_start = datetime.datetime.now()
+    yield
+    iteration_end = datetime.datetime.now()
+    iteration_length = iteration_end - iteration_start
+    if iteration_length < seconds:
+        to_sleep = (seconds - iteration_length)
+        time.sleep(total_seconds(to_sleep))
+
+
+def total_seconds(td):
+    # equiv to td.total_seconds() but compat. with Python 2.6
+    whole_secs = (td.seconds + td.days * 24 * 3600)
+    total_secs = (td.microseconds + whole_secs * (10 ** 6)) / (10. ** 6)
+    return total_secs
 
 
 def new_thread_for_manager(manager, name, target, daemon):
