@@ -3,12 +3,12 @@ paths:
   - path: /galaxy/files/store/1
     action: transfer
 
-  # Use copy (or remote_copy) if remote LWR server also mounts the directory
+  # Use copy (or remote_copy) if remote Pulsar server also mounts the directory
   # but the actual compute servers do not.
   - path: /galaxy/files/store/2
     action: copy
 
-  # If Galaxy, the LWR, and the compute nodes all mount the same directory
+  # If Galaxy, the Pulsar, and the compute nodes all mount the same directory
   # staging can be disabled altogether for given paths.
   - path: /galaxy/files/store/3
     action: none

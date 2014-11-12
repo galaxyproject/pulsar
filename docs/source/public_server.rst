@@ -30,7 +30,7 @@ public `Pulsar` server.
   restrict what tools clients can run. All tools on public Pulsar servers
   should have validators for commands (and optionally for configfiles)
   defined. The syntax for these elements can be found in the
-  `ValidatorTest <https://bitbucket.org/jmchilton/lwr/src/tip/test/validator_test.py>`_ test case.
+  `ValidatorTest <https://github.com/galaxyproject/pulsar/blob/master/test/validator_test.py>`_ test case.
 
 Writing Secure Tools
 --------------------

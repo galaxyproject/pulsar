@@ -75,7 +75,7 @@ than making use of the HTTP transport method.
 Targeting Apache Mesos (Prototype)
 ``````````````````````````````````
 
-See `commit message <https://bitbucket.org/jmchilton/lwr/commits/555438d2fe266899338474b25c540fef42bcece7>`_ for initial work on this and `this post on galaxy-dev <http://dev.list.galaxyproject.org/Using-Mesos-to-Enable-distributed-computing-under-Galaxy-tp4662310p4664829.html>`_.
+See `commit message <https://github.com/galaxyproject/pulsar/commit/5888810b47da5065f532534b9594704bdd241d03>`_ for initial work on this and `this post on galaxy-dev <http://dev.list.galaxyproject.org/Using-Mesos-to-Enable-distributed-computing-under-Galaxy-tp4662310p4664829.html>`_.
 
 Forcing Pulsar to Generate Galaxy Metadata
 ``````````````````````````````````````````
