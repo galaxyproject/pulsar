@@ -10,6 +10,7 @@ DEFAULT_NET = None
 DEFAULT_MEMORY = None
 DEFAULT_VOLUMES_FROM = None
 DEFAULT_AUTO_REMOVE = True
+DEFAULT_SET_USER = True
 
 
 class DockerVolume(object):
@@ -55,14 +56,11 @@ class DockerVolume(object):
 def build_command(
     image,
     docker_build_path,
-    docker_cmd=DEFAULT_DOCKER_COMMAND,
-    sudo=DEFAULT_SUDO,
-    sudo_cmd=DEFAULT_SUDO_COMMAND,
-    host=DEFAULT_HOST,
+    **kwds
 ):
     if os.path.isfile(docker_build_path):
         docker_build_path = os.path.dirname(os.path.abspath(docker_build_path))
-    build_command_parts = __docker_prefix(docker_cmd, sudo, sudo_cmd, host)
+    build_command_parts = __docker_prefix(**kwds)
     build_command_parts.extend(["build", "-t", image, docker_build_path])
     return build_command_parts
 
@@ -70,32 +68,40 @@ def build_command(
 def build_save_image_command(
     image,
     destination,
-    docker_cmd=DEFAULT_DOCKER_COMMAND,
-    sudo=DEFAULT_SUDO,
-    sudo_cmd=DEFAULT_SUDO_COMMAND,
-    host=DEFAULT_HOST,
+    **kwds
 ):
-    build_command_parts = __docker_prefix(docker_cmd, sudo, sudo_cmd, host)
+    build_command_parts = __docker_prefix(**kwds)
     build_command_parts.extend(["save", "-o", destination, image])
     return build_command_parts
 
 
 def build_docker_cache_command(
     image,
-    docker_cmd=DEFAULT_DOCKER_COMMAND,
-    sudo=DEFAULT_SUDO,
-    sudo_cmd=DEFAULT_SUDO_COMMAND,
-    host=DEFAULT_HOST,
+    **kwds
 ):
-    inspect_command_parts = __docker_prefix(docker_cmd, sudo, sudo_cmd, host)
+    inspect_command_parts = __docker_prefix(**kwds)
     inspect_command_parts.extend(["inspect", image])
     inspect_image_command = " ".join(inspect_command_parts)
 
-    pull_command_parts = __docker_prefix(docker_cmd, sudo, sudo_cmd, host)
+    pull_command_parts = __docker_prefix(**kwds)
     pull_command_parts.extend(["pull", image])
     pull_image_command = " ".join(pull_command_parts)
     cache_command = "%s > /dev/null 2>&1\n[ $? -ne 0 ] && %s > /dev/null 2>&1\n" % (inspect_image_command, pull_image_command)
     return cache_command
+
+
+def build_docker_images_command(truncate=True, **kwds):
+    images_command_parts = __docker_prefix(**kwds)
+    images_command_parts.append("images")
+    if not truncate:
+        images_command_parts.append("--no-trunc")
+    return " ".join(images_command_parts)
+
+
+def build_docker_load_command(**kwds):
+    load_command_parts = __docker_prefix(**kwds)
+    load_command_parts.append("load")
+    return " ".join(load_command_parts)
 
 
 def build_docker_run_command(
@@ -114,9 +120,15 @@ def build_docker_run_command(
     sudo=DEFAULT_SUDO,
     sudo_cmd=DEFAULT_SUDO_COMMAND,
     auto_rm=DEFAULT_AUTO_REMOVE,
+    set_user=DEFAULT_SET_USER,
     host=DEFAULT_HOST,
 ):
-    command_parts = __docker_prefix(docker_cmd, sudo, sudo_cmd, host)
+    command_parts = __docker_prefix(
+        docker_cmd=docker_cmd,
+        sudo=sudo,
+        sudo_cmd=sudo_cmd,
+        host=host
+    )
     command_parts.append("run")
     if interactive:
         command_parts.append("-i")
@@ -136,6 +148,8 @@ def build_docker_run_command(
         command_parts.extend(["--net", net])
     if auto_rm:
         command_parts.append("--rm")
+    if set_user:
+        command_parts.extend(["-u", str(os.geteuid())])
     full_image = image
     if tag:
         full_image = "%s:%s" % (full_image, tag)
@@ -144,7 +158,13 @@ def build_docker_run_command(
     return " ".join(command_parts)
 
 
-def __docker_prefix(docker_cmd, sudo, sudo_cmd, host):
+def __docker_prefix(
+    docker_cmd=DEFAULT_DOCKER_COMMAND,
+    sudo=DEFAULT_SUDO,
+    sudo_cmd=DEFAULT_SUDO_COMMAND,
+    host=DEFAULT_HOST,
+    **kwds
+):
     """ Prefix to issue a docker command.
     """
     command_parts = []
