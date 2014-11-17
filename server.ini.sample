@@ -81,11 +81,14 @@ paste.app_factory = pulsar.web.wsgi:app_factory
 ##if they fail
 # Comments taken from http://kombu.readthedocs.org/en/latest/reference/kombu.connection.html#kombu.connection.Connection.ensure
 #amqp_publish_retry = True
-#amqp_publish_retry_max_retries = 5     # Maximum number of times to retry. If this limit is exceeded the connection error will be re-raised.
-#amqp_publish_retry_interval_start = 10 # The number of seconds we start sleeping for.
-#amqp_publish_retry_interval_step = 10  # How many seconds added to the interval for each retry.
-#amqp_publish_retry_interval_max = 60   # Maximum number of seconds to sleep between each retry.
-#
+## Maximum number of times to retry. If this limit is exceeded the connection error will be re-raised.
+#amqp_publish_retry_max_retries = 5
+## The number of seconds we start sleeping for.
+#amqp_publish_retry_interval_start = 10
+## How many seconds added to the interval for each retry.
+#amqp_publish_retry_interval_step = 10
+## Maximum number of seconds to sleep between each retry.
+#amqp_publish_retry_interval_max = 60
 
 ## *Experimental*. Enable file caching by specifing a directory here. 
 ## Directory used to store incoming file cache. It works fine for HTTP
