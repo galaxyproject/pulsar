@@ -218,7 +218,7 @@ be used to secure communication - deploying Pulsar with SSL and a
 This will likely consist of setting some combination of
 ``amqp_connect_ssl_ca_certs``, ``amqp_connect_ssl_keyfile``,
 ``amqp_connect_ssl_certfile``, ``amqp_connect_ssl_cert_reqs``, in Pulsar's
-``server.ini`` file. See ``server.ini.sample`` for more details and the `Kombo
+``server.ini`` file. See ``server.ini.sample`` for more details and the `Kombu
 documentation
 <http://kombu.readthedocs.org/en/latest/reference/kombu.connection.html>`_ for
 even more information.
