@@ -59,10 +59,10 @@ class Slurm(BaseJobExec):
         return 'scancel %s' % job_id
 
     def get_status(self, job_ids=None):
-        return 'squeue -a -o \\"%A %t\\"'
+        return "squeue -a -o '%A %t'"
 
     def get_single_status(self, job_id):
-        return 'squeue -a -o \\"%A %t\\" -j ' + job_id
+        return "squeue -a -o '%A %t' -j " + job_id
 
     def parse_status(self, status, job_ids):
         # Get status for each job, skipping header.
