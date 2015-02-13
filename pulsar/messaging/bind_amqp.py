@@ -1,10 +1,9 @@
-from galaxy.util import asbool
+from galaxy.util import asbool, mask_password_from_url
 from pulsar.client import amqp_exchange_factory
 from pulsar import manager_endpoint_util
 import functools
 import threading
 import logging
-import urlparse
 
 log = logging.getLogger(__name__)
 
@@ -67,13 +66,7 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
 
 
 def __start_consumer(name, exchange, target):
-    parsed = urlparse.urlparse(exchange.url)
-    if parsed.password is not None:
-        exchange_url = '%s://%s:********@%s:%s/%s/%s?%s' % (parsed.scheme, parsed.username, parsed.hostname,
-                                                            parsed.port, parsed.path, parsed.query, parsed.params)
-    else:
-        exchange_url = exchange.url
-
+    exchange_url = mask_password_from_url(exchange.url)
     thread_name = "consume-%s-%s" % (name, exchange_url)
     thread = threading.Thread(name=thread_name, target=target)
     thread.daemon = False
