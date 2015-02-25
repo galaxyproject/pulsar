@@ -23,7 +23,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 
-clean-test:
+clean-tests:
 	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
@@ -31,13 +31,10 @@ clean-test:
 lint:
 	flake8 --exclude test_tool_deps.py --max-complexity 9 pulsar test
 
-lint-readme:
-	python setup.py check -r -s
-
-test:
+tests:
 	nosetests
 
-coverage: test
+coverage: tests
 	coverage html
 	open coverage_html_report/index.html
 

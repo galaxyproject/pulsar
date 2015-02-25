@@ -322,7 +322,7 @@ the needed python components to run these tests.::
 
 The following command will then run these tests::
 
-    nosetests
+    make tests
 
 The following command will then produce a coverage report
 corresponding to this test and place it in the coverage_html_report

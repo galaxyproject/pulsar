@@ -72,16 +72,17 @@ Ready to contribute? Here's how to set up `pulsar` for local development.
     $ pip install -r requirements.txt 
     $ pip install -r dev-requirements.txt
 
+   If you have something like Slurm or Grid Engine configured on your local machine - you should also install ``drmaa`` with ``pip install drmaa``.
+
 4. Create a branch for local development::
 
     $ git checkout -b name-of-your-bugfix-or-feature
 
    Now you can make your changes locally.
 
-5. When you're done making changes, check that your changes pass ``flake8``
-and ``pyflakes``::
+5. When you're done making changes, check that your changes lint::
 
-    $ pyflakes pulsar test && flake8 --exclude test_tool_deps.py --max-complexity 9 pulsar test
+    $ make lint
 
 and ensure the tests look good. The easiest way to test is with Docker if it is
 available (given the need to test commands with DRMAA, condor, sudo, etc...).::
@@ -93,7 +94,7 @@ optional dependencies needed to run a wide range of integration tests. If Docker
 is to much of an ordeal many of Pulsar's tests can be executed by simply running 
 ``nosetests`` from within an ``virtualenv`` configured as explained above.::
 
-    $ nosetests
+    $ make tests
 
 6. Commit your changes and push your branch to GitHub::
 
