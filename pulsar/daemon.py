@@ -1,3 +1,7 @@
+""" daemon.py no longer makes sense as a filename for this file at all.
+It really should be main.py to reflect what it is doing and sync with
+Galaxy.
+"""
 import logging
 from logging.config import fileConfig
 
@@ -88,7 +92,7 @@ def load_pulsar_app(
     return pulsar_app
 
 
-def app_loop(args):
+def app_loop(args, log):
     try:
         config_builder = PulsarConfigBuilder(args)
         pulsar_app = load_pulsar_app(
@@ -99,12 +103,17 @@ def app_loop(args):
     except BaseException:
         log.exception("Failed to initialize Pulsar application")
         raise
-    try:
-        # Hmmmm... not sure what to do in here this was example though...
-        while True:
+    sleep = True
+    while sleep:
+        try:
             time.sleep(5)
-    except Exception:
-        pass
+        except KeyboardInterrupt:
+            sleep = False
+        except SystemExit:
+            sleep = False
+        except Exception:
+            pass
+
     try:
         pulsar_app.shutdown()
     except Exception:
@@ -187,6 +196,10 @@ class PulsarConfigBuilder(object):
         arg_parser.add_argument("--ini_path", default=None)
         arg_parser.add_argument("--app_conf_path", default=None)
         arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
+        # daemon related options...
+        arg_parser.add_argument("-d", "--daemonize", default=False, help="Daemonzie process", action="store_true")
+        arg_parser.add_argument("--daemon-log-file", default=None, help="log file for daemon script ")
+        arg_parser.add_argument("--pid-file", default=DEFAULT_PID, help="pid file (default is %s)" % DEFAULT_PID)
 
     def load(self):
         config = load_app_configuration(
@@ -236,28 +249,41 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
 
 def main():
-    if Daemonize is None:
-        raise ImportError(REQUIRES_DAEMONIZE_MESSAGE)
-
     arg_parser = ArgumentParser(description=DESCRIPTION)
     PulsarConfigBuilder.populate_options(arg_parser)
     args = arg_parser.parse_args()
 
+    pid_file = args.pid_file
+
     log.setLevel(logging.DEBUG)
     log.propagate = False
-    fh = logging.FileHandler("daemon.log", "w")
-    fh.setLevel(logging.DEBUG)
-    log.addHandler(fh)
-    keep_fds = [fh.stream.fileno()]
 
-    daemon = Daemonize(
-        app="pulsar",
-        pid=DEFAULT_PID,
-        action=functools.partial(app_loop, args),
-        verbose=DEFAULT_VERBOSE,
-        keep_fds=keep_fds,
-    )
-    daemon.start()
+    if args.daemonize:
+        if Daemonize is None:
+            raise ImportError(REQUIRES_DAEMONIZE_MESSAGE)
+
+        keep_fds = []
+        if args.daemon_log_file:
+            fh = logging.FileHandler(args.daemon_log_file, "w")
+            fh.setLevel(logging.DEBUG)
+            log.addHandler(fh)
+            keep_fds.append(fh.stream.fileno())
+        else:
+            fh = logging.StreamHandler(sys.stderr)
+            fh.setLevel(logging.DEBUG)
+            log.addHandler(fh)
+
+        daemon = Daemonize(
+            app="pulsar",
+            pid=pid_file,
+            action=functools.partial(app_loop, args, log),
+            verbose=DEFAULT_VERBOSE,
+            logger=log,
+            keep_fds=keep_fds,
+        )
+        daemon.start()
+    else:
+        app_loop(args, log)
 
 if __name__ == "__main__":
     main()
