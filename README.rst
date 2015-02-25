@@ -210,9 +210,10 @@ these jobs.
 Pulsar Message Queue
 ````````````````````
 
-If Pulsar is processing requests via a message queue instead of a web
-server the underlying security mechanisms of the message queue should
-be used to secure communication - deploying Pulsar with SSL and a
+If Pulsar is processing requests via a `message queue
+<https://pulsar.readthedocs.org/en/latest/galaxy_with_rabbitmq_conf.html>`_
+instead of a web server the underlying security mechanisms of the message
+queue should be used to secure communication - deploying Pulsar with SSL and a
 ``private_token`` described above are not required.
 
 This will likely consist of setting some combination of
@@ -329,3 +330,7 @@ corresponding to this test and place it in the coverage_html_report
 subdirectory of this project.::
 
     coverage html
+
+Checkout the `Contributing
+<https://pulsar.readthedocs.org/en/latest/contributing.html>`_ documentation
+for many more details on developing and contributing to Pulsar.
