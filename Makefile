@@ -36,7 +36,7 @@ tests:
 
 coverage: tests
 	coverage html
-	open coverage_html_report/index.html
+	open coverage_html_report/index.html || xdg-open coverage_html_report/index.html
 
 docs:
 	rm -f docs/pulsar.rst
@@ -45,4 +45,12 @@ docs:
 	sphinx-apidoc -o docs/ galaxy
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
-	open docs/_build/html/index.html
+
+open-docs: docs
+	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html
+
+open-rtd: docs
+	open https://pulsar.readthedocs.org || xdg-open docs/_build/html/index.html
+
+open-project:
+	open https://github.com/galaxyproject/pulsar || xdg-open https://github.com/galaxyproject/pulsar
