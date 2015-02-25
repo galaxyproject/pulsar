@@ -1,9 +1,9 @@
 import time
 import json
 
-from pulsar.daemon import ArgumentParser
+from pulsar.main import ArgumentParser
 from pulsar.client.util import from_base64_json
-from pulsar.daemon import (
+from pulsar.main import (
     load_pulsar_app,
     PulsarManagerConfigBuilder
 )

@@ -1,7 +1,7 @@
 from __future__ import print_function
 from json import load
 from pulsar.managers.util.drmaa import DrmaaSessionFactory
-from pulsar.daemon import ArgumentParser
+from pulsar.main import ArgumentParser
 
 
 DESCRIPTION = "Submit a DRMAA job."

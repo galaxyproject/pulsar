@@ -1,6 +1,6 @@
 from json import load
 from pulsar.managers.util.drmaa import DrmaaSessionFactory
-from pulsar.daemon import ArgumentParser
+from pulsar.main import ArgumentParser
 
 
 DESCRIPTION = "Kill a job via DRMAA interface."

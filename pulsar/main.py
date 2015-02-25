@@ -1,7 +1,3 @@
-""" daemon.py no longer makes sense as a filename for this file at all.
-It really should be main.py to reflect what it is doing and sync with
-Galaxy.
-"""
 import logging
 from logging.config import fileConfig
 
@@ -93,16 +89,7 @@ def load_pulsar_app(
 
 
 def app_loop(args, log):
-    try:
-        config_builder = PulsarConfigBuilder(args)
-        pulsar_app = load_pulsar_app(
-            config_builder,
-            config_env=True,
-            log=log,
-        )
-    except BaseException:
-        log.exception("Failed to initialize Pulsar application")
-        raise
+    pulsar_app = _app(args, log)
     sleep = True
     while sleep:
         try:
@@ -113,12 +100,25 @@ def app_loop(args, log):
             sleep = False
         except Exception:
             pass
-
     try:
         pulsar_app.shutdown()
     except Exception:
         log.exception("Failed to shutdown Pulsar application")
         raise
+
+
+def _app(args, log):
+    try:
+        config_builder = PulsarConfigBuilder(args)
+        pulsar_app = load_pulsar_app(
+            config_builder,
+            config_env=True,
+            log=log,
+        )
+    except BaseException:
+        log.exception("Failed to initialize Pulsar application")
+        raise
+    return pulsar_app
 
 
 def absolute_config_path(path, pulsar_root):

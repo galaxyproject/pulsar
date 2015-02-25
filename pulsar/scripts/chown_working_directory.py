@@ -1,6 +1,6 @@
 from os import system
 from os.path import join, abspath
-from pulsar.daemon import ArgumentParser, PulsarConfigBuilder
+from pulsar.main import ArgumentParser, PulsarConfigBuilder
 from pulsar.core import DEFAULT_STAGING_DIRECTORY
 
 

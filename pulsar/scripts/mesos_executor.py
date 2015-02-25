@@ -14,7 +14,7 @@ from pulsar.scripts.submit import (
 )
 from pulsar.manager_endpoint_util import submit_job
 
-from pulsar.daemon import (
+from pulsar.main import (
     ArgumentParser,
     PulsarManagerConfigBuilder,
 )

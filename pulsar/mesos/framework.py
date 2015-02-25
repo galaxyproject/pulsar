@@ -9,7 +9,7 @@ from pulsar.mesos import (
 )
 from pulsar.client.util import to_base64_json
 
-from pulsar.daemon import (
+from pulsar.main import (
     PULSAR_ROOT_DIR,
 )
 from pulsar.messaging import bind_amqp

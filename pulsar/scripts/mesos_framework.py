@@ -3,7 +3,7 @@ from pulsar.mesos import (
 )
 from pulsar.mesos.framework import run
 
-from pulsar.daemon import (
+from pulsar.main import (
     ArgumentParser,
     PulsarManagerConfigBuilder,
 )

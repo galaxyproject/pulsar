@@ -1,7 +1,7 @@
 import atexit
 import inspect
 
-from pulsar.daemon import load_app_configuration
+from pulsar.main import load_app_configuration
 from pulsar.core import PulsarApp
 from pulsar.web.framework import RoutingApp
 
