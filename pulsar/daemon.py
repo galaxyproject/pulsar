@@ -72,7 +72,7 @@ def load_pulsar_app(
             log.exception("Failed to chdir")
             raise
         try:
-            sys.path.append(os.path.join(PULSAR_ROOT_DIR))
+            sys.path.append(PULSAR_ROOT_DIR)
         except Exception:
             log.exception("Failed to add Pulsar to sys.path")
             raise
@@ -116,7 +116,7 @@ def absolute_config_path(path, pulsar_root):
     return path
 
 
-def __find_default_app_config(*config_dirs):
+def _find_default_app_config(*config_dirs):
     for config_dir in config_dirs:
         app_config_path = os.path.join(config_dir, DEFAULT_APP_YAML)
         if os.path.exists(app_config_path):
@@ -135,7 +135,7 @@ def load_app_configuration(ini_path, app_conf_path=None, app_name=None, local_co
     elif ini_path:
         # If not explicit app.yml file found - look next to server.ini -
         # be it in pulsar root, some temporary staging directory, or /etc.
-        app_conf_path = __find_default_app_config(
+        app_conf_path = _find_default_app_config(
             os.path.dirname(ini_path),
         )
     if app_conf_path:
@@ -153,7 +153,7 @@ def find_ini(supplied_ini, pulsar_root):
         return supplied_ini
 
     # If not explicitly supplied an ini, check server.ini and then
-    # just restort to sample if that has not been configured.
+    # just resort to sample if that has not been configured.
     for guess in ["server.ini", "server.ini.sample"]:
         ini_path = os.path.join(pulsar_root, guess)
         if os.path.exists(ini_path):
@@ -181,7 +181,7 @@ class PulsarConfigBuilder(object):
         self.app_name = kwds.get("app") or (args and args.app) or DEFAULT_INI_APP
 
     @classmethod
-    def populate_options(clazz, arg_parser):
+    def populate_options(cls, arg_parser):
         arg_parser.add_argument("--ini_path", default=None)
         arg_parser.add_argument("--app_conf_path", default=None)
         arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
@@ -228,7 +228,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
         return as_dict
 
     @classmethod
-    def populate_options(clazz, arg_parser):
+    def populate_options(cls, arg_parser):
         PulsarConfigBuilder.populate_options(arg_parser)
         arg_parser.add_argument("--manager", default=DEFAULT_MANAGER)
 
