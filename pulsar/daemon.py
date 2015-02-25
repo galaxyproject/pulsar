@@ -42,6 +42,8 @@ from paste.deploy.loadwsgi import ConfigLoader
 
 log = logging.getLogger(__name__)
 
+REQUIRES_DAEMONIZE_MESSAGE = "Attempted to use Pulsar in daemon mode, but daemonize is unavailable."
+
 PULSAR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DEFAULT_INI_APP = "main"
 DEFAULT_INI = "server.ini"
@@ -235,7 +237,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
 def main():
     if Daemonize is None:
-        raise ImportError("Attempted to use Pulsar in daemon mode, but daemonize is unavailable.")
+        raise ImportError(REQUIRES_DAEMONIZE_MESSAGE)
 
     arg_parser = ArgumentParser(description=DESCRIPTION)
     PulsarConfigBuilder.populate_options(arg_parser)
