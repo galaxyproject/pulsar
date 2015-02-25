@@ -26,18 +26,18 @@ pulsar.core module
     :undoc-members:
     :show-inheritance:
 
-pulsar.daemon module
---------------------
-
-.. automodule:: pulsar.daemon
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pulsar.locks module
 -------------------
 
 .. automodule:: pulsar.locks
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pulsar.main module
+------------------
+
+.. automodule:: pulsar.main
     :members:
     :undoc-members:
     :show-inheritance:
