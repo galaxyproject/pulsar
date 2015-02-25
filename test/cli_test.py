@@ -45,10 +45,10 @@ def test_slurm_cli():
     assert command == "sbatch /tmp/path/test.sh"
 
     command = job.get_status()
-    assert command == '''squeue -a -o \\"%A %t\\"'''
+    assert command == '''squeue -a -o '%A %t\''''
 
     command = job.get_single_status("4")
-    assert command == '''squeue -a -o \\"%A %t\\" -j 4'''
+    assert command == '''squeue -a -o '%A %t' -j 4'''
 
     job_script_kwargs = job.job_script_kwargs("/tmp/1/o", "/tmp/1/e", "my_job")
     headers = job_script_kwargs["headers"]
