@@ -10,15 +10,13 @@ Welcome to Pulsar's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
 
    readme
    job_managers
    galaxy_conf
    upgrading
    contributing
-   server_code
-   client_code
 
 Indices and tables
 ==================

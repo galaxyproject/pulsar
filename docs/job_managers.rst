@@ -23,7 +23,7 @@ installed (see more information about `drmaa dependency <https://pulsar.readthed
 Sample Configuration
 --------------------
 
-.. literalinclude:: ../../job_managers.ini.sample
+.. literalinclude:: ../job_managers.ini.sample
 
 
 Running Jobs As External User
