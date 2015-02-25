@@ -1,3 +1,5 @@
+import logging
+
 from string import Template
 
 from pulsar.managers import status
@@ -6,7 +8,6 @@ from .directory import DirectoryBaseManager
 DEFAULT_JOB_NAME_TEMPLATE = "pulsar_$job_id"
 JOB_FILE_EXTERNAL_ID = "external_id"
 
-import logging
 log = logging.getLogger(__name__)
 
 

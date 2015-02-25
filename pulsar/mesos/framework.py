@@ -1,4 +1,5 @@
 import collections
+import logging
 import os
 
 from pulsar.mesos import (
@@ -8,13 +9,12 @@ from pulsar.mesos import (
 )
 from pulsar.client.util import to_base64_json
 
-import logging
-log = logging.getLogger(__name__)
-
 from pulsar.daemon import (
     PULSAR_ROOT_DIR,
 )
 from pulsar.messaging import bind_amqp
+
+log = logging.getLogger(__name__)
 
 
 DEFAULT_FRAMEWORK_USER = ""  # Let Mesos auto-fill this.

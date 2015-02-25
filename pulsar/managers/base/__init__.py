@@ -29,6 +29,7 @@ Base Classes and Infrastructure Supporting Concret Manager Implementations.
 
 """
 from collections import deque
+import logging
 import os
 from os.path import exists, isdir, join, basename
 from os.path import relpath
@@ -67,8 +68,7 @@ ID_ASSIGNER = {
     'galaxy': lambda galaxy_job_id: galaxy_job_id
 }
 
-from logging import getLogger
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 def get_id_assigner(assign_ids):

@@ -1,11 +1,12 @@
-from logging import getLogger
-log = getLogger(__name__)
+import logging
 
 from subprocess import Popen, PIPE
 
 SUDO_PATH = '/usr/bin/sudo'
 SUDO_PRESERVE_ENVIRONMENT_ARG = '-E'
 SUDO_USER_ARG = '-u'
+
+log = logging.getLogger(__name__)
 
 
 def sudo_popen(*args, **kwargs):

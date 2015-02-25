@@ -1,3 +1,4 @@
+from logging import getLogger
 try:
     import xml.etree.cElementTree as et
 except:
@@ -13,9 +14,6 @@ except ImportError:
 
 from ..job import BaseJobExec
 
-__all__ = ('Torque',)
-
-from logging import getLogger
 log = getLogger(__name__)
 
 ERROR_MESSAGE_UNRECOGNIZED_ARG = 'Unrecognized long argument passed to Torque CLI plugin: %s'
@@ -121,3 +119,6 @@ class Torque(BaseJobExec):
             }.get(state)
         except KeyError:
             raise KeyError("Failed to map torque status code [%s] to job state." % state)
+
+
+__all__ = ('Torque',)

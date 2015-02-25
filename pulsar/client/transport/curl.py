@@ -2,9 +2,10 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
-curl_available = True
+
 try:
     from pycurl import Curl, HTTP_CODE
+    curl_available = True
 except ImportError:
     curl_available = False
 

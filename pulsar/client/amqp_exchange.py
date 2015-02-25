@@ -1,15 +1,16 @@
-try:
-    import kombu
-    from kombu import pools
-except ImportError:
-    kombu = None
-
 import copy
 import uuid
 import socket
 import logging
 import threading
 from time import sleep
+
+try:
+    import kombu
+    from kombu import pools
+except ImportError:
+    kombu = None
+
 log = logging.getLogger(__name__)
 
 
@@ -125,7 +126,9 @@ class PulsarExchange(object):
     def __prepare_publish_kwds(self, publish_log_prefix):
         if "retry_policy" in self.__publish_kwds:
             publish_kwds = copy.deepcopy(self.__publish_kwds)
-            errback = lambda exc, interval: self.__publish_errback(exc, interval, publish_log_prefix)
+
+            def errback(exc, interval):
+                return self.__publish_errback(exc, interval, publish_log_prefix)
             publish_kwds["retry_policy"]["errback"] = errback
         else:
             publish_kwds = self.__publish_kwds

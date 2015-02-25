@@ -9,16 +9,6 @@ from shutil import rmtree
 import time
 
 from sys import version_info
-if version_info < (2, 7):
-    from unittest2 import TestCase, skip
-else:
-    from unittest import TestCase, skip
-
-try:
-    from nose.tools import nottest
-except ImportError:
-    nottest = lambda x: x
-
 import webob
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
@@ -30,6 +20,18 @@ from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 from pulsar.tools import ToolBox
 from pulsar.managers.base import JobDirectory
 from pulsar.web.framework import file_response
+
+if version_info < (2, 7):
+    from unittest2 import TestCase, skip
+else:
+    from unittest import TestCase, skip
+
+try:
+    from nose.tools import nottest
+except ImportError:
+    def nottest(x):
+        return x
+
 
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)

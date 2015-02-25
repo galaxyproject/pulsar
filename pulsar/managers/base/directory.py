@@ -1,5 +1,13 @@
+import logging
 import os
 import stat
+
+from pulsar.managers.base import BaseManager
+from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
+from ..util.job_script import job_script
+from ..util.env import env_to_statement
+
+log = logging.getLogger(__name__)
 
 # TODO: Rename these to abstract out the fact they are files - pulsar
 # should be able to replace metadata backing with non-file stuff now that
@@ -10,14 +18,6 @@ JOB_FILE_STANDARD_ERROR = "stderr"
 JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
-
-from pulsar.managers.base import BaseManager
-from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
-from ..util.job_script import job_script
-from ..util.env import env_to_statement
-
-import logging
-log = logging.getLogger(__name__)
 
 
 class DirectoryBaseManager(BaseManager):
