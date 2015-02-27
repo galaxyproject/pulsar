@@ -51,6 +51,8 @@ then
     rm -rf $GALAXY_LIB_DIR/jobs/metrics
     cp -r $PULSAR_DIRECTORY/galaxy/jobs/metrics $GALAXY_LIB_DIR/jobs
 
+    cp $PULSAR_DIRECTORY/galaxy/util/plugin_config.py $GALAXY_LIB_DIR/util
+
 else
     rm -rf $PULSAR_DIRECTORY/pulsar/managers/util
     cp -r $GALAXY_RUNNERS_DIRECTORY/util $PULSAR_DIRECTORY/pulsar/managers
@@ -63,5 +65,7 @@ else
 
     rm -rf $PULSAR_DIRECTORY/galaxy/jobs/metrics
     cp -r $GALAXY_LIB_DIR/jobs/metrics $PULSAR_DIRECTORY/galaxy/jobs
+
+    cp $GALAXY_LIB_DIR/util/plugin_config.py $PULSAR_DIRECTORY/galaxy/util/
 
 fi
