@@ -40,9 +40,11 @@ coverage: tests
 
 docs:
 	rm -f docs/pulsar.rst
+	rm -f docs/galaxy.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ pulsar
-	sphinx-apidoc -o docs/ galaxy
+	sphinx-apidoc -f -o docs/ pulsar
+	sphinx-apidoc -f -o docs/ galaxy
+	cp docs/fixed_modules.rst docs/modules.rst
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 

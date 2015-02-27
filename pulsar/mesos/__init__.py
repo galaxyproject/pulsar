@@ -1,13 +1,4 @@
 """ This module and submodules contain code for interfacing the Apache Mesos framework.
-
-:mod:`pulsar.mesos.framework` Module
--------------------------------
-
-.. automodule:: pulsar.mesos.framework
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 """
 try:
     from mesos import (

@@ -617,10 +617,10 @@ MAPPER_CLASS_DICT = dict(map(lambda c: (c.match_type, c), MAPPER_CLASSES))
 
 
 def mappers_from_dicts(mapper_def_list):
-    return map(lambda m: __mappper_from_dict(m), mapper_def_list)
+    return map(lambda m: _mappper_from_dict(m), mapper_def_list)
 
 
-def __mappper_from_dict(mapper_dict):
+def _mappper_from_dict(mapper_dict):
     map_type = mapper_dict.get('match_type', DEFAULT_PATH_MAPPER_TYPE)
     return MAPPER_CLASS_DICT[map_type](mapper_dict)
 
@@ -661,9 +661,9 @@ actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
 
 
 __all__ = [
-    FileActionMapper,
-    path_type,
-    from_dict,
-    MessageAction,
-    RemoteTransferAction,  # For testing
+    'FileActionMapper',
+    'path_type',
+    'from_dict',
+    'MessageAction',
+    'RemoteTransferAction',  # For testing
 ]

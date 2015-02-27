@@ -1,16 +1,6 @@
 """ This module contains the server-side only code for interfacing with
 message queues. Code shared between client and server can be found in
 submodules of ``pulsar.client``.
-
-
-:mod:`pulsar.messaging.bind_amqp` Module
-------------------------------
-
-.. automodule:: pulsar.messaging.bind_amqp
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 """
 
 from ..messaging import bind_amqp

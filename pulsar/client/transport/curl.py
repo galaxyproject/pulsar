@@ -91,4 +91,8 @@ def _new_curl_object():
     except NameError:
         raise ImportError(PYCURL_UNAVAILABLE_MESSAGE)
 
-___all__ = [PycurlTransport, post_file, get_file]
+__all__ = [
+    'PycurlTransport',
+    'post_file',
+    'get_file'
+]

@@ -56,4 +56,9 @@ def scp_post_file(uri_from, uri_to, user, host, port, key):
         raise Exception("scp exited with code %s" % exit_code)
 
 
-___all__ = [rsync_post_file, rsync_get_file, scp_post_file, scp_get_file]
+___all__ = [
+    'rsync_post_file',
+    'rsync_get_file',
+    'scp_post_file',
+    'scp_get_file'
+]

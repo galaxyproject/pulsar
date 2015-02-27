@@ -126,15 +126,17 @@ class ToolShedToolConfig(SimpleToolConfig):
     toolbox with the `tool` tag, i.e. one from the
     toolshed.
 
-    <tool file="../shed_tools/gvk.bx.psu.edu/repos/test/column_maker/f06aa1bf1e8a/column_maker/column_maker.xml" guid\
-="gvk.bx.psu.edu:9009/repos/test/column_maker/Add_a_column1/1.1.0">
-        <tool_shed>gvk.bx.psu.edu:9009</tool_shed>
-        <repository_name>column_maker</repository_name>
-        <repository_owner>test</repository_owner>
-        <installed_changeset_revision>f06aa1bf1e8a</installed_changeset_revision
-        <id>gvk.bx.psu.edu:9009/repos/test/column_maker/Add_a_column1/1.1.0</id>
-        <version>1.1.0</version>
-    </tool>
+    ::
+
+        <tool file="../shed_tools/gvk.bx.psu.edu/repos/test/column_maker/f06aa1bf1e8a/column_maker/column_maker.xml" guid\
+    ="gvk.bx.psu.edu:9009/repos/test/column_maker/Add_a_column1/1.1.0">
+            <tool_shed>gvk.bx.psu.edu:9009</tool_shed>
+            <repository_name>column_maker</repository_name>
+            <repository_owner>test</repository_owner>
+            <installed_changeset_revision>f06aa1bf1e8a</installed_changeset_revision
+            <id>gvk.bx.psu.edu:9009/repos/test/column_maker/Add_a_column1/1.1.0</id>
+            <version>1.1.0</version>
+        </tool>
     """
 
     def __init__(self, tool_el, tool_path):

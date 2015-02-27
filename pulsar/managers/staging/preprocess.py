@@ -1,3 +1,5 @@
+"""
+"""
 from pulsar.client.action_mapper import from_dict
 import logging
 
@@ -13,4 +15,4 @@ def preprocess(job_directory, setup_actions, action_executor):
         log.debug("Staging %s '%s' via %s to %s", input_type, name, action.__class__.__name__, path)
         action_executor.execute(lambda: action.write_to_path(path))
 
-__all__ = [preprocess]
+__all__ = ['preprocess']

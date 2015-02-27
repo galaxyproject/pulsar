@@ -66,4 +66,4 @@ def __pulsar_outputs(job_directory):
         output_directory_contents,
     )
 
-__all__ = [postprocess]
+__all__ = ['postprocess']

@@ -16,7 +16,7 @@ disadvantages (lack of reproducibility if the Pulsar server goes away,
 potential lack of transparency).
 
 Securing a Public Pulsar
----------------------
+-----------------------------
 
 The following options should be set in ``server.ini`` to configure a
 public `Pulsar` server.

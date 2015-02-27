@@ -421,4 +421,4 @@ def _read(path):
         input.close()
 
 
-__all__ = [submit_job]
+__all__ = ['submit_job']

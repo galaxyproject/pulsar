@@ -1,31 +1,5 @@
 """
-
 Base Classes and Infrastructure Supporting Concret Manager Implementations.
-
-
-:mod:`pulsar.managers.base.base_drmaa` Module
--------------------------------
-
-.. automodule:: pulsar.managers.base.base_drmaa
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`pulsar.managers.base.directory` Module
--------------------------------
-
-.. automodule:: pulsar.managers.base.directory
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`pulsar.managers.base.external` Module
--------------------------------
-
-.. automodule:: pulsar.managers.base.external
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 """
 from collections import deque

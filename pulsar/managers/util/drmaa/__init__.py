@@ -53,4 +53,4 @@ class DrmaaSession(object):
         return self.session.exit()
 
 
-__all__ = [DrmaaSessionFactory]
+__all__ = ['DrmaaSessionFactory']

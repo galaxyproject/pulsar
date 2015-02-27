@@ -62,4 +62,4 @@ class Cache(PersistenceStore):
         return sha256(for_hash.encode('UTF-8')).hexdigest()
 
 
-__all__ = [Cache]
+__all__ = ['Cache']

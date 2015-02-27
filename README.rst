@@ -16,7 +16,7 @@ Full documentation for the project can be found on `Read The Docs
 Configuring Galaxy
 ------------------
 
-Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small examples of how to configure this can be found `here <https://pulsar.readthedocs.org/en/latest/#galaxy-configuration>`_, but be sure to checkout ``job_conf.xml.sample_advanced``
+Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small examples of how to configure this can be found `here <https://pulsar.readthedocs.org/en/latest/#galaxy-configuration>`__, but be sure to checkout ``job_conf.xml.sample_advanced``
 in your Galaxy code base or on
 `Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
 for complete information.
@@ -76,7 +76,7 @@ easy_install
 ------------
 
 Install python setuptools for your platform, more details on how to do
-this can be found `here <http://pypi.python.org/pypi/setuptools>`_.
+this can be found `here <http://pypi.python.org/pypi/setuptools>`__.
 
 The ``easy_install`` command line application will be installed as
 part of setuptools. Use the following command to install the needed
@@ -123,8 +123,7 @@ Alternative Cross Platform Instructions (Windows and \*nix)
 
 The ``paster`` command line application will be installed as part of the
 previous dependency installation process. This application can be used to
-start and stop a paste web server running the Pulsar. This can be done by
-executing the following command::
+start and stop a paste web server running the Pulsar.
 
 The server may be ran as a daemon via the command::
 
@@ -225,7 +224,7 @@ documentation
 even more information.
 
 Customizing the Pulsar Environment
--------------------------------
+-----------------------------------
 
 In more sophisticated deployments, the Pulsar's environment will need to be
 tweaked - for instance to define a ``DRMAA_LIBRARY_PATH`` environment variable

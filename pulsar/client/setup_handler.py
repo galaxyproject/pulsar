@@ -101,4 +101,4 @@ def build_job_config(job_id, job_directory, system_properties={}, tool_id=None, 
     return job_config
 
 
-__all__ = [build_job_config, build]
+__all__ = ['build_job_config', 'build']

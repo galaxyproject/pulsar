@@ -38,5 +38,12 @@ def _get_transport_type(transport_type, os_module):
             transport_type = 'curl'
     return transport_type
 
-__all__ = [get_transport, get_file, post_file, rsync_get_file, rsync_post_file,
-           scp_get_file, scp_post_file]
+__all__ = [
+    'get_transport',
+    'get_file',
+    'post_file',
+    'rsync_get_file',
+    'rsync_post_file',
+    'scp_get_file',
+    'scp_post_file'
+]
