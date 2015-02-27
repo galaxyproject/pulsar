@@ -142,6 +142,9 @@ def asbool(obj):
     return bool(obj)
 
 
+string_as_bool = asbool
+
+
 def force_symlink(source, link_name):
     try:
         os.symlink(source, link_name)

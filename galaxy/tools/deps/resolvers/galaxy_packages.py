@@ -1,12 +1,13 @@
-from os.path import join, islink, realpath, basename, exists, abspath
+from os.path import join, islink, realpath, basename, exists
 
 from ..resolvers import DependencyResolver, INDETERMINATE_DEPENDENCY, Dependency
+from .resolver_mixins import UsesToolDependencyDirMixin
 
 import logging
 log = logging.getLogger( __name__ )
 
 
-class GalaxyPackageDependencyResolver(DependencyResolver):
+class GalaxyPackageDependencyResolver(DependencyResolver, UsesToolDependencyDirMixin):
     resolver_type = "galaxy_packages"
 
     def __init__(self, dependency_manager, **kwds):
@@ -16,7 +17,7 @@ class GalaxyPackageDependencyResolver(DependencyResolver):
         ## resolver that will just grab 'default' version of exact version
         ## unavailable.
         self.versionless = str(kwds.get('versionless', "false")).lower() == "true"
-        self.base_path = abspath( kwds.get('base_path', dependency_manager.default_base_path) )
+        self._init_base_path( dependency_manager, **kwds )
 
     def resolve( self, name, version, type, **kwds ):
         """
@@ -70,4 +71,4 @@ class GalaxyPackageDependency(Dependency):
             commands = 'PACKAGE_BASE=%s; export PACKAGE_BASE; . %s' % ( base_path, self.script )
         return commands
 
-__all__ = [GalaxyPackageDependencyResolver, GalaxyPackageDependency]
+__all__ = ['GalaxyPackageDependencyResolver', 'GalaxyPackageDependency']
