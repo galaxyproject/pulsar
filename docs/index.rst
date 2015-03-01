@@ -17,6 +17,7 @@ Contents:
    galaxy_conf
    upgrading
    contributing
+   history
 
 Indices and tables
 ==================
