@@ -2,7 +2,7 @@ from collections import deque
 import os
 
 from .test_utils import TempDirectoryTestCase
-from .test_common import write_config
+from pulsar.client.test.test_common import write_config
 from pulsar.client import submit_job, ClientJobDescription
 from pulsar.client import ClientOutputs
 from galaxy.tools.deps.dependencies import DependenciesDescription

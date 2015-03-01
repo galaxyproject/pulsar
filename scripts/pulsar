@@ -1,0 +1,146 @@
+#!/bin/bash
+
+show_help() {
+cat <<EOF
+Usage:
+
+${0##*/} --daemon
+    Start Pulsar server as daemon process (paster or circus):
+${0##*/} --stop-daemon
+    Stop Pulsar daemon process (paster/chaussette) with circus use
+    'circusctl quit'
+
+Extra Options:
+
+  -m|--mode   How to launch (paster,uwsgi,chaussette,circusd,webless).
+              In webless mode Pulsar will not attempt to bind to a port,
+              this may be useful in conjuction with message queue driven
+              Pulsar operation.
+  -c|--config Configuration directory for Pulsar, defaults to current directory.
+              Can also set with PULSAR_CONFIG_DIR environment variable.
+
+EOF
+}
+
+MODE=""
+while :
+do
+    case "$1" in
+      -h|--help|-\?) 
+          show_help
+          exit 0
+          ;;
+      -m|--mode)
+          if [ $# -gt 1 ]; then
+              MODE=$2
+              shift 2
+          else 
+              echo "--mode requires explicit argument" 1>&2
+              exit 1
+          fi          
+          ;;
+      -c|--config)
+          if [ $# -gt 1 ]; then
+              PULSAR_CONFIG_DIR=$2
+              shift 2
+          else 
+              echo "--config requires explicit argument" 1>&2
+              exit 1
+          fi
+          ;;
+      --) 
+          shift
+          break
+          ;;
+      *)
+          break;
+          ;;
+    esac
+done
+
+SCRIPTS_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_DIRECTORY=$SCRIPTS_DIRECTORY/..
+
+PULSAR_CONFIG_DIR=${PULSAR_CONFIG_DIR:-"."}
+export PULSAR_CONFIG_DIR
+
+PULSAR_LOCAL_ENV=${PULSAR_LOCAL_ENV:-$PULSAR_CONFIG_DIR/local_env.sh}
+export PULSAR_LOCAL_ENV
+
+PULSAR_VIRTUALENV=${PULSAR_VIRTUALENV:-$PULSAR_CONFIG_DIR/.venv}
+export PULSAR_VIRTUALENV
+
+if [ -e $PULSAR_LOCAL_ENV ];
+then
+    . $PULSAR_LOCAL_ENV
+fi
+
+if [ -d $PULSAR_VIRTUALENV ]; 
+then
+    . $PULSAR_VIRTUALENV/bin/activate
+fi
+
+# If TEST_GALAXY_LIBS is set, this script will attempt to verify
+# Galaxy is properly placed on the Pulsar's PYTHONPATH before starting
+# the server.
+if [ -n "$TEST_GALAXY_LIBS" ];
+then
+    python -c 'import sys; sys.path.pop(0); from galaxy import eggs'
+    result=$?
+    if [ "$result" == "0" ];
+    then
+        echo "Galaxy loaded properly."
+    else
+        echo "Failed to setup Galaxy environment properly, is GALAXY_HOME ($GALAXY_HOME) a valid Galaxy instance."
+        exit $result
+    fi
+fi
+
+PULSAR_CONFIG_SAMPLE_FILE="${PROJECT_DIRECTORY}/server.ini.sample"
+if [ -z "$PULSAR_CONFIG_FILE" ]; then
+    if [ -f "${PULSAR_CONFIG_DIR}/server.ini" ]; then
+        PULSAR_CONFIG_FILE="${PULSAR_CONFIG_DIR}/server.ini"
+    else
+        PULSAR_CONFIG_FILE="$PULSAR_CONFIG_SAMPLE_FILE"
+    fi
+    export PULSAR_CONFIG_FILE
+fi
+
+if [ -z "$MODE" ]; 
+then
+    if hash uwsgi 2>/dev/null; then
+        MODE="uwsgi"
+    elif hash circusd 2>/dev/null; then
+        MODE="circusd"
+    elif hash chaussette 2>/dev/null; then
+        MODE="chaussette"
+    else
+        MODE="paster"
+    fi
+fi
+
+if [ "$MODE" == "uwsgi" ]; then
+    uwsgi --ini-paste "$PULSAR_CONFIG_FILE" "$@"
+elif [ "$MODE" == "circusd" ]; then
+    circusd server.ini "$@"
+elif [ "$MODE" == "chaussette" ]; then
+    echo "Attempting to use chaussette instead of paster, you must specify port on command-line (--port 8913)."
+    chaussette "paste:$PULSAR_CONFIG_FILE" "$@"
+elif [ "$MODE" == "paster" ]; then
+    paster serve "$PULSAR_CONFIG_FILE" "$@"
+elif [ "$MODE" == "webless" ]; then
+    if hash pulsar-main 2>/dev/null; then
+        # Running from pip install since
+        # pulsar-main is available on PATH.
+        pulsar-main
+    else
+        # Running locally.
+        PROJECT_DIRECTORY=$PULSAR_SCRIPTS_DIR/..
+        cd $PROJECT_DIRECTORY
+        export PYTHONPATH=.:$PYTHONPATH
+        python pulsar/main.py
+    fi
+else
+    echo "Unknown mode passed to --mode argument." 1>&2
+    exit 1
+fi

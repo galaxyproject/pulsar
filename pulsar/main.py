@@ -45,6 +45,11 @@ log = logging.getLogger(__name__)
 REQUIRES_DAEMONIZE_MESSAGE = "Attempted to use Pulsar in daemon mode, but daemonize is unavailable."
 
 PULSAR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if "PULSAR_CONFIG_DIR" in os.environ:
+    PULSAR_CONFIG_DIR = os.path.abspath(os.environ["PULSAR_CONFIG_DIR"])
+else:
+    PULSAR_CONFIG_DIR = PULSAR_ROOT_DIR
+
 DEFAULT_INI_APP = "main"
 DEFAULT_INI = "server.ini"
 DEFAULT_APP_YAML = "app.yml"
@@ -121,9 +126,9 @@ def _app(args, log):
     return pulsar_app
 
 
-def absolute_config_path(path, pulsar_root):
+def absolute_config_path(path, config_dir):
     if path and not os.path.isabs(path):
-        path = os.path.join(pulsar_root, path)
+        path = os.path.join(config_dir, path)
     return path
 
 
@@ -135,14 +140,14 @@ def _find_default_app_config(*config_dirs):
     return None
 
 
-def load_app_configuration(ini_path, app_conf_path=None, app_name=None, local_conf=None, pulsar_root=PULSAR_ROOT_DIR):
+def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, local_conf=None, config_dir=PULSAR_CONFIG_DIR):
     """
     """
     if ini_path and local_conf is None:
         local_conf = ConfigLoader(ini_path).app_context(app_name).config()
     local_conf = local_conf or {}
     if app_conf_path is None and "app_config" in local_conf:
-        app_conf_path = absolute_config_path(local_conf["app_config"], pulsar_root)
+        app_conf_path = absolute_config_path(local_conf["app_config"], config_dir)
     elif ini_path:
         # If not explicit app.yml file found - look next to server.ini -
         # be it in pulsar root, some temporary staging directory, or /etc.
@@ -154,19 +159,20 @@ def load_app_configuration(ini_path, app_conf_path=None, app_name=None, local_co
             raise Exception("Cannot load confiuration from file %s, pyyaml is not available." % app_conf_path)
 
         with open(app_conf_path, "r") as f:
-            local_conf.update(yaml.load(f))
+            app_conf = yaml.load(f) or {}
+            local_conf.update(app_conf)
 
     return local_conf
 
 
-def find_ini(supplied_ini, pulsar_root):
+def find_ini(supplied_ini, config_dir):
     if supplied_ini:
         return supplied_ini
 
     # If not explicitly supplied an ini, check server.ini and then
     # just resort to sample if that has not been configured.
     for guess in ["server.ini", "server.ini.sample"]:
-        ini_path = os.path.join(pulsar_root, guess)
+        ini_path = os.path.join(config_dir, guess)
         if os.path.exists(ini_path):
             return ini_path
 
@@ -178,21 +184,22 @@ class PulsarConfigBuilder(object):
     """
 
     def __init__(self, args=None, **kwds):
+        config_dir = kwds.get("config_dir", None) or PULSAR_CONFIG_DIR
         ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
         app_conf_path = kwds.get("app_conf_path", None) or (args and args.app_conf_path)
-        print app_conf_path
         # If given app_conf_path - use that - else we need to ensure we have an
         # ini path.
         if not app_conf_path:
-            pulsar_root = kwds.get("pulsar_root", PULSAR_ROOT_DIR)
-            ini_path = find_ini(ini_path, pulsar_root)
-            ini_path = absolute_config_path(ini_path, pulsar_root=pulsar_root)
+            ini_path = find_ini(ini_path, config_dir)
+            ini_path = absolute_config_path(ini_path, config_dir=config_dir)
+        self.config_dir = config_dir
         self.ini_path = ini_path
         self.app_conf_path = app_conf_path
         self.app_name = kwds.get("app") or (args and args.app) or DEFAULT_INI_APP
 
     @classmethod
     def populate_options(cls, arg_parser):
+        arg_parser.add_argument("-c", "--config_dir", default=None)
         arg_parser.add_argument("--ini_path", default=None)
         arg_parser.add_argument("--app_conf_path", default=None)
         arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
@@ -203,6 +210,7 @@ class PulsarConfigBuilder(object):
 
     def load(self):
         config = load_app_configuration(
+            config_dir=self.config_dir,
             ini_path=self.ini_path,
             app_conf_path=self.app_conf_path,
             app_name=self.app_name
@@ -225,6 +233,7 @@ class PulsarConfigBuilder(object):
 
     def to_dict(self):
         return dict(
+            config_dir=self.config_dir,
             ini_path=self.ini_path,
             app_conf_path=self.app_conf_path,
             app=self.app_name
@@ -248,10 +257,12 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
         arg_parser.add_argument("--manager", default=DEFAULT_MANAGER)
 
 
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
     arg_parser = ArgumentParser(description=DESCRIPTION)
     PulsarConfigBuilder.populate_options(arg_parser)
-    args = arg_parser.parse_args()
+    args = arg_parser.parse_args(argv)
 
     pid_file = args.pid_file
 

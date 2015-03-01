@@ -14,7 +14,7 @@ from .test_utils import test_pulsar_server
 from .test_utils import files_server
 
 from galaxy.util.bunch import Bunch
-from .check import run
+from pulsar.client.test.check import run
 
 
 class BaseIntegrationTest(TempDirectoryTestCase):

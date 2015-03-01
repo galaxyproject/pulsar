@@ -13,7 +13,12 @@ def app_factory(global_conf, **local_conf):
     Returns the Pulsar WSGI application.
     """
     configuration_file = global_conf.get("__file__", None)
-    app_conf = load_app_configuration(ini_path=configuration_file, local_conf=local_conf)
+    webapp = init_webapp(ini_path=configuration_file, local_conf=local_conf)
+    return webapp
+
+
+def init_webapp(**config_kwds):
+    app_conf = load_app_configuration(**config_kwds)
     pulsar_app = PulsarApp(**app_conf)
     webapp = PulsarWebApp(pulsar_app=pulsar_app)
     atexit.register(webapp.shutdown)

@@ -40,6 +40,7 @@ setup(
         'pulsar',
         'pulsar.cache',
         'pulsar.client',
+        'pulsar.client.test',
         'pulsar.client.staging',
         'pulsar.client.transport',
         'pulsar.managers',
@@ -71,8 +72,17 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        pulsar=pulsar.main
+        pulsar-main=pulsar.main:main
+        pulsar-check=pulsar.client.test.check:main
+        pulsar-config=pulsar.scripts.config:main
     ''',
+    scripts=[
+        'scripts/pulsar',
+    ],
+    package_data={'pulsar': [
+        'managers/util/job_script/DEFAULT_JOB_FILE_TEMPLATE.sh',
+        'managers/util/job_script/CLUSTER_SLOTS_STATEMENT.sh',
+    ]},
     package_dir={'pulsar': 'pulsar',
                  'galaxy': 'galaxy'},
     include_package_data=True,
