@@ -10,7 +10,7 @@ help:
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 
-clean: clean-build clean-pyc clean-test
+clean: clean-build clean-pyc clean-tests
 
 clean-build:
 	rm -fr build/
@@ -56,3 +56,8 @@ open-rtd: docs
 
 open-project:
 	open https://github.com/galaxyproject/pulsar || xdg-open https://github.com/galaxyproject/pulsar
+
+# TODO: Wheel
+dist: clean
+	python setup.py sdist bdist_egg
+	ls -l dist
