@@ -12,6 +12,14 @@ pulsar.scripts.chown_working_directory module
     :undoc-members:
     :show-inheritance:
 
+pulsar.scripts.config module
+----------------------------
+
+.. automodule:: pulsar.scripts.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pulsar.scripts.drmaa_kill module
 --------------------------------
 

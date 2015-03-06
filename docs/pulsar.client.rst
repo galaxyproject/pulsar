@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     pulsar.client.staging
+    pulsar.client.test
     pulsar.client.transport
 
 Submodules
