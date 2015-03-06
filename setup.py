@@ -29,7 +29,7 @@ with open('pulsar/__init__.py', 'rb') as f:
         f.read().decode('utf-8')).group(1)))
 
 setup(
-    name='pulsar',
+    name='pulsar-app',
     version=version,
     description='Distributed job execution application built for Galaxy (http://galaxyproject.org/).',
     long_description=readme + '\n\n' + history,
