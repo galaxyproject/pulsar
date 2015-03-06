@@ -29,24 +29,24 @@ clean-tests:
 	rm -fr htmlcov/
 
 lint:
-	flake8 --exclude test_tool_deps.py --max-complexity 9 pulsar test
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; flake8 --exclude test_tool_deps.py --max-complexity 9 pulsar test
 
 tests:
-	nosetests
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; nosetests
 
 coverage: tests
-	coverage html
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; coverage html
 	open coverage_html_report/index.html || xdg-open coverage_html_report/index.html
 
 docs:
 	rm -f docs/pulsar.rst
 	rm -f docs/galaxy.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -f -o docs/ pulsar
-	sphinx-apidoc -f -o docs/ galaxy
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; sphinx-apidoc -f -o docs/ pulsar
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; sphinx-apidoc -f -o docs/ galaxy
 	cp docs/fixed_modules.rst docs/modules.rst
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs html
 
 open-docs: docs
 	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html
