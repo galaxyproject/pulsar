@@ -5,17 +5,23 @@ help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "clean-test - remove test and coverage artifacts"
+	@echo "setup-venv - setup a development virutalenv in current directory."
 	@echo "lint - check style with flake8"
-	@echo "test - run tests quickly with the default Python"
+	@echo "lint-readme - check README formatting for PyPI"
+	@echo "tests - run tests quickly with the default Python"
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
+	@echo "dist - package project for PyPI distribution"
+	@echo "open-docs - open docs built locally with make docs"
+	@echo "open-rtd - open docs at pulsar.readthedocs.org"
+	@echo "open-project - open project on github"
 
 clean: clean-build clean-pyc clean-tests
 
 clean-build:
 	rm -fr build/
 	rm -fr dist/
-	rm -fr *.egg-info
+	rm -fr pulsar*.egg-info
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -28,8 +34,15 @@ clean-tests:
 	rm -f .coverage
 	rm -fr htmlcov/
 
+setup-venv:
+	if [ -f .venv ]; then virtualenv .venv; fi;
+	. .venv/bin/activate && pip install -r requirements.txt && pip install -r dev-requirements.txt
+
 lint:
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; flake8 --exclude test_tool_deps.py --max-complexity 9 pulsar test
+
+lint-readme:
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; python setup.py check -r -s
 
 tests:
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; nosetests
@@ -57,7 +70,18 @@ open-rtd: docs
 open-project:
 	open https://github.com/galaxyproject/pulsar || xdg-open https://github.com/galaxyproject/pulsar
 
-# TODO: Wheel
 dist: clean
-	python setup.py sdist bdist_egg
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; python setup.py sdist bdist_egg bdist_wheel
 	ls -l dist
+
+release-test: dist
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; twine upload -r test dist/*
+	open https://testpypi.python.org/pypi/pulsar-app || https://testpypi.python.org/pypi/pulsar-app
+
+release:
+	@while [ -z "$$CONTINUE" ]; do \
+	  read -r -p "Have you executed release-test and reviewed results? [y/N]: " CONTINUE; \
+	done ; \
+	[ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ] || (echo "Exiting."; exit 1;)
+	@echo "Releasing"
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; twine upload dist/*

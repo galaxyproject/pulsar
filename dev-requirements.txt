@@ -17,3 +17,10 @@ unittest2
 # Used for code checking.
 pyflakes
 flake8
+
+# Used to check readme.
+readme
+
+# For release
+wheel
+twine
