@@ -1,0 +1,3 @@
+Paster fails to find pulsar/ and galaxy/ when run from $PULSAR_ROOT
+without this directory containing top_level.txt indicating which
+directories contain Python files.

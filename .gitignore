@@ -2,6 +2,8 @@ syntax: glob
 
 build
 dist
+*.egg
+*.egg-info
 docs/_build
 cache
 *.pyc
