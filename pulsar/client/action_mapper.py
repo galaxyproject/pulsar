@@ -211,21 +211,28 @@ class FileActionMapper(object):
         """ Extension point to populate extra action information after an
         action has been created.
         """
-        if action.action_type == "remote_transfer":
-            url_base = self.files_endpoint
-            if not url_base:
-                raise Exception(MISSING_FILES_ENDPOINT_ERROR)
-            if "?" not in url_base:
-                url_base = "%s?" % url_base
-            # TODO: URL encode path.
-            url = "%s&path=%s&file_type=%s" % (url_base, action.path, file_type)
-            action.url = url
-        elif action.action_type in ["remote_rsync_transfer", "remote_scp_transfer"]:
-            # Required, so no check for presence
-            ssh_key = self.ssh_key
-            if ssh_key is None:
-                raise Exception(MISSING_SSH_KEY_ERROR)
-            action.ssh_key = ssh_key
+        if getattr(action, "inject_url", False):
+            self.__inject_url(action, file_type)
+        if getattr(action, "inject_ssh_key", False):
+            self.__inject_ssh_key(action)
+
+    def __inject_url(self, action, file_type):
+        url_base = self.files_endpoint
+        if not url_base:
+            raise Exception(MISSING_FILES_ENDPOINT_ERROR)
+        if "?" not in url_base:
+            url_base = "%s?" % url_base
+        # TODO: URL encode path.
+        url = "%s&path=%s&file_type=%s" % (url_base, action.path, file_type)
+        action.url = url
+
+    def __inject_ssh_key(self, action):
+        # Required, so no check for presence
+        ssh_key = self.ssh_key
+        if ssh_key is None:
+            raise Exception(MISSING_SSH_KEY_ERROR)
+        action.ssh_key = ssh_key
+
 
 REQUIRED_ACTION_KWD = object()
 
@@ -371,6 +378,7 @@ class RemoteTransferAction(BaseAction):
     it indicates the action should occur on the Pulsar server instead of on
     the client.
     """
+    inject_url = True
     action_type = "remote_transfer"
     staging = STAGING_ACTION_REMOTE
 
@@ -395,6 +403,7 @@ class RemoteTransferAction(BaseAction):
 class PubkeyAuthenticatedTransferAction(BaseAction):
     """Base class for file transfers requiring an SSH public/private key
     """
+    inject_ssh_key = True
     action_spec = dict(
         ssh_user=REQUIRED_ACTION_KWD,
         ssh_host=REQUIRED_ACTION_KWD,
