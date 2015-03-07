@@ -61,6 +61,7 @@ ACTION_DEFAULT_PATH_TYPES = [
 ALL_PATH_TYPES = ACTION_DEFAULT_PATH_TYPES + [path_type.UNSTRUCTURED]
 
 MISSING_FILES_ENDPOINT_ERROR = "Attempted to use remote_transfer action without defining a files_endpoint."
+MISSING_SSH_KEY_ERROR = "Attempt to use file transfer action requiring an SSH key without specifying a ssh_key."
 
 
 class FileActionMapper(object):
@@ -221,7 +222,10 @@ class FileActionMapper(object):
             action.url = url
         elif action.action_type in ["remote_rsync_transfer", "remote_scp_transfer"]:
             # Required, so no check for presence
-            action.ssh_key = self.ssh_key
+            ssh_key = self.ssh_key
+            if ssh_key is None:
+                raise Exception(MISSING_SSH_KEY_ERROR)
+            action.ssh_key = ssh_key
 
 REQUIRED_ACTION_KWD = object()
 

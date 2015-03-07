@@ -16,6 +16,18 @@ def test_endpoint_validation():
     assert exception_found
 
 
+def test_ssh_key_validation():
+    client = _client("remote_rsync_transfer")
+    mapper = FileActionMapper(client)
+    exception_found = False
+    try:
+        action = mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
+    except Exception as e:
+        exception_found = True
+        assert "ssh_key" in e.message
+    assert exception_found
+
+
 def _client(default_action):
     mock_client = Bunch(
         default_file_action=default_action,
