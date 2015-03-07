@@ -60,6 +60,8 @@ ACTION_DEFAULT_PATH_TYPES = [
 ]
 ALL_PATH_TYPES = ACTION_DEFAULT_PATH_TYPES + [path_type.UNSTRUCTURED]
 
+MISSING_FILES_ENDPOINT_ERROR = "Attempted to use remote_transfer action without defining a files_endpoint."
+
 
 class FileActionMapper(object):
     """
@@ -211,7 +213,7 @@ class FileActionMapper(object):
         if action.action_type == "remote_transfer":
             url_base = self.files_endpoint
             if not url_base:
-                raise Exception("Attempted to use remote_transfer action with defining a files_endpoint")
+                raise Exception(MISSING_FILES_ENDPOINT_ERROR)
             if "?" not in url_base:
                 url_base = "%s?" % url_base
             # TODO: URL encode path.
