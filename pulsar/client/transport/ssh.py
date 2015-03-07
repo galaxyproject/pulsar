@@ -12,28 +12,11 @@ def rsync_get_file(uri_from, uri_to, user, host, port, key):
         '%s@%s:%s' % (user, host, uri_from),
         uri_to,
     ]
-    exit_code = subprocess.check_call(cmd)
-    if exit_code != 0:
-        raise Exception("Rsync exited with code %s" % exit_code)
+    _call(cmd)
 
 
 def rsync_post_file(uri_from, uri_to, user, host, port, key):
-    directory = os.path.dirname(uri_to)
-    cmd = [
-        'ssh',
-        '-i',
-        key,
-        '-p',
-        str(port),
-    ] + SSH_OPTIONS + [
-        '%s@%s' % (user, host),
-        'mkdir',
-        '-p',
-        directory,
-    ]
-    exit_code = subprocess.check_call(cmd)
-    if exit_code != 0:
-        raise Exception("ssh exited with code %s" % exit_code)
+    _ensure_dir(uri_to, key, port, user, host)
     cmd = [
         'rsync',
         '-e',
@@ -41,9 +24,7 @@ def rsync_post_file(uri_from, uri_to, user, host, port, key):
         uri_from,
         '%s@%s:%s' % (user, host, uri_to),
     ]
-    exit_code = subprocess.check_call(cmd)
-    if exit_code != 0:
-        raise Exception("Rsync exited with code %s" % exit_code)
+    _call(cmd)
 
 
 def scp_get_file(uri_from, uri_to, user, host, port, key):
@@ -55,28 +36,11 @@ def scp_get_file(uri_from, uri_to, user, host, port, key):
         '%s@%s:%s' % (user, host, uri_from),
         uri_to,
     ]
-    exit_code = subprocess.check_call(cmd)
-    if exit_code != 0:
-        raise Exception("scp exited with code %s" % exit_code)
+    _call(cmd)
 
 
 def scp_post_file(uri_from, uri_to, user, host, port, key):
-    directory = os.path.dirname(uri_to)
-    cmd = [
-        'ssh',
-        '-i',
-        key,
-        '-p',
-        str(port),
-    ] + SSH_OPTIONS + [
-        '%s@%s' % (user, host),
-        'mkdir',
-        '-p',
-        directory,
-    ]
-    exit_code = subprocess.check_call(cmd)
-    if exit_code != 0:
-        raise Exception("ssh exited with code %s" % exit_code)
+    _ensure_dir(uri_to, key, port, user, host)
     cmd = [
         'scp',
         '-P', str(port),
@@ -85,9 +49,26 @@ def scp_post_file(uri_from, uri_to, user, host, port, key):
         uri_from,
         '%s@%s:%s' % (user, host, uri_to),
     ]
+    _call(cmd)
+
+
+def _ensure_dir(uri_to, key, port, user, host):
+    directory = os.path.dirname(uri_to)
+    cmd = [
+        'ssh',
+        '-i', key,
+        '-p', str(port),
+    ] + SSH_OPTIONS + [
+        '%s@%s' % (user, host),
+        'mkdir', '-p', directory,
+    ]
+    _call(cmd)
+
+
+def _call(cmd):
     exit_code = subprocess.check_call(cmd)
     if exit_code != 0:
-        raise Exception("scp exited with code %s" % exit_code)
+        raise Exception("%s exited with code %s" % (cmd[0], exit_code))
 
 
 ___all__ = [
