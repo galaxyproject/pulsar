@@ -1,6 +1,6 @@
 from .test_utils import (
     BaseManagerTestCase,
-    skipUnlessModule
+    skip_unless_module
 )
 
 from pulsar.managers.queued_drmaa import DrmaaQueueManager
@@ -19,10 +19,10 @@ class DrmaaManagerTest(BaseManagerTestCase):
     def _set_manager(self, **kwds):
         self.manager = DrmaaQueueManager('_default_', self.app, **kwds)
 
-    @skipUnlessModule("drmaa")
+    @skip_unless_module("drmaa")
     def test_simple_execution(self):
         self._test_simple_execution(self.manager)
 
-    @skipUnlessModule("drmaa")
+    @skip_unless_module("drmaa")
     def test_cancel(self):
         self._test_cancelling(self.manager)

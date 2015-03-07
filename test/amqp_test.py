@@ -1,12 +1,12 @@
 import threading
 
-from .test_utils import skipUnlessModule
+from .test_utils import skip_unless_module
 from pulsar.client import amqp_exchange
 
 TEST_CONNECTION = "memory://test_amqp"
 
 
-@skipUnlessModule("kombu")
+@skip_unless_module("kombu")
 def test_amqp():
     manager1_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager_test")
     manager3_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager3_test")

@@ -250,13 +250,13 @@ def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}):
                 pass
 
 
-def skipUnlessExecutable(executable):
-    if __which(executable):
+def skip_unless_executable(executable):
+    if _which(executable):
         return lambda func: func
     return skip("PATH doesn't contain executable %s" % executable)
 
 
-def skipUnlessModule(module):
+def skip_unless_module(module):
     available = True
     try:
         __import__(module)
@@ -267,7 +267,7 @@ def skipUnlessModule(module):
     return skip("Module %s could not be loaded, dependent test skipped." % module)
 
 
-def skipUnlessAnyModule(modules):
+def skip_unless_any_module(modules):
     available = False
     for module in modules:
         try:
@@ -280,7 +280,7 @@ def skipUnlessAnyModule(modules):
     return skip("None of the modules %s could be loaded, dependent test skipped." % modules)
 
 
-def __which(program):
+def _which(program):
 
     def is_exe(fpath):
         return isfile(fpath) and access(fpath, X_OK)
