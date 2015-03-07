@@ -9,7 +9,10 @@ from .decorators import retry
 from .util import copy
 from .util import ensure_directory
 from .util import to_base64_json
-from .action_mapper import path_type
+from .action_mapper import (
+    path_type,
+    actions,
+)
 
 import logging
 log = logging.getLogger(__name__)
@@ -49,7 +52,10 @@ class BaseJobClient(object):
         self.files_endpoint = destination_params.get("files_endpoint", None)
         self.job_directory = job_directory
 
-        self.default_file_action = self.destination_params.get("default_file_action", "transfer")
+        default_file_action = self.destination_params.get("default_file_action", "transfer")
+        if default_file_action not in actions:
+            raise Exception("Unknown Pulsar default file action type %s" % default_file_action)
+        self.default_file_action = default_file_action
         self.action_config_path = self.destination_params.get("file_action_config", None)
 
         self.setup_handler = build_setup_handler(self, destination_params)
