@@ -394,7 +394,6 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
         ssh_host=REQUIRED_ACTION_KWD,
         ssh_port=REQUIRED_ACTION_KWD,
     )
-    action_type = "remote_pubkey_transfer"
     staging = STAGING_ACTION_REMOTE
     ssh_key = None
 
