@@ -29,9 +29,10 @@ class OutputNotFoundException(Exception):
 class BaseJobClient(object):
 
     def __init__(self, destination_params, job_id):
+        destination_params = destination_params or {}
         self.destination_params = destination_params
         self.job_id = job_id
-        if "jobs_directory" in (destination_params or {}):
+        if "jobs_directory" in destination_params:
             staging_directory = destination_params["jobs_directory"]
             sep = destination_params.get("remote_sep", os.sep)
             job_directory = RemoteJobDirectory(
@@ -42,11 +43,7 @@ class BaseJobClient(object):
         else:
             job_directory = None
 
-        if "ssh_key" in (destination_params or {}):
-            self.ssh_key = destination_params["ssh_key"]
-        else:
-            self.ssh_key = None
-
+        self.ssh_key = destination_params.get("ssh_key", None)
         self.env = destination_params.get("env", [])
         self.files_endpoint = destination_params.get("files_endpoint", None)
         self.job_directory = job_directory
