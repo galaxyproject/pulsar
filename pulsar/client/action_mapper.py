@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from json import load
 from os import makedirs
 from os import unlink
@@ -436,7 +437,13 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
                     ssh_user=self.ssh_user, ssh_host=self.ssh_host,
                     ssh_port=self.ssh_port)
 
-    def serialize_ssh_key(self):
+    @contextmanager
+    def _serialized_key(self):
+        key_file = self.__serialize_ssh_key()
+        yield key_file
+        self.__cleanup_ssh_key(key_file)
+
+    def __serialize_ssh_key(self):
         f = tempfile.NamedTemporaryFile(delete=False)
         if self.ssh_key is not None:
             f.write(self.ssh_key)
@@ -444,7 +451,7 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
             raise Exception("SSH_KEY not available")
         return f.name
 
-    def cleanup_ssh_key(self, keyfile):
+    def __cleanup_ssh_key(self, keyfile):
         if exists(keyfile):
             unlink(keyfile)
 
@@ -461,16 +468,14 @@ class RsyncTransferAction(PubkeyAuthenticatedTransferAction):
                                    ssh_key=action_dict["ssh_key"])
 
     def write_to_path(self, path):
-        key_file = self.serialize_ssh_key()
-        rsync_get_file(self.path, path, self.ssh_user, self.ssh_host,
-                       self.ssh_port, key_file)
-        self.cleanup_ssh_key(key_file)
+        with self._serialized_key() as key_file:
+            rsync_get_file(self.path, path, self.ssh_user, self.ssh_host,
+                           self.ssh_port, key_file)
 
     def write_from_path(self, pulsar_path):
-        key_file = self.serialize_ssh_key()
-        rsync_post_file(pulsar_path, self.path, self.ssh_user,
-                        self.ssh_host, self.ssh_port, key_file)
-        self.cleanup_ssh_key(key_file)
+        with self._serialized_key() as key_file:
+            rsync_post_file(pulsar_path, self.path, self.ssh_user,
+                            self.ssh_host, self.ssh_port, key_file)
 
 
 class ScpTransferAction(PubkeyAuthenticatedTransferAction):
@@ -485,16 +490,14 @@ class ScpTransferAction(PubkeyAuthenticatedTransferAction):
                                  ssh_key=action_dict["ssh_key"])
 
     def write_to_path(self, path):
-        key_file = self.serialize_ssh_key()
-        scp_get_file(self.path, path, self.ssh_user, self.ssh_host,
-                     self.ssh_port, key_file)
-        self.cleanup_ssh_key(key_file)
+        with self._serialized_key() as key_file:
+            scp_get_file(self.path, path, self.ssh_user, self.ssh_host,
+                         self.ssh_port, key_file)
 
     def write_from_path(self, pulsar_path):
-        key_file = self.serialize_ssh_key()
-        scp_post_file(pulsar_path, self.path, self.ssh_user, self.ssh_host,
-                      self.ssh_port, key_file)
-        self.cleanup_ssh_key(key_file)
+        with self._serialized_key() as key_file:
+            scp_post_file(pulsar_path, self.path, self.ssh_user, self.ssh_host,
+                          self.ssh_port, key_file)
 
 
 class MessageAction(object):
