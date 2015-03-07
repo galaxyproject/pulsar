@@ -423,17 +423,16 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
     )
     staging = STAGING_ACTION_REMOTE
 
-    def __init__(self, path, file_lister=None, url=None, ssh_user=UNSET_ACTION_KWD,
+    def __init__(self, path, file_lister=None, ssh_user=UNSET_ACTION_KWD,
                  ssh_host=UNSET_ACTION_KWD, ssh_port=UNSET_ACTION_KWD, ssh_key=UNSET_ACTION_KWD):
         super(PubkeyAuthenticatedTransferAction, self).__init__(path, file_lister=file_lister)
-        self.url = url
         self.ssh_user = ssh_user
         self.ssh_host = ssh_host
         self.ssh_port = ssh_port
         self.ssh_key = ssh_key
 
     def to_dict(self):
-        return dict(path=self.path, action_type=self.action_type, url=self.url,
+        return dict(path=self.path, action_type=self.action_type,
                     ssh_user=self.ssh_user, ssh_host=self.ssh_host,
                     ssh_port=self.ssh_port)
 
@@ -456,7 +455,6 @@ class RsyncTransferAction(PubkeyAuthenticatedTransferAction):
     @classmethod
     def from_dict(cls, action_dict):
         return RsyncTransferAction(path=action_dict["path"],
-                                   url=action_dict["url"],
                                    ssh_user=action_dict["ssh_user"],
                                    ssh_host=action_dict["ssh_host"],
                                    ssh_port=action_dict["ssh_port"],
@@ -481,7 +479,6 @@ class ScpTransferAction(PubkeyAuthenticatedTransferAction):
     @classmethod
     def from_dict(cls, action_dict):
         return ScpTransferAction(path=action_dict["path"],
-                                 url=action_dict["url"],
                                  ssh_user=action_dict["ssh_user"],
                                  ssh_host=action_dict["ssh_host"],
                                  ssh_port=action_dict["ssh_port"],
