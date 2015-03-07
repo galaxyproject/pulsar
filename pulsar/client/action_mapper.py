@@ -138,6 +138,9 @@ class FileActionMapper(object):
             config = self.__client_to_config(client)
         self.default_action = config.get("default_action", "transfer")
         self.ssh_key = config.get("ssh_key", None)
+        self.ssh_user = config.get("ssh_user", None)
+        self.ssh_host = config.get("ssh_host", None)
+        self.ssh_port = config.get("ssh_port", None)
         self.mappers = mappers_from_dicts(config.get("paths", []))
         self.files_endpoint = config.get("files_endpoint", None)
 
@@ -164,6 +167,9 @@ class FileActionMapper(object):
             default_action=self.default_action,
             files_endpoint=self.files_endpoint,
             ssh_key=self.ssh_key,
+            ssh_user=self.ssh_user,
+            ssh_port=self.ssh_port,
+            ssh_host=self.ssh_host,
             paths=map(lambda m: m.to_dict(), self.mappers)
         )
 
@@ -175,8 +181,9 @@ class FileActionMapper(object):
             config = dict()
         config["default_action"] = client.default_file_action
         config["files_endpoint"] = client.files_endpoint
-        if hasattr(client, 'ssh_key'):
-            config["ssh_key"] = client.ssh_key
+        for attr in ['ssh_key', 'ssh_user', 'ssh_port', 'ssh_host']:
+            if hasattr(client, attr):
+                config[attr] = getattr(client, attr)
         return config
 
     def __load_action_config(self, path):
@@ -213,8 +220,8 @@ class FileActionMapper(object):
         """
         if getattr(action, "inject_url", False):
             self.__inject_url(action, file_type)
-        if getattr(action, "inject_ssh_key", False):
-            self.__inject_ssh_key(action)
+        if getattr(action, "inject_ssh_properties", False):
+            self.__inject_ssh_properties(action)
 
     def __inject_url(self, action, file_type):
         url_base = self.files_endpoint
@@ -226,15 +233,19 @@ class FileActionMapper(object):
         url = "%s&path=%s&file_type=%s" % (url_base, action.path, file_type)
         action.url = url
 
-    def __inject_ssh_key(self, action):
-        # Required, so no check for presence
-        ssh_key = self.ssh_key
-        if ssh_key is None:
+    def __inject_ssh_properties(self, action):
+        for attr in ["ssh_key", "ssh_host", "ssh_port", "ssh_user"]:
+            action_attr = getattr(action, attr)
+            if action_attr == UNSET_ACTION_KWD:
+                client_default_attr = getattr(self, attr, None)
+                setattr(action, attr, client_default_attr)
+
+        if action.ssh_key is None:
             raise Exception(MISSING_SSH_KEY_ERROR)
-        action.ssh_key = ssh_key
 
 
 REQUIRED_ACTION_KWD = object()
+UNSET_ACTION_KWD = "__UNSET__"
 
 
 class BaseAction(object):
@@ -403,17 +414,17 @@ class RemoteTransferAction(BaseAction):
 class PubkeyAuthenticatedTransferAction(BaseAction):
     """Base class for file transfers requiring an SSH public/private key
     """
-    inject_ssh_key = True
+    inject_ssh_properties = True
     action_spec = dict(
-        ssh_user=REQUIRED_ACTION_KWD,
-        ssh_host=REQUIRED_ACTION_KWD,
-        ssh_port=REQUIRED_ACTION_KWD,
+        ssh_key=UNSET_ACTION_KWD,
+        ssh_user=UNSET_ACTION_KWD,
+        ssh_host=UNSET_ACTION_KWD,
+        ssh_port=UNSET_ACTION_KWD,
     )
     staging = STAGING_ACTION_REMOTE
-    ssh_key = None
 
-    def __init__(self, path, file_lister=None, url=None, ssh_user=None,
-                 ssh_host=None, ssh_port=None, ssh_key=None):
+    def __init__(self, path, file_lister=None, url=None, ssh_user=UNSET_ACTION_KWD,
+                 ssh_host=UNSET_ACTION_KWD, ssh_port=UNSET_ACTION_KWD, ssh_key=UNSET_ACTION_KWD):
         super(PubkeyAuthenticatedTransferAction, self).__init__(path, file_lister=file_lister)
         self.url = url
         self.ssh_user = ssh_user
@@ -550,6 +561,8 @@ class BasePathMapper(object):
                 message_template = "action_type %s requires key word argument %s"
                 message = message_template % (action_type, key)
                 raise Exception(message)
+            else:
+                action_kwds[key] = value
         self.action_type = action_type
         self.action_kwds = action_kwds
         path_types_str = config.get('path_types', "*defaults*")

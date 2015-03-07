@@ -218,7 +218,7 @@ class Waiter(object):
 
             self.client_manager.ensure_has_status_update_callback(on_update)
 
-    def wait(self, seconds=5):
+    def wait(self, seconds=15):
         final_status = None
         if not self.async:
             i = 0
@@ -294,6 +294,15 @@ def __client(temp_directory, options):
         client_options["jobs_directory"] = getattr(options, "jobs_directory")
     if hasattr(options, "files_endpoint"):
         client_options["files_endpoint"] = getattr(options, "files_endpoint")
+    if default_file_action in ["remote_scp_transfer", "remote_rsync_transfer"]:
+        test_key = os.environ["PULSAR_TEST_KEY"]
+        if not test_key.startswith("----"):
+            test_key = open(test_key, "rb").read()
+        client_options["ssh_key"] = test_key
+        client_options["ssh_user"] = os.environ.get("USER")
+        client_options["ssh_port"] = 22
+        client_options["ssh_host"] = "localhost"
+
     user = getattr(options, 'user', None)
     if user:
         client_options["submit_user"] = user

@@ -1,5 +1,7 @@
 import subprocess
-SSH_OPTIONS = ('-o', 'StrictHostKeyChecking=no', '-o', 'PreferredAuthentications=publickey', '-o', 'PubkeyAuthentication=yes')
+import os
+
+SSH_OPTIONS = ['-o', 'StrictHostKeyChecking=no', '-o', 'PreferredAuthentications=publickey', '-o', 'PubkeyAuthentication=yes']
 
 
 def rsync_get_file(uri_from, uri_to, user, host, port, key):
@@ -16,6 +18,22 @@ def rsync_get_file(uri_from, uri_to, user, host, port, key):
 
 
 def rsync_post_file(uri_from, uri_to, user, host, port, key):
+    directory = os.path.dirname(uri_to)
+    cmd = [
+        'ssh',
+        '-i',
+        key,
+        '-p',
+        str(port),
+    ] + SSH_OPTIONS + [
+        '%s@%s' % (user, host),
+        'mkdir',
+        '-p',
+        directory,
+    ]
+    exit_code = subprocess.check_call(cmd)
+    if exit_code != 0:
+        raise Exception("ssh exited with code %s" % exit_code)
     cmd = [
         'rsync',
         '-e',
@@ -32,8 +50,8 @@ def scp_get_file(uri_from, uri_to, user, host, port, key):
     cmd = [
         'scp',
         '-P', str(port),
-        '-i', key,
-        SSH_OPTIONS,
+        '-i', key
+    ] + SSH_OPTIONS + [
         '%s@%s:%s' % (user, host, uri_from),
         uri_to,
     ]
@@ -43,11 +61,27 @@ def scp_get_file(uri_from, uri_to, user, host, port, key):
 
 
 def scp_post_file(uri_from, uri_to, user, host, port, key):
+    directory = os.path.dirname(uri_to)
+    cmd = [
+        'ssh',
+        '-i',
+        key,
+        '-p',
+        str(port),
+    ] + SSH_OPTIONS + [
+        '%s@%s' % (user, host),
+        'mkdir',
+        '-p',
+        directory,
+    ]
+    exit_code = subprocess.check_call(cmd)
+    if exit_code != 0:
+        raise Exception("ssh exited with code %s" % exit_code)
     cmd = [
         'scp',
         '-P', str(port),
         '-i', key,
-        SSH_OPTIONS,
+    ] + SSH_OPTIONS + [
         uri_from,
         '%s@%s:%s' % (user, host, uri_to),
     ]

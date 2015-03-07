@@ -6,7 +6,8 @@ from .test_utils import (
     TempDirectoryTestCase,
     skip_unless_executable,
     skip_unless_module,
-    skip_unless_any_module
+    skip_unless_any_module,
+    skip_unless_environ,
 )
 
 from .test_utils import test_pulsar_app
@@ -111,6 +112,28 @@ class IntegrationTests(BaseIntegrationTest):
             app_conf=dict(message_queue_url="memory://test1"),
             private_token=None,
             default_file_action="remote_copy",
+            local_setup=True,
+            manager_url="memory://test1",
+            **self.default_kwargs
+        )
+
+    @skip_unless_environ("PULSAR_TEST_KEY")
+    def test_integration_scp(self):
+        self._run(
+            app_conf=dict(message_queue_url="memory://test1"),
+            private_token=None,
+            default_file_action="remote_scp_transfer",
+            local_setup=True,
+            manager_url="memory://test1",
+            **self.default_kwargs
+        )
+
+    @skip_unless_environ("PULSAR_TEST_KEY")
+    def test_integration_rsync(self):
+        self._run(
+            app_conf=dict(message_queue_url="memory://test1"),
+            private_token=None,
+            default_file_action="remote_rsync_transfer",
             local_setup=True,
             manager_url="memory://test1",
             **self.default_kwargs

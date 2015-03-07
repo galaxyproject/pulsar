@@ -43,7 +43,8 @@ class BaseJobClient(object):
         else:
             job_directory = None
 
-        self.ssh_key = destination_params.get("ssh_key", None)
+        for attr in ["ssh_key", "ssh_user", "ssh_host", "ssh_port"]:
+            setattr(self, attr, destination_params.get(attr, None))
         self.env = destination_params.get("env", [])
         self.files_endpoint = destination_params.get("files_endpoint", None)
         self.job_directory = job_directory

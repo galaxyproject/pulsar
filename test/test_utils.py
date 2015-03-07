@@ -250,6 +250,12 @@ def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}):
                 pass
 
 
+def skip_unless_environ(var):
+    if var in environ:
+        return lambda func: func
+    return skip("Environment variable %s not found, dependent test skipped." % var)
+
+
 def skip_unless_executable(executable):
     if _which(executable):
         return lambda func: func
