@@ -51,6 +51,13 @@ then
     rm -rf $GALAXY_LIB_DIR/jobs/metrics
     cp -r $PULSAR_DIRECTORY/galaxy/jobs/metrics $GALAXY_LIB_DIR/jobs
 
+    rm -rf $GALAXY_LIB_DIR/tools/linters
+    cp -r $PULSAR_DIRECTORY/galaxy/tools/linters $GALAXY_LIB_DIR/tools
+
+    cp $PULSAR_DIRECTORY/galaxy/tools/lint.py $GALAXY_LIB_DIR/tools/lint.py
+    cp $PULSAR_DIRECTORY/galaxy/tools/loader.py $GALAXY_LIB_DIR/tools/loader.py
+    cp $PULSAR_DIRECTORY/galaxy/tools/loader_directory.py $GALAXY_LIB_DIR/tools/loader_directory.py
+
     cp $PULSAR_DIRECTORY/galaxy/util/plugin_config.py $GALAXY_LIB_DIR/util
 
 else
@@ -66,6 +73,12 @@ else
     rm -rf $PULSAR_DIRECTORY/galaxy/jobs/metrics
     cp -r $GALAXY_LIB_DIR/jobs/metrics $PULSAR_DIRECTORY/galaxy/jobs
 
+    rm -rf $PULSAR_DIRECTORY/galaxy/tools/linters
+    cp -r $GALAXY_LIB_DIR/tools/linters $PULSAR_DIRECTORY/galaxy/tools
+
+    cp $GALAXY_LIB_DIR/tools/lint.py $PULSAR_DIRECTORY/galaxy/tools
+    cp $GALAXY_LIB_DIR/tools/loader.py $PULSAR_DIRECTORY/galaxy/tools
+    cp $GALAXY_LIB_DIR/tools/loader_directory.py $PULSAR_DIRECTORY/galaxy/tools
     cp $GALAXY_LIB_DIR/util/plugin_config.py $PULSAR_DIRECTORY/galaxy/util/
 
 fi
