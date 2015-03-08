@@ -3,7 +3,7 @@ preprocessing (currently this means downloading or copying files) and then unsta
 or send results back to client during postprocessing.
 """
 
-from .postprocess import postprocess
-from .preprocess import preprocess
+from .post import postprocess
+from .pre import preprocess
 
 __all__ = ['preprocess', 'postprocess']

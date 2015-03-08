@@ -4,18 +4,18 @@ pulsar.managers.staging package
 Submodules
 ----------
 
-pulsar.managers.staging.postprocess module
-------------------------------------------
+pulsar.managers.staging.post module
+-----------------------------------
 
-.. automodule:: pulsar.managers.staging.postprocess
+.. automodule:: pulsar.managers.staging.post
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.managers.staging.preprocess module
------------------------------------------
+pulsar.managers.staging.pre module
+----------------------------------
 
-.. automodule:: pulsar.managers.staging.preprocess
+.. automodule:: pulsar.managers.staging.pre
     :members:
     :undoc-members:
     :show-inheritance:
