@@ -12,6 +12,14 @@ galaxy.tools.linters.citations module
     :undoc-members:
     :show-inheritance:
 
+galaxy.tools.linters.command module
+-----------------------------------
+
+.. automodule:: galaxy.tools.linters.command
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 galaxy.tools.linters.help module
 --------------------------------
 
