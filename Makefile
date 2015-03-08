@@ -8,6 +8,7 @@ help:
 	@echo "setup-venv - setup a development virutalenv in current directory."
 	@echo "lint - check style with flake8"
 	@echo "lint-readme - check README formatting for PyPI"
+	@echo "lint-docs - check sphinx docs for warnings"
 	@echo "tests - run tests quickly with the default Python"
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
@@ -51,15 +52,21 @@ coverage: tests
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; coverage html
 	open coverage_html_report/index.html || xdg-open coverage_html_report/index.html
 
-docs:
+ready-docs:
 	rm -f docs/pulsar.rst
 	rm -f docs/galaxy.rst
 	rm -f docs/modules.rst
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; sphinx-apidoc -f -o docs/ pulsar
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; sphinx-apidoc -f -o docs/ galaxy
 	cp docs/fixed_modules.rst docs/modules.rst
+
+docs: ready-docs
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs html
+
+lint-docs: ready-docs
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; ! (make -C docs html 2>&1 | grep -v 'nonlocal image URI found\|included in any toctree' | grep WARNING)
 
 open-docs: docs
 	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html
