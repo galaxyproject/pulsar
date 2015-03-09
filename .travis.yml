@@ -7,7 +7,7 @@ python:
 env:
   - REQUIREMENTS_SUFFIX=
 install:
-  - sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl
+  - sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-server
   - pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
   - pip install -r dev-requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
   - pip install coveralls --use-mirrors  # Required fro coveralls reporting.
@@ -24,8 +24,10 @@ install:
   - echo ". $VIRTUAL_ENV/bin/activate" >> local_env.sh
   - pip install drmaa 
   - sudo adduser --quiet --disabled-password --gecos TEST u1  ## Create user for run-as-user test.  
+  - mkdir -p ~/.ssh && cp test_data/testkey.pub ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
 #  - sudo apt-get install condor
-script: export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; make lint && make lint-docs && if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then true; else make lint-readme; fi && make tests
+
+script: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; make lint && make lint-docs && if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then true; else make lint-readme; fi && make tests
 after_success:
   - coveralls
 
