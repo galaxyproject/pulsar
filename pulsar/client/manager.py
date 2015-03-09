@@ -68,7 +68,7 @@ class ClientManager(object):
         job_manager_interface = job_manager_interface_class(**job_manager_interface_args)
         return self.client_class(destination_params, job_id, job_manager_interface, **self.extra_client_kwds)
 
-    def shutdown(self):
+    def shutdown(self, ensure_cleanup=False):
         pass
 
 
@@ -95,6 +95,9 @@ class MessageQueueClientManager(object):
                 return
 
             def callback_wrapper(body, message):
+                if not self.active:
+                    message.requeue()
+
                 try:
                     if "job_id" in body:
                         job_id = body["job_id"]
@@ -120,8 +123,10 @@ class MessageQueueClientManager(object):
             thread.start()
             self.callback_thread = thread
 
-    def shutdown(self):
+    def shutdown(self, ensure_cleanup=False):
         self.active = False
+        if ensure_cleanup:
+            self.callback_thread.join()
 
     def __nonzero__(self):
         return self.active

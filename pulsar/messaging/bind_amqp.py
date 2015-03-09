@@ -45,8 +45,10 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
         log.info("Finished consuming %s queue - no more messages will be processed." % (name))
 
     if conf.get("message_queue_consume", True):
-        start_setup_consumer(pulsar_exchange, functools.partial(drain, process_setup_messages, "setup"))
-        start_kill_consumer(pulsar_exchange, functools.partial(drain, process_kill_messages, "kill"))
+        setup_thread = start_setup_consumer(pulsar_exchange, functools.partial(drain, process_setup_messages, "setup"))
+        kill_thread = start_kill_consumer(pulsar_exchange, functools.partial(drain, process_kill_messages, "kill"))
+        if hasattr(queue_state, "threads"):
+            queue_state.threads.extend([setup_thread, kill_thread])
 
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
     # has occurred.

@@ -80,6 +80,7 @@ class MockTool(object):
 
 
 def run(options):
+    waiter = None
     try:
         temp_directory = tempfile.mkdtemp()
         temp_index_dir = os.path.join(temp_directory, "idx", "bwa")
@@ -196,6 +197,8 @@ def run(options):
             traceback.print_exc()
         raise
     finally:
+        if waiter is not None:
+            waiter.shutdown()
         shutil.rmtree(temp_directory)
 
 
@@ -238,6 +241,10 @@ class Waiter(object):
             raise Exception("Job not completed properly")
 
         return final_status
+
+    def shutdown(self):
+        client_manager = self.client_manager
+        client_manager.shutdown(ensure_cleanup=True)
 
 
 def __assert_contents(path, expected_contents, pulsar_state):

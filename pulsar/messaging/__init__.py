@@ -21,12 +21,17 @@ class QueueState(object):
     """
     def __init__(self):
         self.active = True
+        self.threads = []
 
     def deactivate(self):
         self.active = False
 
     def __nonzero__(self):
         return self.active
+
+    def join(self):
+        for t in self.threads:
+            t.join()
 
 
 def __id_to_connection_string(app, queue_id):

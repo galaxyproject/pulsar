@@ -120,22 +120,22 @@ class IntegrationTests(BaseIntegrationTest):
     @skip_unless_environ("PULSAR_TEST_KEY")
     def test_integration_scp(self):
         self._run(
-            app_conf=dict(message_queue_url="memory://test1"),
+            app_conf=dict(message_queue_url="memory://test2"),
             private_token=None,
             default_file_action="remote_scp_transfer",
             local_setup=True,
-            manager_url="memory://test1",
+            manager_url="memory://test2",
             **self.default_kwargs
         )
 
     @skip_unless_environ("PULSAR_TEST_KEY")
     def test_integration_rsync(self):
         self._run(
-            app_conf=dict(message_queue_url="memory://test1"),
+            app_conf=dict(message_queue_url="memory://test3"),
             private_token=None,
             default_file_action="remote_rsync_transfer",
             local_setup=True,
-            manager_url="memory://test1",
+            manager_url="memory://test3",
             **self.default_kwargs
         )
 
