@@ -1,3 +1,5 @@
+from __future__ import division
+
 import datetime
 import os
 import time
@@ -254,7 +256,9 @@ class ManagerMonitor(object):
         iteration_length = iteration_end - iteration_start
         if iteration_length < self.stateful_manager.min_polling_interval:
             to_sleep = (self.stateful_manager.min_polling_interval - iteration_length)
-            time.sleep(to_sleep.total_seconds())
+            microseconds = to_sleep.microseconds + (to_sleep.seconds + to_sleep.days * 24 * 3600) * (10 ** 6)
+            total_seconds = microseconds / (10 ** 6)
+            time.sleep(total_seconds)
 
     def _check_active_job_status(self, active_job_id):
         # Manager itself will handle state transitions when status changes,
