@@ -72,7 +72,7 @@ open-docs: docs
 	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html
 
 open-rtd: docs
-	open https://pulsar.readthedocs.org || xdg-open docs/_build/html/index.html
+	open https://pulsar.readthedocs.org || xdg-open https://pulsar.readthedocs.org
 
 open-project:
 	open https://github.com/galaxyproject/pulsar || xdg-open https://github.com/galaxyproject/pulsar
