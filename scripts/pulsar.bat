@@ -1,0 +1,2 @@
+
+paster serve server.ini %*

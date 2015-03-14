@@ -2,6 +2,7 @@ webob
 psutil
 PasteDeploy
 six
+pyyaml
 
 # Problematic for Python 3.
 paste

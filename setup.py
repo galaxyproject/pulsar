@@ -1,6 +1,14 @@
 import re
 import ast
 try:
+    from distutils.util import get_platform
+    is_windows = get_platform().startswith("win")
+except ImportError:
+    # Don't break install if distuils is incompatible in some way
+    # probably overly defensive.
+    is_windows = False
+
+try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
@@ -15,6 +23,7 @@ requirements = [
     'psutil',
     'paste',
     'PasteScript',
+    "pyyaml",
 ]
 
 test_requirements = [
@@ -27,6 +36,11 @@ _version_re = re.compile(r'__version__\s+=\s+(.*)')
 with open('pulsar/__init__.py', 'rb') as f:
     version = str(ast.literal_eval(_version_re.search(
         f.read().decode('utf-8')).group(1)))
+
+if is_windows:
+    scripts = ["scripts/pulsar.bat"]
+else:
+    scripts = ["scripts/pulsar"]
 
 setup(
     name='pulsar-app',
@@ -76,9 +90,7 @@ setup(
         pulsar-check=pulsar.client.test.check:main
         pulsar-config=pulsar.scripts.config:main
     ''',
-    scripts=[
-        'scripts/pulsar',
-    ],
+    scripts=scripts,
     package_data={'pulsar': [
         'managers/util/job_script/DEFAULT_JOB_FILE_TEMPLATE.sh',
         'managers/util/job_script/CLUSTER_SLOTS_STATEMENT.sh',
@@ -96,6 +108,7 @@ setup(
         'Environment :: Console',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: POSIX',
+        'Operating System :: Microsoft :: Windows',
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.6',
