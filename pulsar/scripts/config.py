@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import os
 import string
+import subprocess
 import sys
 
 from pulsar.main import (
@@ -10,6 +11,16 @@ from pulsar.main import (
     DEFAULT_APP_YAML,
     DEFAULT_INI
 )
+
+try:
+    import pip
+except ImportError:
+    pip = None
+
+try:
+    import virtualenv
+except ImportError:
+    virtualenv = None
 
 DESCRIPTION = "Initialize a directory with a minimal pulsar config."
 HELP_DIRECTORY = "Directory containing the configuration files for Pulsar."
@@ -26,7 +37,7 @@ HELP_INSTALL = ("Install optional dependencies required by specified configurati
 HELP_HOST = ("Host to bind Pulsar to - defaults to localhost. Set to 0.0.0.0 "
              "to listen on all interfaces.")
 HELP_PORT = ("Port to bind Pulsar to (ignored if --mq is specified).")
-
+HELP_PIP_INSTALL_ARGS_HELP = ("Arguments to pip install (defaults to pulsar-app) - unimplemented")
 
 LOGGING_CONFIG_SECTIONS = """## Configure Python loggers.
 [loggers]
@@ -157,6 +168,9 @@ def main(argv=None):
                             action="store_true",
                             default=False,
                             help=HELP_FORCE)
+    arg_parser.add_argument("--pip_install_args",
+                            default="pulsar-app",
+                            help=HELP_PIP_INSTALL_ARGS_HELP)
     args = arg_parser.parse_args(argv)
     directory = args.directory
     directory = os.path.abspath(directory)
@@ -250,8 +264,22 @@ def _handle_supervisor(args, mode, directory, dependencies):
 
 def _handle_install(args, dependencies):
     if args.install and dependencies:
-        import pip
+        if pip is None:
+            raise ImportError("Bootstrapping Pulsar dependencies requires pip library.")
+
         pip.main("install", *dependencies)
+
+
+def _install_pulsar_in_virtualenv(venv):
+    if virtualenv is None:
+        raise ImportError("Bootstrapping Pulsar into a virtual environment, requires virtualenv.")
+
+    if sys.platform.startswith('win'):
+        bin_dir = "Scripts"
+    else:
+        bin_dir = "bin"
+    virtualenv.create_environment(venv)
+    subprocess.call([os.path.join(venv, bin_dir, 'pip'), 'install', "--pre", "pulsar-app"])
 
 
 def _check_file(path, force):
