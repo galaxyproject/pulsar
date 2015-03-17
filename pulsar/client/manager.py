@@ -118,8 +118,12 @@ class MessageQueueClientManager(object):
                     message.ack()
 
             def run():
-                self.exchange.consume("status_update", callback_wrapper, check=self)
-                log.debug("Leaving Pulsar client status update thread, no additional Pulsar updates will be processed.")
+                try:
+                    self.exchange.consume("status_update", callback_wrapper, check=self)
+                except Exception:
+                    log.exception("Exception while handling status update messages, this shouldn't really happen. Handler should be restarted.")
+                finally:
+                    log.debug("Leaving Pulsar client status update thread, no additional Pulsar updates will be processed.")
 
             thread = threading.Thread(
                 name="pulsar_client_%s_status_update_callback" % self.manager_name,
