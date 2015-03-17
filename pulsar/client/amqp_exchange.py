@@ -24,6 +24,7 @@ DEFAULT_HEARTBEAT = 580
 
 DEFAULT_RECONNECT_CONSUMER_WAIT = 1
 DEFAULT_HEARTBEAT_WAIT = 1
+DEFAULT_HEARTBEAT_JOIN_TIMEOUT = 10
 
 
 class PulsarExchange(object):
@@ -91,6 +92,7 @@ class PulsarExchange(object):
             except BaseException:
                 log.exception("Problem consuming queue, consumer quitting in problematic fashion!")
                 raise
+        log.info("Done consuming queue %s" % queue_name)
 
     def heartbeat(self, connection):
         log.debug('AMQP heartbeat thread alive')
