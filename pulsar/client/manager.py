@@ -96,7 +96,13 @@ class MessageQueueClientManager(object):
 
             def callback_wrapper(body, message):
                 if not self.active:
-                    message.requeue()
+                    log.debug("Obtained update message for inactive client manager, attempting requeue.")
+                    try:
+                        message.requeue()
+                        log.debug("Requeue succeeded, will likely be handled next time consumer is enabled.")
+                    except Exception:
+                        log.debug("Requeue failed, message may be lost?")
+                    return
 
                 try:
                     if "job_id" in body:
