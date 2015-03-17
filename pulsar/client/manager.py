@@ -1,4 +1,5 @@
 import threading
+import functools
 try:
     from Queue import Queue
 except ImportError:
@@ -89,42 +90,44 @@ class MessageQueueClientManager(object):
         self.callback_thread = None
         self.active = True
 
+    def callback_wrapper(self, callback, body, message):
+        if not self.active:
+            log.debug("Obtained update message for inactive client manager, attempting requeue.")
+            try:
+                message.requeue()
+                log.debug("Requeue succeeded, will likely be handled next time consumer is enabled.")
+            except Exception:
+                log.debug("Requeue failed, message may be lost?")
+            return
+
+        try:
+            if "job_id" in body:
+                job_id = body["job_id"]
+                self.status_cache[job_id] = body
+            log.debug("Handling asynchronous status update from remote Pulsar.")
+            callback(body)
+        except Exception:
+            log.exception("Failure processing job status update message.")
+        except BaseException as e:
+            log.exception("Failure processing job status update message - BaseException type %s" % type(e))
+        finally:
+            message.ack()
+
+    def callback_consumer(self, callback_wrapper):
+        try:
+            self.exchange.consume("status_update", callback_wrapper, check=self)
+        except Exception:
+            log.exception("Exception while handling status update messages, this shouldn't really happen. Handler should be restarted.")
+        finally:
+            log.debug("Leaving Pulsar client status update thread, no additional Pulsar updates will be processed.")
+
     def ensure_has_status_update_callback(self, callback):
         with self.callback_lock:
             if self.callback_thread is not None:
                 return
 
-            def callback_wrapper(body, message):
-                if not self.active:
-                    log.debug("Obtained update message for inactive client manager, attempting requeue.")
-                    try:
-                        message.requeue()
-                        log.debug("Requeue succeeded, will likely be handled next time consumer is enabled.")
-                    except Exception:
-                        log.debug("Requeue failed, message may be lost?")
-                    return
-
-                try:
-                    if "job_id" in body:
-                        job_id = body["job_id"]
-                        self.status_cache[job_id] = body
-                    log.debug("Handling asynchronous status update from remote Pulsar.")
-                    callback(body)
-                except Exception:
-                    log.exception("Failure processing job status update message.")
-                except BaseException as e:
-                    log.exception("Failure processing job status update message - BaseException type %s" % type(e))
-                finally:
-                    message.ack()
-
-            def run():
-                try:
-                    self.exchange.consume("status_update", callback_wrapper, check=self)
-                except Exception:
-                    log.exception("Exception while handling status update messages, this shouldn't really happen. Handler should be restarted.")
-                finally:
-                    log.debug("Leaving Pulsar client status update thread, no additional Pulsar updates will be processed.")
-
+            callback_wrapper = functools.partial(self.callback_wrapper, callback)
+            run = functools.partial(self.callback_consumer, callback_wrapper)
             thread = threading.Thread(
                 name="pulsar_client_%s_status_update_callback" % self.manager_name,
                 target=run
