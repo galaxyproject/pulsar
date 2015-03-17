@@ -86,9 +86,15 @@ class PulsarExchange(object):
             except (IOError, socket.error), exc:
                 # In testing, errno is None
                 log.warning('Got %s, will retry: %s', exc.__class__.__name__, exc)
-                if heartbeat_thread:
-                    heartbeat_thread.join()
-                sleep(DEFAULT_RECONNECT_CONSUMER_WAIT)
+                try:
+                    if heartbeat_thread:
+                        heartbeat_thread.join(DEFAULT_HEARTBEAT_JOIN_TIMEOUT)
+                except Exception:
+                    log.exception("Failed to join heartbeat thread, this is bad?")
+                try:
+                    sleep(DEFAULT_RECONNECT_CONSUMER_WAIT)
+                except Exception:
+                    log.exception("Interrupted sleep while waiting to reconnect to message queue, may restart unless problems encountered.")
             except BaseException:
                 log.exception("Problem consuming queue, consumer quitting in problematic fashion!")
                 raise
