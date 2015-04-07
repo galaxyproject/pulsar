@@ -16,9 +16,6 @@ class CliTestCase(TempDirectoryTestCase):
         # TODO: test unstaging, would actually require files server and some
         # sort MQ listening.
         with files_server("/"):  # as test_files_server:
-            # files_endpoint = test_files_server.application_url
-            job_id = "43"
-
             config_directory = os.path.join(self.temp_directory, "config")
             staging_directory = os.path.join(self.temp_directory, "staging")
             os.makedirs(config_directory)
@@ -26,10 +23,11 @@ class CliTestCase(TempDirectoryTestCase):
                 staging_directory=staging_directory,
                 message_queue_url="memory://submittest"
             )
-
             app_conf_path = os.path.join(config_directory, "app.yml")
             with open(app_conf_path, "w") as f:
                 f.write(yaml.dump(app_conf))
+
+            job_id = "43"
 
             output_path = os.path.join(staging_directory, job_id, "out")
             launch_params = dict(
