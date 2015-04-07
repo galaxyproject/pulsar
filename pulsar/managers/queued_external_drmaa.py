@@ -5,6 +5,8 @@ from .base.base_drmaa import BaseDrmaaManager
 from .util.sudo import sudo_popen
 from ..managers import status
 
+from galaxy.tools.deps.commands import which
+
 from logging import getLogger
 log = getLogger(__name__)
 
@@ -21,9 +23,9 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
 
     def __init__(self, name, app, **kwds):
         super(ExternalDrmaaQueueManager, self).__init__(name, app, **kwds)
-        self.chown_working_directory_script = kwds.get('chown_working_directory_script', DEFAULT_CHOWN_WORKING_DIRECTORY_SCRIPT)
-        self.drmaa_kill_script = kwds.get('drmaa_kill_script', DEFAULT_DRMAA_KILL_SCRIPT)
-        self.drmaa_launch_script = kwds.get('drmaa_launch_script', DEFAULT_DRMAA_LAUNCH_SCRIPT)
+        self.chown_working_directory_script = _handle_default(kwds.get('chown_working_directory_script', None), "chown_working_directory")
+        self.drmaa_kill_script = _handle_default(kwds.get('drmaa_kill_script', None), "drmaa_kill")
+        self.drmaa_launch_script = _handle_default(kwds.get('drmaa_launch_script', None), "drmaa_launch")
         self.production = kwds.get('production', "true").lower() != "false"
         self.reclaimed = {}
         self.user_map = {}
@@ -82,3 +84,23 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         stdout, stderr = p.communicate()
         assert p.returncode == 0, "%s, %s" % (stdout, stderr)
         return stdout
+
+
+def _handle_default(value, script_name):
+    """ There are two potential variants of these scripts,
+    the Bash scripts that are meant to be run within PULSAR_ROOT
+    for older-style installs and the binaries created by setup.py
+    as part of a proper pulsar installation.
+
+    This method first looks for the newer style variant of these
+    scripts and returns the full path to them if needed and falls
+    back to the bash scripts if these cannot be found.
+    """
+    if value:
+        return value
+
+    installed_script = which("pulsar-%s" % script_name.replace("_", "-"))
+    if installed_script:
+        return installed_script
+    else:
+        return "scripts/%s.bash" % script_name

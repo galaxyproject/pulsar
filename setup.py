@@ -89,6 +89,9 @@ setup(
         pulsar-main=pulsar.main:main
         pulsar-check=pulsar.client.test.check:main
         pulsar-config=pulsar.scripts.config:main
+        pulsar-drmaa-launch=pulsar.scripts.drmaa_launch:main
+        pulsar-drmaa-kill=pulsar.scripts.drmaa_kill:main
+        pulsar-chown-working-directory=pulsar.scripts.chown_working_directory:main
     ''',
     scripts=scripts,
     package_data={'pulsar': [
