@@ -1,40 +1,19 @@
 # TODO: test condor
-# TODO: test ssh stuff (setup key)
 language: python
-python:
-  - 2.6
-  - 2.7
+python: 2.7
 env:
-  - REQUIREMENTS_SUFFIX=
-install:
-  - sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-server
-  - pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
-  - pip install -r dev-requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
-  - pip install coveralls --use-mirrors  # Required fro coveralls reporting.
-  - sudo apt-get install slurm-llnl slurm-llnl-torque # slurm-drmaa1 slurm-drmaa-dev
-  - sudo apt-get install libslurm23
-  - wget http://launchpadlibrarian.net/104075475/slurm-drmaa1_1.0.4-3_amd64.deb
-  - sudo dpkg -i slurm-drmaa1_1.0.4-3_amd64.deb
-  - wget http://launchpadlibrarian.net/104075474/slurm-drmaa-dev_1.0.4-3_amd64.deb
-  - sudo dpkg -i slurm-drmaa-dev_1.0.4-3_amd64.deb
-  - sudo /usr/sbin/create-munge-key
-  - sudo service munge start
-  - sudo python scripts/configure_test_slurm.py
-  - echo "export DRMAA_LIBRARY_PATH=/usr/lib/libdrmaa.so" >> local_env.sh
-  - echo ". $VIRTUAL_ENV/bin/activate" >> local_env.sh
-  - pip install drmaa 
-  - sudo adduser --quiet --disabled-password --gecos TEST u1  ## Create user for run-as-user test.  
-  - mkdir -p ~/.ssh && cp test_data/testkey.pub ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
-#  - sudo apt-get install condor
+  - TOX_ENV=py27-lint
+  - TOX_ENV=py34-lint
+  - TOX_ENV=py27-lint-readme
+  - TOX_ENV=lint-docs
+  - TOX_ENV=py26 SETUP=true
+  - TOX_ENV=py27 SETUP=true
 
-script: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; make lint && make lint-docs && if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then true; else make lint-readme; fi && make tests
+install:
+  - pip install tox
+  - if [ "$SETUP" == "true" ]; then .travis/setup_tests.sh; fi
+
+script: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; tox -e $TOX_ENV
+
 after_success:
   - coveralls
-
-## TODO: Figure out why Python 3.3 hangs.
-#matrix:
-#  include:
-#    - python: 3.3
-#      env: REQUIREMENTS_SUFFIX=3
-#  allow_failures:
-#    - python: 3.3     
