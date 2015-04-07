@@ -1,5 +1,7 @@
 import re
 import ast
+import sys
+
 try:
     from distutils.util import get_platform
     is_windows = get_platform().startswith("win")
@@ -7,7 +9,6 @@ except ImportError:
     # Don't break install if distuils is incompatible in some way
     # probably overly defensive.
     is_windows = False
-
 try:
     from setuptools import setup
 except ImportError:
@@ -21,10 +22,12 @@ requirements = [
     'six',
     'webob',
     'psutil',
-    'paste',
-    'PasteScript',
-    "pyyaml",
+    'pyyaml',
 ]
+
+if sys.version_info[0] == 2:
+    requirements.append('PasteScript')
+    requirements.append('paste')
 
 test_requirements = [
     # TODO: put package test requirements here
