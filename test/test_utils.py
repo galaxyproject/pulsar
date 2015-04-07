@@ -241,13 +241,13 @@ def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}):
     finally:
         try:
             app.shutdown()
-        except:
+        except Exception:
             pass
         for directory in [staging_directory, cache_directory]:
             try:
                 rmtree(directory)
                 pass
-            except:
+            except Exception:
                 pass
 
 
