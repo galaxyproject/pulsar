@@ -73,8 +73,7 @@ class PulsarScheduler(Scheduler):
         tid = self.tasksLaunched
         self.tasksLaunched += 1
 
-        print "Accepting offer on %s to start task %d" \
-              % (offer.hostname, tid)
+        log.info("Accepting offer on %s to start task %d" % (offer.hostname, tid))
 
         task = mesos_pb2.TaskInfo()
         task.task_id.value = str(tid)

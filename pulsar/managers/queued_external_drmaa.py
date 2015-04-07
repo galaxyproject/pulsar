@@ -1,3 +1,4 @@
+from __future__ import print_function
 from json import dumps
 from getpass import getuser
 
@@ -39,7 +40,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
             env=env,
             submit_params=submit_params,
         )
-        print open(attributes['remoteCommand'], 'r').read()
+        print(open(attributes['remoteCommand'], 'r').read())
         job_attributes_file = self._write_job_file(job_id, 'jt.json', dumps(attributes))
         user = submit_params.get('user', None)
         log.info("Submit as user %s" % user)

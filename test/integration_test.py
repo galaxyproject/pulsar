@@ -1,3 +1,4 @@
+from __future__ import print_function
 from os.path import join
 from os import makedirs, system
 from six import next, itervalues
@@ -84,7 +85,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
             system("chmod 755 %s" % self.temp_directory)
             system("chmod -R 755 %s" % dependencies_dir)
         except Exception as e:
-            print e
+            print(e)
         env_file = join(dep1_directory, "env.sh")
         with open(env_file, "w") as env:
             env.write("MOO=moo_override; export MOO")
