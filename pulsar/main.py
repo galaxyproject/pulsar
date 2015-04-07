@@ -38,8 +38,6 @@ except ImportError:
             return options
 
 
-from paste.deploy.loadwsgi import ConfigLoader
-
 log = logging.getLogger(__name__)
 
 REQUIRES_DAEMONIZE_MESSAGE = "Attempted to use Pulsar in daemon mode, but daemonize is unavailable."
@@ -144,6 +142,7 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
     """
     """
     if ini_path and local_conf is None:
+        from galaxy.util.pastescript.loadwsgi import ConfigLoader
         local_conf = ConfigLoader(ini_path).app_context(app_name).config()
     local_conf = local_conf or {}
     if app_conf_path is None and "app_config" in local_conf:
