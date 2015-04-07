@@ -16,6 +16,7 @@ Contents:
    job_managers
    galaxy_conf
    upgrading
+   conduct
    contributing
    history
 
