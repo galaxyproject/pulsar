@@ -222,20 +222,74 @@ def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
             yield test_pulsar_server
 
 
+class RestartablePulsarAppProvider(object):
+
+    def __init__(self, global_conf={}, app_conf={}, test_conf={}):
+        self.staging_directory = mkdtemp()
+        self.global_conf = global_conf
+        self.app_conf = app_conf
+        self.test_conf = test_conf
+
+    @contextmanager
+    def new_app(self):
+        with test_pulsar_app(
+            self.global_conf,
+            self.app_conf,
+            self.test_conf,
+            staging_directory=self.staging_directory
+        ) as app:
+            yield app
+
+    def cleanup(self):
+        try:
+            rmtree(self.staging_directory)
+        except Exception:
+            pass
+
+
+@contextmanager
+def restartable_pulsar_app_provider(**kwds):
+    try:
+        has_app = RestartablePulsarAppProvider(**kwds)
+        yield has_app
+    finally:
+        has_app.cleanup()
+
+
 @nottest
 @contextmanager
-def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}):
-    staging_directory = mkdtemp()
+def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}, staging_directory=None):
+    clean_staging_directory = False
+    if staging_directory is None:
+        staging_directory = mkdtemp()
+        clean_staging_directory = True
     # Make staging directory world executable for run as user tests.
     mode = stat(staging_directory).st_mode
     chmod(staging_directory, mode | S_IXOTH)
     cache_directory = mkdtemp()
+    app_conf["staging_directory"] = staging_directory
+    app_conf["file_cache_dir"] = cache_directory
+    app_conf["ensure_cleanup"] = True
     try:
-        app_conf["staging_directory"] = staging_directory
-        app_conf["file_cache_dir"] = cache_directory
-        app_conf["ensure_cleanup"] = True
-        from pulsar.web.wsgi import app_factory
+        with _yield_app(global_conf, app_conf, test_conf) as app:
+            yield app
+    finally:
+        to_clean = [cache_directory]
+        if clean_staging_directory:
+            to_clean.append(staging_directory)
 
+        for directory in to_clean:
+            try:
+                rmtree(directory)
+                pass
+            except Exception:
+                pass
+
+
+@contextmanager
+def _yield_app(global_conf, app_conf, test_conf):
+    try:
+        from pulsar.web.wsgi import app_factory
         app = app_factory(global_conf, **app_conf)
         yield TestApp(app, **test_conf)
     finally:
@@ -243,12 +297,6 @@ def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}):
             app.shutdown()
         except Exception:
             pass
-        for directory in [staging_directory, cache_directory]:
-            try:
-                rmtree(directory)
-                pass
-            except Exception:
-                pass
 
 
 def skip_unless_environ(var):
