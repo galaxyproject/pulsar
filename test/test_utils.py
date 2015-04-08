@@ -230,11 +230,12 @@ def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
 
 class RestartablePulsarAppProvider(object):
 
-    def __init__(self, global_conf={}, app_conf={}, test_conf={}):
+    def __init__(self, global_conf={}, app_conf={}, test_conf={}, web=True):
         self.staging_directory = mkdtemp()
         self.global_conf = global_conf
         self.app_conf = app_conf
         self.test_conf = test_conf
+        self.web = web
 
     @contextmanager
     def new_app(self):
@@ -242,7 +243,8 @@ class RestartablePulsarAppProvider(object):
             self.global_conf,
             self.app_conf,
             self.test_conf,
-            staging_directory=self.staging_directory
+            staging_directory=self.staging_directory,
+            web=self.web,
         ) as app:
             yield app
 
@@ -264,7 +266,13 @@ def restartable_pulsar_app_provider(**kwds):
 
 @nottest
 @contextmanager
-def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}, staging_directory=None):
+def test_pulsar_app(
+    global_conf={},
+    app_conf={},
+    test_conf={},
+    staging_directory=None,
+    web=True,
+):
     clean_staging_directory = False
     if staging_directory is None:
         staging_directory = mkdtemp()
@@ -277,7 +285,7 @@ def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}, staging_directory
     app_conf["file_cache_dir"] = cache_directory
     app_conf["ensure_cleanup"] = True
     try:
-        with _yield_app(global_conf, app_conf, test_conf) as app:
+        with _yield_app(global_conf, app_conf, test_conf, web) as app:
             yield app
     finally:
         to_clean = [cache_directory]
@@ -293,14 +301,26 @@ def test_pulsar_app(global_conf={}, app_conf={}, test_conf={}, staging_directory
 
 
 @contextmanager
-def _yield_app(global_conf, app_conf, test_conf):
+def _yield_app(global_conf, app_conf, test_conf, web):
+    # Yield either wsgi webapp of the underlying pulsar
+    # app object if the web layer is not needed.
     try:
-        from pulsar.web.wsgi import app_factory
-        app = app_factory(global_conf, **app_conf)
-        yield TestApp(app, **test_conf)
+        if web:
+            from pulsar.web.wsgi import app_factory
+            app = app_factory(global_conf, **app_conf)
+            yield TestApp(app, **test_conf)
+        else:
+            from pulsar.main import load_app_configuration
+            from pulsar.core import PulsarApp
+            app_conf = load_app_configuration(local_conf=app_conf)
+            app = PulsarApp(**app_conf)
+            yield app
     finally:
         try:
-            app.shutdown()
+            shutdown_args = []
+            if not web:
+                shutdown_args.append(2)
+            app.shutdown(*shutdown_args)
         except Exception:
             pass
 
