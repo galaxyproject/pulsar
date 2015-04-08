@@ -53,14 +53,15 @@ def submit_job(manager, job_config):
     job_id = job_config.get('job_id')
     command_line = job_config.get('command_line')
 
-    setup_params = job_config.get('setup_params')
+    setup_params = job_config.get('setup_params', {})
+    force_setup = job_config.get('setup')
     remote_staging = job_config.get('remote_staging', {})
     dependencies_description = job_config.get('dependencies_description', None)
     env = job_config.get('env', [])
     submit_params = job_config.get('submit_params', {})
 
     job_config = None
-    if setup_params:
+    if setup_params or force_setup:
         input_job_id = setup_params.get("job_id", job_id)
         tool_id = setup_params.get("tool_id", None)
         tool_version = setup_params.get("tool_version", None)
