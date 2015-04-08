@@ -1,3 +1,9 @@
+from __future__ import print_function
+
+import traceback
+import sys
+import threading
+
 from contextlib import contextmanager
 from stat import S_IXOTH
 from os import pardir, stat, chmod, access, X_OK, pathsep, environ
@@ -408,3 +414,15 @@ def files_server(directory=None):
         app = TestApp(JobFilesApp(directory))
         with server_for_test_app(app) as server:
             yield server
+
+
+def dump_other_threads():
+    # Utility for debugging threads that aren't dying during
+    # tests.
+    main_thread = threading.current_thread()
+    for t in threading.enumerate():
+        if t is main_thread:
+            continue
+
+        print(t.getName())
+        traceback.print_stack(sys._current_frames()[t.ident])
