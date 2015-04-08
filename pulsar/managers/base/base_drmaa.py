@@ -20,10 +20,10 @@ class BaseDrmaaManager(ExternalBaseManager):
         drmaa_session_factory = drmaa_session_factory_class()
         self.drmaa_session = drmaa_session_factory.get()
 
-    def shutdown(self):
+    def shutdown(self, timeout=None):
         try:
-            super(BaseDrmaaManager, self).shutdown()
-        except:
+            super(BaseDrmaaManager, self).shutdown(timeout)
+        except Exception:
             pass
         self.drmaa_session.close()
 

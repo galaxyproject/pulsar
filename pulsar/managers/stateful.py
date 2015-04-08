@@ -155,13 +155,13 @@ class StatefulManagerProxy(ManagerProxy):
             self.__state_change_callback(final_status, job_id)
         new_thread_for_manager(self, "postprocess", do_postprocess, daemon=False)
 
-    def shutdown(self):
+    def shutdown(self, timeout=None):
         if self.__monitor:
             try:
-                self.__monitor.shutdown()
+                self.__monitor.shutdown(timeout)
             except Exception:
                 log.exception("Failed to shutdown job monitor for manager %s" % self.name)
-        super(StatefulManagerProxy, self).shutdown()
+        super(StatefulManagerProxy, self).shutdown(timeout)
 
     def __recover_active_jobs(self):
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
@@ -231,9 +231,11 @@ class ManagerMonitor(object):
         thread = new_thread_for_manager(self, "monitor", self._run, True)
         self.thread = thread
 
-    def shutdown(self):
+    def shutdown(self, timeout=None):
         self.active = False
-        self.thread.join()
+        self.thread.join(timeout)
+        if self.thread.isAlive():
+            log.warn("Failed to join monitor thread [%s]" % self.thread)
 
     def _run(self):
         """ Main loop, repeatedly checking active jobs of stateful manager.

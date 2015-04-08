@@ -3,8 +3,12 @@ message queues. Code shared between client and server can be found in
 submodules of ``pulsar.client``.
 """
 
+import logging
+
 from ..messaging import bind_amqp
 from six import itervalues
+
+log = logging.getLogger(__name__)
 
 
 def bind_app(app, queue_id, connect_ssl=None):
@@ -29,9 +33,11 @@ class QueueState(object):
     def __nonzero__(self):
         return self.active
 
-    def join(self):
+    def join(self, timeout=None):
         for t in self.threads:
-            t.join()
+            t.join(timeout)
+            if t.isAlive():
+                log.warn("Failed to join thread [%s]." % t)
 
 
 def __id_to_connection_string(app, queue_id):

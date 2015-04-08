@@ -43,17 +43,17 @@ class PulsarApp(object):
         self.__setup_bind_to_message_queue(conf)
         self.ensure_cleanup = conf.get("ensure_cleanup", False)
 
-    def shutdown(self):
+    def shutdown(self, timeout=None):
         for manager in self.managers.values():
             try:
-                manager.shutdown()
+                manager.shutdown(timeout)
             except Exception:
                 pass
 
         if self.__queue_state:
             self.__queue_state.deactivate()
             if self.ensure_cleanup:
-                self.__queue_state.join()
+                self.__queue_state.join(timeout)
 
     def __setup_bind_to_message_queue(self, conf):
         message_queue_url = conf.get("message_queue_url", None)

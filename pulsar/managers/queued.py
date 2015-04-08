@@ -57,11 +57,13 @@ class QueueManager(Manager):
         if command_line:
             self.work_queue.put((RUN, (job_id, command_line)))
 
-    def shutdown(self):
+    def shutdown(self, timeout=None):
         for i in range(len(self.work_threads)):
             self.work_queue.put((STOP_SIGNAL, None))
         for worker in self.work_threads:
-            worker.join()
+            worker.join(timeout)
+            if worker.isAlive():
+                log.warn("Failed to stop worker thread [%s]" % worker)
 
     def run_next(self):
         """

@@ -107,13 +107,13 @@ class ManagerProxy(object):
     def kill(self, *args, **kwargs):
         return self._proxied_manager.kill(*args, **kwargs)
 
-    def shutdown(self):
+    def shutdown(self, timeout=None):
         """ Optional. """
         try:
             shutdown_method = self._proxied_manager.shutdown
         except AttributeError:
             return
-        shutdown_method()
+        shutdown_method(timeout)
 
     def job_directory(self, *args, **kwargs):
         return self._proxied_manager.job_directory(*args, **kwargs)
