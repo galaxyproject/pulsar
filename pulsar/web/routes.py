@@ -12,7 +12,7 @@ from pulsar.manager_factory import DEFAULT_MANAGER_NAME
 from pulsar.manager_endpoint_util import (
     submit_job,
     setup_job,
-    full_status,
+    status_dict,
 )
 from pulsar.client.action_mapper import path_type
 
@@ -79,8 +79,7 @@ def submit(manager, job_id, command_line, params='{}', dependencies_description=
 
 @PulsarController(path="/jobs/{job_id}/status", response_type='json')
 def status(manager, job_id):
-    status = manager.get_status(job_id)
-    return full_status(manager, status, job_id)
+    return status_dict(manager, job_id)
 
 
 @PulsarController(path="/jobs/{job_id}/cancel", method="PUT")

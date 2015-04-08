@@ -8,6 +8,11 @@ from galaxy.tools.deps import dependencies
 import os
 
 
+def status_dict(manager, job_id):
+    job_status = manager.get_status(job_id)
+    return full_status(manager, job_status, job_id)
+
+
 def full_status(manager, job_status, job_id):
     if job_status in [status.COMPLETE, status.CANCELLED]:
         full_status = __job_complete_dict(job_status, manager, job_id)
