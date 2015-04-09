@@ -264,7 +264,7 @@ class ManagerMonitor(object):
 
     def _check_active_job_status(self, active_job_id):
         # Manager itself will handle state transitions when status changes,
-        # just need to poll get_statu
+        # just need to poll get_status
         self.stateful_manager.get_status(active_job_id)
 
 
