@@ -1,6 +1,13 @@
 galaxy.util package
 ===================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    galaxy.util.pastescript
+
 Submodules
 ----------
 
