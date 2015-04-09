@@ -6,7 +6,6 @@ from .test_utils import (
 )
 from pulsar.manager_endpoint_util import (
     submit_job,
-    status_dict,
 )
 from pulsar.client.amqp_exchange_factory import get_exchange
 from pulsar.managers.util.drmaa import DrmaaSessionFactory
@@ -35,7 +34,6 @@ class RestartTestCase(TempDirectoryTestCase):
                 # TODO: unfortunate breaking of abstractions here.
                 time.sleep(.2)
                 external_id = manager._proxied_manager._external_id(job_id)
-                print status_dict(manager, job_id)
 
             drmaa_session = DrmaaSessionFactory().get()
             drmaa_session.kill(external_id)
