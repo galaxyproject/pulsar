@@ -1,0 +1,8 @@
+Metadata-Version: 1.1
+Name: pulsar-app
+Version: unverisoned
+Summary: Distributed job execution application built for Galaxy (http://galaxyproject.org/).
+Home-page: https://github.com/galaxyproject/pulsar
+Author: Galaxy Project
+Author-email: jmchilton@gmail.com
+License: Apache License 2.0
