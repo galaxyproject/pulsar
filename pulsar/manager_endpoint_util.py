@@ -72,9 +72,8 @@ def submit_job(manager, job_config):
         jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
         command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
 
-    if remote_staging:
-        # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
-        manager.handle_remote_staging(job_id, remote_staging)
+    # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
+    manager.handle_remote_staging(job_id, remote_staging)
 
     dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
     return manager.launch(

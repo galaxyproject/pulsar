@@ -123,3 +123,10 @@ class PulsarApp(object):
     def __setup_job_metrics(self, conf):
         job_metrics_config_file = conf.get("job_metrics_config_file", "job_metrics_conf.xml")
         self.job_metrics = JobMetrics(job_metrics_config_file)
+
+    @property
+    def only_manager(self):
+        # convience method for tests, etc... where when we know there
+        # is only one manager.
+        assert len(self.managers) == 1
+        return self.managers.values()[0]

@@ -59,7 +59,7 @@ def clean(manager, job_id):
 
 
 @PulsarController(path="/jobs/{job_id}/submit", method="POST")
-def submit(manager, job_id, command_line, params='{}', dependencies_description='null', setup_params='{}', remote_staging='[]', env='[]'):
+def submit(manager, job_id, command_line, params='{}', dependencies_description='null', setup_params='{}', remote_staging='{}', env='[]'):
     submit_params = loads(params)
     setup_params = loads(setup_params)
     dependencies_description = loads(dependencies_description)

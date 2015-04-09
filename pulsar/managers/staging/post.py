@@ -15,8 +15,8 @@ def postprocess(job_directory, action_executor):
     # Returns True iff outputs were collected.
     try:
         staging_config = job_directory.load_metadata("staging_config", None)
-        if staging_config:
-            return __collect_outputs(job_directory, staging_config, action_executor)
+        collected = __collect_outputs(job_directory, staging_config, action_executor)
+        return collected
     finally:
         job_directory.write_file("postprocessed", "")
     return False
