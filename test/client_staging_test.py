@@ -165,6 +165,6 @@ class MockClient(object):
     def expect_command_line(self, expected_command_line):
         self.expected_command_line = expected_command_line
 
-    def put_file(self, path, type, name, contents):
+    def put_file(self, path, type, name, contents, action_type='transfer'):
         self.put_files.append((path, type, name, contents))
         return {"path": self.put_paths.popleft()}
