@@ -56,6 +56,7 @@ class BaseManager(ManagerInterface):
         self.name = name
         self.persistence_directory = getattr(app, 'persistence_directory', None)
         self.lock_manager = locks.LockManager()
+        self._directory_maker = DirectoryMaker(kwds.get("job_directory_mode", None))
         self._setup_staging_directory(app.staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
         self.__init_galaxy_system_properties(kwds)
@@ -122,12 +123,17 @@ class BaseManager(ManagerInterface):
     def _setup_staging_directory(self, staging_directory):
         assert staging_directory is not None
         if not exists(staging_directory):
-            makedirs(staging_directory)
+            self._directory_maker.make(staging_directory, recursive=True)
         assert isdir(staging_directory)
         self.staging_directory = staging_directory
 
     def _job_directory(self, job_id):
-        return JobDirectory(self.staging_directory, job_id, self.lock_manager)
+        return JobDirectory(
+            self.staging_directory,
+            job_id,
+            self.lock_manager,
+            self._directory_maker,
+        )
 
     job_directory = _job_directory
 
@@ -183,8 +189,15 @@ class BaseManager(ManagerInterface):
 
 class JobDirectory(RemoteJobDirectory):
 
-    def __init__(self, staging_directory, job_id, lock_manager=None):
+    def __init__(
+        self,
+        staging_directory,
+        job_id,
+        lock_manager=None,
+        directory_maker=None
+    ):
         super(JobDirectory, self).__init__(staging_directory, remote_id=job_id, remote_sep=sep)
+        self._directory_maker = directory_maker or DirectoryMaker()
         self.lock_manager = lock_manager
         # Assert this job id isn't hacking path somehow.
         assert job_id == basename(job_id)
@@ -248,11 +261,11 @@ class JobDirectory(RemoteJobDirectory):
         return rmtree(self.path)
 
     def setup(self):
-        os.mkdir(self.job_directory)
+        self._directory_maker.make(self.job_directory)
 
     def make_directory(self, name):
         path = self._job_file(name)
-        os.mkdir(path)
+        self._directory_maker.make(path)
 
     def lock(self, name=".state"):
         assert self.lock_manager, "Can only use job directory locks if lock manager defined."
@@ -342,3 +355,18 @@ def __posix_to_local_path(path, local_path_module=os.path):
         (path, base) = posixpath.split(path)
         partial_path.appendleft(base)
     return local_path_module.join(*partial_path)
+
+
+class DirectoryMaker(object):
+
+    def __init__(self, mode=None):
+        self.mode = mode
+
+    def make(self, path, recursive=False):
+        makedir_args = [path]
+        if self.mode is not None:
+            makedir_args.append(self.mode)
+        if recursive:
+            makedirs(*makedir_args)
+        else:
+            os.mkdir(*makedir_args)

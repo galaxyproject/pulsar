@@ -66,6 +66,12 @@ def _get_default_options(conf):
     if "assign_ids" in conf:
         options["assign_ids"] = conf["assign_ids"]
     options["debug"] = conf.get("debug", False)
+    # mode to create job directories with, if None just use
+    # default (usually 0777 with umask applied).
+    job_directory_mode = conf.get("job_directory_mode", None)
+    options["job_directory_mode"] = None
+    if job_directory_mode is not None:
+        options["job_directory_mode"] = int(job_directory_mode, 8)
     return options
 
 

@@ -23,6 +23,10 @@ paste.app_factory = pulsar.web.wsgi:app_factory
 ## to an absolute path, such as /tmp/pulsar_staging or C:\\pulsar_staging
 #staging_directory = files/staging
 
+## Mode to create job releated directories with. If unset
+## will just use 0777 with umask mask applied.
+#job_directory_mode = 0777
+
 ## Private token that must be sent as part of the request to
 ## authorize use. If security is important, please use this in
 ## combination with SSL.
