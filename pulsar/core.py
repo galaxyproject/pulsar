@@ -41,6 +41,7 @@ class PulsarApp(object):
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
         self.__setup_bind_to_message_queue(conf)
+        self.__recover_jobs()
         self.ensure_cleanup = conf.get("ensure_cleanup", False)
 
     def shutdown(self, timeout=None):
@@ -85,6 +86,10 @@ class PulsarApp(object):
 
     def __setup_managers(self, conf):
         self.managers = build_managers(self, conf)
+
+    def __recover_jobs(self):
+        for manager in self.managers.values():
+            manager.recover_active_jobs()
 
     def __setup_private_token(self, private_token):
         self.private_token = private_token

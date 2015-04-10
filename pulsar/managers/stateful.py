@@ -40,14 +40,16 @@ class StatefulManagerProxy(ManagerProxy):
         self.__preprocess_action_executor = RetryActionExecutor(**preprocess_retry_action_kwds)
         self.__postprocess_action_executor = RetryActionExecutor(**postprocess_retry_action_kwds)
         self.min_polling_interval = datetime.timedelta(0, min_polling_interval)
-        self.active_jobs = ActiveJobs(manager)
-        self.__state_change_callback = lambda status, job_id: None
-        self.__recover_active_jobs()
+        self.active_jobs = ActiveJobs.from_manager(manager)
+        self.__state_change_callback = self._default_status_change_callback
         self.__monitor = None
 
     def set_state_change_callback(self, state_change_callback):
         self.__state_change_callback = state_change_callback
         self.__monitor = ManagerMonitor(self)
+
+    def _default_status_change_callback(self, status, job_id):
+        log.info("Status of job [%s] changed to [%s]. No callbacks enabled." % (status, job_id))
 
     @property
     def name(self):
@@ -163,7 +165,7 @@ class StatefulManagerProxy(ManagerProxy):
                 log.exception("Failed to shutdown job monitor for manager %s" % self.name)
         super(StatefulManagerProxy, self).shutdown(timeout)
 
-    def __recover_active_jobs(self):
+    def recover_active_jobs(self):
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
         if recover_method is None:
             return
@@ -173,6 +175,12 @@ class StatefulManagerProxy(ManagerProxy):
                 recover_method(job_id)
             except Exception:
                 log.exception("Failed to recover active job %s" % job_id)
+                self.__handle_recovery_problem(job_id)
+
+    def __handle_recovery_problem(self, job_id):
+        # Make sure we tell the client we have lost this job.
+        self.active_jobs.deactivate_job(job_id)
+        self.__state_change_callback(status.LOST, job_id)
 
 
 class ActiveJobs(object):
@@ -184,10 +192,15 @@ class ActiveJobs(object):
     hit disk to recover this information.
     """
 
-    def __init__(self, manager):
+    @staticmethod
+    def from_manager(manager):
         persistence_directory = manager.persistence_directory
+        manager_name = manager.name
+        return ActiveJobs(manager_name, persistence_directory)
+
+    def __init__(self, manager_name, persistence_directory):
         if persistence_directory:
-            active_job_directory = os.path.join(persistence_directory, "%s-active-jobs" % manager.name)
+            active_job_directory = os.path.join(persistence_directory, "%s-active-jobs" % manager_name)
             if not os.path.exists(active_job_directory):
                 os.makedirs(active_job_directory)
         else:

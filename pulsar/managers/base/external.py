@@ -7,6 +7,7 @@ from .directory import DirectoryBaseManager
 
 DEFAULT_JOB_NAME_TEMPLATE = "pulsar_$job_id"
 JOB_FILE_EXTERNAL_ID = "external_id"
+FAILED_TO_LOAD_EXTERNAL_ID = object()
 
 log = logging.getLogger(__name__)
 
@@ -61,9 +62,11 @@ class ExternalBaseManager(DirectoryBaseManager):
         return Template(self.job_name_template).safe_substitute(env)
 
     def _recover_active_job(self, job_id):
-        external_id = self._job_directory(job_id).load_metadata(JOB_FILE_EXTERNAL_ID)
-        if external_id:
+        external_id = self._job_directory(job_id).load_metadata(JOB_FILE_EXTERNAL_ID, FAILED_TO_LOAD_EXTERNAL_ID)
+        if external_id and external_id is not FAILED_TO_LOAD_EXTERNAL_ID:
             self._external_ids[job_id] = external_id
+        else:
+            raise Exception("Could not determine external ID for job_id [%s]" % job_id)
 
     def _deactivate_job(self, job_id):
         del self._external_ids[job_id]

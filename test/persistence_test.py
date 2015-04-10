@@ -33,6 +33,7 @@ def test_persistence():
         assert (not(exists(touch_file)))
         queue1.shutdown()
         queue2 = StatefulManagerProxy(QueueManager('test', app, num_concurrent_jobs=1))
+        queue2.recover_active_jobs()
         time.sleep(1)
         assert exists(touch_file)
     finally:
