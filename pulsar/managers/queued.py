@@ -56,6 +56,8 @@ class QueueManager(Manager):
         command_line = self._job_directory(job_id).load_metadata(JOB_FILE_COMMAND_LINE, None)
         if command_line:
             self.work_queue.put((RUN, (job_id, command_line)))
+        else:
+            raise Exception("Cannot recover job with id %s" % job_id)
 
     def shutdown(self, timeout=None):
         for i in range(len(self.work_threads)):
