@@ -5,7 +5,7 @@
             <!-- Must tell Pulsar where to send files. -->
             <param id="galaxy_url">https://galaxyserver</param>
             <!-- Message Queue Connection (should match message_queue_url in
-                 Pulsar's server.ini). pyamqp may be necessary over amqp if SSL is used
+                 Pulsar's app.yml). pyamqp may be necessary over amqp if SSL is used
             -->
             <param id="url">pyamqp://rabbituser:rabb8pa8sw0d@mqserver:5671//?ssl=1</param>
         </plugin>

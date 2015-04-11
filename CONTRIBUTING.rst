@@ -2,6 +2,10 @@
 Contributing
 ============
 
+Please note that this project is released with a `Contributor Code of Conduct
+<https://pulsar.readthedocs.org/en/latest/conduct.html>`. By participating in
+this project you agree to abide by its terms.
+
 Contributions are welcome, and they are greatly appreciated! Every
 little bit helps, and credit will always be given.
 
@@ -26,14 +30,15 @@ If you are reporting a bug, please include:
 Fix Bugs
 ~~~~~~~~
 
-Look through the GitHub issues for bugs. Anything tagged with "bug"
-is open to whoever wants to implement it.
+Look through the GitHub issues for bugs. Most things there are up for grabs
+but the tag "Help Wanted" may be particulary good places to start.
 
 Implement Features
 ~~~~~~~~~~~~~~~~~~
 
-Look through the GitHub issues for features. Anything tagged with "feature"
-is open to whoever wants to implement it.
+Look through the GitHub issues for features (tagged with "enhancement").
+Again, most things there are up for grabs but the tag "Help Wanted" may be
+particulary good places to start.
 
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
@@ -45,7 +50,7 @@ articles, and such.
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/galaxyproject/planemo/issues.
+The best way to send feedback is to file an issue at https://github.com/galaxyproject/pulsar/issues.
 
 If you are proposing a feature:
 
@@ -117,9 +122,3 @@ Before you submit a pull request, check that it meets these guidelines:
    and make sure that the tests pass for all supported Python versions. The
    tests are imperfect and Travis sometimes fails in a transient fashion so
    this also isn't strictly required to pass.
-
-.. Tips
-.. ----
-.. To run a subset of tests::
-..    $ nosetests test/name_of_test_file.py
-

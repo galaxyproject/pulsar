@@ -72,11 +72,13 @@ export PULSAR_VIRTUALENV
 
 if [ -e $PULSAR_LOCAL_ENV ];
 then
+    echo "Sourcing file $PULSAR_LOCAL_ENV"
     . $PULSAR_LOCAL_ENV
 fi
 
 if [ -d $PULSAR_VIRTUALENV ]; 
 then
+    echo "Activating virtual environment $PULSAR_VIRTUALENV/bin/activate"
     . $PULSAR_VIRTUALENV/bin/activate
 fi
 
@@ -120,6 +122,7 @@ then
 fi
 
 if [ "$MODE" == "uwsgi" ]; then
+    echo "Starting pulsar with command [uwsgi --ini-paste \"$PULSAR_CONFIG_FILE\" \"$@\"]"
     uwsgi --ini-paste "$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "circusd" ]; then
     circusd server.ini "$@"
@@ -127,17 +130,20 @@ elif [ "$MODE" == "chaussette" ]; then
     echo "Attempting to use chaussette instead of paster, you must specify port on command-line (--port 8913)."
     chaussette "paste:$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "paster" ]; then
+    echo "Starting pulsar with command [paster server \"$PULSAR_CONFIG_FILE\" \"$@\"]"
     paster serve "$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "webless" ]; then
     if hash pulsar-main 2>/dev/null; then
         # Running from pip install since
         # pulsar-main is available on PATH.
+        echo "Starting pulsar with command [pulsar-main]"
         pulsar-main
     else
         # Running locally.
         PROJECT_DIRECTORY=$PULSAR_SCRIPTS_DIR/..
         cd $PROJECT_DIRECTORY
         export PYTHONPATH=.:$PYTHONPATH
+        echo "Starting pulsar with command [python pulsar/main.py]"
         python pulsar/main.py
     fi
 else

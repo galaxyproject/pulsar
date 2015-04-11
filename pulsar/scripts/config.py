@@ -3,7 +3,6 @@ from __future__ import print_function
 
 import os
 import string
-import subprocess
 import sys
 
 from pulsar.main import (
@@ -22,10 +21,16 @@ try:
 except ImportError:
     virtualenv = None
 
+IS_WINDOWS = os.environ.get("MOCK_WINDOWS", None) or sys.platform.startswith('win')
+
+CONFIGURE_URL = "https://pulsar.readthedocs.org/en/latest/configure.html"
+
 DESCRIPTION = "Initialize a directory with a minimal pulsar config."
 HELP_DIRECTORY = "Directory containing the configuration files for Pulsar."
 HELP_MQ = ("Write configuration files for message queue server deployment "
            "instead of more traditional RESTful web based pulsar.")
+HELP_NO_LOGGING = ("Do not write Pulsar's default logging configuration to server.ini "
+                   "and if uwsgi is configured do not configure its logging either.")
 HELP_SUPERVISOR = ("Write a supervisord configuration file for "
                    "managing pulsar out as well.")
 HELP_FORCE = "Overwrite existing files if they already exist."
@@ -34,10 +39,15 @@ HELP_LIBDRMAA = ("Configure Pulsar to submit jobs to a cluster via DRMAA by "
                  "supplying the path to a libdrmaa .so file using this argument.")
 HELP_INSTALL = ("Install optional dependencies required by specified configuration "
                 "(e.g. drmaa, supervisor, uwsgi, etc...).")
-HELP_HOST = ("Host to bind Pulsar to - defaults to localhost. Set to 0.0.0.0 "
+HELP_HOST = ("Host to bind Pulsar to - defaults to localhost. Specify 0.0.0.0 "
              "to listen on all interfaces.")
+HELP_TOKEN = ("Private token used to authorize clients. If Pulsar is not protected "
+              "via firewall, this should be specified and SSL should be enabled. See "
+              "%s for more information on security.") % CONFIGURE_URL
 HELP_PORT = ("Port to bind Pulsar to (ignored if --mq is specified).")
 HELP_PIP_INSTALL_ARGS_HELP = ("Arguments to pip install (defaults to pulsar-app) - unimplemented")
+
+DEFAULT_HOST = "localhost"
 
 LOGGING_CONFIG_SECTIONS = """## Configure Python loggers.
 [loggers]
@@ -133,7 +143,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     dependencies = []
-    arg_parser = ArgumentParser(description=DESCRIPTION)
+    arg_parser = PlatformArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--directory",
                             default=".",
                             help=HELP_DIRECTORY)
@@ -145,34 +155,42 @@ def main(argv=None):
                             dest="logging",
                             action="store_false",
                             default=True,
-                            help=HELP_MQ)
+                            help=HELP_NO_LOGGING)
     arg_parser.add_argument("--supervisor",
                             action="store_true",
                             default=False,
-                            help=HELP_SUPERVISOR)
+                            help=HELP_SUPERVISOR,
+                            skip_on_windows=True)
     arg_parser.add_argument("--wsgi_server",
-                            choices=["paste", "uwsgi"],
+                            choices=["paster", "uwsgi"],
                             default=None,
-                            help=HELP_WSGI_SERVER)
+                            help=HELP_WSGI_SERVER,
+                            skip_on_windows=True)
     arg_parser.add_argument("--libdrmaa_path",
-                            help=HELP_LIBDRMAA)
+                            help=HELP_LIBDRMAA,
+                            skip_on_windows=True)
     arg_parser.add_argument("--host",
-                            default="localhost",
+                            default=DEFAULT_HOST,
                             help=HELP_HOST)
+    arg_parser.add_argument("--private_token",
+                            default=None,
+                            help=HELP_TOKEN)
     arg_parser.add_argument("--port",
                             default="8913",
                             help=HELP_PORT)
     arg_parser.add_argument("--install",
+                            action="store_true",
                             help=HELP_INSTALL)
     arg_parser.add_argument("--force",
                             action="store_true",
                             default=False,
                             help=HELP_FORCE)
-    arg_parser.add_argument("--pip_install_args",
-                            default="pulsar-app",
-                            help=HELP_PIP_INSTALL_ARGS_HELP)
+    # arg_parser.add_argument("--pip_install_args",
+    #                         default="pulsar-app",
+    #                         help=HELP_PIP_INSTALL_ARGS_HELP)
     args = arg_parser.parse_args(argv)
     directory = args.directory
+    relative_directory = directory
     directory = os.path.abspath(directory)
 
     mode = _determine_mode(args)
@@ -182,11 +200,63 @@ def main(argv=None):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+    print("Bootstrapping pulsar configuration into directory %s" % relative_directory)
     _handle_app_yaml(args, directory)
     _handle_server_ini(args, directory)
-    _handle_local_env(args, directory, dependencies)
-    _handle_supervisor(args, mode, directory, dependencies)
+    if not IS_WINDOWS:
+        _handle_local_env(args, directory, dependencies)
+        _handle_supervisor(args, mode, directory, dependencies)
     _handle_install(args, dependencies)
+    _print_config_summary(args, mode, relative_directory)
+
+
+def _print_config_summary(args, mode, relative_directory):
+    print(" - app.yml created, update to configure Pulsar application.")
+    _print_server_ini_info(args, mode)
+    if not IS_WINDOWS:
+        print(" - local_env.sh created, update to configure environment.")
+    print("\n")
+    print("Start pulsar by running the command from directory [%s]:" % relative_directory)
+    _print_pulsar_run(mode)
+    _print_pulsar_check(args, mode)
+
+
+def _print_server_ini_info(args, mode):
+    if not args.mq:
+        print(" - server.ini created, update to configure web server.")
+        print("   * Target web server %s" % mode)
+        if args.host == DEFAULT_HOST:
+            print("   * Binding to host localhost, remote clients will not be able to connect.")
+        elif args.private_token:
+            print("   * Binding to host [%s] with a private token, please configure SSL if network is not firewalled off.", args.host)
+        else:
+            print("   * Binding to host [%s], configure a private token and SSL if network is not firewalled off.", args.host)
+        print("   * Target web server %s" % mode)
+
+
+def _print_pulsar_run(mode):
+    if IS_WINDOWS:
+        print("    pulsar")
+    elif mode == "uwsgi":
+        print("    pulsar --mode %s" % mode)
+        print("Any extra commands passed to pulsar will be forwarded along to uwsgi.")
+    elif mode != "paster":
+        print("    pulsar --mode %s" % mode)
+    else:
+        print("    pulsar")
+
+
+def _print_pulsar_check(args, mode):
+    if not mode == "webless":
+        # TODO: Implement pulsar-check for mq
+        return
+
+    print("Run a test job against your Pulsar server using the command:")
+    command = "pulsar-check --url http://%s:%s" % (args.host, args.port)
+    if args.private_token:
+        command += '--private_token %s' % args.private_token
+    print("  %s" % command)
+    print("If it reports no problems, your pulsar server is running properly.")
 
 
 def _determine_mode(args):
@@ -226,6 +296,8 @@ def _handle_app_yaml(args, directory):
     yaml_file = os.path.join(directory, DEFAULT_APP_YAML)
     _check_file(yaml_file, force)
     contents = "---\n"
+    if args.private_token:
+        contents += 'private_token: %s\n' % args.private_token
     if args.mq:
         contents += 'message_queue_url: "amqp://guest:guest@localhost:5672//"\n'
     else:
@@ -270,19 +342,31 @@ def _handle_install(args, dependencies):
         pip.main("install", *dependencies)
 
 
-def _install_pulsar_in_virtualenv(venv):
-    if virtualenv is None:
-        raise ImportError("Bootstrapping Pulsar into a virtual environment, requires virtualenv.")
-
-    if sys.platform.startswith('win'):
-        bin_dir = "Scripts"
-    else:
-        bin_dir = "bin"
-    virtualenv.create_environment(venv)
-    subprocess.call([os.path.join(venv, bin_dir, 'pip'), 'install', "--pre", "pulsar-app"])
+# def _install_pulsar_in_virtualenv(venv):
+#     if virtualenv is None:
+#         raise ImportError("Bootstrapping Pulsar into a virtual environment, requires virtualenv.")
+#     if IS_WINDOWS:
+#         bin_dir = "Scripts"
+#     else:
+#         bin_dir = "bin"
+#     virtualenv.create_environment(venv)
+#     # TODO: Remove --pre on release.
+#     subprocess.call([os.path.join(venv, bin_dir, 'pip'), 'install', "--pre", "pulsar-app"])
 
 
 def _check_file(path, force):
     if os.path.exists(path) and not force:
-        print("File %s exists, exiting." % path, file=sys.stderr)
+        print("File %s exists, exiting. Run with --force to replace configuration." % path, file=sys.stderr)
         sys.exit(1)
+
+
+class PlatformArgumentParser(ArgumentParser):
+
+    def add_argument(self, *args, **kwds):
+        if "skip_on_windows" in kwds:
+            skip_on_windows = kwds["skip_on_windows"]
+            if skip_on_windows and IS_WINDOWS:
+                return
+            del kwds["skip_on_windows"]
+
+        return ArgumentParser.add_argument(self, *args, **kwds)

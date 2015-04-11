@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
-import shutil
-import tempfile
-import os
+"""Script used to run an example job against a running Pulsar server.
+
+Exercises various features both the Pulsar client and server.
+"""
 import optparse
-import traceback
+import os
 import re
+import shutil
+import sys
+import tempfile
 import threading
 import time
+import traceback
 from io import open
 
 from pulsar.client import submit_job
@@ -64,6 +69,18 @@ finally:
     version_output.close()
     output4_index_path.close()
 """
+
+HELP_URL = "URL of the Pulsar web server to target."
+HELP_PRIVATE_TOKEN = ("Private token used to authorize client, if the "
+                      "Pulsar server specified a private_token in app.yml "
+                      "this must match that value.")
+HELP_TRANSPORT = "Specify as 'curl' to use pycurl client for staging."
+HELP_CACHE = "Specify to test Pulsar caching during staging."
+HELP_TEST_ERRORS = "Specify to exercise exception handling during staging."
+HELP_SUPPRESS_OUTPUT = ""
+HELP_DISABLE_CLEANUP = ("Specify to disable cleanup after the job, this "
+                        "is useful to checking the files generated during "
+                        "the job and stored on the Pulsar server.")
 
 EXPECTED_OUTPUT = b"hello world output"
 EXAMPLE_UNICODE_TEXT = u'єχαмρℓє συтρυт'
@@ -378,14 +395,15 @@ def __finish(options, client, client_outputs, result_status):
 
 def main():
     """ Exercises a running Pulsar with the Pulsar client. """
-    parser = optparse.OptionParser()
-    parser.add_option('--url', dest='url', default='http://localhost:8913/')
-    parser.add_option('--private_token', default=None)
-    parser.add_option('--transport', default=None)  # set to curl to use pycurl
-    parser.add_option('--cache', default=False, action="store_true")
-    parser.add_option('--test_errors', default=False, action="store_true")
-    parser.add_option('--suppress_output', default=False, action="store_true")
-    parser.add_option('--disable_cleanup', dest="cleanup", default=True, action="store_false")
+    mod_docstring = sys.modules[__name__].__doc__
+    parser = optparse.OptionParser(mod_docstring)
+    parser.add_option('--url', dest='url', default='http://localhost:8913/', help=HELP_URL)
+    parser.add_option('--private_token', default=None, help=HELP_PRIVATE_TOKEN)
+    parser.add_option('--transport', default=None, choices=["urllib", "curl"], help=HELP_TRANSPORT)  # set to curl to use pycurl
+    parser.add_option('--cache', default=False, action="store_true", help=HELP_CACHE)
+    parser.add_option('--test_errors', default=False, action="store_true", help=HELP_TEST_ERRORS)
+    parser.add_option('--suppress_output', default=False, action="store_true", help=HELP_SUPPRESS_OUTPUT)
+    parser.add_option('--disable_cleanup', dest="cleanup", default=True, action="store_false", help=HELP_DISABLE_CLEANUP)
     (options, args) = parser.parse_args()
     run(options)
 

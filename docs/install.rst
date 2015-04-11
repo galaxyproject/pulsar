@@ -51,27 +51,26 @@ command.::
 The ``pulsar-config`` script can bootstrap various Pulsar deployment options,
 run ``pulsar-config --help`` for full details. For instance, Pulsar can be
 configured to monitor a message queue and skip the web server configuration -
-enable this by passing ``--mq`` to ``pulsar-config``. Another particularly
-useful option is ``--supervisor`` which will generate a Supervisord_
-configuration for this directory and install Supervisord_.
+enable this by passing ``--mq`` to ``pulsar-config``. Another useful option is
+``--supervisor`` which will generate a Supervisord_ configuration for this
+directory and install Supervisord_.
 
 .. TODO a full page of documentation on supervisor - perhaps auto-generated
    from --help.
-
 .. TODO a page on operating pulsar via supervisord
 
 ``pulsar-config`` installs a few files into this directory. ``app.yml``
 contains Pulsar configuration options and ``server.ini`` contains web server
 related information (it will not exist if configured ``--mq``).::
 
-    pulsar [start]
+    pulsar [--daemon]
 
-Under Linux and Mac OS X the ``start`` argument can be supplied to run Pulsar as
-a daemon and ``pulsar stop``. If ``start`` is not supplied, Pulsar will just run
-in the foreground (the only option for Windows).
+Under Linux and Mac OS X the ``--daemon`` argument can be supplied to run
+Pulsar as a daemon and ``pulsar --stop-daemon``. If ``start`` is not supplied,
+Pulsar will just run in the foreground (the only option for Windows).
 
 The Pulsar deployment can be tested by running the following command, which will
-submit an example job and wait for its completion.
+submit an example job and wait for its completion.::
 
     pulsar-check
 
@@ -83,32 +82,45 @@ it can be supplied using ``--private_token=<token>``.
 From Source
 ----------------------
 
-Pulsar can be obtained from GitHub_ using the following command::
+Alternatively, Pulsar can be obtained from GitHub_ using the following command
+and ran directly from the source tree (like Galaxy is traditionally
+deployed)::
 
     git clone https://github.com/galaxyproject/pulsar
 
--------------------
+
+The following section will assume your current working directory is the newly
+created ``pulsar`` directory.
+
+    cd pulsar
+
+~~~~~~~~~~~~~~~~~~~
 Pulsar Dependencies
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 Several Python packages must be installed to run the Pulsar server. These can
 either be installed into a Python ``virtualenv`` or into your system wide
-Python environment using ``easy_install``. Instructions for both are outlined
-below. Additionally, if DRMAA is going to be used to communicate with a
-cluster, this dependency must be installed as well - again see note below.
+Python environment either using ``pip`` or ``easy_install``. Combining the
+``virtualenv`` approach with ``pip`` based installation works fine most of the
+time, but in the past ``easy_install``-based installation was slightly more
+robust under Windows and requires only a Python installation so those
+instructions are included as well.
+
+This section describes setting up the minimal dependencies required for
+running a standalone Pulsar web server. Additional dependencies are required
+for features such submitting to a cluster (``drmaa``), communicating via
+message queue (``kombu``), etc.... Most of the time these can just be
+installed with ``pip install <dependency_name>``. Pulsar's documentation about
+these functionality
 
 virtualenv
-----------
+~~~~~~~~~~~~~~~~~~~
 
-Installation suitable for \*nix are as follows. These instructions can work for
-Windows as well but generally the ``easy_install`` instructions below are more
-robust for Window's environments.
+1. Install virtualenv_ (if not already available)::
 
-1. Install virtualenv_ (if not available)::
+    [sudo] pip install virtualenv
 
-    pip install virtualenv
-
-2. Create a new Python environment::
+2. Create a new Python virtual environment called ``.venv`` in the ``pulsar`` root directory::
 
     virtualenv .venv
 
@@ -127,7 +139,7 @@ From a Windows terminal::
     pip install -r requirements.txt
 
 easy_install
-------------
+~~~~~~~~~~~~~~~~~~~
 
 Install python setuptools for your platform, more details on how to do
 this can be found `here <http://pypi.python.org/pypi/setuptools>`__.
@@ -136,9 +148,50 @@ The ``easy_install`` command line application will be installed as
 part of setuptools. Use the following command to install the needed
 packages via ``easy_install``::
 
-    easy_install paste wsgiutils PasteScript PasteDeploy webob six psutil
+    easy_install paste wsgiutils PasteScript PasteDeploy webob six psutil pyyaml
 
+Launching Pulsar
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Before launching Pulsar, it may make sense to copy over the sample
+configuration files. ``server.ini`` is used to describe web server related
+properties and ``app.yml`` is used for Pulsar application-related
+configuration files.
+
+    cp server.ini.sample server.ini
+    cp app.yml.sample app.yml
+
+Pulsar should now be launchable via the ``run.sh`` script under Linux or Mac
+OS X or using the ``run.bat`` script under Windows. So under Linux or Mac OS
+X, Pulsar can be launched in daemon mode as::
+
+    ./run.sh --daemon
+
+This daemon can be stopped using ``./run.sh --stop-daemon``. When run as a
+daemon, Pulsar will log to the file ``paster.log``.
+
+Under Windows, Pulsar can be started using::
+
+    run.bat
+
+and will run as long as that process is alive and log to standard output.
+
+    python run_client_tests.py
+
+If Pulsar's ``server.ini`` has been modified and it is not running on the
+default port ``8913``, ``run_client_tests.py`` should be called with an
+explicit URL using the argument ``--url=http://localhost:8913``. Likewise if a
+private token has been configured it can be supplied using
+``--private_token=<token>``.
+
+A Note on ``run.sh``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If any of `circus <http://circus.readthedocs.org/en/0.9.2/>`_, `chassuette
+<https://chaussette.readthedocs.org/>`_, or `uWSGI
+<http://uwsgi-docs.readthedocs.org/>`_ are installed into Pulsar's virtual 
+environment more sophisticated web servers will launched via this ``run.sh``
+command. See the script for more details.
 
 .. _Galaxy: http://galaxyproject.org/
 .. _GitHub: https://github.com/

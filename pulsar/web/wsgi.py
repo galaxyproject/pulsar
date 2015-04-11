@@ -1,11 +1,14 @@
 import atexit
 import inspect
+import logging
 
 from pulsar.main import load_app_configuration
 from pulsar.core import PulsarApp
 from pulsar.web.framework import RoutingApp
 
 import pulsar.web.routes
+
+log = logging.getLogger(__name__)
 
 
 def app_factory(global_conf, **local_conf):

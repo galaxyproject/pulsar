@@ -1,3 +1,22 @@
+"""Stand-alone entry point for running Pulsar without a web server.
+
+In its simplest form, this method will check the current directory for an
+app.yml and run the corresponding configuration as a standalone applciation.
+This makes sense when ``app.yml`` contains a ``message_queue_url`` option so
+Pulsar is configured to listen to a message queue and doesn't require a web
+server.
+
+The following commands can be used to bootstrap such a setup.::
+
+    mkdir pulsar-mq-config
+    cd pulsar-mq-config
+    pulsar-config --mq
+    pulsar-main
+
+This script can be used in a standalone fashion, but it is generally better to
+run the ``pulsar`` script with ``--mode webless`` - which will in turn
+delegate to this script.
+"""
 import logging
 from logging.config import fileConfig
 
@@ -19,13 +38,16 @@ except ImportError:
 
 # Vaguely Python 2.6 compatibile ArgumentParser import
 try:
-    from argparser import ArgumentParser
+    from argparse import ArgumentParser
+    from argparse import RawDescriptionHelpFormatter
 except ImportError:
     from optparse import OptionParser
 
     class ArgumentParser(OptionParser):
 
         def __init__(self, **kwargs):
+            if "formatter_class" in kwargs:
+                del kwargs["formatter_class"]
             self.delegate = OptionParser(**kwargs)
 
         def add_argument(self, *args, **kwargs):
@@ -36,6 +58,8 @@ except ImportError:
         def parse_args(self, args=None):
             (options, args) = self.delegate.parse_args(args)
             return options
+
+    RawDescriptionHelpFormatter = None
 
 
 log = logging.getLogger(__name__)
@@ -55,7 +79,10 @@ DEFAULT_MANAGER = "_default_"
 
 DEFAULT_PID = "pulsar.pid"
 DEFAULT_VERBOSE = True
-DESCRIPTION = "Daemonized entry point for Pulsar services."
+HELP_CONFIG_DIR = "Default directory to search for relevant Pulsar configuration files (e.g. app.yml, server.ini)."
+HELP_INI_PATH = "Specify an explicit path to Pulsar's server.ini configuration file."
+HELP_APP_CONF_PATH = "Specify an explicit path to Pulsar's app.yml configuration file."
+HELP_DAEMONIZE = "Daemonzie process (requires daemonize library)."
 
 
 def load_pulsar_app(
@@ -198,14 +225,14 @@ class PulsarConfigBuilder(object):
 
     @classmethod
     def populate_options(cls, arg_parser):
-        arg_parser.add_argument("-c", "--config_dir", default=None)
-        arg_parser.add_argument("--ini_path", default=None)
-        arg_parser.add_argument("--app_conf_path", default=None)
+        arg_parser.add_argument("-c", "--config_dir", default=None, help=HELP_CONFIG_DIR)
+        arg_parser.add_argument("--ini_path", default=None, help=HELP_INI_PATH)
+        arg_parser.add_argument("--app_conf_path", default=None, help=HELP_APP_CONF_PATH)
         arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
         # daemon related options...
-        arg_parser.add_argument("-d", "--daemonize", default=False, help="Daemonzie process", action="store_true")
-        arg_parser.add_argument("--daemon-log-file", default=None, help="log file for daemon script ")
-        arg_parser.add_argument("--pid-file", default=DEFAULT_PID, help="pid file (default is %s)" % DEFAULT_PID)
+        arg_parser.add_argument("-d", "--daemonize", default=False, help=HELP_DAEMONIZE, action="store_true")
+        arg_parser.add_argument("--daemon-log-file", default=None, help="Log file for daemon, if --daemonize supplied.")
+        arg_parser.add_argument("--pid-file", default=DEFAULT_PID, help="Pid file for daemon, if --daemonize supplied (default is %s)." % DEFAULT_PID)
 
     def load(self):
         config = load_app_configuration(
@@ -259,7 +286,11 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 def main(argv=None):
     if argv is None:
         argv = sys.argv
-    arg_parser = ArgumentParser(description=DESCRIPTION)
+    mod_docstring = sys.modules[__name__].__doc__
+    arg_parser = ArgumentParser(
+        description=mod_docstring,
+        formatter_class=RawDescriptionHelpFormatter,
+    )
     PulsarConfigBuilder.populate_options(arg_parser)
     args = arg_parser.parse_args(argv)
 

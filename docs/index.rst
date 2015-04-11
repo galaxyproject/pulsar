@@ -13,8 +13,11 @@ Contents:
    :maxdepth: 2
 
    readme
+   install
+   configure
    job_managers
    galaxy_conf
+   scripts
    upgrading
    conduct
    contributing

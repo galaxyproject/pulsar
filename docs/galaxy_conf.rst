@@ -19,7 +19,7 @@ Simple Windows Pulsar Web Server
 
 The following Galaxy ``job_conf.xml`` assumes you have deployed a simple Pulsar
 web server to the Windows host ``windowshost.examle.com`` on the default port
-(``8913``) with a ``private_token`` (defined in ``server.ini``) of
+(``8913``) with a ``private_token`` (defined in ``app.yml``) of
 ``123456789changeme``. Most Galaxy jobs will just route use Galaxy's local job
 runner but ``msconvert`` and ``proteinpilot`` will be sent to the Pulsar server
 on ``windowshost.examle.com``. Sophisticated tool dependency resolution is not
@@ -38,7 +38,7 @@ no need for the Pulsar) and a bigger shared resource that cannot mount Galaxy's
 files requiring the use of the Pulsar. This variant routes some larger assembly
 jobs to the remote cluster - namely the `trinity` and `abyss` tools. Be sure
 the underlying applications required by the ``trinity`` and ``abyss`` tools
-are on the Pulsar path or set ``tool_dependency_dir`` in ``server.ini`` and setup
+are on the Pulsar path or set ``tool_dependency_dir`` in ``app.yml`` and setup
 Galaxy env.sh-style packages definitions for these applications).
 
 .. literalinclude:: files/job_conf_sample_remote_cluster.xml
@@ -57,7 +57,7 @@ Targeting a Linux Cluster (Pulsar over Message Queue)
 For Pulsar instances sitting behind a firewall a web server may be impossible. If
 the same Pulsar configuration discussed above is additionally configured with a
 ``message_queue_url`` of ``amqp://rabbituser:rabb8pa8sw0d@mqserver:5672//`` in
-``server.ini`` the following Galaxy configuration will cause this message
+``app.yml`` the following Galaxy configuration will cause this message
 queue to be used for communication. This is also likely better for large file
 transfers since typically your production Galaxy server will be sitting behind
 a high-performance proxy but not the Pulsar.
