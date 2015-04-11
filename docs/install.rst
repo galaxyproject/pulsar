@@ -104,7 +104,7 @@ Installation suitable for \*nix are as follows. These instructions can work for
 Windows as well but generally the ``easy_install`` instructions below are more
 robust for Window's environments.
 
-1. Install `virtualenv <http://www.virtualenv.org/en/latest/#installation>`_ (if not available)::
+1. Install virtualenv_ (if not available)::
 
     pip install virtualenv
 
