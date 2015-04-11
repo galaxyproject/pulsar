@@ -6,8 +6,8 @@ This project is a Python server application that allows a `Galaxy
 <http://galaxyproject.org>`_ server to run jobs on remote systems (including
 Windows) without requiring a shared mounted file systems. Unlike traditional
 Galaxy job runners - input files, scripts, and config files may be transferred
-to the remote system, the job is executed, and the result downloaded back to
-the Galaxy server.
+to the remote system, the job is executed, and the results are transfered back
+to the Galaxy server - eliminating the need for a shared file system.
 
 Full documentation for the project can be found on `Read The Docs
 <https://pulsar.readthedocs.org/>`_.
@@ -16,9 +16,12 @@ Full documentation for the project can be found on `Read The Docs
 Configuring Galaxy
 ------------------
 
-Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small examples of how to configure this can be found `here <https://pulsar.readthedocs.org/en/latest/#galaxy-configuration>`__, but be sure to checkout ``job_conf.xml.sample_advanced``
-in your Galaxy code base or on
-`Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/job_conf.xml.sample_advanced?at=default>`_
+Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. Some small
+examples of how to configure this can be found `here
+<https://pulsar.readthedocs.org/en/latest/#galaxy-configuration>`__, but be sure
+to checkout ``job_conf.xml.sample_advanced`` in your Galaxy code base or on
+`Github
+<https://github.com/galaxyproject/galaxy/blob/master/config/job_conf.xml.sample_advanced>`_
 for complete information.
 
 ------------------
