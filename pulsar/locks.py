@@ -8,7 +8,7 @@ import threading
 import logging
 log = logging.getLogger(__name__)
 
-NO_PYLOCKFILE_MESSAGE = "pylockfile module not found, expect suboptimal Pulsar lock handling."
+NO_PYLOCKFILE_MESSAGE = "pylockfile module not found, skipping experimental lockfile handling."
 
 
 class LockManager():
