@@ -71,7 +71,9 @@ def __start_consumer(name, exchange, target):
     exchange_url = mask_password_from_url(exchange.url)
     thread_name = "consume-%s-%s" % (name, exchange_url)
     thread = threading.Thread(name=thread_name, target=target)
-    thread.daemon = False
+    # TODO: If the shutdown code is actually called make this
+    # not a daemon.
+    thread.daemon = True
     thread.start()
     return thread
 

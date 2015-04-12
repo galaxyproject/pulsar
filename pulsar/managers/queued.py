@@ -41,6 +41,7 @@ class QueueManager(Manager):
         self.work_threads = []
         for i in range(num_concurrent_jobs):
             worker = threading.Thread(target=self.run_next)
+            worker.daemon = True
             worker.start()
             self.work_threads.append(worker)
 
