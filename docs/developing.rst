@@ -38,9 +38,9 @@ are fine.
 * ``make docs`` and review changelog.
 * ``git add HISTORY.rst pulsar/__init__.py; git commit -m "Version <version>"``
 * ``make release``
-    * Review `Test PyPI site <https://testpypi.python.org/pypi/pulsar>`_
+    * Review `Test PyPI site <https://testpypi.python.org/pypi/pulsar-app>`_
       for errors.
-    * Test intall ``pip install -i https://testpypi.python.org/pypi pulsar``.
+    * Test intall ``pip install -i https://testpypi.python.org/pypi pulsar-app``.
 * ``git tag <release>``
 * Update version info in ``pulsar/__init__.py`` (n+1.dev0) and create new entry in HISTORY.rst.
 * ``git add HISTORY.rst pulsar/__init__.py; git commit -m "Start work on new version"``
