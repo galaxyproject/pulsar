@@ -40,6 +40,8 @@ section <https://pulsar.readthedocs.org/en/latest/install.html>`__ of the
 documentaiton, but if your machine has the proper Python dependencies
 available it can be quickly download and a test job run with.
 
+::
+
     mkdir pulsar
     cd pulsar
     virtualenv venv
@@ -76,7 +78,7 @@ these tests::
     make tests
 
 The following command will then produce a coverage report
-corresponding to this test and place it in the coverage_html_report
+corresponding to this test and place it in the ``coverage_html_report``
 subdirectory of this project.::
 
     coverage html
