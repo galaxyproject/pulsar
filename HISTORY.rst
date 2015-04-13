@@ -4,7 +4,7 @@ History
 -------
 
 ------------------------
-0.3.0.dev4
+0.3.0 (2015-04-12)
 ------------------------
 
 * Changed the name of project to Pulsar, moved to Github.
