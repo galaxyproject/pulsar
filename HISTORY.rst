@@ -4,7 +4,7 @@ History
 -------
 
 ------------------------
-0.3.0.dev0
+0.3.0.dev4
 ------------------------
 
 * Changed the name of project to Pulsar, moved to Github.
@@ -35,3 +35,10 @@ History
 * Simple support for running jobs managed by the Python LWR
   web process.
 * https://bitbucket.org/jmchilton/lwr/branch/0.1
+
+---------------------
+0.0.1
+---------------------
+
+* See the original `announcement <http://dev.list.galaxyproject.org/New-Remote-Job-Runner-td4138951.html>`__
+  and `initial commit <https://github.com/galaxyproject/pulsar/commit/163ed48d5a1902ceb84c38f10db8cbe5a0c1039d>`__.

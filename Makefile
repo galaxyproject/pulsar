@@ -83,9 +83,9 @@ dist: clean
 
 release-test: dist
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; twine upload -r test dist/*
-	open https://testpypi.python.org/pypi/pulsar-app || https://testpypi.python.org/pypi/pulsar-app
+	open https://testpypi.python.org/pypi/pulsar-app || xdg-open https://testpypi.python.org/pypi/pulsar-app
 
-release:
+release: release-test
 	@while [ -z "$$CONTINUE" ]; do \
 	  read -r -p "Have you executed release-test and reviewed results? [y/N]: " CONTINUE; \
 	done ; \

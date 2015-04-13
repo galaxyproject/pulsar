@@ -88,4 +88,5 @@ Checkout the `Contributing
 for many more details on developing and contributing to Pulsar.
 
 Please note that this project is released with a `Contributor Code of Conduct 
-<https://pulsar.readthedocs.org/en/latest/conduct.html>`__. By participating in this project you agree to abide by its terms.
+<https://pulsar.readthedocs.org/en/latest/conduct.html>`__. By participating
+in this project you agree to abide by its terms.

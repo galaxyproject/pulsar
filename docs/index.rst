@@ -21,6 +21,7 @@ Contents:
    upgrading
    conduct
    contributing
+   developing
    history
 
 Indices and tables
