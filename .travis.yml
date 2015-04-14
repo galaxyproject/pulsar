@@ -8,6 +8,7 @@ env:
   - TOX_ENV=lint-docs
   - TOX_ENV=py26 SETUP=true
   - TOX_ENV=py27 SETUP=true
+  - TOX_ENV=py34 SETUP=true
 
 install:
   - pip install tox

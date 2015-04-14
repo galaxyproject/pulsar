@@ -14,6 +14,8 @@ import time
 import traceback
 from io import open
 
+from six import binary_type
+
 from pulsar.client import submit_job
 from pulsar.client import finish_job
 from pulsar.client import PulsarOutputs
@@ -203,10 +205,7 @@ def run(options):
             __assert_contents(temp_output3_path, "moo_override", result_status)
         else:
             __assert_contents(temp_output3_path, "moo_default", result_status)
-        if client.default_file_action != "none":
-            rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
-            # Path written to this file will differ between Windows and Linux.
-            assert re.search(r"123456[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa", rewritten_index_path) is not None
+        __assert_has_rewritten_bwa_path(client, temp_output4_path)
         __exercise_errors(options, client, temp_output_path, temp_directory)
         client_manager.shutdown()
     except BaseException:
@@ -267,7 +266,10 @@ class Waiter(object):
 def __assert_contents(path, expected_contents, pulsar_state):
     if not os.path.exists(path):
         raise AssertionError("File %s not created. Final Pulsar response state [%s]" % (path, pulsar_state))
-    file = open(path, 'r', encoding="utf-8")
+    if isinstance(expected_contents, binary_type):
+        file = open(path, 'rb')
+    else:
+        file = open(path, 'r', encoding="utf-8")
     try:
         contents = file.read()
         if contents != expected_contents:
@@ -276,6 +278,14 @@ def __assert_contents(path, expected_contents, pulsar_state):
             raise AssertionError(message)
     finally:
         file.close()
+
+
+def __assert_has_rewritten_bwa_path(client, temp_output4_path):
+    if client.default_file_action != "none":
+        rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
+        # Path written to this file will differ between Windows and Linux.
+        if re.search(r"123456[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa", rewritten_index_path) is None:
+            raise AssertionError("[%s] does not container rewritten path." % rewritten_index_path)
 
 
 def __exercise_errors(options, client, temp_output_path, temp_directory):
@@ -321,7 +331,7 @@ def __client(temp_directory, options):
     if default_file_action in ["remote_scp_transfer", "remote_rsync_transfer"]:
         test_key = os.environ["PULSAR_TEST_KEY"]
         if not test_key.startswith("----"):
-            test_key = open(test_key, "rb").read()
+            test_key = open(test_key, "r").read()
         client_options["ssh_key"] = test_key
         client_options["ssh_user"] = os.environ.get("USER")
         client_options["ssh_port"] = 22

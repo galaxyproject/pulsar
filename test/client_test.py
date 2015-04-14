@@ -120,7 +120,7 @@ def test_launch():
     """ Test the launch method of client. """
     client = TestClient()
     request_checker = RequestChecker("jobs/543/submit", {"command_line": "python"})
-    client.expect_open(request_checker, b'OK')
+    client.expect_open(request_checker, 'OK')
     client.launch("python")
     request_checker.assert_called()
 
@@ -161,7 +161,7 @@ def test_upload_config():
         temp_file.write("Hello World!")
     finally:
         temp_file.close()
-    modified_contents = "Hello World! <Modified>"
+    modified_contents = b"Hello World! <Modified>"
     request_checker = RequestChecker("jobs/543/files", {"name": os.path.basename(temp_file_path), "type": "config"}, modified_contents)
     client.expect_open(request_checker, b'{"path" : "C:\\\\tools\\\\foo"}')
     upload_result = client.put_file(temp_file_path, 'config', contents=modified_contents)
@@ -194,7 +194,7 @@ def test_get_status_queued():
 def test_kill():
     client = TestClient()
     request_checker = RequestChecker("jobs/543/cancel")
-    client.expect_open(request_checker, b'OK')
+    client.expect_open(request_checker, 'OK')
     client.kill()
     request_checker.assert_called()
 
@@ -202,6 +202,6 @@ def test_kill():
 def test_clean():
     client = TestClient()
     request_checker = RequestChecker("jobs/543")
-    client.expect_open(request_checker, b'OK')
+    client.expect_open(request_checker, 'OK')
     client.clean()
     request_checker.assert_called()

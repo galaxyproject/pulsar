@@ -1,3 +1,4 @@
+from functools import wraps
 from threading import Lock, Event
 from weakref import WeakValueDictionary
 from os import walk
@@ -8,12 +9,32 @@ import os.path
 import hashlib
 import shutil
 import json
-import base64
+import sys
+
+from six import binary_type
+
+# Variant of base64 compat layer inspired by BSD code from Bcfg2
+# https://github.com/Bcfg2/bcfg2/blob/maint/src/lib/Bcfg2/Compat.py
+if sys.version_info >= (3, 0):
+    from base64 import b64encode as _b64encode, b64decode as _b64decode
+
+    @wraps(_b64encode)
+    def b64encode(val, **kwargs):
+        try:
+            return _b64encode(val, **kwargs)
+        except TypeError:
+            return _b64encode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
+
+    @wraps(_b64decode)
+    def b64decode(val, **kwargs):
+        return _b64decode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
+else:
+    from base64 import b64encode, b64decode
 
 
 def unique_path_prefix(path):
     m = hashlib.md5()
-    m.update(path)
+    m.update(path.encode('utf-8'))
     return m.hexdigest()
 
 
@@ -75,15 +96,17 @@ def filter_destination_params(destination_params, prefix):
 def to_base64_json(data):
     """
 
-    >>> x = from_base64_json(to_base64_json(dict(a=5)))
-    >>> x["a"]
+    >>> enc = to_base64_json(dict(a=5))
+    >>> dec = from_base64_json(enc)
+    >>> dec["a"]
     5
     """
-    return base64.b64encode(json.dumps(data))
+    dumped = json_dumps(data)
+    return b64encode(dumped)
 
 
 def from_base64_json(data):
-    return json.loads(base64.b64decode(data))
+    return json.loads(b64decode(data))
 
 
 class PathHelper(object):
@@ -175,3 +198,23 @@ class EventHolder(object):
 
     def fail(self):
         self.failed = True
+
+
+def json_loads(obj):
+    if isinstance(obj, binary_type):
+        obj = obj.decode("utf-8")
+    return json.loads(obj)
+
+
+def json_dumps(obj):
+    if isinstance(obj, binary_type):
+        obj = obj.decode("utf-8")
+    return json.dumps(obj, cls=ClientJsonEncoder)
+
+
+class ClientJsonEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, binary_type):
+            return obj.decode("utf-8")
+        return json.JSONEncoder.default(self, obj)

@@ -45,9 +45,9 @@ class TestStager(TempDirectoryTestCase):
         os.makedirs(files_directory)
         self.input1 = os.path.join(files_directory, "dataset_1.dat")
         self.input1_files_path = os.path.join(files_directory, "dataset_1_files")
-        open(self.input1, "wb").write(u"012345")
+        open(self.input1, "wb").write(b"012345")
         self.input2 = os.path.join(files_directory, "dataset_2.dat")
-        open(self.input2, "wb").write(u"6789")
+        open(self.input2, "wb").write(b"6789")
         return [self.input1, self.input2]
 
     def test_tool_file_rewrite(self):

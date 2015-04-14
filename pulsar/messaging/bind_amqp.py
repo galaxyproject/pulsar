@@ -21,7 +21,7 @@ TYPED_PARAMS = {
 def get_exchange(connection_string, manager_name, conf):
     # HACK: Fixup non-string parameters - utlimately this should reuse spec
     # stuff from Galaxy.
-    for param, to_type in TYPED_PARAMS.iteritems():
+    for param, to_type in TYPED_PARAMS.items():
         if param in conf:
             val = conf[param]
             conf[param] = to_type(val)

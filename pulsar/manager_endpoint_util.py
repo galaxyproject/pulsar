@@ -28,10 +28,10 @@ def __job_complete_dict(complete_status, manager, job_id):
     return_code = manager.return_code(job_id)
     if return_code == PULSAR_UNKNOWN_RETURN_CODE:
         return_code = None
-    stdout_contents = manager.stdout_contents(job_id)
-    stderr_contents = manager.stderr_contents(job_id)
+    stdout_contents = manager.stdout_contents(job_id).decode("utf-8")
+    stderr_contents = manager.stderr_contents(job_id).decode("utf-8")
     job_directory = manager.job_directory(job_id)
-    return dict(
+    as_dict = dict(
         job_id=job_id,
         complete="true",  # Is this still used or is it legacy.
         status=complete_status,
@@ -43,6 +43,7 @@ def __job_complete_dict(complete_status, manager, job_id):
         outputs_directory_contents=job_directory.outputs_directory_contents(),
         system_properties=manager.system_properties(),
     )
+    return as_dict
 
 
 def submit_job(manager, job_config):

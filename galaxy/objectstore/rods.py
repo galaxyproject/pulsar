@@ -152,7 +152,7 @@ class IRODSObjectStore( DiskObjectStore, ObjectStore ):
                 # that we can prevent overwriting
                 doi = irods.dataObjInp_t()
                 doi.objPath = rods_path
-                doi.createMode = 0640
+                doi.createMode = 0o640
                 doi.dataSize = 0  # 0 actually means "unknown", although literally 0 would be preferable
                 irods.addKeyVal( doi.condInput, irods.DEST_RESC_NAME_KW, self.default_resource )
                 status = irods.rcDataObjCreate( self.rods_conn, doi )
@@ -195,7 +195,7 @@ class IRODSObjectStore( DiskObjectStore, ObjectStore ):
             return True
         except AttributeError:
             log.warning( 'delete(): operation failed: object does not exist: %s', rods_path )
-        except AssertionError, e:
+        except AssertionError as e:
             # delete() does not raise on deletion failure
             log.error( 'delete(): operation failed: %s', e )
         finally:
@@ -281,7 +281,7 @@ class IRODSObjectStore( DiskObjectStore, ObjectStore ):
         # put will create if necessary
         doi = irods.dataObjInp_t()
         doi.objPath = self.__get_rods_path( obj, **kwargs )
-        doi.createMode = 0640
+        doi.createMode = 0o640
         doi.dataSize = os.stat( file_name ).st_size
         doi.numThreads = 0
         irods.addKeyVal( doi.condInput, irods.DEST_RESC_NAME_KW, self.default_resource )

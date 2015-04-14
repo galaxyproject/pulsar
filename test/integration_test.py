@@ -48,7 +48,11 @@ class BaseIntegrationTest(TempDirectoryTestCase):
     def _run_in_test_server(self, app_conf, **kwds):
         with test_pulsar_server(app_conf=app_conf) as server:
             options = Bunch(url=server.application_url, **kwds)
-            self._update_options_for_app(options, server.test_app.application, **kwds)
+            # TODO: sync Py 2 v 3 approach so following hack is unneeded.
+            app = server.test_app
+            if hasattr(app, "application"):
+                app = app.application
+            self._update_options_for_app(options, app, **kwds)
             run(options)
 
     def _run_direct(self, app_conf, **kwds):
@@ -68,9 +72,9 @@ class BaseIntegrationTest(TempDirectoryTestCase):
             config = configparser.ConfigParser()
             section_name = "manager:_default_"
             config.add_section(section_name)
-            for key, value in job_conf_props.iteritems():
+            for key, value in job_conf_props.items():
                 config.set(section_name, key, value)
-            with open(job_conf, "wb") as configf:
+            with open(job_conf, "w") as configf:
                 config.write(configf)
 
             app_conf["job_managers_config"] = job_conf

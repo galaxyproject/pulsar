@@ -11,7 +11,7 @@ from pulsar.scripts.config import main
 from pulsar.scripts import config
 
 
-from test_utils import temp_directory
+from .test_utils import temp_directory
 
 
 def test_default_web_config():

@@ -4,6 +4,7 @@ from string import Template
 
 from pulsar.managers import status
 from .directory import DirectoryBaseManager
+from six import binary_type
 
 DEFAULT_JOB_NAME_TEMPLATE = "pulsar_$job_id"
 JOB_FILE_EXTERNAL_ID = "external_id"
@@ -50,6 +51,8 @@ class ExternalBaseManager(DirectoryBaseManager):
         return str(self.id_assigner(input_job_id))
 
     def _register_external_id(self, job_id, external_id):
+        if isinstance(external_id, binary_type):
+            external_id = external_id.decode("utf-8")
         self._job_directory(job_id).store_metadata(JOB_FILE_EXTERNAL_ID, external_id)
         self._external_ids[job_id] = external_id
         return external_id

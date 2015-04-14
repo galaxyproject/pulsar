@@ -1,3 +1,4 @@
+import time
 import threading
 
 from .test_utils import skip_unless_module
@@ -17,15 +18,13 @@ def test_amqp():
     thread1.start()
     thread2.start()
     thread3.start()
-    manager1_exchange.publish("manager_test", "cow1")
-    manager2_exchange.publish("manager2_test", "cow2")
-    manager3_exchange.publish("manager3_test", "cow3")
-    thread1.join(1)
-    thread2.join(1)
-    thread3.join(1)
-    assert thread1.message == "cow1", thread1.message
-    assert thread2.message == "cow2", thread2.message
-    assert thread3.message == "cow3", thread3.message
+    manager1_exchange.publish("manager_test", u"cow1")
+    manager2_exchange.publish("manager2_test", u"cow2")
+    manager3_exchange.publish("manager3_test", u"cow3")
+    time.sleep(0.1)
+    thread1.wait_for_message(u"cow1")
+    thread2.wait_for_message(u"cow2")
+    thread3.wait_for_message(u"cow3")
 
 
 class TestThread(threading.Thread):
@@ -40,9 +39,20 @@ class TestThread(threading.Thread):
     def __nonzero__(self):
         return self.message is None
 
+    __bool__ = __nonzero__  # Both needed Py2 v 3
+
     def run(self):
         def callback(body, message):
             self.message = body
             message.ack()
 
         self.exchange.consume(self.queue_name, callback=callback, check=self)
+
+    def wait_for_message(self, expected_message):
+        while self:
+            time.sleep(.05)
+        if self.message != expected_message:
+            msg = "Expected [%s], got [%s]." % (expected_message, self.message)
+            raise AssertionError(msg)
+
+        self.join(2)

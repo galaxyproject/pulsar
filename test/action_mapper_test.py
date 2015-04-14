@@ -12,7 +12,7 @@ def test_endpoint_validation():
         mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
     except Exception as e:
         exception_found = True
-        assert "files_endpoint" in e.message
+        assert "files_endpoint" in str(e)
     assert exception_found
 
 
@@ -24,7 +24,7 @@ def test_ssh_key_validation():
         mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
     except Exception as e:
         exception_found = True
-        assert "ssh_key" in e.message
+        assert "ssh_key" in str(e)
     assert exception_found
 
 

@@ -134,4 +134,4 @@ class PulsarApp(object):
         # convience method for tests, etc... where when we know there
         # is only one manager.
         assert len(self.managers) == 1
-        return self.managers.values()[0]
+        return list(self.managers.values())[0]

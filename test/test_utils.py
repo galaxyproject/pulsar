@@ -146,8 +146,8 @@ class BaseManagerTestCase(TestCase):
         manager.launch(job_id, command)
         while manager.get_status(job_id) not in ['complete', 'cancelled']:
             pass
-        self.assertEquals(manager.stderr_contents(job_id), 'moo')
-        self.assertEquals(manager.stdout_contents(job_id), 'Hello World!')
+        self.assertEquals(manager.stderr_contents(job_id), b'moo')
+        self.assertEquals(manager.stdout_contents(job_id), b'Hello World!')
         self.assertEquals(manager.return_code(job_id), 0)
         manager.clean(job_id)
         self.assertEquals(len(listdir(self.staging_directory)), 0)
@@ -204,10 +204,11 @@ def server_for_test_app(app):
     try:
         from paste.exceptions.errormiddleware import ErrorMiddleware
         error_app = ErrorMiddleware(app.app, debug=True, error_log="errors.log")
+        server = StopableWSGIServer.create(error_app)
     except ImportError:
         # paste.exceptions not available for Python 3.
-        error_app = app
-    server = StopableWSGIServer.create(error_app)
+        error_app = app.app
+        server = StopableWSGIServer.create(error_app)
     try:
         server.wait()
         yield server

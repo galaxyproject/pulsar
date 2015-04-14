@@ -142,7 +142,7 @@ class FileStager(object):
             for path in paths:
                 if path not in referenced_arbitrary_path_mappers:
                     referenced_arbitrary_path_mappers[path] = mapper
-        for path, mapper in referenced_arbitrary_path_mappers.iteritems():
+        for path, mapper in referenced_arbitrary_path_mappers.items():
             action = self.action_mapper.action(path, path_type.UNSTRUCTURED, mapper)
             unstructured_map = action.unstructured_map(self.path_helper)
             self.arbitrary_files.update(unstructured_map)
@@ -152,7 +152,7 @@ class FileStager(object):
             self.transfer_tracker.handle_transfer(referenced_tool_file, path_type.TOOL)
 
     def __upload_arbitrary_files(self):
-        for path, name in self.arbitrary_files.iteritems():
+        for path, name in self.arbitrary_files.items():
             self.transfer_tracker.handle_transfer(path, path_type.UNSTRUCTURED, name=name)
 
     def __upload_input_files(self):

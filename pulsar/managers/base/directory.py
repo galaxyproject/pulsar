@@ -30,10 +30,10 @@ class DirectoryBaseManager(BaseManager):
         return int(return_code_str) if return_code_str and return_code_str != PULSAR_UNKNOWN_RETURN_CODE else return_code_str
 
     def stdout_contents(self, job_id):
-        return self._read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT, default="")
+        return self._read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT, default=b"")
 
     def stderr_contents(self, job_id):
-        return self._read_job_file(job_id, JOB_FILE_STANDARD_ERROR, default="")
+        return self._read_job_file(job_id, JOB_FILE_STANDARD_ERROR, default=b"")
 
     def _stdout_path(self, job_id):
         return self._job_file(job_id, JOB_FILE_STANDARD_OUTPUT)

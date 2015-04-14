@@ -193,7 +193,7 @@ def __assert_foo_exported( commands ):
     command = ["bash", "-c", "%s; echo \"$FOO\"" % "".join(commands)]
     process = Popen(command, stdout=PIPE)
     output = process.communicate()[0].strip()
-    assert output == 'bar', "Command %s exports FOO as %s, not bar" % (command, output)
+    assert output == b'bar', "Command %s exports FOO as %s, not bar" % (command, output)
 
 
 def __setup_galaxy_package_dep(base_path, name, version, contents=""):
@@ -372,7 +372,7 @@ def __parse_resolvers(xml_content):
 def __dependency_manager(xml_content):
     with __test_base_path() as base_path:
         f = tempfile.NamedTemporaryFile()
-        f.write(xml_content)
+        f.write(xml_content.encode("utf-8"))
         f.flush()
         dm = DependencyManager( default_base_path=base_path, conf_file=f.name )
         yield dm

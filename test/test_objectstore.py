@@ -24,22 +24,22 @@ def test_disk_store():
         # Write empty dataset 2 in second backend, ensure it is empty and
         # exists.
         empty_dataset = MockDataset(2)
-        directory.write(b"", "files1/000/dataset_2.dat")
+        directory.write("", "files1/000/dataset_2.dat")
         assert object_store.exists(empty_dataset)
         assert object_store.empty(empty_dataset)
 
         # Write non-empty dataset in backend 1, test it is not emtpy & exists.
         hello_world_dataset = MockDataset(3)
-        directory.write(b"Hello World!", "files1/000/dataset_3.dat")
+        directory.write("Hello World!", "files1/000/dataset_3.dat")
         assert object_store.exists(hello_world_dataset)
         assert not object_store.empty(hello_world_dataset)
 
         # Test get_data
         data = object_store.get_data(hello_world_dataset)
-        assert data == b"Hello World!"
+        assert data == "Hello World!"
 
         data = object_store.get_data(hello_world_dataset, start=1, count=6)
-        assert data == b"ello W"
+        assert data == "ello W"
 
         # Test Size
 
@@ -58,13 +58,13 @@ def test_disk_store():
         output_dataset = MockDataset(4)
         output_real_path = os.path.join(directory.temp_directory, "files1", "000", "dataset_4.dat")
         assert not os.path.exists(output_real_path)
-        output_working_path = directory.write(b"NEW CONTENTS", "job_working_directory1/example_output")
+        output_working_path = directory.write("NEW CONTENTS", "job_working_directory1/example_output")
         object_store.update_from_file(output_dataset, file_name=output_working_path, create=True)
         assert os.path.exists(output_real_path)
 
         # Test delete
         to_delete_dataset = MockDataset(5)
-        to_delete_real_path = directory.write(b"content to be deleted!", "files1/000/dataset_5.dat")
+        to_delete_real_path = directory.write("content to be deleted!", "files1/000/dataset_5.dat")
         assert object_store.exists(to_delete_dataset)
         assert object_store.delete(to_delete_dataset)
         assert not object_store.exists(to_delete_dataset)
@@ -165,7 +165,8 @@ class TestConfig(object):
         directory = os.path.dirname(path)
         if not os.path.exists(directory):
             os.makedirs(directory)
-        expanded_contents = Template(contents).safe_substitute(temp_directory=self.temp_directory)
+        contents_template = Template(contents)
+        expanded_contents = contents_template.safe_substitute(temp_directory=self.temp_directory)
         open(path, "w").write(expanded_contents)
         return path
 

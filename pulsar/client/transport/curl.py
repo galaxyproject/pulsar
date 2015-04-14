@@ -1,7 +1,11 @@
 try:
-    from cStringIO import StringIO
+    from galaxy import eggs
+    eggs.require("six")
 except ImportError:
-    from io import StringIO
+    pass
+
+from six import string_types
+from six import BytesIO
 
 try:
     from pycurl import Curl, HTTP_CODE
@@ -36,7 +40,7 @@ class PycurlTransport(object):
                 c.setopt(c.INFILESIZE, filesize)
             if data:
                 c.setopt(c.POST, 1)
-                if type(data).__name__ == 'unicode':
+                if isinstance(data, string_types):
                     data = data.encode('UTF-8')
                 c.setopt(c.POSTFIELDS, data)
             c.perform()
@@ -76,7 +80,7 @@ def get_file(url, path):
 
 
 def _open_output(output_path):
-    return open(output_path, 'wb') if output_path else StringIO()
+    return open(output_path, 'wb') if output_path else BytesIO()
 
 
 def _new_curl_object_for_url(url):

@@ -15,7 +15,7 @@ class PulsarObjectStoreTest(TempDirectoryTestCase):
         directory = dirname(path)
         if not exists(directory):
             makedirs(directory)
-        open(path, "w").write(contents)
+        open(path, "wb").write(contents)
         return path
 
     def test_pulsar_objectstore(self):
@@ -73,10 +73,10 @@ class PulsarObjectStoreTest(TempDirectoryTestCase):
 
             # Test get_data
             data = object_store.get_data(hello_world_dataset)
-            assert data == b"Hello World!"
+            assert data == "Hello World!"
 
             data = object_store.get_data(hello_world_dataset, start=1, count=6)
-            assert data == b"ello W"
+            assert data == "ello W"
 
             # Test Size
 

@@ -302,7 +302,7 @@ class JobDirectory(RemoteJobDirectory):
         if contents is DEFAULT_RAW:
             return default
         else:
-            return json.loads(contents)
+            return json.loads(contents.decode())
 
     def has_metadata(self, metadata_name):
         return self.contains_file(metadata_name)

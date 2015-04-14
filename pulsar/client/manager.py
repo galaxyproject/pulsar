@@ -144,6 +144,8 @@ class MessageQueueClientManager(object):
     def __nonzero__(self):
         return self.active
 
+    __bool__ = __nonzero__  # Both needed Py2 v 3
+
     def get_client(self, destination_params, job_id, **kwargs):
         if job_id is None:
             raise Exception("Cannot generate Pulsar client for empty job_id.")

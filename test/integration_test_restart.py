@@ -118,8 +118,12 @@ class SimpleConsumer(object):
         self.thread.join(10)
 
     def wait_for_messages(self, n=1):
+        accumulate_time = 0.0
         while len(self.messages) < n:
-            time.sleep(.05)
+            time.sleep(.1)
+            accumulate_time += 0.05
+            if accumulate_time > 3.0:
+                raise Exception("Waited too long for messages.")
 
     def _run(self):
         self.exchange.consume("status_update", self._callback, check=self)
@@ -130,3 +134,5 @@ class SimpleConsumer(object):
 
     def __nonzero__(self):
         return self.active
+
+    __bool__ = __nonzero__  # Both needed Py2 v 3

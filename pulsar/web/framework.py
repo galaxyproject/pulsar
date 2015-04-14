@@ -10,7 +10,7 @@ import inspect
 from os.path import exists
 import re
 
-from json import dumps
+from pulsar.client.util import json_dumps
 from six import Iterator
 
 
@@ -158,7 +158,7 @@ class Controller(object):
     def body(self, result):
         body = 'OK'
         if self.response_type == 'json':
-            body = dumps(result)
+            body = json_dumps(result)
         return body
 
     def _prepare_controller_args(self, req, args):
@@ -184,6 +184,6 @@ class FileIterator(Iterator):
 
     def __next__(self):
         buffer = self.input.read(1024)
-        if(buffer == ""):
+        if(buffer == b""):
             raise StopIteration
         return buffer

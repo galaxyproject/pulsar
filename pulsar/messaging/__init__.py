@@ -33,6 +33,8 @@ class QueueState(object):
     def __nonzero__(self):
         return self.active
 
+    __bool__ = __nonzero__  # Both needed Py2 v 3
+
     def join(self, timeout=None):
         for t in self.threads:
             t.join(timeout)

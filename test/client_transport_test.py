@@ -27,7 +27,7 @@ def _test_transport(transport):
 
         # Testing simple get
         response = transport.execute(request_url, data=None)
-        assert response.find("Test123") >= 0
+        assert response.find(b"Test123") >= 0
 
         # Testing writing to output file
         temp_file = NamedTemporaryFile(delete=True)
@@ -45,11 +45,11 @@ def test_curl_put_get():
 
         input = os.path.join(directory, "input")
         output = os.path.join(directory, "output")
-        open(input, "wb").write(u"helloworld")
+        open(input, "w").write(u"helloworld")
 
         post_file(request_url, input)
         get_file(request_url, output)
-        assert open(output, "rb").read() == u"helloworld"
+        assert open(output, "r").read() == u"helloworld"
 
 
 def test_curl_status_code():
