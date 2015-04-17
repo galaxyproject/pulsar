@@ -11,12 +11,12 @@ DESCRIPTION = "Change ownership of a job working directory."
 FORCE_PRODUCTION = False
 
 
-def main():
+def main(argv=None):
     arg_parser = ArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--user", required=True)
     arg_parser.add_argument("--job_id")
     arg_parser.add_argument("--job_directory")
-    args = arg_parser.parse_args()
+    args = arg_parser.parse_args(argv)
     user = args.user
     job_id = args.job_id
 

@@ -68,9 +68,9 @@ class PulsarExecutor(Executor):
         driver.sendFrameworkMessage(message)
 
 
-def run_executor():
+def run_executor(argv=None):
     arg_parser = ArgumentParser(description=DESCRIPTION)
-    arg_parser.parse_args()
+    arg_parser.parse_args(argv)
 
     ensure_mesos_libs()
     log.info("Starting Pulsar executor")
@@ -80,5 +80,10 @@ def run_executor():
         exit_code = 1
     return exit_code
 
+
+def main(argv=None):
+    sys.exit(run_executor(argv))
+
+
 if __name__ == "__main__":
-    sys.exit(run_executor())
+    main()

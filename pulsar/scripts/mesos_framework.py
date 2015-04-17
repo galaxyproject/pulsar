@@ -11,14 +11,14 @@ from pulsar.main import (
 DESCRIPTION = "Pulsar Mesos Framework Entry Point."
 
 
-def main():
-    ensure_mesos_libs()
+def main(argv=None):
     arg_parser = ArgumentParser(
         description=DESCRIPTION,
     )
     arg_parser.add_argument("--master", default=None, required=True)
     PulsarManagerConfigBuilder.populate_options(arg_parser)
-    args = arg_parser.parse_args()
+    args = arg_parser.parse_args(argv)
+    ensure_mesos_libs()
 
     config_builder = PulsarManagerConfigBuilder(args)
     config_builder.setup_logging()

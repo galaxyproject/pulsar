@@ -6,10 +6,10 @@ from pulsar.main import ArgumentParser
 DESCRIPTION = "Kill a job via DRMAA interface."
 
 
-def main():
+def main(argv=None):
     arg_parser = ArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--external_id", required=True)
-    args = arg_parser.parse_args()
+    args = arg_parser.parse_args(argv)
     external_id = load(args.external_id)
     session = DrmaaSessionFactory().get()
     external_id = session.kill(external_id)
