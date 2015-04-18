@@ -110,7 +110,8 @@ class ResultsCollector(object):
         for name in self.working_directory_contents:
             if name in self.downloaded_working_directory_files:
                 continue
-            if COPY_FROM_WORKING_DIRECTORY_PATTERN.match(name):
+            if self.client_outputs.dynamic_match(name):
+                log.info("collecting %s" % name)
                 output_file = join(working_directory, self.pulsar_outputs.path_helper.local_name(name))
                 if self._attempt_collect_output(output_type='output_workdir', path=output_file, name=name):
                     self.downloaded_working_directory_files.append(name)

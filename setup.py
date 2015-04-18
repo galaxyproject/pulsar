@@ -95,6 +95,7 @@ setup(
         pulsar-drmaa-launch=pulsar.scripts.drmaa_launch:main
         pulsar-drmaa-kill=pulsar.scripts.drmaa_kill:main
         pulsar-chown-working-directory=pulsar.scripts.chown_working_directory:main
+        pulsar-submit=pulsar.scripts.run:main
     ''',
     scripts=scripts,
     package_data={'pulsar': [

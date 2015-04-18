@@ -12,6 +12,8 @@ import tempfile
 import threading
 import time
 import traceback
+from collections import namedtuple
+
 from io import open
 
 from six import binary_type
@@ -83,11 +85,14 @@ HELP_SUPPRESS_OUTPUT = ""
 HELP_DISABLE_CLEANUP = ("Specify to disable cleanup after the job, this "
                         "is useful to checking the files generated during "
                         "the job and stored on the Pulsar server.")
+HELP_JOB_ID = "Submit the Pulsar job with this 'external' id."
 
 EXPECTED_OUTPUT = b"hello world output"
 EXAMPLE_UNICODE_TEXT = u'єχαмρℓє συтρυт'
 TEST_REQUIREMENT = ToolRequirement(name="dep1", version="1.1", type="package")
 TEST_DEPENDENCIES = DependenciesDescription(requirements=[TEST_REQUIREMENT])
+
+ClientInfo = namedtuple("ClientInfo", ["client", "client_manager"])
 
 
 class MockTool(object):
@@ -303,7 +308,8 @@ def __exercise_errors(options, client, temp_output_path, temp_directory):
 
 
 def __client(temp_directory, options):
-    default_file_action = getattr(options, "default_file_action", None)
+    client_options = extract_client_options(options)
+    default_file_action = client_options.get("default_file_action", None)
     unstructured_action = default_file_action or "transfer"
     path_defs = [
         dict(path=os.path.join(temp_directory, "idx"), path_types="unstructured", depth=2, action=unstructured_action),
@@ -317,17 +323,7 @@ def __client(temp_directory, options):
             destination_directory=os.path.join(temp_directory, "shared2")
         )
         path_defs.append(rewrite_def)
-    client_options = {
-        "url": getattr(options, "url", None),
-        "private_token": getattr(options, "private_token", None),
-        "file_action_config": write_config(temp_directory, dict(paths=path_defs)),
-    }
-    if default_file_action:
-        client_options["default_file_action"] = default_file_action
-    if hasattr(options, "jobs_directory"):
-        client_options["jobs_directory"] = getattr(options, "jobs_directory")
-    if hasattr(options, "files_endpoint"):
-        client_options["files_endpoint"] = getattr(options, "files_endpoint")
+    client_options["file_action_config"] = write_config(temp_directory, dict(paths=path_defs))
     if default_file_action in ["remote_scp_transfer", "remote_rsync_transfer"]:
         test_key = os.environ["PULSAR_TEST_KEY"]
         if not test_key.startswith("----"):
@@ -340,12 +336,42 @@ def __client(temp_directory, options):
     user = getattr(options, 'user', None)
     if user:
         client_options["submit_user"] = user
-    client_manager = __client_manager(options)
-    client = client_manager.get_client(client_options, "123456")
-    return client, client_manager
+    job_id = getattr(options, "job_id", "123456")
+    return client_info(options, client_options, job_id=job_id)
 
 
-def __client_manager(options):
+def extract_client_options(options):
+    """ Exract options explicitly related to build client from
+    configured client manager.
+
+    """
+    default_file_action = getattr(options, "default_file_action", None)
+    client_options = {
+        "url": getattr(options, "url", None),
+        "private_token": getattr(options, "private_token", None),
+    }
+    if default_file_action:
+        client_options["default_file_action"] = default_file_action
+    if hasattr(options, "jobs_directory"):
+        client_options["jobs_directory"] = getattr(options, "jobs_directory")
+    if hasattr(options, "files_endpoint"):
+        client_options["files_endpoint"] = getattr(options, "files_endpoint")
+    return client_options
+
+
+def client_info(options, client_options, job_id=None):
+    """ From command-line arguments ``options`` - extract options
+    related to build a client manager and build it. Then get a client
+    with supplied client options and optional job id.
+    """
+    if job_id is None:
+        job_id = options.job_id
+    client_manager = client_manager_from_args(options)
+    client = client_manager.get_client(client_options, job_id)
+    return ClientInfo(client, client_manager)
+
+
+def client_manager_from_args(options):
     manager_args = {}
     simple_client_manager_options = ['cache', 'job_manager', 'file_cache']
     for client_manager_option in simple_client_manager_options:
@@ -403,7 +429,7 @@ def __finish(options, client, client_outputs, result_status):
         assert False, failed_message
 
 
-def main():
+def main(argv=None):
     """ Exercises a running Pulsar with the Pulsar client. """
     mod_docstring = sys.modules[__name__].__doc__
     parser = optparse.OptionParser(mod_docstring)
@@ -414,7 +440,8 @@ def main():
     parser.add_option('--test_errors', default=False, action="store_true", help=HELP_TEST_ERRORS)
     parser.add_option('--suppress_output', default=False, action="store_true", help=HELP_SUPPRESS_OUTPUT)
     parser.add_option('--disable_cleanup', dest="cleanup", default=True, action="store_false", help=HELP_DISABLE_CLEANUP)
-    (options, args) = parser.parse_args()
+    parser.add_option('--job_id', default="123456", help=HELP_JOB_ID)
+    (options, args) = parser.parse_args(argv)
     run(options)
 
 if __name__ == "__main__":

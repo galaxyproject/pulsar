@@ -4,6 +4,7 @@ import pulsar.scripts.drmaa_launch
 import pulsar.scripts.mesos_executor
 import pulsar.scripts.mesos_framework
 import pulsar.scripts.submit
+import pulsar.client.test.check
 
 MODULES = [
     pulsar.scripts.drmaa_kill,
@@ -11,6 +12,7 @@ MODULES = [
     pulsar.scripts.mesos_executor,
     pulsar.scripts.mesos_framework,
     pulsar.scripts.submit,
+    pulsar.client.test.check,
 ]
 
 
