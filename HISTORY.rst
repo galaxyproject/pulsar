@@ -3,11 +3,15 @@
 History
 -------
 
+.. to_doc
+
 ------------------------
 0.4.0.dev0
 ------------------------
 
-* Python 3 support.
+* Python 3 support. `Pull Request 62`_
+* Fix bug encountered when running ``pulsar-main`` and ``pulsar-config`` commands as scripts. 9d43ae0_
+* Add ``pulsar-run`` script for issues commands against a Pulsar server (experimental). 3cc7f74_
 
 ------------------------
 0.3.0 (2015-04-12)
@@ -48,3 +52,9 @@ History
 
 * See the original `announcement <http://dev.list.galaxyproject.org/New-Remote-Job-Runner-td4138951.html>`__
   and `initial commit <https://github.com/galaxyproject/pulsar/commit/163ed48d5a1902ceb84c38f10db8cbe5a0c1039d>`__.
+
+
+.. github_links
+.. _3cc7f74: https://github.com/galaxyproject/pulsar/commit/3cc7f74
+.. _9d43ae0: https://github.com/galaxyproject/pulsar/commit/9d43ae0
+.. _Pull Request 62: https://github.com/galaxyproject/pulsar/pull/62
