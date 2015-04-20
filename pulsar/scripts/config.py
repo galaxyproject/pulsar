@@ -140,8 +140,6 @@ $libdrmaa_line
 
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv
     dependencies = []
     arg_parser = PlatformArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--directory",

@@ -284,8 +284,6 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv
     mod_docstring = sys.modules[__name__].__doc__
     arg_parser = ArgumentParser(
         description=mod_docstring,
