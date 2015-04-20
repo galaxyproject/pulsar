@@ -52,10 +52,26 @@ pulsar.scripts.mesos_framework module
     :undoc-members:
     :show-inheritance:
 
+pulsar.scripts.run module
+-------------------------
+
+.. automodule:: pulsar.scripts.run
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pulsar.scripts.submit module
 ----------------------------
 
 .. automodule:: pulsar.scripts.submit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pulsar.scripts.submit_util module
+---------------------------------
+
+.. automodule:: pulsar.scripts.submit_util
     :members:
     :undoc-members:
     :show-inheritance:
