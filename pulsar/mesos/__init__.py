@@ -1,11 +1,13 @@
 """ This module and submodules contain code for interfacing the Apache Mesos framework.
 """
 try:
-    from mesos import (
+    from mesos.interface import (
         Scheduler,
-        Executor,
+        Executor
+    )
+    from mesos.native import (
         MesosSchedulerDriver,
-        MesosExecutorDriver,
+        MesosExecutorDriver
     )
 except ImportError:
     Scheduler = object
@@ -13,7 +15,7 @@ except ImportError:
     MesosSchedulerDriver = None
     MesosExecutorDriver = None
 try:
-    import mesos_pb2
+    from mesos.interface import mesos_pb2
 except ImportError:
     mesos_pb2 = None
 
