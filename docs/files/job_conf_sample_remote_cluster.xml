@@ -2,7 +2,7 @@
 <job_conf>
     <plugins>
         <plugin id="drmaa" type="runner" load="galaxy.jobs.runners.drmaa:DRMAAJobRunner"/>
-        <plugin id="pulsar" type="runner" load="galaxy.jobs.runners.pulsar:PulsarLegacyJobRunner"/>
+        <plugin id="pulsar" type="runner" load="galaxy.jobs.runners.pulsar:PulsarRESTJobRunner">
     </plugins>
     <handlers>
         <handler id="main"/>
@@ -18,9 +18,6 @@
             in the Pulsar app.yml file.
             -->
             <param id="dependency_resolution">remote</param>
-            <!-- Use more correct parameter generation for *nix. Needs testing on Windows
-                 servers before this becomes default. -->
-            <param id="rewrite_parameters">True</param>
         </destination>
     </destinations>
     <tools>

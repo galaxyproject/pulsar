@@ -2,7 +2,7 @@
 <job_conf>
     <plugins>
         <plugin id="drmaa" type="runner" load="galaxy.jobs.runners.drmaa:DRMAAJobRunner"/>
-        <plugin id="pulsar" type="runner" load="galaxy.jobs.runners.pulsar:PulsarLegacyJobRunner">
+        <plugin id="pulsar" type="runner" load="galaxy.jobs.runners.pulsar:PulsarMQJobRunner">
             <!-- Must tell Pulsar where to send files. -->
             <param id="galaxy_url">https://galaxyserver</param>
             <!-- Message Queue Connection (should match message_queue_url in Pulsar's app.yml)
@@ -22,14 +22,8 @@
                  web server it can simply ask for this information.
             -->
             <param id="jobs_directory">/path/to/remote/pulsar/files/staging/</param>
-            <!-- Invert file transfers - have Pulsar initiate downloads during preprocessing
-                 and uploads during postprocessing. -->
-            <param id="default_file_action">remote_transfer</param>
-
             <!-- Remaining parameters same as previous example -->
             <param id="submit_native_specification">-P bignodes -R y -pe threads 16</param>
-            <param id="dependency_resolution">remote</param>
-            <param id="rewrite_parameters">True</param>
         </destination>
     </destinations>
     <tools>
