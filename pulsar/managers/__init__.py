@@ -120,3 +120,6 @@ class ManagerProxy(object):
 
     def system_properties(self):
         return self._proxied_manager.system_properties()
+
+    def __str__(self):
+        return "ManagerProxy[manager=%s]" % str(self._proxied_manager)

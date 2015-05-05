@@ -84,7 +84,7 @@ class StatefulManagerProxy(ManagerProxy):
                 log.exception("Failed job preprocess for %s:", job_id)
                 self.__state_change_callback(status.FAILED, job_id)
 
-        new_thread_for_manager(self, "preprocess", do_preprocess, daemon=False)
+        new_thread_for_job(self, "preprocess", job_id, do_preprocess, daemon=False)
 
     def get_status(self, job_id):
         """ Compute status used proxied manager and handle state transitions
@@ -155,7 +155,7 @@ class StatefulManagerProxy(ManagerProxy):
                 log.exception("Failed to postprocess results for job id %s" % job_id)
             final_status = status.COMPLETE if postprocess_success else status.FAILED
             self.__state_change_callback(final_status, job_id)
-        new_thread_for_manager(self, "postprocess", do_postprocess, daemon=False)
+        new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
     def shutdown(self, timeout=None):
         if self.__monitor:
@@ -241,7 +241,7 @@ class ManagerMonitor(object):
     def __init__(self, stateful_manager):
         self.stateful_manager = stateful_manager
         self.active = True
-        thread = new_thread_for_manager(self, "monitor", self._run, True)
+        thread = new_thread_for_manager(self.stateful_manager, "[action=monitor]", self._run, True)
         self.thread = thread
 
     def shutdown(self, timeout=None):
@@ -281,8 +281,13 @@ class ManagerMonitor(object):
         self.stateful_manager.get_status(active_job_id)
 
 
+def new_thread_for_job(manager, action, job_id, target, daemon):
+    name = "[action=%s]-[job=%s]" % (action, job_id)
+    return new_thread_for_manager(manager, name, target, daemon)
+
+
 def new_thread_for_manager(manager, name, target, daemon):
-    thread_name = "%s-%s" % (manager, name)
+    thread_name = "[manager=%s]-%s" % (manager.name, name)
     thread = threading.Thread(name=thread_name, target=target)
     thread.daemon = daemon
     thread.start()

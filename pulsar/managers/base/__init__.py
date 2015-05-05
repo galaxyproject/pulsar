@@ -186,6 +186,9 @@ class BaseManager(ManagerInterface):
             command_line = "%s; %s" % ("; ".join(dependency_commands), command_line)
         return command_line
 
+    def __str__(self):
+        return "{0}[name={1}]".format(type(self).__name__, self.name)
+
 
 class JobDirectory(RemoteJobDirectory):
 
