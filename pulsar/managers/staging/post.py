@@ -55,7 +55,8 @@ class PulsarServerOutputCollector(object):
             name = os.path.basename(action.path)
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
-        self.action_executor.execute(lambda: action.write_from_path(pulsar_path))
+        description = "staging out file %s via %s" % (pulsar_path, action)
+        self.action_executor.execute(lambda: action.write_from_path(pulsar_path), description)
 
 
 def __pulsar_outputs(job_directory):

@@ -25,7 +25,7 @@ def test_third_execution_fine():
         RetryActionExecutor(max_retries=2, interval_start=.01, interval_step=.01).execute(action_tracker.execute)
     except Exception:
         exception_raised = True
-    assert action_tracker.count == 3
+    assert action_tracker.count == 3, action_tracker.count
     assert not exception_raised
 
 

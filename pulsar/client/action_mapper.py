@@ -282,6 +282,16 @@ class BaseAction(object):
     def staging_action_local(self):
         return self.staging == STAGING_ACTION_LOCAL
 
+    def to_dict(self):
+        return dict(action_type=self.action_type)
+
+    def __str__(self):
+        as_dict = self.to_dict()
+        attribute_str = ""
+        for key, value in as_dict.items():
+            attribute_str += "%s=%s" % (key, value)
+        return "FileAction[%s]" % attribute_str
+
 
 class NoneAction(BaseAction):
     """ This action indicates the corresponding path does not require any

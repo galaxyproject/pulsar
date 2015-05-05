@@ -111,7 +111,7 @@ class ResultsCollector(object):
             if name in self.downloaded_working_directory_files:
                 continue
             if self.client_outputs.dynamic_match(name):
-                log.info("collecting %s" % name)
+                log.debug("collecting dynamic output %s" % name)
                 output_file = join(working_directory, self.pulsar_outputs.path_helper.local_name(name))
                 if self._attempt_collect_output(output_type='output_workdir', path=output_file, name=name):
                     self.downloaded_working_directory_files.append(name)
@@ -129,6 +129,7 @@ class ResultsCollector(object):
         return collected
 
     def _collect_output(self, output_type, action, name):
+        log.info("collecting output %s with action %s" % (name, action))
         return self.output_collector.collect_output(self, output_type, action, name)
 
 

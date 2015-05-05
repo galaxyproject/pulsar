@@ -12,7 +12,8 @@ def preprocess(job_directory, setup_actions, action_executor):
         input_type = setup_action["type"]
         action = from_dict(setup_action["action"])
         path = job_directory.calculate_path(name, input_type)
-        log.debug("Staging %s '%s' via %s to %s", input_type, name, action.__class__.__name__, path)
-        action_executor.execute(lambda: action.write_to_path(path))
+        description = "Staging %s '%s' via %s to %s" % (input_type, name, action, path)
+        log.debug(description)
+        action_executor.execute(lambda: action.write_to_path(path), "action[%s]" % description)
 
 __all__ = ['preprocess']
