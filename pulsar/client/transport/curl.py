@@ -76,7 +76,6 @@ def get_file(url, path):
     else:
         buf = _open_output(path)
         size = 0
-    buf = _open_output(path)
     try:
         c = _new_curl_object_for_url(url)
         c.setopt(c.WRITEFUNCTION, buf.write)
