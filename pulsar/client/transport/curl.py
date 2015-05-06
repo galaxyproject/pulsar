@@ -1,3 +1,5 @@
+import logging
+
 try:
     from galaxy import eggs
     eggs.require("six")
@@ -22,6 +24,8 @@ PYCURL_UNAVAILABLE_MESSAGE = \
 NO_SUCH_FILE_MESSAGE = "Attempt to post file %s to URL %s, but file does not exist."
 POST_FAILED_MESSAGE = "Failed to post_file properly for url %s, remote server returned status code of %s."
 GET_FAILED_MESSAGE = "Failed to get_file properly for url %s, remote server returned status code of %s."
+
+log = logging.getLogger(__name__)
 
 
 class PycurlTransport(object):
@@ -77,6 +81,7 @@ def get_file(url, path):
         c = _new_curl_object_for_url(url)
         c.setopt(c.WRITEFUNCTION, buf.write)
         if size > 0:
+            log.info('transfer of %s will resume at %s bytes', url, size)
             c.setopt(c.RESUME_FROM, size)
         c.perform()
         status_code = c.getinfo(HTTP_CODE)
