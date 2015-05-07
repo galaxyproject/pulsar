@@ -73,9 +73,11 @@ def get_file(url, path):
     if path and os.path.exists(path):
         buf = _open_output(path, 'ab')
         size = os.path.getsize(path)
+        success_codes = (200, 206)
     else:
         buf = _open_output(path)
         size = 0
+        success_codes = (200,)
     try:
         c = _new_curl_object_for_url(url)
         c.setopt(c.WRITEFUNCTION, buf.write)
@@ -83,8 +85,8 @@ def get_file(url, path):
             log.info('transfer of %s will resume at %s bytes', url, size)
             c.setopt(c.RESUME_FROM, size)
         c.perform()
-        status_code = c.getinfo(HTTP_CODE)
-        if int(status_code) != 200:
+        status_code = int(c.getinfo(HTTP_CODE))
+        if status_code not in success_codes:
             message = GET_FAILED_MESSAGE % (url, status_code)
             raise Exception(message)
     finally:
