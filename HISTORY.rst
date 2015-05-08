@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ------------------------
-0.5.0.dev0
+0.5.0 (2015-05-08)
 ------------------------
 
 * Allow cURL downloader to resume transfers during staging in (thanks to
