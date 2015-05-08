@@ -9,6 +9,12 @@ History
 0.5.0.dev0
 ------------------------
 
+* Allow cURL downloader to resume transfers during staging in (thanks to
+  @natefoo). 0c61bd9_
+* Fix to cURL downloaders status code handling (thanks to @natefoo). 86f95ce_
+* Fix non-wheel installs from PyPI. `Issue 72`_
+* Fix mesos imports for newer versions of mesos (thanks to @kellrott). fe3e919_
+* More, better logging. 2b3942d_, fa2b6dc_
 
 ------------------------
 0.4.0 (2015-04-20)
@@ -60,6 +66,12 @@ History
 
 
 .. github_links
+.. _fe3e919: https://github.com/galaxyproject/pulsar/commit/fe3e919
+.. _2b3942d: https://github.com/galaxyproject/pulsar/commit/2b3942d
+.. _fa2b6dc: https://github.com/galaxyproject/pulsar/commit/fa2b6dc
+.. _0c61bd9: https://github.com/galaxyproject/pulsar/commit/0c61bd9
+.. _86f95ce: https://github.com/galaxyproject/pulsar/commit/86f95ce
+.. _Issue 72: https://github.com/galaxyproject/pulsar/issues/72
 .. _3cc7f74: https://github.com/galaxyproject/pulsar/commit/3cc7f74
 .. _9d43ae0: https://github.com/galaxyproject/pulsar/commit/9d43ae0
 .. _Pull Request 62: https://github.com/galaxyproject/pulsar/pull/62
