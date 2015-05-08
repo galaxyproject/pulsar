@@ -6,7 +6,9 @@ import subprocess
 import sys
 
 
+PROJECT_NAME = "pulsar"
 PROJECT_DIRECTORY = os.path.join(os.path.dirname(__file__), "..")
+MOD_DIRECTORY = os.path.join(PROJECT_DIRECTORY, PROJECT_NAME)
 
 
 def main(argv):
@@ -27,14 +29,14 @@ def main(argv):
     """ % version)
     open(history_path, "w").write(history)
 
-    planemo_mod_path = os.path.join(PROJECT_DIRECTORY, "planemo", "__init__.py")
-    mod = open(planemo_mod_path, "r").read()
+    mod_path = os.path.join(MOD_DIRECTORY, "__init__.py")
+    mod = open(mod_path, "r").read()
     mod = re.sub("__version__ = '[\d\.]+'",
                  "__version__ = '%s.dev0'" % version,
                  mod, 1)
-    mod = open(planemo_mod_path, "w").write(mod)
+    mod = open(mod_path, "w").write(mod)
     shell(["git", "commit", "-m", "Starting work on %s" % version,
-           "HISTORY.rst", "planemo/__init__.py"])
+           "HISTORY.rst", "%s/__init__.py" % project_name])
 
 
 def shell(cmds, **kwds):
