@@ -17,21 +17,28 @@ def main(argv):
         return history.replace(from_str, from_str + line + "\n" )
 
     ident = argv[1]
+    to_doc = "* "
+    if len(argv) > 2:
+        message = argv[2]
+        to_doc += message + " "
+
     if ident.startswith("pr"):
         pull_request = ident[len("pr"):]
         text = ".. _Pull Request {0}: {1}/pull/{0}".format(pull_request, PROJECT_URL)
         history = extend(".. github_links", text)
-        history = extend(".. to_doc", "`Pull Request {0}`_".format(pull_request))
+        to_doc += "`Pull Request {0}`_".format(pull_request)
     elif ident.startswith("issue"):
         issue = ident[len("issue"):]
         text = ".. _Issue {0}: {1}/issues/{0}".format(issue, PROJECT_URL)
         history = extend(".. github_links", text)
-        history = extend(".. to_doc", "`Issue {0}`_".format(issue))
+        to_doc += "`Issue {0}`_".format(issue)
     else:
         short_rev = ident[:7]
         text = ".. _{0}: {1}/commit/{0}".format(short_rev, PROJECT_URL)
         history = extend(".. github_links", text)
-        history = extend(".. to_doc", "{0}_".format(short_rev))
+        to_doc += "{0}_".format(short_rev)
+
+    history = extend(".. to_doc", to_doc)
     open(history_path, "w").write(history)
 
 if __name__ == "__main__":
