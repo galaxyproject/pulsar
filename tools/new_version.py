@@ -36,7 +36,7 @@ def main(argv):
                  mod, 1)
     mod = open(mod_path, "w").write(mod)
     shell(["git", "commit", "-m", "Starting work on %s" % version,
-           "HISTORY.rst", "%s/__init__.py" % project_name])
+           "HISTORY.rst", "%s/__init__.py" % PROJECT_NAME])
 
 
 def shell(cmds, **kwds):

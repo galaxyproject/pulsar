@@ -39,6 +39,6 @@ are fine.
     * Review `Test PyPI site <https://testpypi.python.org/pypi/pulsar-app>`_
       for errors.
     * Test intall ``pip install -i https://testpypi.python.org/pypi pulsar-app``.
-* ``python scripts/new_version.py <new_version>``
+* ``python tools/new_version.py <new_version>``
 * ``git push origin master``
 * ``git push --tags origin``
