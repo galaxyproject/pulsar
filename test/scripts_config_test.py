@@ -77,7 +77,7 @@ def test_libdrmaa_config():
 
             pip_calls = config.pip.main_calls
             assert len(pip_calls) == 1
-            assert pip_calls[0] == ("install", "drmaa"), pip_calls
+            assert pip_calls[0] == (["install", "drmaa"],), pip_calls
         finally:
             config.pip = real_pip
 
