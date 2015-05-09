@@ -337,7 +337,7 @@ def _handle_install(args, dependencies):
         if pip is None:
             raise ImportError("Bootstrapping Pulsar dependencies requires pip library.")
 
-        pip.main("install", *dependencies)
+        pip.main(["install"] + dependencies)
 
 
 # def _install_pulsar_in_virtualenv(venv):
