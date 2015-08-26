@@ -34,7 +34,7 @@ class XsedeDrmaaQueueManager(DrmaaQueueManager):
                 '-jobid',
                 self._external_ids[job_id]
             ])
-        except (OSError, IOError, CalledProcessError) as exc:
+        except (OSError, IOError, CalledProcessError):
             log.exception('Failed to call gateway_submit_attributes:')
 
 
