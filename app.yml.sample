@@ -53,6 +53,13 @@
 ## Python library is available and start the Pulsar normally.
 #message_queue_url: amqp://guest:guest@localhost:5672//
 
+# AMQP does not guarantee that a published message is received by the AMQP
+# server, so Pulsar can request that the consumer acknowledge messages and will
+# resend them if acknowledgement is not received after a configurable timeout
+# (in seconds).
+#amqp_acknowledge: true
+#amqp_republish_time: 30
+
 ## The AMQP client can provide an SSL client certificate (e.g. for
 ## validation), the following options configure that certificate
 ## (see for reference:
