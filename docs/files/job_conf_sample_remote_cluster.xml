@@ -7,7 +7,7 @@
     <handlers>
         <handler id="main"/>
     </handlers>
-    <destinations default="drmaa">
+    <destinations default="local_cluster">
         <destination id="local_cluster" runner="drmaa">
             <param id="native_specification">-P littlenodes -R y -pe threads 4</param>
         </destination>
