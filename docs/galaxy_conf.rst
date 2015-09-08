@@ -105,7 +105,7 @@ stage various files may benefit from more explaination.
 
 As demonstrated in the above ``default_file_action`` describes how inputs,
 outputs, etc... are staged. The default ``transfer`` has Galaxy initiate HTTP
-transfers. This makes little sense in the contxt of message queues so this
+transfers. This makes little sense in the context of message queues so this
 should be overridden and set to ``remote_transfer`` which causes the Pulsar to
 initiate the file transfers. Additional options are available including
 ``none``, ``copy``, and ``remote_copy``.
