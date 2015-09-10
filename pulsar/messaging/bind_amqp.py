@@ -49,6 +49,9 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
         kill_thread = start_kill_consumer(pulsar_exchange, functools.partial(drain, process_kill_messages, "kill"))
         if hasattr(queue_state, "threads"):
             queue_state.threads.extend([setup_thread, kill_thread])
+        if conf.get("amqp_acknowledge", False):
+            status_update_ack_thread = start_status_update_ack_consumer(pulsar_exchange, functools.partial(drain, None, "status_update_ack"))
+            getattr(queue_state, 'threads', []).append(status_update_ack_thread)
 
     # TODO: Think through job recovery, jobs shouldn't complete until after bind
     # has occurred.
@@ -79,6 +82,7 @@ def __start_consumer(name, exchange, target):
 
 start_setup_consumer = functools.partial(__start_consumer, "setup")
 start_kill_consumer = functools.partial(__start_consumer, "kill")
+start_status_update_ack_consumer = functools.partial(__start_consumer, "status_update_ack")
 
 
 def __drain(name, queue_state, pulsar_exchange, callback):
@@ -86,6 +90,9 @@ def __drain(name, queue_state, pulsar_exchange, callback):
 
 
 def __process_kill_message(manager, body, message):
+    if message.acknowledged:
+        log.info("Message is already acknowledged (by an upstream callback?), Pulsar will not handle this message")
+        return
     try:
         job_id = __client_job_id_from_body(body)
         assert job_id, 'Could not parse job id from body: %s' % body
@@ -97,6 +104,9 @@ def __process_kill_message(manager, body, message):
 
 
 def __process_setup_message(manager, body, message):
+    if message.acknowledged:
+        log.info("Message is already acknowledged (by an upstream callback?), Pulsar will not handle this message")
+        return
     try:
         job_id = __client_job_id_from_body(body)
         assert job_id, 'Could not parse job id from body: %s' % body
