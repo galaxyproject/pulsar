@@ -57,7 +57,7 @@
 # server, so Pulsar can request that the consumer acknowledge messages and will
 # resend them if acknowledgement is not received after a configurable timeout
 # (in seconds).
-#amqp_acknowledge: true
+#amqp_acknowledge: false
 #amqp_republish_time: 30
 
 ## The AMQP client can provide an SSL client certificate (e.g. for
