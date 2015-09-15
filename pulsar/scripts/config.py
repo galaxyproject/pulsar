@@ -258,7 +258,7 @@ def _print_pulsar_check(args, mode):
 
 
 def _determine_mode(args):
-    if args.wsgi_server:
+    if not IS_WINDOWS and args.wsgi_server:
         mode = args.wsgi_server
     elif args.mq:
         mode = "webless"
@@ -299,7 +299,7 @@ def _handle_app_yaml(args, directory):
     if args.mq:
         contents += 'message_queue_url: "amqp://guest:guest@localhost:5672//"\n'
     else:
-        if args.libdrmaa_path:
+        if not IS_WINDOWS and args.libdrmaa_path:
             contents += 'manager:\n  type: queued_drmaa\n'
     open(yaml_file, "w").write(contents)
 
