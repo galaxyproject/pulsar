@@ -397,10 +397,10 @@ class RemoteCopyAction(BaseAction):
 
 
 class RemoteTransferAction(BaseAction):
-    """ This action indicates the Pulsar server should copy the file before
-    execution via direct file system copy. This is like a CopyAction, but
-    it indicates the action should occur on the Pulsar server instead of on
-    the client.
+    """ This action indicates the Pulsar server should transfer the file before
+    execution via one of the remote transfer implementations. This is like a TransferAction, but
+    it indicates the action requires network access to the staging server, and
+    should be executed via ssh/rsync/etc
     """
     inject_url = True
     action_type = "remote_transfer"
