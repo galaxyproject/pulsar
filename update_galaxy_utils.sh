@@ -59,6 +59,7 @@ then
     cp $PULSAR_DIRECTORY/galaxy/tools/loader_directory.py $GALAXY_LIB_DIR/tools/loader_directory.py
 
     cp $PULSAR_DIRECTORY/galaxy/util/plugin_config.py $GALAXY_LIB_DIR/util
+    cp $PULSAR_DIRECTORY/galaxy/util/xml_macros.py $GALAXY_LIB_DIR/util
 
 else
     rm -rf $PULSAR_DIRECTORY/pulsar/managers/util
@@ -80,5 +81,6 @@ else
     cp $GALAXY_LIB_DIR/tools/loader.py $PULSAR_DIRECTORY/galaxy/tools
     cp $GALAXY_LIB_DIR/tools/loader_directory.py $PULSAR_DIRECTORY/galaxy/tools
     cp $GALAXY_LIB_DIR/util/plugin_config.py $PULSAR_DIRECTORY/galaxy/util/
+    cp $GALAXY_LIB_DIR/util/xml_macros.py $PULSAR_DIRECTORY/galaxy/util/
 
 fi
