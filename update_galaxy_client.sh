@@ -3,7 +3,7 @@
 usage() {
 cat << EOF
 Usage: ${0##*/} [-i] /path/to/galaxy...
-Sync Pulsar client to with copy in specified Galaxy directory (or vice versa if -i).
+Sync Pulsar client with copy in specified Galaxy directory (or vice versa if -i).
 
 EOF
 }
@@ -37,7 +37,7 @@ GALAXY_PULSAR_DIRECTORY=$GALAXY_DIRECTORY/lib/pulsar/
 
 if [ "$invert" -ne "1" ];
 then
-	rm -rf $GALAXY_RUNNERS_DIRECTORY/client
+	rm -rf $GALAXY_PULSAR_DIRECTORY/client
 	cp -r $PULSAR_DIRECTORY/pulsar/client $GALAXY_PULSAR_DIRECTORY
 else
 	rm -rf $PULSAR_DIRECTORY/pulsar/client
