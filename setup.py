@@ -76,6 +76,7 @@ setup(
         'pulsar.scripts',
         'pulsar.tools',
         'pulsar.util',
+        'pulsar.util.pastescript',
         'pulsar.web',
     ],
     entry_points='''
