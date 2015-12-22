@@ -20,6 +20,7 @@ from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
 import galaxy.util
+import pulsar.util
 from galaxy.util.bunch import Bunch
 from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 
@@ -414,7 +415,7 @@ class JobFilesApp(object):
         parent_directory = dirname(path)
         if not exists(parent_directory):
             makedirs(parent_directory)
-        galaxy.util.copy_to_path(params["file"].file, path)
+        pulsar.util.copy_to_path(params["file"].file, path)
         return webob.Response(body='')
 
     def _get(self, request, params):

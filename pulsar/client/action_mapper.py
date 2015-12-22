@@ -11,11 +11,11 @@ from os.path import sep
 import fnmatch
 from re import compile
 from re import escape
-import galaxy.util
 from galaxy.util.bunch import Bunch
 from .config_util import read_file
 from .util import directory_files
 from .util import unique_path_prefix
+from .util import copy_to_path
 from .transport import get_file
 from .transport import post_file
 from .transport import rsync_get_file, scp_get_file
@@ -385,7 +385,7 @@ class RemoteCopyAction(BaseAction):
         return RemoteCopyAction(path=action_dict["path"])
 
     def write_to_path(self, path):
-        galaxy.util.copy_to_path(open(self.path, "rb"), path)
+        copy_to_path(open(self.path, "rb"), path)
 
     def write_from_path(self, pulsar_path):
         destination = self.path
@@ -393,7 +393,7 @@ class RemoteCopyAction(BaseAction):
         if not exists(parent_directory):
             makedirs(parent_directory)
         with open(pulsar_path, "rb") as f:
-            galaxy.util.copy_to_path(f, destination)
+            copy_to_path(f, destination)
 
 
 class RemoteTransferAction(BaseAction):

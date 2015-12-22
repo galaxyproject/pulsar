@@ -23,6 +23,7 @@ requirements = [
     'webob',
     'psutil',
     'pyyaml',
+    'galaxy-lib',
 ]
 
 if sys.version_info[0] == 2:
@@ -74,18 +75,8 @@ setup(
         'pulsar.messaging',
         'pulsar.scripts',
         'pulsar.tools',
+        'pulsar.util',
         'pulsar.web',
-        'galaxy',
-        'galaxy.jobs',
-        'galaxy.jobs.metrics',
-        'galaxy.jobs.metrics.collectl',
-        'galaxy.jobs.metrics.instrumenters',
-        'galaxy.objectstore',
-        'galaxy.tools',
-        'galaxy.tools.linters',
-        'galaxy.tools.deps',
-        'galaxy.tools.deps.resolvers',
-        'galaxy.util',
     ],
     entry_points='''
         [console_scripts]

@@ -4,6 +4,7 @@ from subprocess import Popen, PIPE
 
 SUDO_PATH = '/usr/bin/sudo'
 SUDO_PRESERVE_ENVIRONMENT_ARG = '-E'
+SUDO_NON_INTERACTIVE_ARG = '-n'
 SUDO_USER_ARG = '-u'
 
 log = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ def sudo_popen(*args, **kwargs):
     sensetive code so should probably be centralized.
     """
     user = kwargs.get("user", None)
-    full_command = [SUDO_PATH, SUDO_PRESERVE_ENVIRONMENT_ARG]
+    full_command = [SUDO_PATH, SUDO_PRESERVE_ENVIRONMENT_ARG, SUDO_NON_INTERACTIVE_ARG]
     if user:
         full_command.extend([SUDO_USER_ARG, user])
     full_command.extend(args)

@@ -12,6 +12,8 @@ try:
 except ImportError:
     from urllib.parse import urlencode
 
+from .util import copy_to_path
+
 
 class PulsarInterface(object):
     """
@@ -135,8 +137,6 @@ class LocalPulsarInterface(PulsarInterface):
         if controller.response_type != 'file':
             return controller.body(result)
         else:
-            # TODO: Add to Galaxy.
-            from galaxy.util import copy_to_path
             with open(result, 'rb') as result_file:
                 copy_to_path(result_file, output_path)
 

@@ -19,6 +19,30 @@ import sys
 
 from six import binary_type
 
+# TODO: move to galaxy.util so it doesn't have to be duplicated
+# twice in pulsar.
+BUFFER_SIZE = 4096
+
+
+def copy_to_path(object, path):
+    """
+    Copy file-like object to path.
+    """
+    output = open(path, 'wb')
+    _copy_and_close(object, output)
+
+
+def _copy_and_close(object, output):
+    try:
+        while True:
+            buffer = object.read(BUFFER_SIZE)
+            if not buffer:
+                break
+            output.write(buffer)
+    finally:
+        output.close()
+
+
 # Variant of base64 compat layer inspired by BSD code from Bcfg2
 # https://github.com/Bcfg2/bcfg2/blob/maint/src/lib/Bcfg2/Compat.py
 if sys.version_info >= (3, 0):

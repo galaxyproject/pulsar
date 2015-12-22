@@ -2,7 +2,7 @@ import os
 from webob import exc
 from json import loads
 
-from galaxy.util import (
+from pulsar.util import (
     copy_to_path,
     copy_to_temp,
 )

@@ -2,7 +2,7 @@ from xml.etree.ElementTree import fromstring
 from re import escape, compile
 
 from os.path import join
-from galaxy.util import is_in_directory
+from galaxy.util import in_directory
 
 
 class ExpressionValidator(object):
@@ -18,8 +18,8 @@ class ExpressionValidator(object):
         validated = match is not None
         if validated:
             for group in match.groups():
-                if not is_in_directory(group, join(job_directory.path, "inputs")) and \
-                   not is_in_directory(group, join(job_directory.path, "outputs")):
+                if not in_directory(group, join(job_directory.path, "inputs")) and \
+                   not in_directory(group, join(job_directory.path, "outputs")):
                     validated = False
                     break
         return validated

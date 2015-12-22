@@ -4,5 +4,6 @@ webob
 psutil
 PasteDeploy
 six
+galaxy-lib
 
 chaussette
