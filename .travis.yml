@@ -10,12 +10,17 @@ env:
   - TOX_ENV=py26 SETUP=true
   - TOX_ENV=py27 SETUP=true
   - TOX_ENV=py34 SETUP=true
+  - TOX_ENV=py34-unit SETUP=true
 
 install:
   - pip install tox
   - if [ "$SETUP" == "true" ]; then .travis/setup_tests.sh; fi
 
 script: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; tox -e $TOX_ENV
+
+matrix:
+  allow_failures:
+    - env: TOX_ENV=py34
 
 after_success:
   - coveralls
