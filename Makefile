@@ -54,11 +54,9 @@ coverage: tests
 
 ready-docs:
 	rm -f docs/pulsar.rst
-	rm -f docs/galaxy.rst
 	rm -f docs/modules.rst
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; sphinx-apidoc -f -o docs/ pulsar
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; sphinx-apidoc -f -o docs/ galaxy
-	cp docs/fixed_modules.rst docs/modules.rst
+
 
 docs: ready-docs
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean

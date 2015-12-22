@@ -45,6 +45,14 @@ pulsar.managers.queued_drmaa module
     :undoc-members:
     :show-inheritance:
 
+pulsar.managers.queued_drmaa_xsede module
+-----------------------------------------
+
+.. automodule:: pulsar.managers.queued_drmaa_xsede
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pulsar.managers.queued_external_drmaa module
 --------------------------------------------
 
