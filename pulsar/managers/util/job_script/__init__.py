@@ -39,10 +39,10 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     True
     >>> 'GALAXY_LIB="None"' in script
     True
-    >>> script.startswith('#!/bin/sh\\n#PBS -test\\n')
+    >>> script.find('#PBS -test') > 0
     False
     >>> script = job_script(working_directory='wd', command='uptime', exit_code_path='ec', headers='#PBS -test')
-    >>> script.startswith('#!/bin/sh\\n#PBS -test\\n')
+    >>> script.find('#PBS -test') > 0
     True
     >>> script = job_script(working_directory='wd', command='uptime', exit_code_path='ec', slots_statement='GALAXY_SLOTS="$SLURM_JOB_NUM_NODES"')
     >>> script.find('GALAXY_SLOTS="$SLURM_JOB_NUM_NODES"\\nexport GALAXY_SLOTS\\n') > 0
