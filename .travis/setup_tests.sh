@@ -3,6 +3,7 @@
 set -e
 set -v
 
+sudo apt-get update
 sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-server
 #pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
 #pip install -r dev-requirements.txt --use-mirrors || true
