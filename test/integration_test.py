@@ -9,8 +9,10 @@ from .test_utils import (
     skip_unless_module,
     skip_unless_any_module,
     skip_unless_environ,
+    skip_without_drmaa,
 )
 
+from .test_utils import integration_test
 from .test_utils import test_pulsar_app
 from .test_utils import test_pulsar_server
 from .test_utils import files_server
@@ -99,19 +101,23 @@ class BaseIntegrationTest(TempDirectoryTestCase):
 class IntegrationTests(BaseIntegrationTest):
     default_kwargs = dict(direct_interface=False, test_requirement=True, test_unicode=True, test_env=True, test_rewrite_action=True)
 
+    @integration_test
     def test_integration_no_requirement(self):
         self._run(private_token=None, **self.default_kwargs)
 
-    @skip_unless_module("drmaa")
+    @skip_without_drmaa
+    @integration_test
     def test_integration_as_user(self):
         job_props = {'type': 'queued_external_drmaa', "production": "false"}
         self._run(job_conf_props=job_props, private_token=None, default_file_action="copy", user='u1', **self.default_kwargs)
 
+    @integration_test
     def test_integration_local_setup(self):
         self._run(private_token=None, default_file_action="remote_copy", local_setup=True, **self.default_kwargs)
 
     @skip_unless_module("pycurl")
     @skip_unless_module("kombu")
+    @integration_test
     def test_message_queue(self):
         self._run(
             app_conf=dict(message_queue_url="memory://test1"),
@@ -123,6 +129,8 @@ class IntegrationTests(BaseIntegrationTest):
         )
 
     @skip_unless_environ("PULSAR_TEST_KEY")
+    @skip_unless_module("kombu")
+    @integration_test
     def test_integration_scp(self):
         self._run(
             app_conf=dict(message_queue_url="memory://test2"),
@@ -134,6 +142,8 @@ class IntegrationTests(BaseIntegrationTest):
         )
 
     @skip_unless_environ("PULSAR_TEST_KEY")
+    @skip_unless_module("kombu")
+    @integration_test
     def test_integration_rsync(self):
         self._run(
             app_conf=dict(message_queue_url="memory://test3"),
@@ -144,41 +154,52 @@ class IntegrationTests(BaseIntegrationTest):
             **self.default_kwargs
         )
 
+    @integration_test
     def test_integration_copy(self):
         self._run(private_token=None, default_file_action="copy", **self.default_kwargs)
 
+    @integration_test
     def test_integration_no_transfer(self):
         self._run(private_token=None, default_file_action="none", **self.default_kwargs)
 
+    @integration_test
     def test_integration_cached(self):
         self._run(private_token=None, cache=True, **self.default_kwargs)
 
+    @integration_test
     def test_integration_default(self):
         self._run(private_token=None, **self.default_kwargs)
 
     @skip_unless_module("pycurl")
+    @integration_test
     def test_integration_curl(self):
         self._run(private_token=None, transport="curl", **self.default_kwargs)
 
+    @integration_test
     def test_integration_token(self):
         self._run(app_conf={"private_token": "testtoken"}, private_token="testtoken", **self.default_kwargs)
 
+    @integration_test
     def test_integration_errors(self):
         self._run(app_conf={"private_token": "testtoken"}, private_token="testtoken", test_errors=True, **self.default_kwargs)
 
-    @skip_unless_module("drmaa")
+    @skip_without_drmaa
+    @integration_test
     def test_integration_drmaa(self):
         self._run(app_conf={}, job_conf_props={'type': 'queued_drmaa'}, private_token=None, **self.default_kwargs)
 
     @skip_unless_executable("condor_submit")
+    @integration_test
     def test_integration_condor(self):
         self._run(app_conf={}, job_conf_props={'type': 'queued_condor'}, private_token=None, **self.default_kwargs)
 
     @skip_unless_executable("qsub")
+    @integration_test
     def test_integration_cli_torque(self):
         self._run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Torque'}, private_token=None, **self.default_kwargs)
 
     @skip_unless_executable("sbatch")
+    @integration_test
     def test_integration_cli_slurm(self):
         self._run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Slurm'}, private_token=None, **self.default_kwargs)
 
@@ -187,6 +208,7 @@ class DirectIntegrationTests(IntegrationTests):
     default_kwargs = dict(direct_interface=True, test_requirement=False)
 
     @skip_unless_any_module(["pycurl", "poster", "requests_toolbelt"])
+    @integration_test
     def test_integration_remote_transfer(self):
         self._run(
             private_token=None,

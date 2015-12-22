@@ -24,6 +24,7 @@ import pulsar.util
 from galaxy.util.bunch import Bunch
 from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 
+from pulsar.managers.util import drmaa
 from pulsar.tools import ToolBox
 from pulsar.managers.base import JobDirectory
 from pulsar.web.framework import file_response
@@ -35,10 +36,16 @@ else:
 
 try:
     from nose.tools import nottest
+    from nose.tools import timed
 except ImportError:
     def nottest(x):
         return x
 
+    def timed(x):
+        return lambda x: x
+
+INTEGRATION_MAXIMUM_TEST_TIME = 15
+integration_test = timed(INTEGRATION_MAXIMUM_TEST_TIME)
 
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)
@@ -361,6 +368,16 @@ def skip_unless_any_module(modules):
     if available:
         return lambda func: func
     return skip("None of the modules %s could be loaded, dependent test skipped." % modules)
+
+
+def skip_if_none(value):
+    if value is not None:
+        return lambda func: func
+    return skip()
+
+
+def skip_without_drmaa(f):
+    return skip_if_none(drmaa.Session)(f)
 
 
 def _which(program):

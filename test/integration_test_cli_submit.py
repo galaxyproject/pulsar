@@ -3,7 +3,8 @@ import yaml
 
 from .test_utils import (
     TempDirectoryTestCase,
-    files_server
+    files_server,
+    integration_test,
 )
 
 from pulsar.client.util import to_base64_json
@@ -12,6 +13,7 @@ from pulsar.scripts import submit
 
 class CliTestCase(TempDirectoryTestCase):
 
+    @integration_test
     def test(self):
         # TODO: test unstaging, would actually require files server and some
         # sort MQ listening.

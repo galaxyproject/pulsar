@@ -11,7 +11,10 @@ from pulsar.scripts.config import main
 from pulsar.scripts import config
 
 
-from .test_utils import temp_directory
+from .test_utils import (
+    temp_directory,
+    skip_unless_environ,
+)
 
 
 def test_default_web_config():
@@ -53,6 +56,7 @@ def test_mq_config():
         assert "message_queue_url" in project.app_config
 
 
+@skip_unless_environ('USER')
 def test_with_supervisor():
     with temp_directory() as project_dir:
         main(["--directory", project_dir, "--supervisor"])

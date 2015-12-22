@@ -5,7 +5,9 @@ import time
 from .test_utils import (
     TempDirectoryTestCase,
     skip_unless_module,
+    skip_without_drmaa,
     restartable_pulsar_app_provider,
+    integration_test,
 )
 from pulsar.manager_endpoint_util import (
     submit_job,
@@ -17,8 +19,9 @@ from pulsar.managers.util.drmaa import DrmaaSessionFactory
 
 class RestartTestCase(TempDirectoryTestCase):
 
-    @skip_unless_module("drmaa")
+    @skip_without_drmaa
     @skip_unless_module("kombu")
+    @integration_test
     def test_restart_finishes_job(self):
         with self._setup_app_provider("restart_and_finish") as app_provider:
             job_id = '12345'
@@ -56,6 +59,7 @@ class RestartTestCase(TempDirectoryTestCase):
 
     @skip_unless_module("drmaa")
     @skip_unless_module("kombu")
+    @integration_test
     def test_recovery_failure_fires_lost_status(self):
         test = "restart_and_finish"
         with self._setup_app_provider(test) as app_provider:
