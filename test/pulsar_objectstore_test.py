@@ -5,7 +5,13 @@ from galaxy.util.bunch import Bunch
 from galaxy.objectstore import build_object_store_from_config
 
 from .test_utils import TempDirectoryTestCase
-from .test_objectstore import MockDataset
+
+
+class MockDataset(object):
+
+    def __init__(self, id):
+        self.id = id
+        self.object_store_id = None
 
 
 class PulsarObjectStoreTest(TempDirectoryTestCase):
