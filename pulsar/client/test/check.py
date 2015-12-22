@@ -28,7 +28,7 @@ from galaxy.tools.deps.dependencies import DependenciesDescription
 from galaxy.tools.deps.requirements import ToolRequirement
 from .test_common import write_config
 
-TEST_SCRIPT = b"""
+TEST_SCRIPT = b"""# -*- coding: utf-8 -*-
 import sys
 from os import getenv
 from os import makedirs
