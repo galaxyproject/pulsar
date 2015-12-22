@@ -1,3 +1,22 @@
+# Default tests run with make test
+NOSE_TESTS?=test pulsar
+# Default environment for make tox
+ENV?=py27
+# Extra arguments supplied to tox command
+ARGS?=
+# Location of virtualenv used for development.
+VENV?=.venv
+# Source virtualenv to execute command (flake8, sphinx, twine, etc...)
+IN_VENV=if [ -f $(VENV)/bin/activate ]; then . $(VENV)/bin/activate; fi;
+# TODO: add this upstream as a remote if it doesn't already exist.
+UPSTREAM?=galaxyproject
+SOURCE_DIR?=pulsar
+VERSION?=$(shell python scripts/print_version_for_release.py $(SOURCE_DIR))
+DOC_URL?=https://pulsar.readthedocs.org
+PROJECT_URL?=https://github.com/galaxyproject/pulsar
+PROJECT_NAME?=pulsar-app
+TEST_DIR?=test
+
 .PHONY: clean-pyc clean-build docs clean
 
 help:
@@ -16,13 +35,15 @@ help:
 	@echo "open-docs - open docs built locally with make docs"
 	@echo "open-rtd - open docs at pulsar.readthedocs.org"
 	@echo "open-project - open project on github"
+	@echo "setup-git-hook-lint - setup precommit hook for linting project"
+	@echo "setup-git-hook-lint-and-test - setup precommit hook for linting and testing project"
 
 clean: clean-build clean-pyc clean-tests
 
 clean-build:
 	rm -fr build/
 	rm -fr dist/
-	rm -fr pulsar*.egg-info
+	rm -fr *.egg-info
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -36,31 +57,42 @@ clean-tests:
 	rm -fr htmlcov/
 
 setup-venv:
-	if [ -f .venv ]; then virtualenv .venv; fi;
-	. .venv/bin/activate && pip install -r requirements.txt && pip install -r dev-requirements.txt
+	if [ ! -d $(VENV) ]; then virtualenv $(VENV); exit; fi;
+	$(IN_VENV) pip install -r requirements.txt && pip install -r dev-requirements.txt
+
+setup-git-hook-lint:
+	cp scripts/pre-commit-lint .git/hooks/pre-commit
+
+setup-git-hook-lint-and-test:
+	cp scripts/pre-commit-lint-and-test .git/hooks/pre-commit
+
+flake8:
+	$(IN_VENV) flake8 --max-complexity 9 $(SOURCE_DIR) $(TEST_DIR)
 
 lint:
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; flake8 --exclude test_tool_deps.py --max-complexity 9 pulsar test
+	$(IN_VENV) tox -e py27-lint && tox -e py34-lint
 
 lint-readme:
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; python setup.py check -r -s
+	$(IN_VENV) python setup.py check -r -s
 
 tests:
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; nosetests
+	$(IN_VENV) nosetests $(NOSE_TESTS)
 
-coverage: tests
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; coverage html
-	open coverage_html_report/index.html || xdg-open coverage_html_report/index.html
+coverage:
+	coverage run --source $(SOURCE_DIR) setup.py $(TEST_DIR)
+	coverage report -m
+	coverage html
+	open htmlcov/index.html || xdg-open htmlcov/index.html
+
 
 ready-docs:
-	rm -f docs/pulsar.rst
+	rm -f docs/$(SOURCE_DIR).rst
 	rm -f docs/modules.rst
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; sphinx-apidoc -f -o docs/ pulsar
-
+	$(IN_VENV) sphinx-apidoc -f -o docs/ $(SOURCE_DIR)
 
 docs: ready-docs
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs html
+	$(IN_VENV) $(MAKE) -C docs clean
+	$(IN_VENV) $(MAKE) -C docs html
 
 lint-docs: ready-docs
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean
@@ -70,18 +102,18 @@ open-docs: docs
 	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html
 
 open-rtd: docs
-	open https://pulsar.readthedocs.org || xdg-open https://pulsar.readthedocs.org
+	open $(DOC_URL) || xdg-open $(PROJECT_URL)
 
 open-project:
-	open https://github.com/galaxyproject/pulsar || xdg-open https://github.com/galaxyproject/pulsar
+	open $(PROJECT_URL) || xdg-open $(PROJECT_URL)
 
 dist: clean
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; python setup.py sdist bdist_egg bdist_wheel
+	$(IN_VENV) python setup.py sdist bdist_egg bdist_wheel
 	ls -l dist
 
 release-test: dist
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; twine upload -r test dist/*
-	open https://testpypi.python.org/pypi/pulsar-app || xdg-open https://testpypi.python.org/pypi/pulsar-app
+	$(IN_VENV) twine upload -r test dist/*
+	open https://testpypi.python.org/pypi/$(PROJECT_NAME) || xdg-open https://testpypi.python.org/pypi/$(PROJECT_NAME)
 
 release: release-test
 	@while [ -z "$$CONTINUE" ]; do \
@@ -89,4 +121,18 @@ release: release-test
 	done ; \
 	[ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ] || (echo "Exiting."; exit 1;)
 	@echo "Releasing"
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; twine upload dist/*
+	$(IN_VENV) twine upload dist/*
+
+commit-version:
+	$(IN_VENV) python scripts/commit_version.py $(SOURCE_DIR) $(VERSION)
+
+new-version:
+	$(IN_VENV) python scripts/new_version.py $(SOURCE_DIR) $(VERSION)
+
+release-local: commit-version release-aritfacts new-version
+
+push-release:
+	git push $(UPSTREAM) master
+	git push --tags $(UPSTREAM)
+
+release: release-local push-release
