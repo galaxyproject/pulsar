@@ -1,10 +1,14 @@
 try:
     from drmaa import Session, JobControlAction
+except OSError as e:
+    LOAD_ERROR_MESSAGE = "OSError - problem loading shared library [%s]." % e
+    Session = None
 except ImportError as e:
+    LOAD_ERROR_MESSAGE = "ImportError - problem importing library (`pip install drmaa` may fix this) [%s]." % e
     # Will not be able to use DRMAA
     Session = None
 
-NO_DRMAA_MESSAGE = "Attempt to use DRMAA, but DRMAA Python library cannot be loaded."
+NO_DRMAA_MESSAGE = "Attempt to use DRMAA, but DRMAA Python library cannot be loaded. "
 
 
 class DrmaaSessionFactory(object):
@@ -16,8 +20,8 @@ class DrmaaSessionFactory(object):
 
     def get(self, **kwds):
         session_constructor = self.session_constructor
-        if not session_constructor:
-            raise Exception(NO_DRMAA_MESSAGE)
+        if session_constructor is None:
+            raise Exception(NO_DRMAA_MESSAGE + LOAD_ERROR_MESSAGE)
         return DrmaaSession(session_constructor(), **kwds)
 
 
