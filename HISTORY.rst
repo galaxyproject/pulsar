@@ -9,7 +9,19 @@ History
 0.6.0.dev0
 ---------------------
 
-    
+* Pulsar now depends on the new ``galaxy-lib`` Python package instead of
+  manually synchronizing Python files across Pulsar and Galaxy.
+* Numerous build and testing improvements.
+* Fixed a documentation bug in the code (thanks to @erasche). e8814ae_
+* Remove galaxy.eggs stuff from Pulsar client (thanks to @natefoo). 00197f2_
+* Add new logo to README (thanks to @martenson). abbba40_
+* Implement an optional awknowledgement system on top of the message queue
+  system (thanks to @natefoo). `Pull Request 82`_ 431088c_
+* Documentation fixes thanks to @remimarenco. `Pull Request 78`_, `Pull Request 80`_
+* Fix project script bug introduced this cycle (thanks to @nsoranzo). 140a069_
+* Fix config.py on Windows (thanks to @ssorgatem). `Pull Request 84`_
+* Add a job manager for XSEDE jobs (thanks to @natefoo). 1017bc5_
+* Fix pip dependency installation (thanks to @afgane) `Pull Request 73`_
 
 ------------------------
 0.5.0 (2015-05-08)
@@ -72,6 +84,17 @@ History
 
 
 .. github_links
+.. _Pull Request 73: https://github.com/galaxyproject/pulsar/pull/73
+.. _1017bc5: https://github.com/galaxyproject/pulsar/commit/1017bc5
+.. _Pull Request 84: https://github.com/galaxyproject/pulsar/pull/84
+.. _140a069: https://github.com/galaxyproject/pulsar/commit/140a069
+.. _Pull Request 78: https://github.com/galaxyproject/pulsar/pull/78
+.. _Pull Request 80: https://github.com/galaxyproject/pulsar/pull/80
+.. _Pull Request 82: https://github.com/galaxyproject/pulsar/pull/82
+.. _abbba40: https://github.com/galaxyproject/pulsar/commit/abbba40
+.. _00197f2: https://github.com/galaxyproject/pulsar/commit/00197f2
+.. _431088c: https://github.com/galaxyproject/pulsar/commit/431088c
+.. _e8814ae: https://github.com/galaxyproject/pulsar/commit/e8814ae
 .. _fe3e919: https://github.com/galaxyproject/pulsar/commit/fe3e919
 .. _2b3942d: https://github.com/galaxyproject/pulsar/commit/2b3942d
 .. _fa2b6dc: https://github.com/galaxyproject/pulsar/commit/fa2b6dc
