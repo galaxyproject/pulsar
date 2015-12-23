@@ -112,11 +112,11 @@ dist: clean
 	$(IN_VENV) python setup.py sdist bdist_egg bdist_wheel
 	ls -l dist
 
-release-test: dist
+release-test-artifacts: dist
 	$(IN_VENV) twine upload -r test dist/*
 	open https://testpypi.python.org/pypi/$(PROJECT_NAME) || xdg-open https://testpypi.python.org/pypi/$(PROJECT_NAME)
 
-release: release-test
+release-aritfacts: release-test-artifacts
 	@while [ -z "$$CONTINUE" ]; do \
 	  read -r -p "Have you executed release-test and reviewed results? [y/N]: " CONTINUE; \
 	done ; \
