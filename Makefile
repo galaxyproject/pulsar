@@ -11,7 +11,8 @@ IN_VENV=if [ -f $(VENV)/bin/activate ]; then . $(VENV)/bin/activate; fi;
 # TODO: add this upstream as a remote if it doesn't already exist.
 UPSTREAM?=galaxyproject
 SOURCE_DIR?=pulsar
-VERSION?=$(shell python scripts/print_version_for_release.py $(SOURCE_DIR))
+BUILD_SCRIPTS_DIR=tools
+VERSION?=$(shell python $(BUILD_SCRIPTS_DIR)/print_version_for_release.py $(SOURCE_DIR))
 DOC_URL?=https://pulsar.readthedocs.org
 PROJECT_URL?=https://github.com/galaxyproject/pulsar
 PROJECT_NAME?=pulsar-app
@@ -124,10 +125,10 @@ release: release-test
 	$(IN_VENV) twine upload dist/*
 
 commit-version:
-	$(IN_VENV) python scripts/commit_version.py $(SOURCE_DIR) $(VERSION)
+	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/commit_version.py $(SOURCE_DIR) $(VERSION)
 
 new-version:
-	$(IN_VENV) python scripts/new_version.py $(SOURCE_DIR) $(VERSION)
+	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/new_version.py $(SOURCE_DIR) $(VERSION)
 
 release-local: commit-version release-aritfacts new-version
 
