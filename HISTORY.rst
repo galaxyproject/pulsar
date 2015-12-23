@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.6.1.dev0
+0.6.1 (2015-12-23)
 ---------------------
 
 * Tweak release process that left 0.6.0 with an incorrect PyPI description page.
