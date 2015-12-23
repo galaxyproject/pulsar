@@ -373,7 +373,7 @@ def skip_unless_any_module(modules):
 def skip_if_none(value):
     if value is not None:
         return lambda func: func
-    return skip()
+    return skip
 
 
 def skip_without_drmaa(f):
