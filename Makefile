@@ -11,7 +11,8 @@ IN_VENV=if [ -f $(VENV)/bin/activate ]; then . $(VENV)/bin/activate; fi;
 # TODO: add this upstream as a remote if it doesn't already exist.
 UPSTREAM?=galaxyproject
 SOURCE_DIR?=pulsar
-VERSION?=$(shell python scripts/print_version_for_release.py $(SOURCE_DIR))
+BUILD_SCRIPTS_DIR=tools
+VERSION?=$(shell python $(BUILD_SCRIPTS_DIR)/print_version_for_release.py $(SOURCE_DIR))
 DOC_URL?=https://pulsar.readthedocs.org
 PROJECT_URL?=https://github.com/galaxyproject/pulsar
 PROJECT_NAME?=pulsar-app
@@ -61,10 +62,10 @@ setup-venv:
 	$(IN_VENV) pip install -r requirements.txt && pip install -r dev-requirements.txt
 
 setup-git-hook-lint:
-	cp scripts/pre-commit-lint .git/hooks/pre-commit
+	cp $(BUILD_SCRIPTS_DIR)/pre-commit-lint .git/hooks/pre-commit
 
 setup-git-hook-lint-and-test:
-	cp scripts/pre-commit-lint-and-test .git/hooks/pre-commit
+	cp $(BUILD_SCRIPTS_DIR)/pre-commit-lint-and-test .git/hooks/pre-commit
 
 flake8:
 	$(IN_VENV) flake8 --max-complexity 9 $(SOURCE_DIR) $(TEST_DIR)
@@ -124,10 +125,10 @@ release: release-test
 	$(IN_VENV) twine upload dist/*
 
 commit-version:
-	$(IN_VENV) python scripts/commit_version.py $(SOURCE_DIR) $(VERSION)
+	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/commit_version.py $(SOURCE_DIR) $(VERSION)
 
 new-version:
-	$(IN_VENV) python scripts/new_version.py $(SOURCE_DIR) $(VERSION)
+	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/new_version.py $(SOURCE_DIR) $(VERSION)
 
 release-local: commit-version release-aritfacts new-version
 
@@ -136,3 +137,6 @@ push-release:
 	git push --tags $(UPSTREAM)
 
 release: release-local push-release
+
+add-history:
+	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/bootstrap_history.py $(ITEM)
