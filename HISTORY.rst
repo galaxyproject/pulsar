@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.6.0.dev0
+0.6.0 (2015-12-23)
 ---------------------
 
 * Pulsar now depends on the new ``galaxy-lib`` Python package instead of
