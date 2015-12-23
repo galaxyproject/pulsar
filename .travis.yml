@@ -20,7 +20,7 @@ script: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDO
 
 matrix:
   allow_failures:
-    - env: TOX_ENV=py34
+    - env: TOX_ENV=py34 SETUP=true
 
 after_success:
   - coveralls
