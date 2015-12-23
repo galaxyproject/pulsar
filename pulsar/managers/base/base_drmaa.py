@@ -4,7 +4,7 @@ from pulsar.managers import status
 
 try:
     from drmaa import JobState
-except ImportError:
+except (OSError, ImportError):
     JobState = None
 
 import logging
