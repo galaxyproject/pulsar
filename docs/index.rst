@@ -21,6 +21,7 @@ Contents:
    upgrading
    conduct
    contributing
+   organization
    developing
    history
 
