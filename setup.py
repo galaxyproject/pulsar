@@ -1,3 +1,4 @@
+import os
 import re
 import ast
 import sys
@@ -14,6 +15,9 @@ try:
 except ImportError:
     from distutils.core import setup
 
+# Set environment variable to 1 to build as library for Galaxy instead
+# of as stand-alone app.
+PULSAR_GALAXY_LIB = os.environ.get("PULSAR_GALAXY_LIB", "0") == "1"
 
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
@@ -23,9 +27,12 @@ requirements = [
     'webob',
     'psutil',
     'pyyaml',
-    'galaxy-lib',
 ]
 
+if not PULSAR_GALAXY_LIB:
+    requirements.append("galaxy-lib")
+
+# TODO: use extra_requires here to be more correct.
 if sys.version_info[0] == 2:
     requirements.append('PasteScript')
     requirements.append('paste')
@@ -46,8 +53,10 @@ if is_windows:
 else:
     scripts = ["scripts/pulsar"]
 
+name = "pulsar-app" if not PULSAR_GALAXY_LIB else "pulsar-galaxy-lib"
+
 setup(
-    name='pulsar-app',
+    name=name,
     version=version,
     description='Distributed job execution application built for Galaxy (http://galaxyproject.org/).',
     long_description=readme + '\n\n' + history,

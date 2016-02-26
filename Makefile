@@ -99,8 +99,10 @@ lint-docs: ready-docs
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; ! (make -C docs html 2>&1 | grep -v 'nonlocal image URI found\|included in any toctree' | grep WARNING)
 
-open-docs: docs
+_open-docs:
 	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html
+
+open-docs: docs _open-docs
 
 open-rtd: docs
 	open $(DOC_URL) || xdg-open $(PROJECT_URL)
@@ -112,17 +114,21 @@ dist: clean
 	$(IN_VENV) python setup.py sdist bdist_egg bdist_wheel
 	ls -l dist
 
-release-test-artifacts: dist
+_release-test-artifacts:
 	$(IN_VENV) twine upload -r test dist/*
 	open https://testpypi.python.org/pypi/$(PROJECT_NAME) || xdg-open https://testpypi.python.org/pypi/$(PROJECT_NAME)
 
-release-aritfacts: release-test-artifacts
+release-test-artifacts: dist _release-test-artifacts
+
+_release-aritfacts: release-test-artifacts
 	@while [ -z "$$CONTINUE" ]; do \
 	  read -r -p "Have you executed release-test and reviewed results? [y/N]: " CONTINUE; \
 	done ; \
 	[ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ] || (echo "Exiting."; exit 1;)
 	@echo "Releasing"
 	$(IN_VENV) twine upload dist/*
+
+release-aritfacts: release-test-artifacts _release-aritfacts
 
 commit-version:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/commit_version.py $(SOURCE_DIR) $(VERSION)
@@ -140,3 +146,11 @@ release: release-local push-release
 
 add-history:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/bootstrap_history.py $(ITEM)
+
+dist-lib: clean
+	$(IN_VENV) PULSAR_GALAXY_LIB=1 python setup.py sdist bdist_egg bdist_wheel
+	ls -l dist
+
+release-test-lib-artifacts: dist-lib _release-test-artifacts
+
+release-lib-aritfacts: release-test-lib-artifacts _release-aritfacts
