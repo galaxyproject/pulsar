@@ -120,7 +120,7 @@ _release-test-artifacts:
 
 release-test-artifacts: dist _release-test-artifacts
 
-_release-aritfacts: release-test-artifacts
+_release-aritfacts:
 	@while [ -z "$$CONTINUE" ]; do \
 	  read -r -p "Have you executed release-test and reviewed results? [y/N]: " CONTINUE; \
 	done ; \

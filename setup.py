@@ -17,7 +17,8 @@ except ImportError:
 
 # Set environment variable to 1 to build as library for Galaxy instead
 # of as stand-alone app.
-PULSAR_GALAXY_LIB = os.environ.get("PULSAR_GALAXY_LIB", "0") == "1"
+DEFAULT_PULSAR_GALAXY_LIB = 0
+PULSAR_GALAXY_LIB = os.environ.get("PULSAR_GALAXY_LIB", "%d" % DEFAULT_PULSAR_GALAXY_LIB) == "1"
 
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
