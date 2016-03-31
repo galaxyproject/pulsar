@@ -1,3 +1,10 @@
+"""Entry point for client creation.
+
+``build_client_manager`` in particular is the abstraction that should be used
+to create a ``ClientManager``, that in return can create Pulsar clients for
+specific actions.
+"""
+
 import threading
 import functools
 try:
@@ -35,11 +42,14 @@ def build_client_manager(**kwargs):
 
 
 class ClientManager(object):
+    """Factory class to create Pulsar clients.
+
+    This class was introduced for classes of clients that need to potential
+    share state between multiple client connections.
     """
-    Factory to create Pulsar clients, used to manage potential shared
-    state between multiple client connections.
-    """
+
     def __init__(self, **kwds):
+        """Build a HTTP client or a local client that talks directly to a job manger."""
         if 'job_manager' in kwds:
             self.job_manager_interface_class = LocalPulsarInterface
             self.job_manager_interface_args = dict(job_manager=kwds['job_manager'], file_cache=kwds['file_cache'])
@@ -62,6 +72,7 @@ class ClientManager(object):
             self.extra_client_kwds = {}
 
     def get_client(self, destination_params, job_id, **kwargs):
+        """Build a client given specific destination parameters and job_id."""
         destination_params = _parse_destination_params(destination_params)
         destination_params.update(**kwargs)
         job_manager_interface_class = self.job_manager_interface_class
@@ -70,6 +81,7 @@ class ClientManager(object):
         return self.client_class(destination_params, job_id, job_manager_interface, **self.extra_client_kwds)
 
     def shutdown(self, ensure_cleanup=False):
+        """Mark client manager's work as complete and clean up resources it managed."""
         pass
 
 
