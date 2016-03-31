@@ -52,7 +52,12 @@ class ClientManager(object):
         """Build a HTTP client or a local client that talks directly to a job manger."""
         if 'job_manager' in kwds:
             self.job_manager_interface_class = LocalPulsarInterface
-            self.job_manager_interface_args = dict(job_manager=kwds['job_manager'], file_cache=kwds['file_cache'])
+            job_manager = kwds['job_manager']
+            file_cache = kwds.get('file_cache', None)
+            self.job_manager_interface_args = dict(
+                job_manager=job_manager,
+                file_cache=file_cache
+            )
         else:
             self.job_manager_interface_class = HttpPulsarInterface
             transport_type = kwds.get('transport', None)
