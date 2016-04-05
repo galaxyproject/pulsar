@@ -29,6 +29,7 @@ from pulsar.client.job_directory import verify_is_in_directory
 JOB_DIRECTORY_INPUTS = "inputs"
 JOB_DIRECTORY_OUTPUTS = "outputs"
 JOB_DIRECTORY_WORKING = "working"
+JOB_DIRECTORY_METADATA = "metadata"
 JOB_DIRECTORY_CONFIGS = "configs"
 JOB_DIRECTORY_TOOL_FILES = "tool_files"
 
@@ -145,7 +146,8 @@ class BaseManager(ManagerInterface):
                           JOB_DIRECTORY_WORKING,
                           JOB_DIRECTORY_OUTPUTS,
                           JOB_DIRECTORY_CONFIGS,
-                          JOB_DIRECTORY_TOOL_FILES]:
+                          JOB_DIRECTORY_TOOL_FILES,
+                          JOB_DIRECTORY_METADATA]:
             job_directory.make_directory(directory)
         return job_directory
 
@@ -282,6 +284,10 @@ class JobDirectory(RemoteJobDirectory):
     def outputs_directory_contents(self):
         outputs_directory = self.outputs_directory()
         return self.__directory_contents(outputs_directory)
+
+    def metadata_directory_contents(self):
+        metadata_directory = self.metadata_directory()
+        return self.__directory_contents(metadata_directory)
 
     def __directory_contents(self, directory):
         contents = []

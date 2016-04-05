@@ -17,8 +17,10 @@ TYPES_TO_METHOD = dict(
     config="configs_directory",
     tool="tool_files_directory",
     workdir="working_directory",
+    metadata="metadata_directory",
     output="outputs_directory",
     output_workdir="working_directory",
+    output_metadata="metadata_directory",
 )
 
 
@@ -32,6 +34,9 @@ class RemoteJobDirectory(object):
             remote_staging_directory,
             remote_id
         )
+
+    def metadata_directory(self):
+        return self._sub_dir('metadata')
 
     def working_directory(self):
         return self._sub_dir('working')
@@ -72,7 +77,7 @@ class RemoteJobDirectory(object):
         # Obviously this client won't be legacy because this is in the
         # client module, but this code is reused on server which may
         # serve legacy clients.
-        allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir']
+        allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir', 'metadata', 'output_metadata']
         directory_function = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
         if not directory_function:
             raise Exception("Unknown file_type specified %s" % file_type)

@@ -1,6 +1,5 @@
 from os.path import join
 from os.path import relpath
-from re import compile
 from contextlib import contextmanager
 
 from ..staging import COMMAND_VERSION_FILENAME
@@ -9,12 +8,6 @@ from ..action_mapper import FileActionMapper
 
 from logging import getLogger
 log = getLogger(__name__)
-
-# All output files marked with from_work_dir attributes will copied or downloaded
-# this pattern picks up attiditional files to copy back - such as those
-# associated with multiple outputs and metadata configuration. Set to .* to just
-# copy everything
-COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|__instrument_.*|dataset_\d+_files.+")
 
 
 def finish_job(client, cleanup_job, job_completed_normally, client_outputs, pulsar_outputs):
@@ -63,12 +56,14 @@ class ResultsCollector(object):
         self.exception_tracker = DownloadExceptionTracker()
         self.output_files = client_outputs.output_files
         self.working_directory_contents = pulsar_outputs.working_directory_contents or []
+        self.metadata_directory_contents = pulsar_outputs.metadata_directory_contents or []
 
     def collect(self):
         self.__collect_working_directory_outputs()
         self.__collect_outputs()
         self.__collect_version_file()
         self.__collect_other_working_directory_files()
+        self.__collect_metadata_directory_files()
         return self.exception_tracker.collection_failure_exceptions
 
     def __collect_working_directory_outputs(self):
@@ -105,15 +100,31 @@ class ResultsCollector(object):
             self._attempt_collect_output('output', version_file, name=COMMAND_VERSION_FILENAME)
 
     def __collect_other_working_directory_files(self):
-        working_directory = self.client_outputs.working_directory
+        self.__collect_directory_files(
+            self.client_outputs.working_directory,
+            self.working_directory_contents,
+            'output_workdir',
+        )
+
+    def __collect_metadata_directory_files(self):
+        self.__collect_directory_files(
+            self.client_outputs.metadata_directory,
+            self.metadata_directory_contents,
+            'output_metadata',
+        )
+
+    def __collect_directory_files(self, directory, contents, output_type):
+        if directory is None:  # e.g. output_metadata_directory
+            return
+
         # Fetch remaining working directory outputs of interest.
-        for name in self.working_directory_contents:
+        for name in contents:
             if name in self.downloaded_working_directory_files:
                 continue
             if self.client_outputs.dynamic_match(name):
-                log.debug("collecting dynamic output %s" % name)
-                output_file = join(working_directory, self.pulsar_outputs.path_helper.local_name(name))
-                if self._attempt_collect_output(output_type='output_workdir', path=output_file, name=name):
+                log.debug("collecting dynamic %s file %s" % (output_type, name))
+                output_file = join(directory, self.pulsar_outputs.path_helper.local_name(name))
+                if self._attempt_collect_output(output_type=output_type, path=output_file, name=name):
                     self.downloaded_working_directory_files.append(name)
 
     def _attempt_collect_output(self, output_type, path, name=None):

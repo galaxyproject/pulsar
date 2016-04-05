@@ -204,8 +204,8 @@ class JobClient(BaseJobClient):
             used if targetting an older Pulsar server that didn't return statuses
             allowing this to be inferred.
         """
-        if output_type == 'output_workdir':
-            self._fetch_work_dir_output(name, working_directory, path, action_type=action_type)
+        if output_type in ['output_workdir', 'output_metadata']:
+            self._populate_output_path(name, path, action_type, output_type)
         elif output_type == 'output':
             self._fetch_output(path=path, name=name, action_type=action_type)
         else:
@@ -219,22 +219,14 @@ class JobClient(BaseJobClient):
             # Extra files will send in the path.
             name = os.path.basename(path)
 
-        self.__populate_output_path(name, path, action_type)
+        self._populate_output_path(name, path, action_type, path_type.OUTPUT)
 
-    def _fetch_work_dir_output(self, name, working_directory, output_path, action_type='transfer'):
+    def _populate_output_path(self, name, output_path, action_type, path_type):
         ensure_directory(output_path)
         if action_type == 'transfer':
-            self.__raw_download_output(name, self.job_id, path_type.OUTPUT_WORKDIR, output_path)
-        else:  # Even if action is none - Pulsar has a different work_dir so this needs to be copied.
-            pulsar_path = self._output_path(name, self.job_id, path_type.OUTPUT_WORKDIR)['path']
-            copy(pulsar_path, output_path)
-
-    def __populate_output_path(self, name, output_path, action_type):
-        ensure_directory(output_path)
-        if action_type == 'transfer':
-            self.__raw_download_output(name, self.job_id, path_type.OUTPUT, output_path)
+            self.__raw_download_output(name, self.job_id, path_type, output_path)
         elif action_type == 'copy':
-            pulsar_path = self._output_path(name, self.job_id, path_type.OUTPUT)['path']
+            pulsar_path = self._output_path(name, self.job_id, path_type)['path']
             copy(pulsar_path, output_path)
 
     @parseJson()

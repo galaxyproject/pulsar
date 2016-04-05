@@ -30,6 +30,7 @@ def __collect_outputs(job_directory, staging_config, action_executor):
         pulsar_outputs = __pulsar_outputs(job_directory)
         output_collector = PulsarServerOutputCollector(job_directory, action_executor)
         results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, pulsar_outputs)
+        results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, pulsar_outputs)
         collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
             log.warn("Failures collecting results %s" % collection_failure_exceptions)
@@ -62,9 +63,11 @@ class PulsarServerOutputCollector(object):
 def __pulsar_outputs(job_directory):
     working_directory_contents = job_directory.working_directory_contents()
     output_directory_contents = job_directory.outputs_directory_contents()
+    metadata_directory_contents = job_directory.metadata_directory_contents()
     return PulsarOutputs(
         working_directory_contents,
         output_directory_contents,
+        metadata_directory_contents,
     )
 
 __all__ = ['postprocess']

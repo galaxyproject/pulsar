@@ -74,6 +74,7 @@ class FileStager(object):
             self.tool_version = None
             self.tool_dir = None
         self.working_directory = client_job_description.working_directory
+        self.metadata_directory = client_job_description.metadata_directory
         self.version_file = client_job_description.version_file
         self.arbitrary_files = client_job_description.arbitrary_files
         self.rewrite_paths = client_job_description.rewrite_paths
@@ -95,6 +96,7 @@ class FileStager(object):
         self.__upload_tool_files()
         self.__upload_input_files()
         self.__upload_working_directory_files()
+        self.__upload_metadata_directory_files()
         self.__upload_arbitrary_files()
 
         if self.rewrite_paths:
@@ -190,9 +192,21 @@ class FileStager(object):
             path = join(self.working_directory, working_directory_file)
             self.transfer_tracker.handle_transfer(path, path_type.WORKDIR)
 
+    def __upload_metadata_directory_files(self):
+        metadata_directory_files = self.__metadata_directory_files()
+        for metadata_directory_file in metadata_directory_files:
+            path = join(self.metadata_directory, metadata_directory_file)
+            self.transfer_tracker.handle_transfer(path, path_type.METADATA)
+
     def __working_directory_files(self):
         if self.working_directory and exists(self.working_directory):
             return listdir(self.working_directory)
+        else:
+            return []
+
+    def __metadata_directory_files(self):
+        if self.metadata_directory and exists(self.metadata_directory):
+            return listdir(self.metadata_directory)
         else:
             return []
 

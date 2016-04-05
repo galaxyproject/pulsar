@@ -33,13 +33,24 @@ import sys
 from os import getenv
 from os import makedirs
 from os import listdir
+from os.path import exists
 from os.path import join
 from os.path import basename
 from os.path import dirname
 
+
+def assert_path_contents(path, expected_contents):
+    if not exists(path):
+        message = "Expected path [%s] to exist, but it doesn't."
+        raise AssertionError(message % path)
+
+    with open(path, 'r') as f:
+        contents = f.read()
+        if contents != expected_contents:
+            message = "Expected path [%s] to be have contents [%s], but contains [%s]."
+            raise AssertionError(message % (path, expected_contents, contents))
+
 config_input = open(sys.argv[1], 'r')
-input_input = open(sys.argv[2], 'r')
-input_extra = open(sys.argv[8], 'r')
 output = open(sys.argv[3], 'w')
 output2 = open(sys.argv[5], 'w')
 output2_contents = sys.argv[6]
@@ -49,9 +60,12 @@ index_path = sys.argv[10]
 assert len(listdir(dirname(index_path))) == 2
 assert len(listdir(join(dirname(dirname(index_path)), "seq"))) == 1
 output4_index_path = open(sys.argv[11], 'w')
+metadata_dir = dirname(sys.argv[13])
+output_metadata_path = join(metadata_dir, "metadata_output")
 try:
-    assert input_input.read() == "Hello world input!!@!"
-    assert input_extra.read() == "INPUT_EXTRA_CONTENTS"
+    assert_path_contents(sys.argv[2], "Hello world input!!@!")
+    assert_path_contents(sys.argv[8], "INPUT_EXTRA_CONTENTS")
+    assert_path_contents(sys.argv[13], "meta input")
     contents = config_input.read(1024)
     output.write(contents)
     open("workdir_output", "w").write("WORK DIR OUTPUT")
@@ -59,6 +73,7 @@ try:
     open("rewrite_action_test", "w").write(sys.argv[12])
     output2.write(output2_contents)
     with open("galaxy.json", "w") as f: f.write("GALAXY_JSON")
+    with open(output_metadata_path, "w") as f: f.write("meta output")
     output3.write(getenv("MOO", "moo_default"))
     output1_extras_path = "%s_files" % sys.argv[3][0:-len(".dat")]
     makedirs(output1_extras_path)
@@ -111,9 +126,17 @@ def run(options):
         temp_index_dir_sibbling = os.path.join(temp_directory, "idx", "seq")
         temp_shared_dir = os.path.join(temp_directory, "shared", "test1")
         temp_work_dir = os.path.join(temp_directory, "w")
+        temp_metadata_dir = os.path.join(temp_directory, "m")
         temp_tool_dir = os.path.join(temp_directory, "t")
 
-        __makedirs([temp_tool_dir, temp_work_dir, temp_index_dir, temp_index_dir_sibbling, temp_shared_dir])
+        __makedirs([
+            temp_tool_dir,
+            temp_work_dir,
+            temp_index_dir,
+            temp_index_dir_sibbling,
+            temp_shared_dir,
+            temp_metadata_dir,
+        ])
 
         temp_input_path = os.path.join(temp_directory, "dataset_0.dat")
         temp_input_extra_path = os.path.join(temp_directory, "dataset_0_files", "input_subdir", "extra")
@@ -128,6 +151,7 @@ def run(options):
         temp_version_output_path = os.path.join(temp_directory, "GALAXY_VERSION_1234")
         temp_output_workdir_destination = os.path.join(temp_directory, "dataset_77.dat")
         temp_output_workdir = os.path.join(temp_work_dir, "env_test")
+        temp_metadata_path = os.path.join(temp_metadata_dir, "metadata_test123")
 
         temp_output_workdir_destination2 = os.path.join(temp_directory, "dataset_78.dat")
         temp_output_workdir2 = os.path.join(temp_work_dir, "rewrite_action_test")
@@ -135,6 +159,7 @@ def run(options):
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
+        __write_to_file(temp_metadata_path, "meta input")
         __write_to_file(temp_tool_path, TEST_SCRIPT)
         __write_to_file(temp_index_path, b"AGTC")
         # Implicit files that should also get transferred since depth > 0
@@ -159,9 +184,10 @@ def run(options):
             temp_index_path,
             temp_output4_path,
             temp_shared_dir,
+            temp_metadata_path,
         )
         assert os.path.exists(temp_index_path)
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         input_files = [temp_input_path, empty_input]
         output_files = [
@@ -176,6 +202,7 @@ def run(options):
         waiter = Waiter(client, client_manager)
         client_outputs = ClientOutputs(
             working_directory=temp_work_dir,
+            metadata_directory=temp_metadata_dir,
             work_dir_outputs=[
                 (temp_output_workdir, temp_output_workdir_destination),
                 (temp_output_workdir2, temp_output_workdir_destination2),
@@ -191,6 +218,7 @@ def run(options):
             input_files=input_files,
             client_outputs=client_outputs,
             working_directory=temp_work_dir,
+            metadata_directory=temp_metadata_dir,
             **__extra_job_description_kwargs(options)
         )
         submit_job(client, job_description)
@@ -201,6 +229,7 @@ def run(options):
         __assert_contents(temp_output2_path, cmd_text, result_status)
         __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON", result_status)
         __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS", result_status)
+        __assert_contents(os.path.join(temp_metadata_dir, "metadata_output"), b"meta output", result_status)
         if getattr(options, "test_rewrite_action", False):
             __assert_contents(temp_output_workdir_destination2, os.path.join(temp_directory, "shared2", "test1"), result_status)
         if job_description.env:

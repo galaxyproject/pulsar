@@ -32,6 +32,7 @@ class PathMapper(object):
         self.input_directory = remote_job_config["inputs_directory"]
         self.output_directory = remote_job_config["outputs_directory"]
         self.working_directory = remote_job_config["working_directory"]
+        self.metadata_directory = remote_job_config.get("working_directory", None)
         self.unstructured_files_directory = remote_job_config["unstructured_files_directory"]
         self.config_directory = remote_job_config["configs_directory"]
         separator = remote_job_config["system_properties"]["separator"]
@@ -87,6 +88,8 @@ class PathMapper(object):
     def __remote_directory(self, dataset_path_type):
         if dataset_path_type in [path_type.OUTPUT]:
             return self.output_directory
+        elif dataset_path_type in [path_type.METADATA, path_type.OUTPUT_METADATA]:
+            return self.metadata_directory
         elif dataset_path_type in [path_type.WORKDIR, path_type.OUTPUT_WORKDIR]:
             return self.working_directory
         elif dataset_path_type in [path_type.INPUT]:
