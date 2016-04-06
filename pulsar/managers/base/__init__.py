@@ -3,6 +3,7 @@ Base Classes and Infrastructure Supporting Concret Manager Implementations.
 
 """
 from collections import deque
+import errno
 import logging
 import os
 from os.path import exists, isdir, join, basename
@@ -369,7 +370,11 @@ class DirectoryMaker(object):
         makedir_args = [path]
         if self.mode is not None:
             makedir_args.append(self.mode)
-        if recursive:
-            makedirs(*makedir_args)
-        else:
-            os.mkdir(*makedir_args)
+        try:
+            if recursive:
+                makedirs(*makedir_args)
+            else:
+                os.mkdir(*makedir_args)
+        except (OSError, IOError) as exc:
+            if exc.errno != errno.EEXIST:
+                raise
