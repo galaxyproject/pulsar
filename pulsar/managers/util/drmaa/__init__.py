@@ -34,7 +34,7 @@ class DrmaaSession(object):
     """
     Abstraction around `drmaa` module `Session` objects.
     """
-    session_lock = threading.Semaphore(1)
+    session_lock = threading.Lock()
     session = None
 
     def __init__(self, session_constructor, **kwds):
