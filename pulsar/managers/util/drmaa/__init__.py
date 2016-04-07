@@ -49,7 +49,6 @@ class DrmaaSession(object):
                 DrmaaSession.session.initialize()
             DrmaaSession.session_count += 1
 
-
     @contextlib.contextmanager
     def _session_lock(self):
         with DrmaaSession.session_lock:
