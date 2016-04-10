@@ -127,6 +127,7 @@ def run(options):
         temp_shared_dir = os.path.join(temp_directory, "shared", "test1")
         temp_work_dir = os.path.join(temp_directory, "w")
         temp_metadata_dir = os.path.join(temp_directory, "m")
+        temp_false_working_dir = os.path.join(temp_metadata_dir, "working")
         temp_tool_dir = os.path.join(temp_directory, "t")
 
         __makedirs([
@@ -136,6 +137,7 @@ def run(options):
             temp_index_dir_sibbling,
             temp_shared_dir,
             temp_metadata_dir,
+            temp_false_working_dir,
         ])
 
         temp_input_path = os.path.join(temp_directory, "dataset_0.dat")

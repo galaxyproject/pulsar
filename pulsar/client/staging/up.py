@@ -1,4 +1,5 @@
 from os.path import abspath, basename, join, exists
+from os.path import isdir
 from os.path import dirname
 from os.path import relpath
 from os import listdir, sep
@@ -199,16 +200,16 @@ class FileStager(object):
             self.transfer_tracker.handle_transfer(path, path_type.METADATA)
 
     def __working_directory_files(self):
-        if self.working_directory and exists(self.working_directory):
-            return listdir(self.working_directory)
-        else:
-            return []
+        return self.__list_files(self.working_directory)
 
     def __metadata_directory_files(self):
-        if self.metadata_directory and exists(self.metadata_directory):
-            return listdir(self.metadata_directory)
-        else:
+        return self.__list_files(self.metadata_directory)
+
+    def __list_files(self, directory):
+        if not directory or not exists(directory):
             return []
+
+        return [f for f in listdir(directory) if exists(f) and isdir(f)]
 
     def __initialize_version_file_rename(self):
         version_file = self.version_file
