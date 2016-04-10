@@ -417,8 +417,10 @@ def __write_to_file(path, contents):
     dirname = os.path.dirname(path)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
-    with open(path, "wb") as file:
-        file.write(contents)
+    with open(path, "wb") as f:
+        if not isinstance(contents, binary_type):
+            contents = binary_type(contents, "UTF-8")
+        f.write(contents)
 
 
 def __makedirs(directories):
