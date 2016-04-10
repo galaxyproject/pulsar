@@ -70,6 +70,9 @@ class DirectoryBaseManager(BaseManager):
         job_directory.store_metadata(JOB_FILE_TOOL_ID, tool_id)
         job_directory.store_metadata(JOB_FILE_TOOL_VERSION, tool_version)
 
+    def enable_metadata_directory(self, job_id):
+        self._job_directory(job_id).enable_metadata_directory()
+
     def _record_cancel(self, job_id):
         try:
             self._job_directory(job_id).store_metadata(JOB_FILE_CANCELLED, True)
@@ -118,6 +121,7 @@ class DirectoryBaseManager(BaseManager):
             'env_setup_commands': env_setup_commands,
             'exit_code_path': return_code_path,
             'working_directory': self.job_directory(job_id).working_directory(),
+            'metadata_directory': self.job_directory(job_id).metadata_directory(),
             'job_id': job_id,
         }
         if command_line:

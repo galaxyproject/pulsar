@@ -64,6 +64,7 @@ class RemoteSetupHandler(object):
         self.client = client
 
     def setup(self, **setup_args):
+        setup_args["use_metadata"] = "true"
         return self.client.remote_setup(**setup_args)
 
     @property
@@ -78,6 +79,7 @@ def build_job_config(job_id, job_directory, system_properties={}, tool_id=None, 
     """
     inputs_directory = job_directory.inputs_directory()
     working_directory = job_directory.working_directory()
+    metadata_directory = job_directory.metadata_directory()
     outputs_directory = job_directory.outputs_directory()
     configs_directory = job_directory.configs_directory()
     tools_directory = job_directory.tool_files_directory()
@@ -86,6 +88,7 @@ def build_job_config(job_id, job_directory, system_properties={}, tool_id=None, 
     job_config = {
         "job_directory": job_directory.path,
         "working_directory": working_directory,
+        "metadata_directory": metadata_directory,
         "outputs_directory": outputs_directory,
         "configs_directory": configs_directory,
         "tools_directory": tools_directory,

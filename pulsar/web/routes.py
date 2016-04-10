@@ -43,12 +43,13 @@ class PulsarController(Controller):
 
 
 @PulsarController(path="/jobs", method="POST", response_type='json')
-def setup(manager, job_id, tool_id=None, tool_version=None):
-    return __setup(manager, job_id, tool_id=tool_id, tool_version=tool_version)
+def setup(manager, job_id, tool_id=None, tool_version=None, use_metadata='false'):
+    return __setup(manager, job_id, tool_id=tool_id, tool_version=tool_version, use_metadata=use_metadata)
 
 
-def __setup(manager, job_id, tool_id, tool_version):
-    response = setup_job(manager, job_id, tool_id, tool_version)
+def __setup(manager, job_id, tool_id, tool_version, use_metadata):
+    use_metadata = loads(use_metadata)
+    response = setup_job(manager, job_id, tool_id, tool_version, use_metadata)
     log.debug("Setup job with configuration: %s" % response)
     return response
 
@@ -72,7 +73,7 @@ def submit(manager, job_id, command_line, params='{}', dependencies_description=
         submit_params=submit_params,
         dependencies_description=dependencies_description,
         env=env,
-        remote_staging=remote_staging
+        remote_staging=remote_staging,
     )
     submit_job(manager, submit_config)
 

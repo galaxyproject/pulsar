@@ -1,12 +1,17 @@
 """ Composite actions over managers shared between HTTP endpoint (routes.py)
 and message queue.
 """
+
+import logging
+import os
+
 from pulsar import __version__ as pulsar_version
 from pulsar.client.setup_handler import build_job_config
 from pulsar.managers import status
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from galaxy.tools.deps import dependencies
-import os
+
+log = logging.getLogger(__name__)
 
 
 def status_dict(manager, job_id):
@@ -40,6 +45,7 @@ def __job_complete_dict(complete_status, manager, job_id):
         stdout=stdout_contents,
         stderr=stderr_contents,
         working_directory=job_directory.working_directory(),
+        metadata_directory=job_directory.metadata_directory(),
         working_directory_contents=job_directory.working_directory_contents(),
         metadata_directory_contents=job_directory.metadata_directory_contents(),
         outputs_directory_contents=job_directory.outputs_directory_contents(),
@@ -63,13 +69,19 @@ def submit_job(manager, job_config):
     dependencies_description = job_config.get('dependencies_description', None)
     env = job_config.get('env', [])
     submit_params = job_config.get('submit_params', {})
-
     job_config = None
     if setup_params or force_setup:
         input_job_id = setup_params.get("job_id", job_id)
         tool_id = setup_params.get("tool_id", None)
         tool_version = setup_params.get("tool_version", None)
-        job_config = setup_job(manager, input_job_id, tool_id, tool_version)
+        use_metadata = setup_params.get("use_metadata", False)
+        job_config = setup_job(
+            manager,
+            input_job_id,
+            tool_id,
+            tool_version,
+            use_metadata
+        )
 
     if job_config is not None:
         job_directory = job_config["job_directory"]
@@ -85,20 +97,21 @@ def submit_job(manager, job_config):
         command_line,
         submit_params,
         dependencies_description=dependencies_description,
-        env=env
+        env=env,
     )
 
 
-def setup_job(manager, job_id, tool_id, tool_version):
+def setup_job(manager, job_id, tool_id, tool_version, use_metadata=False):
     """ Setup new job from these inputs and return dict summarizing state
     (used to configure command line).
     """
     job_id = manager.setup_job(job_id, tool_id, tool_version)
+    if use_metadata:
+        manager.enable_metadata_directory(job_id)
     return build_job_config(
         job_id=job_id,
         job_directory=manager.job_directory(job_id),
         system_properties=manager.system_properties(),
         tool_id=tool_id,
-        tool_version=tool_version,
-        pulsar_version=pulsar_version,
+        tool_version=tool_version
     )

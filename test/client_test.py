@@ -106,7 +106,7 @@ class RequestChecker(object):
 def test_setup():
     """ Test the setup method of Client """
     client = TestClient()
-    request_checker = RequestChecker("jobs")
+    request_checker = RequestChecker("jobs", {"use_metadata": "true"})
     response_json = b'{"working_directory":"C:\\\\home\\\\dir","outputs_directory" : "C:\\\\outputs","path_separator" : "\\\\"}'
     client.expect_open(request_checker, response_json)
     setup_response = client.setup()
