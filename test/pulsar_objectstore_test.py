@@ -5,6 +5,7 @@ from galaxy.util.bunch import Bunch
 from galaxy.objectstore import build_object_store_from_config
 
 from .test_utils import TempDirectoryTestCase
+from .test_utils import skip
 
 
 class MockDataset(object):
@@ -24,6 +25,7 @@ class PulsarObjectStoreTest(TempDirectoryTestCase):
         open(path, "wb").write(contents)
         return path
 
+    @skip
     def test_pulsar_objectstore(self):
         # Define real object store used by Pulsar server.
         object_store_config_file = join(self.temp_directory, "object_store_conf.xml")
