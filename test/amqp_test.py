@@ -1,14 +1,21 @@
+"""Tests for ``pulsar.client.amqp_exchange``."""
 import time
 import threading
 
-from .test_utils import skip_unless_module
 from pulsar.client import amqp_exchange
+
+from .test_utils import (
+    skip_unless_module,
+    timed,
+)
 
 TEST_CONNECTION = "memory://test_amqp"
 
 
 @skip_unless_module("kombu")
+@timed(15)
 def test_amqp():
+    """Test the client PulsarExchange abstraction with an in-memory connection."""
     manager1_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager_test")
     manager3_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager3_test")
     manager2_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager2_test")
@@ -56,3 +63,6 @@ class TestThread(threading.Thread):
             raise AssertionError(msg)
 
         self.join(2)
+
+
+__all__ = ["test_amqp"]
