@@ -178,10 +178,14 @@ class JobClient(BaseJobClient):
         if action_type in ['transfer', 'message']:
             if isinstance(contents, string_types):
                 contents = contents.encode("utf-8")
+            message = "Uplodaing path [%s] (action_type: [%s])"
+            log.debug(message, path, action_type)
             return self._upload_file(args, contents, input_path)
         elif action_type == 'copy':
             path_response = self._raw_execute('path', args)
             pulsar_path = json_loads(path_response)['path']
+            message = "Copying path [%s] to [%s]"
+            log.debug(message, path, pulsar_path)
             copy(path, pulsar_path)
             return {'path': pulsar_path}
 
