@@ -1,5 +1,5 @@
 from os.path import abspath, basename, join, exists
-from os.path import isdir
+from os.path import isfile
 from os.path import dirname
 from os.path import relpath
 from os import listdir, sep
@@ -206,10 +206,10 @@ class FileStager(object):
         return self.__list_files(self.metadata_directory)
 
     def __list_files(self, directory):
-        if not directory or not exists(directory):
+        if directory and exists(directory):
+            return [f for f in listdir(directory) if isfile(join(directory, f))]
+        else:
             return []
-
-        return [f for f in listdir(directory) if exists(f) and isdir(f)]
 
     def __initialize_version_file_rename(self):
         version_file = self.version_file
