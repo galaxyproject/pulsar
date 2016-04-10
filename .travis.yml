@@ -7,7 +7,6 @@ env:
   - TOX_ENV=py34-lint
   - TOX_ENV=py27-lint-readme
   - TOX_ENV=lint-docs
-  - TOX_ENV=py26 SETUP=true
   - TOX_ENV=py27 SETUP=true
   - TOX_ENV=py34 SETUP=true
   - TOX_ENV=py34-unit SETUP=true

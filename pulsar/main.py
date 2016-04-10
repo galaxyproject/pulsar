@@ -36,31 +36,8 @@ try:
 except ImportError:
     Daemonize = None
 
-# Vaguely Python 2.6 compatibile ArgumentParser import
-try:
-    from argparse import ArgumentParser
-    from argparse import RawDescriptionHelpFormatter
-except ImportError:
-    from optparse import OptionParser
-
-    class ArgumentParser(OptionParser):
-
-        def __init__(self, **kwargs):
-            if "formatter_class" in kwargs:
-                del kwargs["formatter_class"]
-            self.delegate = OptionParser(**kwargs)
-
-        def add_argument(self, *args, **kwargs):
-            if "required" in kwargs:
-                del kwargs["required"]
-            return self.delegate.add_option(*args, **kwargs)
-
-        def parse_args(self, args=None):
-            (options, args) = self.delegate.parse_args(args)
-            return options
-
-    RawDescriptionHelpFormatter = None
-
+from argparse import ArgumentParser
+from argparse import RawDescriptionHelpFormatter
 
 log = logging.getLogger(__name__)
 

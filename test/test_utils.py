@@ -29,10 +29,7 @@ from pulsar.tools import ToolBox
 from pulsar.managers.base import JobDirectory
 from pulsar.web.framework import file_response
 
-if version_info < (2, 7):
-    from unittest2 import TestCase, skip
-else:
-    from unittest import TestCase, skip
+from unittest import TestCase, skip
 
 try:
     from nose.tools import nottest

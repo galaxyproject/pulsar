@@ -10,9 +10,6 @@ coverage
 # For dev
 sphinx==1.2
 
-# For Python 2.6 tests
-unittest2
-
 # Used for code checking.
 pyflakes
 flake8
