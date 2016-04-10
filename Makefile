@@ -85,6 +85,11 @@ coverage:
 	coverage html
 	open htmlcov/index.html || xdg-open htmlcov/index.html
 
+develop:
+	python setup.py develop
+
+develop-galaxy:
+	PULSAR_GALAXY_LIB=1 python setup.py develop
 
 ready-docs:
 	rm -f docs/$(SOURCE_DIR).rst
