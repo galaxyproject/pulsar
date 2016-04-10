@@ -1,6 +1,7 @@
 """ Composite actions over managers shared between HTTP endpoint (routes.py)
 and message queue.
 """
+from pulsar import __version__ as pulsar_version
 from pulsar.client.setup_handler import build_job_config
 from pulsar.managers import status
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
@@ -43,6 +44,7 @@ def __job_complete_dict(complete_status, manager, job_id):
         metadata_directory_contents=job_directory.metadata_directory_contents(),
         outputs_directory_contents=job_directory.outputs_directory_contents(),
         system_properties=manager.system_properties(),
+        pulsar_version=pulsar_version,
     )
     return as_dict
 
@@ -98,4 +100,5 @@ def setup_job(manager, job_id, tool_id, tool_version):
         system_properties=manager.system_properties(),
         tool_id=tool_id,
         tool_version=tool_version,
+        pulsar_version=pulsar_version,
     )

@@ -1,6 +1,8 @@
 import os
 from .util import filter_destination_params
 
+from pulsar import __version__ as pulsar_version
+
 REMOTE_SYSTEM_PROPERTY_PREFIX = "remote_property_"
 
 
@@ -93,6 +95,7 @@ def build_job_config(job_id, job_directory, system_properties={}, tool_id=None, 
         "path_separator": sep,
         "job_id": job_id,
         "system_properties": system_properties,
+        "pulsar_version": pulsar_version,
     }
     if tool_id:
         job_config["tool_id"] = tool_id
