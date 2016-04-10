@@ -1,3 +1,4 @@
+"""Utilities allowing for high-level testing throughout Pulsar."""
 from __future__ import print_function
 
 import traceback
@@ -14,7 +15,6 @@ from tempfile import mkdtemp
 from shutil import rmtree
 import time
 
-from sys import version_info
 import webob
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
