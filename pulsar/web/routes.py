@@ -89,14 +89,14 @@ def cancel(manager, job_id):
 
 @PulsarController(path="/jobs/{job_id}/files", method="POST", response_type='json')
 def upload_file(manager, type, file_cache, job_id, name, body, cache_token=None):
-    # Input type should be one of input, config, workdir, tool, or unstructured (see action_mapper.path_type)
+    # Input type should be one of input, config, workdir, metadata, tool, or unstructured (see action_mapper.path_type)
     path = manager.job_directory(job_id).calculate_path(name, type)
     return _handle_upload(file_cache, path, body, cache_token=cache_token)
 
 
 @PulsarController(path="/jobs/{job_id}/files/path", method="GET", response_type='json')
 def path(manager, type, job_id, name):
-    if type in [path_type.OUTPUT, path_type.OUTPUT_WORKDIR]:
+    if type in [path_type.OUTPUT, path_type.OUTPUT_WORKDIR, path_type.OUTPUT_METADATA]:
         path = _output_path(manager, job_id, name, type)
     else:
         path = manager.job_directory(job_id).calculate_path(name, type)
@@ -121,6 +121,8 @@ def _output_path(manager, job_id, name, output_type):
     directory = manager.job_directory(job_id).outputs_directory()
     if output_type == path_type.OUTPUT_WORKDIR:  # action_mapper.path_type.OUTPUT_WORKDIR
         directory = manager.job_directory(job_id).working_directory()
+    elif output_type == path_type.OUTPUT_METADATA:
+        directory = manager.job_directory(job_id).metadata_directory()
     path = os.path.join(directory, name)
     verify_is_in_directory(path, directory)
     return path

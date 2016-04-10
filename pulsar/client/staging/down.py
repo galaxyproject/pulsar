@@ -1,6 +1,6 @@
+"""Code run on the client side for unstaging complete Pulsar jobs."""
 from os.path import join
 from os.path import relpath
-from re import compile
 from contextlib import contextmanager
 
 from ..staging import COMMAND_VERSION_FILENAME
@@ -10,16 +10,12 @@ from ..action_mapper import FileActionMapper
 from logging import getLogger
 log = getLogger(__name__)
 
-# All output files marked with from_work_dir attributes will copied or downloaded
-# this pattern picks up attiditional files to copy back - such as those
-# associated with multiple outputs and metadata configuration. Set to .* to just
-# copy everything
-COPY_FROM_WORKING_DIRECTORY_PATTERN = compile(r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|__instrument_.*|dataset_\d+_files.+")
-
 
 def finish_job(client, cleanup_job, job_completed_normally, client_outputs, pulsar_outputs):
-    """ Responsible for downloading results from remote server and cleaning up
-    Pulsar staging directory (if needed.)
+    """Process for "un-staging" a complete Pulsar job.
+
+    This function is responsible for downloading results from remote
+    server and cleaning up Pulsar staging directory (if needed.)
     """
     collection_failure_exceptions = []
     if job_completed_normally:
@@ -27,7 +23,7 @@ def finish_job(client, cleanup_job, job_completed_normally, client_outputs, puls
         action_mapper = FileActionMapper(client)
         results_stager = ResultsCollector(output_collector, action_mapper, client_outputs, pulsar_outputs)
         collection_failure_exceptions = results_stager.collect()
-    __clean(collection_failure_exceptions, cleanup_job, client)
+    _clean(collection_failure_exceptions, cleanup_job, client)
     return collection_failure_exceptions
 
 
@@ -63,12 +59,14 @@ class ResultsCollector(object):
         self.exception_tracker = DownloadExceptionTracker()
         self.output_files = client_outputs.output_files
         self.working_directory_contents = pulsar_outputs.working_directory_contents or []
+        self.metadata_directory_contents = pulsar_outputs.metadata_directory_contents or []
 
     def collect(self):
         self.__collect_working_directory_outputs()
         self.__collect_outputs()
         self.__collect_version_file()
         self.__collect_other_working_directory_files()
+        self.__collect_metadata_directory_files()
         return self.exception_tracker.collection_failure_exceptions
 
     def __collect_working_directory_outputs(self):
@@ -105,15 +103,31 @@ class ResultsCollector(object):
             self._attempt_collect_output('output', version_file, name=COMMAND_VERSION_FILENAME)
 
     def __collect_other_working_directory_files(self):
-        working_directory = self.client_outputs.working_directory
+        self.__collect_directory_files(
+            self.client_outputs.working_directory,
+            self.working_directory_contents,
+            'output_workdir',
+        )
+
+    def __collect_metadata_directory_files(self):
+        self.__collect_directory_files(
+            self.client_outputs.metadata_directory,
+            self.metadata_directory_contents,
+            'output_metadata',
+        )
+
+    def __collect_directory_files(self, directory, contents, output_type):
+        if directory is None:  # e.g. output_metadata_directory
+            return
+
         # Fetch remaining working directory outputs of interest.
-        for name in self.working_directory_contents:
+        for name in contents:
             if name in self.downloaded_working_directory_files:
                 continue
             if self.client_outputs.dynamic_match(name):
-                log.debug("collecting dynamic output %s" % name)
-                output_file = join(working_directory, self.pulsar_outputs.path_helper.local_name(name))
-                if self._attempt_collect_output(output_type='output_workdir', path=output_file, name=name):
+                log.debug("collecting dynamic %s file %s" % (output_type, name))
+                output_file = join(directory, self.pulsar_outputs.path_helper.local_name(name))
+                if self._attempt_collect_output(output_type=output_type, path=output_file, name=name):
                     self.downloaded_working_directory_files.append(name)
 
     def _attempt_collect_output(self, output_type, path, name=None):
@@ -146,9 +160,15 @@ class DownloadExceptionTracker(object):
             self.collection_failure_exceptions.append(e)
 
 
-def __clean(collection_failure_exceptions, cleanup_job, client):
+def _clean(collection_failure_exceptions, cleanup_job, client):
     failed = (len(collection_failure_exceptions) > 0)
-    if (not failed and cleanup_job != "never") or cleanup_job == "always":
+    do_clean = (not failed and cleanup_job != "never") or cleanup_job == "always"
+    if do_clean:
+        message = "Cleaning up job (failed [%s], cleanup_job [%s])"
+    else:
+        message = "Skipping job cleanup (failed [%s], cleanup_job [%s])"
+    log.debug(message % (failed, cleanup_job))
+    if do_clean:
         try:
             client.clean()
         except Exception:

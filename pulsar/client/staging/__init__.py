@@ -31,7 +31,9 @@ class ClientJobDescription(object):
         Directory containing tool to execute (if a wrapper is used, it will
         be transferred to remote server).
     working_directory : str
-        Local path created by Galaxy for running this job.
+        Local path created by Galaxy for running this job (job_wrapper.tool_working_directory).
+    metadata_directory : str
+        Local path created by Galaxy for running this job (job_wrapper.working_directory).
     dependencies_description : list
         galaxy.tools.deps.dependencies.DependencyDescription object describing
         tool dependency context for remote depenency resolution.
@@ -57,7 +59,8 @@ class ClientJobDescription(object):
         config_files=[],
         input_files=[],
         client_outputs=None,
-        working_directory=None,  # More sensible default?
+        working_directory=None,
+        metadata_directory=None,
         dependencies_description=None,
         env=[],
         arbitrary_files=None,
@@ -69,6 +72,7 @@ class ClientJobDescription(object):
         self.input_files = input_files
         self.client_outputs = client_outputs or ClientOutputs()
         self.working_directory = working_directory
+        self.metadata_directory = metadata_directory
         self.dependencies_description = dependencies_description
         self.env = env
         self.rewrite_paths = rewrite_paths
@@ -103,9 +107,11 @@ class ClientOutputs(object):
         output_files=[],
         work_dir_outputs=None,
         version_file=None,
-        dynamic_outputs=None
+        dynamic_outputs=None,
+        metadata_directory=None,
     ):
         self.working_directory = working_directory
+        self.metadata_directory = metadata_directory
         self.work_dir_outputs = work_dir_outputs or []
         self.output_files = output_files or []
         self.version_file = version_file
@@ -115,6 +121,7 @@ class ClientOutputs(object):
     def to_dict(self):
         return dict(
             working_directory=self.working_directory,
+            metadata_directory=self.metadata_directory,
             work_dir_outputs=self.work_dir_outputs,
             output_files=self.output_files,
             version_file=self.version_file,
@@ -125,6 +132,7 @@ class ClientOutputs(object):
     def from_dict(config_dict):
         return ClientOutputs(
             working_directory=config_dict.get('working_directory'),
+            metadata_directory=config_dict.get('metadata_directory'),
             work_dir_outputs=config_dict.get('work_dir_outputs'),
             output_files=config_dict.get('output_files'),
             version_file=config_dict.get('version_file'),
@@ -139,9 +147,12 @@ class PulsarOutputs(object):
     """ Abstraction describing the output files PRODUCED by the remote Pulsar
     server. """
 
-    def __init__(self, working_directory_contents, output_directory_contents, remote_separator=sep):
+    def __init__(
+        self, working_directory_contents, output_directory_contents, metadata_directory_contents, remote_separator=sep
+    ):
         self.working_directory_contents = working_directory_contents
         self.output_directory_contents = output_directory_contents
+        self.metadata_directory_contents = metadata_directory_contents
         self.path_helper = PathHelper(remote_separator)
 
     @staticmethod
@@ -150,6 +161,7 @@ class PulsarOutputs(object):
         # by the Pulsar - older Pulsar instances will not set these in complete response.
         working_directory_contents = complete_response.get("working_directory_contents")
         output_directory_contents = complete_response.get("outputs_directory_contents")
+        metadata_directory_contents = complete_response.get("metadata_directory_contents")
         # Older (pre-2014) Pulsar servers will not include separator in response,
         # so this should only be used when reasoning about outputs in
         # subdirectories (which was not previously supported prior to that).
@@ -157,6 +169,7 @@ class PulsarOutputs(object):
         return PulsarOutputs(
             working_directory_contents,
             output_directory_contents,
+            metadata_directory_contents,
             remote_separator
         )
 

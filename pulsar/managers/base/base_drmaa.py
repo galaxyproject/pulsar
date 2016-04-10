@@ -1,19 +1,27 @@
-from .external import ExternalBaseManager
-from ..util.drmaa import DrmaaSessionFactory
-from pulsar.managers import status
+"""Module defines a base class for Pulsar managers using DRMAA."""
+import logging
 
 try:
     from drmaa import JobState
 except (OSError, ImportError):
     JobState = None
 
-import logging
+from .external import ExternalBaseManager
+from ..util.drmaa import DrmaaSessionFactory
+
+from pulsar.managers import status
+
+
 log = logging.getLogger(__name__)
+
+IGNORE_SUBMISSION_SPEC_MESSAGE = "Submission recieved native_specification but being overridden by manager specification."
 
 
 class BaseDrmaaManager(ExternalBaseManager):
+    """Base class for Pulsar managers using DRMAA."""
 
     def __init__(self, name, app, **kwds):
+        """Setup native specification and drmaa session factory."""
         super(BaseDrmaaManager, self).__init__(name, app, **kwds)
         self.native_specification = kwds.get('native_specification', None)
         drmaa_session_factory_class = kwds.get('drmaa_session_factory_class', DrmaaSessionFactory)
@@ -21,6 +29,7 @@ class BaseDrmaaManager(ExternalBaseManager):
         self.drmaa_session = drmaa_session_factory.get()
 
     def shutdown(self, timeout=None):
+        """Cleanup DRMAA session and call shutdown of parent."""
         try:
             super(BaseDrmaaManager, self).shutdown(timeout)
         except Exception:
@@ -52,8 +61,20 @@ class BaseDrmaaManager(ExternalBaseManager):
             "outputPath": ":%s" % stdout_path,
             "errorPath": ":%s" % stderr_path,
         }
+        submit_native_specification = submit_params.get("native_specification", None)
+        native_specification = None
         if self.native_specification:
-            attributes["nativeSpecification"] = self.native_specification
-        elif submit_params.get("native_specification", None):
-            attributes["nativeSpecification"] = submit_params["native_specification"]
+            native_specification = self.native_specification
+            if submit_native_specification is not None:
+                log.warn(IGNORE_SUBMISSION_SPEC_MESSAGE)
+        elif submit_native_specification:
+            native_specification = submit_params["native_specification"]
+
+        if native_specification is not None:
+            attributes["nativeSpecification"] = native_specification
+            log.info("Submitting DRMAA job with nativeSpecification [%s]" % native_specification)
+        else:
+            log.debug("Not native specification supplied, DRMAA job will be submitted with default parameters.")
         return attributes
+
+__all__ = ["BaseDrmaaManager"]
