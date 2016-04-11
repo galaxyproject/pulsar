@@ -127,8 +127,11 @@ class PulsarApp(object):
         self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file)
 
     def __setup_job_metrics(self, conf):
-        job_metrics_config_file = conf.get("job_metrics_config_file", "job_metrics_conf.xml")
-        self.job_metrics = JobMetrics(job_metrics_config_file)
+        job_metrics = conf.get("job_metrics", None)
+        if job_metrics is None:
+            job_metrics_config_file = conf.get("job_metrics_config_file", "job_metrics_conf.xml")
+            job_metrics = JobMetrics(job_metrics_config_file)
+        self.job_metrics = job_metrics
 
     @property
     def only_manager(self):

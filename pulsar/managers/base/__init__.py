@@ -208,6 +208,13 @@ class JobDirectory(RemoteJobDirectory):
         # Assert this job id isn't hacking path somehow.
         assert job_id == basename(job_id)
 
+    def enable_metadata_directory(self):
+        self.store_metadata("use_metadata_directory", True)
+
+    @property
+    def use_metadata_directory(self):
+        return self.has_metadata("use_metadata_directory")
+
     def _job_file(self, name):
         return os.path.join(self.job_directory, name)
 
@@ -288,6 +295,12 @@ class JobDirectory(RemoteJobDirectory):
     def metadata_directory_contents(self):
         metadata_directory = self.metadata_directory()
         return self.__directory_contents(metadata_directory)
+
+    def metadata_directory(self):
+        if self.use_metadata_directory:
+            return super(JobDirectory, self).metadata_directory()
+        else:
+            return self.working_directory()
 
     def __directory_contents(self, directory):
         contents = []

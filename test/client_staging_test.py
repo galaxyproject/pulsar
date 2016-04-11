@@ -149,7 +149,7 @@ class MockClient(object):
     def expect_put_paths(self, paths):
         self.put_paths = deque(paths)
 
-    def setup(self, tool_id, tool_version):
+    def setup(self, tool_id, tool_version, use_metadata=False):
         assert tool_id == self.expected_tool.id
         assert tool_version == self.expected_tool.version
         return {}

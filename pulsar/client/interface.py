@@ -110,7 +110,13 @@ class HttpPulsarInterface(PulsarInterface):
 
 class LocalPulsarInterface(PulsarInterface):
 
-    def __init__(self, destination_params, job_manager=None, file_cache=None, object_store=None):
+    def __init__(self, destination_params, job_manager=None, pulsar_app=None, file_cache=None, object_store=None):
+        if job_manager is None:
+            job_manager_name = destination_params.get("manager", None)
+            if job_manager_name is None:
+                job_manager = pulsar_app.only_manager
+            else:
+                job_manager = pulsar_app.managers[job_manager_name]
         self.job_manager = job_manager
         self.file_cache = file_cache
         self.object_store = object_store

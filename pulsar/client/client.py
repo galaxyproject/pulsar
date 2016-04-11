@@ -118,12 +118,13 @@ class JobClient(BaseJobClient):
             launch_params['env'] = json_dumps(env)
         if remote_staging:
             launch_params['remote_staging'] = json_dumps(remote_staging)
+
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
             # destination arguments. Hence, must have Pulsar setup job
             # before queueing.
             setup_params = _setup_params_from_job_config(job_config)
-            launch_params["setup_params"] = json_dumps(setup_params)
+            launch_params['setup_params'] = json_dumps(setup_params)
         return self._raw_execute("submit", launch_params)
 
     def full_status(self):
@@ -305,7 +306,7 @@ class MessageJobClient(BaseMessageJobClient):
             dependencies_description=dependencies_description,
             env=env,
             remote_staging=remote_staging,
-            job_config=job_config
+            job_config=job_config,
         )
         response = self.client_manager.exchange.publish("setup", launch_params)
         log.info("Job published to setup message queue.")
@@ -330,7 +331,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
             dependencies_description=dependencies_description,
             env=env,
             remote_staging=remote_staging,
-            job_config=job_config
+            job_config=job_config,
         )
         base64_message = to_base64_json(launch_params)
         submit_command = os.path.join(self.remote_pulsar_path, "scripts", "submit.bash")
@@ -392,5 +393,6 @@ def _setup_params_from_job_config(job_config):
     return dict(
         job_id=job_id,
         tool_id=tool_id,
-        tool_version=tool_version
+        tool_version=tool_version,
+        use_metadata=True,
     )

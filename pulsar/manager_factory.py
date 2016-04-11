@@ -63,8 +63,9 @@ def _populate_manager_descriptions_from_ini(manager_descriptions, job_managers_c
 
 def _get_default_options(conf):
     options = {}
-    if "assign_ids" in conf:
-        options["assign_ids"] = conf["assign_ids"]
+    for simple_key in ["assign_ids", "galaxy_home"]:
+        if simple_key in conf:
+            options[simple_key] = conf[simple_key]
     options["debug"] = conf.get("debug", False)
     # mode to create job directories with, if None just use
     # default (usually 0777 with umask applied).
