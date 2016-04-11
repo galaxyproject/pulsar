@@ -50,13 +50,15 @@ class ClientManager(object):
 
     def __init__(self, **kwds):
         """Build a HTTP client or a local client that talks directly to a job manger."""
-        if 'job_manager' in kwds:
+        if 'pulsar_app' in kwds or 'job_manager' in kwds:
             self.job_manager_interface_class = LocalPulsarInterface
-            job_manager = kwds['job_manager']
+            pulsar_app = kwds.get('pulsar_app', None)
+            job_manager = kwds.get('job_manager', None)
             file_cache = kwds.get('file_cache', None)
             self.job_manager_interface_args = dict(
                 job_manager=job_manager,
-                file_cache=file_cache
+                pulsar_app=pulsar_app,
+                file_cache=file_cache,
             )
         else:
             self.job_manager_interface_class = HttpPulsarInterface
