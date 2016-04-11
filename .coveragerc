@@ -2,6 +2,7 @@
 [run]
 branch = True
 include = pulsar/*
+omit = pulsar/util/pastescript/serve.py
 
 [report]
 # Regexes for lines to exclude from consideration
