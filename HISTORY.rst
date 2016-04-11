@@ -10,6 +10,18 @@ History
 0.7.0.dev3
 ---------------------
 
+* Remove support for Python 2.6. 60bf962_
+* Update docs to describe project goverance and reuse Galaxy's
+  Code of Conduct. 7e23d43_, dc47140_
+* Updated cluster slots detection for SLURM from Galaxy. cadfc5a_
+* Various changes to allow usage within Galaxy as a library. ce9d4f9_
+* Various changes to allow embedded Pulsar managers within Galaxy.
+  ce9d4f9_, d262323_, 8f7c04a_
+* Introduce a separate working and metadata directory as required for
+  Galaxy 16.04 that requires this separation. 6f4328e_
+* Improve logging and comments. 38953f3_, a985107_, ad33cb9_
+* Add Tox target for Python 2.7 unit testing. d7c524e_
+* Add ``Makefile`` command for setup.py develop. fd82d00_
 
 ---------------------
 0.6.1 (2015-12-23)
@@ -96,6 +108,20 @@ History
 
 
 .. github_links
+.. _ad33cb9: https://github.com/galaxyproject/pulsar/commit/ad33cb9
+.. _d7c524e: https://github.com/galaxyproject/pulsar/commit/d7c524e
+.. _fd82d00: https://github.com/galaxyproject/pulsar/commit/fd82d00
+.. _a985107: https://github.com/galaxyproject/pulsar/commit/a985107
+.. _38953f3: https://github.com/galaxyproject/pulsar/commit/38953f3
+.. _6f4328e: https://github.com/galaxyproject/pulsar/commit/6f4328e
+.. _8f7c04a: https://github.com/galaxyproject/pulsar/commit/8f7c04a
+.. _cadfc5a: https://github.com/galaxyproject/pulsar/commit/cadfc5a
+.. _d262323: https://github.com/galaxyproject/pulsar/commit/d262323
+.. _ce0636a: https://github.com/galaxyproject/pulsar/commit/ce0636a
+.. _ce9d4f9: https://github.com/galaxyproject/pulsar/commit/ce9d4f9
+.. _dc47140: https://github.com/galaxyproject/pulsar/commit/dc47140
+.. _7e23d43: https://github.com/galaxyproject/pulsar/commit/7e23d43
+.. _60bf962: https://github.com/galaxyproject/pulsar/commit/60bf962
 .. _Pull Request 73: https://github.com/galaxyproject/pulsar/pull/73
 .. _1017bc5: https://github.com/galaxyproject/pulsar/commit/1017bc5
 .. _Pull Request 84: https://github.com/galaxyproject/pulsar/pull/84
