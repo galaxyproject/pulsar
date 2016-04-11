@@ -1,5 +1,4 @@
 #!$shell
-
 $integrity_injection
 $headers
 $slots_statement

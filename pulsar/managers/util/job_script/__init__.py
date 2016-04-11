@@ -62,10 +62,12 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     True
     >>> 'GALAXY_LIB="None"' in script
     True
-    >>> script.startswith('#!/bin/sh\\n#PBS -test\\n')
+    >>> script.startswith('#!/bin/bash\\n\\n# The following block can be used by the job system')
+    True
+    >>> 'PBS -test\\n' in script
     False
-    >>> script = job_script(working_directory='wd', command='uptime', exit_code_path='ec', headers='#PBS -test')
-    >>> script.startswith('#!/bin/sh\\n#PBS -test\\n')
+    >>> script = job_script(working_directory='wd', command='uptime', exit_code_path='ec', headers='#PBS -test', integrity_injection='')
+    >>> script.startswith('#!/bin/bash\\n\\n#PBS -test\\n')
     True
     >>> script = job_script(working_directory='wd', command='uptime', exit_code_path='ec', slots_statement='GALAXY_SLOTS="$SLURM_JOB_NUM_NODES"')
     >>> script.find('GALAXY_SLOTS="$SLURM_JOB_NUM_NODES"\\nexport GALAXY_SLOTS\\n') > 0
