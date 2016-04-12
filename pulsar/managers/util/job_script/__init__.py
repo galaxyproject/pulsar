@@ -81,6 +81,8 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
         working_directory = kwds.get("metadata_directory", kwds["working_directory"])
         kwds["instrument_pre_commands"] = job_instrumenter.pre_execute_commands(working_directory) or ''
         kwds["instrument_post_commands"] = job_instrumenter.post_execute_commands(working_directory) or ''
+    if not kwds["check_job_script_integrity"]:
+        kwds["integrity_injection"] = ""
 
     template_params = OPTIONAL_TEMPLATE_PARAMS.copy()
     template_params.update(**kwds)
