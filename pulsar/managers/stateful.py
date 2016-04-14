@@ -86,6 +86,7 @@ class StatefulManagerProxy(ManagerProxy):
                     job_directory.store_metadata(JOB_FILE_PREPROCESSING_FAILED, True)
                     job_directory.store_metadata("return_code", 1)
                     job_directory.write_file("stderr", str(e))
+                self.__state_change_callback(status.FAILED, job_id)
                 log.exception("Failed job preprocessing for job %s:", job_id)
 
         new_thread_for_job(self, "preprocess", job_id, do_preprocess, daemon=False)
@@ -150,7 +151,7 @@ class StatefulManagerProxy(ManagerProxy):
                 deactivate_method(job_id)
             except Exception:
                 log.exception("Failed to deactivate via proxied manager job %s" % job_id)
-        if proxy_status in [ status.COMPLETE, status.CANCELLED]:
+        if proxy_status == status.COMPLETE:
             self.__handle_postprocessing(job_id)
 
     def __handle_postprocessing(self, job_id):
