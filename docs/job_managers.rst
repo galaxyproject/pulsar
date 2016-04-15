@@ -158,6 +158,9 @@ the Galaxy mailing list.
 More Options
 -------------------------------
 
+Any manager can override the ``staging_directory`` used by setting this
+property in its configuration section.
+
 The ``min_polling_interval: 0.5`` option can be set on any manager to control
 how frequently Pulsar will poll the resource manager for job updates.
 
