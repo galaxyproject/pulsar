@@ -34,7 +34,9 @@ class PulsarController(Controller):
     def _app_args(self, args, req):
         app = req.app
         managers = app.managers
-        manager_name = args.get('manager_name', DEFAULT_MANAGER_NAME)
+        manager_name = args.get('manager_name', None)
+        if not manager_name:
+            manager_name = req.params.get("manager_name", DEFAULT_MANAGER_NAME)
         app_args = {}
         app_args['manager'] = managers[manager_name]
         app_args['file_cache'] = getattr(app, 'file_cache', None)
