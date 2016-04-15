@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def postprocess(job_directory, action_executor):
-    # Returns True iff outputs were collected.
+    # Returns True if outputs were collected.
     try:
         staging_config = job_directory.load_metadata("staging_config", None)
         collected = __collect_outputs(job_directory, staging_config, action_executor)
@@ -29,7 +29,6 @@ def __collect_outputs(job_directory, staging_config, action_executor):
         client_outputs = staging.ClientOutputs.from_dict(staging_config["client_outputs"])
         pulsar_outputs = __pulsar_outputs(job_directory)
         output_collector = PulsarServerOutputCollector(job_directory, action_executor)
-        results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, pulsar_outputs)
         results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, pulsar_outputs)
         collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
