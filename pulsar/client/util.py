@@ -75,6 +75,8 @@ def copy(source, destination):
     source = os.path.abspath(source)
     destination = os.path.abspath(destination)
     if source != destination:
+        if not os.path.exists(os.path.dirname(destination)):
+            os.makedirs(os.path.dirname(destination))
         shutil.copyfile(source, destination)
 
 
