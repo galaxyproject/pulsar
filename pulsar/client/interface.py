@@ -85,11 +85,11 @@ class HttpPulsarInterface(PulsarInterface):
         assert remote_host is not None, "Failed to determine url for Pulsar client."
         if not remote_host.startswith("http"):
             remote_host = "http://%s" % remote_host
-        if not remote_host.endswith("/"):
-            remote_host = "%s/" % remote_host
         manager = destination_params.get("manager", None)
         if manager:
             remote_host = urljoin(remote_host, "managers/%s" % manager)
+        if not remote_host.endswith("/"):
+            remote_host = "%s/" % remote_host
         self.remote_host = remote_host
         self.private_token = destination_params.get("private_token", None)
 
