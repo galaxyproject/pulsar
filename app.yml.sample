@@ -2,7 +2,8 @@
 ## to an absolute path, such as /tmp/pulsar_staging or C:\\pulsar_staging
 #staging_directory: files/staging
 
-## Configure one or more named managers.
+## Configure one or more named managers (more information on configuring managers
+## can be found at http://pulsar.readthedocs.org/en/latest/job_managers.html).
 #managers:
 #  _default_:
 #    type: queued_python

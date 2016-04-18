@@ -59,7 +59,8 @@ class BaseManager(ManagerInterface):
         self.persistence_directory = getattr(app, 'persistence_directory', None)
         self.lock_manager = locks.LockManager()
         self._directory_maker = DirectoryMaker(kwds.get("job_directory_mode", None))
-        self._setup_staging_directory(app.staging_directory)
+        staging_directory = kwds.get("staging_directory", app.staging_directory)
+        self._setup_staging_directory(staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
         self.__init_galaxy_system_properties(kwds)
         self.debug = str(kwds.get("debug", False)).lower() == "true"
