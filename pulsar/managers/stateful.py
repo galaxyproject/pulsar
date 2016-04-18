@@ -50,7 +50,7 @@ class StatefulManagerProxy(ManagerProxy):
         self.__monitor = ManagerMonitor(self)
 
     def _default_status_change_callback(self, status, job_id):
-        log.info("Status of job [%s] changed to [%s]. No callbacks enabled." % (status, job_id))
+        log.info("Status of job [%s] changed to [%s]. No callbacks enabled." % (job_id, status))
 
     @property
     def name(self):
