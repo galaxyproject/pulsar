@@ -12,6 +12,9 @@ except ImportError:
 
 from .util import copy_to_path
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class PulsarInterface(object):
     """
@@ -87,7 +90,10 @@ class HttpPulsarInterface(PulsarInterface):
             remote_host = "http://%s" % remote_host
         manager = destination_params.get("manager", None)
         if manager:
-            remote_host = urljoin(remote_host, "managers/%s" % manager)
+            if "/managers/" in remote_host:
+                log.warning("Ignoring manager tag '%s', Pulsar client URL already contains a \"/managers/\" path." % manager)
+            else:
+                remote_host = urljoin(remote_host, "managers/%s" % manager)
         if not remote_host.endswith("/"):
             remote_host = "%s/" % remote_host
         self.remote_host = remote_host
