@@ -185,9 +185,7 @@ class JobClient(BaseJobClient):
         elif action_type == 'copy':
             path_response = self._raw_execute('path', args)
             pulsar_path = json_loads(path_response)['path']
-            message = "Copying path [%s] to [%s]"
-            log.debug(message, path, pulsar_path)
-            copy(path, pulsar_path)
+            _copy(path, pulsar_path)
             return {'path': pulsar_path}
 
     def fetch_output(self, path, name, working_directory, action_type, output_type):
@@ -232,7 +230,7 @@ class JobClient(BaseJobClient):
             self.__raw_download_output(name, self.job_id, path_type, output_path)
         elif action_type == 'copy':
             pulsar_path = self._output_path(name, self.job_id, path_type)['path']
-            copy(pulsar_path, output_path)
+            _copy(pulsar_path, output_path)
 
     @parseJson()
     def _upload_file(self, args, contents, input_path):
@@ -384,6 +382,12 @@ class InputCachingJobClient(JobClient):
     @parseJson()
     def file_available(self, path):
         return self._raw_execute("file_available", {"path": path})
+
+
+def _copy(from_path, to_path):
+    message = "Copying path [%s] to [%s]"
+    log.debug(message, from_path, to_path)
+    copy(from_path, to_path)
 
 
 def _setup_params_from_job_config(job_config):
