@@ -1,8 +1,11 @@
 """
 """
 from glob import glob
-from os.path import basename, join
-from os import getcwd
+from inspect import getsourcefile
+from os import pardir
+from os.path import abspath
+from os.path import basename
+from os.path import join
 
 DEFAULT_SHELL_PLUGIN = 'LocalShell'
 
@@ -19,12 +22,13 @@ class CliInterface(object):
     def __init__(self, code_dir='lib'):
         """
         """
-        def __load(module_path, d):
-            module_pattern = join(join(getcwd(), code_dir, *module_path.split('.')), '*.py')
+        def __load(module_prefix, d, code_dir):
+            module_pattern = join(join(code_dir, module_prefix), '*.py')
             for file in glob(module_pattern):
                 if basename(file).startswith('_'):
                     continue
-                module_name = '%s.%s' % (module_path, basename(file).rsplit('.py', 1)[0])
+                file = file.split(code_dir)[1]
+                module_name = '%s.%s' % (module_prefix.replace("/", "."), basename(file).rsplit('.py', 1)[0])
                 module = __import__(module_name)
                 for comp in module_name.split(".")[1:]:
                     module = getattr(module, comp)
@@ -38,8 +42,11 @@ class CliInterface(object):
         self.cli_job_interfaces = {}
 
         module_prefix = self.__module__
-        __load('%s.shell' % module_prefix, self.cli_shells)
-        __load('%s.job' % module_prefix, self.cli_job_interfaces)
+        module_prefix = join(*module_prefix.split("."))
+        module_path = abspath(join(getsourcefile(CliInterface), pardir))
+        code_dir = module_path.split(module_prefix)[0]
+        __load('%s/shell' % module_prefix, self.cli_shells, code_dir)
+        __load('%s/job' % module_prefix, self.cli_job_interfaces, code_dir)
 
     def get_plugins(self, shell_params, job_params):
         """
