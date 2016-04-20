@@ -3,16 +3,17 @@ from abc import abstractmethod
 from string import Template
 
 from six import BytesIO
+from six.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urljoin
 try:
     from six import text_type
 except ImportError:
     from galaxy.util import unicodify as text_type
-try:
-    from urllib import urlencode
-except ImportError:
-    from urllib.parse import urlencode
 
 from .util import copy_to_path
+
+import logging
+log = logging.getLogger(__name__)
 
 
 class PulsarInterface(object):
@@ -85,10 +86,16 @@ class HttpPulsarInterface(PulsarInterface):
         self.transport = transport
         remote_host = destination_params.get("url")
         assert remote_host is not None, "Failed to determine url for Pulsar client."
-        if not remote_host.endswith("/"):
-            remote_host = "%s/" % remote_host
         if not remote_host.startswith("http"):
             remote_host = "http://%s" % remote_host
+        manager = destination_params.get("manager", None)
+        if manager:
+            if "/managers/" in remote_host:
+                log.warning("Ignoring manager tag '%s', Pulsar client URL already contains a \"/managers/\" path." % manager)
+            else:
+                remote_host = urljoin(remote_host, "managers/%s" % manager)
+        if not remote_host.endswith("/"):
+            remote_host = "%s/" % remote_host
         self.remote_host = remote_host
         self.private_token = destination_params.get("private_token", None)
 
