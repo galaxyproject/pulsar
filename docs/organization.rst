@@ -45,3 +45,4 @@ Committers
 - John Chilton (@jmchilton)
 - Nate Coraor (@natefoo)
 - Eric Rasche (@erasche)
+- Marius van den Beek (@mvdbeek)
