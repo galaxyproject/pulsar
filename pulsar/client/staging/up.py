@@ -116,6 +116,7 @@ class FileStager(object):
 
         self.new_working_directory = job_config['working_directory']
         self.new_outputs_directory = job_config['outputs_directory']
+        self.new_tool_directory = job_config.get('tools_directory', None)
         # Default configs_directory to match remote working_directory to mimic
         # behavior of older Pulsar servers.
         self.new_configs_directory = job_config.get('configs_directory', self.new_working_directory)
@@ -138,7 +139,17 @@ class FileStager(object):
         return separator
 
     def __initialize_referenced_tool_files(self):
+        # Was this following line only for interpreter, should we disable it of 16.04+ tools
         self.referenced_tool_files = self.job_inputs.find_referenced_subfiles(self.tool_dir)
+        # If the tool was created with a correct $__tool_directory__ find those files and transfer
+        new_tool_directory = self.new_tool_directory
+        if not new_tool_directory:
+            return
+
+        for potential_tool_file in self.job_inputs.find_referenced_subfiles(new_tool_directory):
+            local_file = potential_tool_file.replace(new_tool_directory, self.tool_dir)
+            if exists(local_file):
+                self.referenced_tool_files.append(local_file)
 
     def __initialize_referenced_arbitrary_files(self):
         referenced_arbitrary_path_mappers = dict()
