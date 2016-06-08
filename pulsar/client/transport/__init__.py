@@ -18,12 +18,14 @@ else:
     from .poster import post_file
 
 
-def get_transport(transport_type=None, os_module=os):
+def get_transport(transport_type=None, os_module=os, transport_params=None):
     transport_type = _get_transport_type(transport_type, os_module)
+    if not transport_params:
+        transport_params = {}
     if transport_type == 'urllib':
-        transport = Urllib2Transport()
+        transport = Urllib2Transport(**transport_params)
     else:
-        transport = PycurlTransport()
+        transport = PycurlTransport(**transport_params)
     return transport
 
 

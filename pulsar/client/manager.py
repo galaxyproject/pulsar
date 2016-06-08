@@ -63,7 +63,8 @@ class ClientManager(object):
         else:
             self.job_manager_interface_class = HttpPulsarInterface
             transport_type = kwds.get('transport', None)
-            transport = get_transport(transport_type)
+            transport_params = dict([(p.replace('transport_', '', 1), v) for p, v in kwds.items() if p.startswith('transport_')])
+            transport = get_transport(transport_type, transport_params=transport_params)
             self.job_manager_interface_args = dict(transport=transport)
         cache = kwds.get('cache', None)
         if cache is None:

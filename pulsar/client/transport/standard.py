@@ -16,6 +16,9 @@ except ImportError:
 
 class Urllib2Transport(object):
 
+    def __init__(self, **kwrgs):
+        pass
+
     def _url_open(self, request, data):
         return urlopen(request, data)
 
