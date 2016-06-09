@@ -5,6 +5,17 @@ History
 
 .. to_doc
 
+---------------------
+0.7.0.dev5
+---------------------
+
+* Improvements for embedded Galaxy runner. (TODO: fill this out)
+
+---------------------
+0.7.0.dev4
+---------------------
+
+* Improvements for embedded Galaxy runner. (TODO: fill this out and fix date)
 
 ---------------------
 0.7.0.dev3
