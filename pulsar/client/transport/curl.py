@@ -1,15 +1,17 @@
+import os.path
 import logging
 
 from six import string_types
 from six import BytesIO
 
 try:
-    from pycurl import Curl, HTTP_CODE
+    import pycurl
+    from pycurl import Curl, HTTP_CODE, error
     curl_available = True
 except ImportError:
     curl_available = False
 
-import os.path
+from ..exceptions import PulsarClientTransportError
 
 
 PYCURL_UNAVAILABLE_MESSAGE = \
@@ -23,6 +25,9 @@ log = logging.getLogger(__name__)
 
 
 class PycurlTransport(object):
+
+    def __init__(self, timeout=None, **kwrgs):
+        self.timeout = timeout
 
     def execute(self, url, method=None, data=None, input_path=None, output_path=None):
         buf = _open_output(output_path)
@@ -41,7 +46,15 @@ class PycurlTransport(object):
                 if isinstance(data, string_types):
                     data = data.encode('UTF-8')
                 c.setopt(c.POSTFIELDS, data)
-            c.perform()
+            if self.timeout:
+                c.setopt(c.TIMEOUT, self.timeout)
+            try:
+                c.perform()
+            except error as exc:
+                raise PulsarClientTransportError(
+                        _error_curl_to_pulsar(exc.args[0]),
+                        transport_code=exc.args[0],
+                        transport_message=exc.args[1])
             if not output_path:
                 return buf.getvalue()
         finally:
@@ -102,6 +115,14 @@ def _new_curl_object():
         return Curl()
     except NameError:
         raise ImportError(PYCURL_UNAVAILABLE_MESSAGE)
+
+def _error_curl_to_pulsar(code):
+    if code == pycurl.E_OPERATION_TIMEDOUT:
+        return PulsarClientTransportError.TIMEOUT
+    elif code == pycurl.E_COULDNT_CONNECT:
+        return PulsarClientTransportError.CONNECTION_REFUSED
+    return None
+
 
 __all__ = [
     'PycurlTransport',

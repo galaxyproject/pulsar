@@ -4,20 +4,27 @@ Pulsar HTTP Client layer based on Python Standard Library (urllib2)
 from __future__ import with_statement
 from os.path import getsize
 import mmap
+import socket
 try:
-    from urllib2 import urlopen
+    from urllib2 import urlopen, URLError
 except ImportError:
     from urllib.request import urlopen
+    from urllib.error import URLError
 try:
     from urllib2 import Request
 except ImportError:
     from urllib.request import Request
 
+from ..exceptions import PulsarClientTransportError
+
 
 class Urllib2Transport(object):
 
+    def __init__(self, timeout=None, **kwrgs):
+        self.timeout = timeout
+
     def _url_open(self, request, data):
-        return urlopen(request, data)
+        return urlopen(request, data, self.timeout)
 
     def execute(self, url, method=None, data=None, input_path=None, output_path=None):
         request = self.__request(url, data, method)
@@ -31,7 +38,12 @@ class Urllib2Transport(object):
                 else:
                     data = b""
                 request.add_header('Content-Length', str(size))
-            response = self._url_open(request, data)
+            try:
+                response = self._url_open(request, data)
+            except socket.timeout as exc:
+                raise PulsarClientTransportError(code=PulsarClientTransportError.TIMEOUT)
+            except URLError as exc:
+                raise PulsarClientTransportError(transport_message=exc.reason)
         finally:
             if input:
                 input.close()

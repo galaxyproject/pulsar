@@ -48,6 +48,7 @@ from .client import OutputNotFoundException
 from .manager import build_client_manager
 from .destination import url_to_destination_params
 from .path_mapper import PathMapper
+from .exceptions import PulsarClientTransportError
 
 __all__ = [
     'build_client_manager',
@@ -59,4 +60,5 @@ __all__ = [
     'PulsarOutputs',
     'ClientOutputs',
     'PathMapper',
+    'PulsarClientTransportError',
 ]
