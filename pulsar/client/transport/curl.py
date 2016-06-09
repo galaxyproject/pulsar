@@ -116,6 +116,7 @@ def _new_curl_object():
     except NameError:
         raise ImportError(PYCURL_UNAVAILABLE_MESSAGE)
 
+
 def _error_curl_to_pulsar(code):
     if code == pycurl.E_OPERATION_TIMEDOUT:
         return PulsarClientTransportError.TIMEOUT
