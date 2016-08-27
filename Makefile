@@ -123,7 +123,9 @@ _release-test-artifacts:
 	$(IN_VENV) twine upload -r test dist/*
 	open https://testpypi.python.org/pypi/$(PROJECT_NAME) || xdg-open https://testpypi.python.org/pypi/$(PROJECT_NAME)
 
-release-test-artifacts: dist _release-test-artifacts
+dist-all: dist _dist-lib
+
+release-test-artifacts: dist-all _release-test-artifacts
 
 _release-aritfacts:
 	@while [ -z "$$CONTINUE" ]; do \
@@ -152,10 +154,11 @@ release: release-local push-release
 add-history:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/bootstrap_history.py $(ITEM)
 
-dist-lib: clean
+_dist-lib:
 	$(IN_VENV) PULSAR_GALAXY_LIB=1 python setup.py sdist bdist_egg bdist_wheel
 	ls -l dist
 
-release-test-lib-artifacts: dist-lib _release-test-artifacts
+dist-lib: clean _dist-lib
 
-release-lib-aritfacts: release-test-lib-artifacts _release-aritfacts
+#release-test-lib-artifacts: dist-lib _release-test-artifacts
+#release-lib-aritfacts: release-test-lib-artifacts _release-aritfacts

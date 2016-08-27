@@ -6,10 +6,11 @@ History
 .. to_doc
 
 ---------------------
-0.8.0.dev0
+0.7.0.dev6
 ---------------------
 
-    
+* Attempt to release pulsar as an application and a library for Galaxy
+  at the same time.
 
 ---------------------
 0.7.0.dev5
