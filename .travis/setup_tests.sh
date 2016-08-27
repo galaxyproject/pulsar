@@ -7,7 +7,7 @@ sudo apt-get update
 sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-server
 #pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
 #pip install -r dev-requirements.txt --use-mirrors || true
-pip install coveralls --use-mirrors  # Required fro coveralls reporting.
+pip install coveralls  # Required fro coveralls reporting.
 sudo apt-get install slurm-llnl slurm-llnl-torque # slurm-drmaa1 slurm-drmaa-dev
 sudo apt-get install libslurm23
 wget http://launchpadlibrarian.net/104075475/slurm-drmaa1_1.0.4-3_amd64.deb
