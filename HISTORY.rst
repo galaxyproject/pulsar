@@ -6,34 +6,13 @@ History
 .. to_doc
 
 ---------------------
-0.7.0.dev7
----------------------
-
-* Small update to test scripts for TravisCI changes.
-
----------------------
-0.7.0.dev6
+0.7.0 (2016-08-26)
 ---------------------
 
 * Update Makefile to allow release pulsar as an application and a library 
   for Galaxy at the same time.
-
----------------------
-0.7.0.dev5
----------------------
-
+* Small update to test scripts for TravisCI changes.
 * Improvements for embedded Galaxy runner. (TODO: fill this out)
-
----------------------
-0.7.0.dev4
----------------------
-
-* Improvements for embedded Galaxy runner. (TODO: fill this out and fix date)
-
----------------------
-0.7.0.dev3
----------------------
-
 * Remove support for Python 2.6. 60bf962_
 * Update docs to describe project goverance and reuse Galaxy's
   Code of Conduct. 7e23d43_, dc47140_
