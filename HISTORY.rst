@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.7.1.dev0
+0.7.1 (2016-08-29)
 ---------------------
 
 * Do a release to circumvent a tool version logic error in Galaxy (
