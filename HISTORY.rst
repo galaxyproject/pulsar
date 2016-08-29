@@ -9,6 +9,8 @@ History
 0.7.1.dev0
 ---------------------
 
+* Do a release to circumvent a tool version logic error in Galaxy (
+  released Galaxy versions think 0.7.0 < 0.7.0.dev3).
 
 ---------------------
 0.7.0 (2016-08-26)
