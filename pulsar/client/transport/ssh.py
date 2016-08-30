@@ -1,5 +1,5 @@
-import subprocess
 import os
+import subprocess
 
 SSH_OPTIONS = ['-o', 'StrictHostKeyChecking=no', '-o', 'PreferredAuthentications=publickey', '-o', 'PubkeyAuthentication=yes']
 

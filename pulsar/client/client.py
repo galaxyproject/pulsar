@@ -1,23 +1,23 @@
+import logging
 import os
 
 from six import string_types
 
-from .destination import submit_params
-from .setup_handler import build as build_setup_handler
-from .job_directory import RemoteJobDirectory
+from .action_mapper import (
+    actions,
+    path_type,
+)
 from .decorators import parseJson
 from .decorators import retry
-from .util import json_dumps
-from .util import json_loads
+from .destination import submit_params
+from .job_directory import RemoteJobDirectory
+from .setup_handler import build as build_setup_handler
 from .util import copy
 from .util import ensure_directory
+from .util import json_dumps
+from .util import json_loads
 from .util import to_base64_json
-from .action_mapper import (
-    path_type,
-    actions,
-)
 
-import logging
 log = logging.getLogger(__name__)
 
 CACHE_WAIT_SECONDS = 3

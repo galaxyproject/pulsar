@@ -1,13 +1,14 @@
 """
 """
 import os.path
-from collections import deque
 import posixpath
 
-from .util import PathHelper
+from collections import deque
+from logging import getLogger
+
 from galaxy.util import in_directory
 
-from logging import getLogger
+from .util import PathHelper
 log = getLogger(__name__)
 
 

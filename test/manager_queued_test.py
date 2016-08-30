@@ -1,7 +1,7 @@
 import os
 import time
 
-from .test_utils import BaseManagerTestCase
+from .test_utils import BaseManagerTestCase, timed
 
 from pulsar.managers.queued import QueueManager
 
@@ -31,6 +31,7 @@ class PythonQueuedManagerTest(BaseManagerTestCase):
     def test_cancel_simple(self):
         self._test_cancelling(self.manager)
 
+    @timed(10)
     def test_cancel_deeper(self):
         manager = self.manager
         # Test goes deeper than needed when deferring to

@@ -1,7 +1,8 @@
 """ CLI related utilities for submitting Pulsar jobs.
 """
-import time
 import json
+import logging
+import time
 
 from pulsar.client.util import from_base64_json
 from pulsar.main import (
@@ -11,7 +12,6 @@ from pulsar.main import (
 from pulsar.manager_endpoint_util import submit_job
 from pulsar.managers.status import is_job_done
 
-import logging
 log = logging.getLogger(__name__)
 
 DEFAULT_POLL_TIME = 2

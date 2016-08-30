@@ -1,12 +1,12 @@
-from .standard import Urllib2Transport
-from .curl import PycurlTransport
 import os
 
+from .curl import curl_available
+from .curl import PycurlTransport
+from .requests import requests_multipart_post_available
 from .ssh import rsync_get_file, scp_get_file
 from .ssh import rsync_post_file, scp_post_file
+from .standard import Urllib2Transport
 
-from .curl import curl_available
-from .requests import requests_multipart_post_available
 if curl_available:
     from .curl import get_file
     from .curl import post_file

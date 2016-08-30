@@ -33,13 +33,26 @@ from unittest import TestCase, skip
 
 try:
     from nose.tools import nottest
-    from nose.tools import timed
 except ImportError:
     def nottest(x):
         return x
 
-    def timed(x):
-        return lambda x: x
+import stopit
+from functools import wraps
+
+
+def timed(timeout):
+    def outer_wrapper(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            with stopit.ThreadingTimeout(timeout) as to_ctx_mgr:
+                f(*args, **kwargs)
+            if to_ctx_mgr.state != to_ctx_mgr.EXECUTED:
+                raise Exception("Test function timed out.")
+
+        return wrapper
+
+    return outer_wrapper
 
 INTEGRATION_MAXIMUM_TEST_TIME = 15
 integration_test = timed(INTEGRATION_MAXIMUM_TEST_TIME)

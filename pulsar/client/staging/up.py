@@ -1,19 +1,24 @@
-from os.path import abspath, basename, join, exists
-from os.path import isfile
-from os.path import dirname
-from os.path import relpath
-from os import listdir, sep
-from re import findall
 from io import open
-
-from ..staging import COMMAND_VERSION_FILENAME
-from ..action_mapper import FileActionMapper
-from ..action_mapper import path_type
-from ..action_mapper import MessageAction
-from ..util import PathHelper
-from ..util import directory_files
-
 from logging import getLogger
+from os import listdir, sep
+from os.path import (
+    abspath,
+    basename,
+    dirname,
+    exists,
+    isfile,
+    join,
+    relpath,
+)
+from re import findall
+
+from ..action_mapper import FileActionMapper
+from ..action_mapper import MessageAction
+from ..action_mapper import path_type
+from ..staging import COMMAND_VERSION_FILENAME
+from ..util import directory_files
+from ..util import PathHelper
+
 log = getLogger(__name__)
 
 

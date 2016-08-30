@@ -1,9 +1,10 @@
 import os.path
+
+from galaxy.util import in_directory
+
 from .action_mapper import FileActionMapper
 from .action_mapper import path_type
 from .util import PathHelper
-
-from galaxy.util import in_directory
 
 
 class PathMapper(object):

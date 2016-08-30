@@ -1,8 +1,12 @@
+
 import re
-from os.path import basename
-from os.path import join
-from os.path import dirname
+
 from os import sep
+from os.path import (
+    basename,
+    dirname,
+    join,
+)
 
 from ..util import PathHelper
 

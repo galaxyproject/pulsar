@@ -1,7 +1,8 @@
 import os
-from .util import filter_destination_params
 
 from pulsar import __version__ as pulsar_version
+
+from .util import filter_destination_params
 
 REMOTE_SYSTEM_PROPERTY_PREFIX = "remote_property_"
 

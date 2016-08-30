@@ -1,9 +1,11 @@
-from galaxy.util import asbool, mask_password_from_url
-from pulsar.client import amqp_exchange_factory
-from pulsar import manager_endpoint_util
 import functools
-import threading
 import logging
+import threading
+
+from galaxy.util import asbool, mask_password_from_url
+
+from pulsar import manager_endpoint_util
+from pulsar.client import amqp_exchange_factory
 
 log = logging.getLogger(__name__)
 

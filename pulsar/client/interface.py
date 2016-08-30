@@ -1,18 +1,19 @@
+import logging
+
 from abc import ABCMeta
 from abc import abstractmethod
 from string import Template
 
 from six import BytesIO
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.parse import urljoin
 try:
     from six import text_type
 except ImportError:
     from galaxy.util import unicodify as text_type
+from six.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urljoin
 
 from .util import copy_to_path
 
-import logging
 log = logging.getLogger(__name__)
 
 

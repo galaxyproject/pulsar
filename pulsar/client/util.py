@@ -1,21 +1,26 @@
-from functools import wraps
-from threading import Lock, Event
-from weakref import WeakValueDictionary
-from os import walk
-from os import curdir
-from os import listdir
-from os import makedirs
-from os import unlink
-from os.path import relpath
-from os.path import join
-from os.path import abspath
-from os.path import exists
-from errno import ENOENT, EEXIST
-import os.path
 import hashlib
-import shutil
 import json
+import os.path
+import shutil
 import sys
+
+from errno import EEXIST, ENOENT
+from functools import wraps
+from os import (
+    curdir,
+    listdir,
+    makedirs,
+    unlink,
+    walk,
+)
+from os.path import (
+    abspath,
+    exists,
+    join,
+    relpath,
+)
+from threading import Event, Lock
+from weakref import WeakValueDictionary
 
 from six import binary_type
 

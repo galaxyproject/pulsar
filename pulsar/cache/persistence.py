@@ -1,6 +1,8 @@
+
 import shelve
-from threading import Lock
 import traceback
+
+from threading import Lock
 
 
 class PersistenceStore(object):

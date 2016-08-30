@@ -1,8 +1,9 @@
 import copy
-import uuid
-import socket
 import logging
+import socket
 import threading
+import uuid
+
 from time import sleep, time
 
 try:
