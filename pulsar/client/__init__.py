@@ -39,16 +39,16 @@ in the ``galaxy.ini`` file.
 
 """
 
-from .staging.down import finish_job
-from .staging.up import submit_job
+from .client import OutputNotFoundException
+from .destination import url_to_destination_params
+from .exceptions import PulsarClientTransportError
+from .manager import build_client_manager
+from .path_mapper import PathMapper
 from .staging import ClientJobDescription
 from .staging import PulsarOutputs
 from .staging import ClientOutputs
-from .client import OutputNotFoundException
-from .manager import build_client_manager
-from .destination import url_to_destination_params
-from .path_mapper import PathMapper
-from .exceptions import PulsarClientTransportError
+from .staging.down import finish_job
+from .staging.up import submit_job
 
 __all__ = [
     'build_client_manager',

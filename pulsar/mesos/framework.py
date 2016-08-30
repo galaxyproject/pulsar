@@ -2,17 +2,17 @@ import collections
 import logging
 import os
 
-from pulsar.mesos import (
-    Scheduler,
-    MesosSchedulerDriver,
-    mesos_pb2,
-)
 from pulsar.client.util import to_base64_json
-
 from pulsar.main import (
     PULSAR_ROOT_DIR,
 )
+from pulsar.mesos import (
+    mesos_pb2,
+    MesosSchedulerDriver,
+    Scheduler,
+)
 from pulsar.messaging import bind_amqp
+
 
 log = logging.getLogger(__name__)
 

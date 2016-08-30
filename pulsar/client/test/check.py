@@ -3,6 +3,7 @@
 
 Exercises various features both the Pulsar client and server.
 """
+
 import optparse
 import os
 import re
@@ -12,20 +13,23 @@ import tempfile
 import threading
 import time
 import traceback
-from collections import namedtuple
 
+from collections import namedtuple
 from io import open
 
-from six import binary_type
-
-from pulsar.client import submit_job
-from pulsar.client import finish_job
-from pulsar.client import PulsarOutputs
-from pulsar.client import ClientOutputs
-from pulsar.client import build_client_manager
-from pulsar.client import ClientJobDescription
 from galaxy.tools.deps.dependencies import DependenciesDescription
 from galaxy.tools.deps.requirements import ToolRequirement
+from six import binary_type
+
+from pulsar.client import (
+    build_client_manager,
+    ClientJobDescription,
+    ClientOutputs,
+    finish_job,
+    PulsarOutputs,
+    submit_job,
+)
+
 from .test_common import write_config
 
 TEST_SCRIPT = b"""# -*- coding: utf-8 -*-

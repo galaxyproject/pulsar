@@ -1,10 +1,11 @@
-from pulsar.tools.validator import ExpressionValidator
-from xml.etree import ElementTree
-from os.path import join, abspath, dirname
-
 from io import open
-
 from logging import getLogger
+from os.path import abspath, dirname, join
+from xml.etree import ElementTree
+
+from pulsar.tools.validator import ExpressionValidator
+
+
 log = getLogger(__name__)
 
 

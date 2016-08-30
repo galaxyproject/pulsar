@@ -5,28 +5,29 @@ to create a ``ClientManager``, that in return can create Pulsar clients for
 specific actions.
 """
 
-import threading
 import functools
+import threading
+
+from logging import getLogger
+from os import getenv
 try:
     from Queue import Queue
 except ImportError:
     from queue import Queue
-from os import getenv
 
-from .client import JobClient
+from .amqp_exchange_factory import get_exchange
 from .client import InputCachingJobClient
+from .client import JobClient
 from .client import MessageJobClient
 from .client import MessageCLIJobClient
+from .destination import url_to_destination_params
 from .interface import HttpPulsarInterface
 from .interface import LocalPulsarInterface
 from .object_client import ObjectStoreClient
 from .transport import get_transport
 from .util import TransferEventManager
-from .destination import url_to_destination_params
-from .amqp_exchange_factory import get_exchange
 
 
-from logging import getLogger
 log = getLogger(__name__)
 
 DEFAULT_TRANSFER_THREADS = 2

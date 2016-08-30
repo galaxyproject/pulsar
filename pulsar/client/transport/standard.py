@@ -1,10 +1,13 @@
 """
 Pulsar HTTP Client layer based on Python Standard Library (urllib2)
 """
+
 from __future__ import with_statement
-from os.path import getsize
+
 import mmap
 import socket
+
+from os.path import getsize
 try:
     from urllib2 import urlopen, URLError
 except ImportError:

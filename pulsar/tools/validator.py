@@ -1,7 +1,7 @@
-from xml.etree.ElementTree import fromstring
-from re import escape, compile
-
 from os.path import join
+from re import compile, escape
+from xml.etree.ElementTree import fromstring
+
 from galaxy.util import in_directory
 
 

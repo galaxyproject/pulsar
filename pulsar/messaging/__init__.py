@@ -5,8 +5,9 @@ submodules of ``pulsar.client``.
 
 import logging
 
-from ..messaging import bind_amqp
 from six import itervalues
+
+from ..messaging import bind_amqp
 
 log = logging.getLogger(__name__)
 

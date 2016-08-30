@@ -1,8 +1,5 @@
-import os.path
 import logging
-
-from six import string_types
-from six import BytesIO
+import os.path
 
 try:
     import pycurl
@@ -10,6 +7,8 @@ try:
     curl_available = True
 except ImportError:
     curl_available = False
+from six import string_types
+from six import BytesIO
 
 from ..exceptions import PulsarClientTransportError
 
@@ -52,9 +51,9 @@ class PycurlTransport(object):
                 c.perform()
             except error as exc:
                 raise PulsarClientTransportError(
-                        _error_curl_to_pulsar(exc.args[0]),
-                        transport_code=exc.args[0],
-                        transport_message=exc.args[1])
+                    _error_curl_to_pulsar(exc.args[0]),
+                    transport_code=exc.args[0],
+                    transport_message=exc.args[1])
             if not output_path:
                 return buf.getvalue()
         finally:

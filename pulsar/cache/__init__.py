@@ -1,6 +1,6 @@
 
-from os.path import join, exists
 from hashlib import sha256
+from os.path import exists, join
 
 from .persistence import PersistenceStore
 from .util import atomicish_move
