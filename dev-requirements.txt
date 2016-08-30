@@ -6,6 +6,7 @@ kombu
 nose
 webtest
 coverage
+stopit
 
 # For dev
 sphinx==1.2
