@@ -10,6 +10,7 @@ env:
   - TOX_ENV=py27 SETUP=true
   - TOX_ENV=py34 SETUP=true
   - TOX_ENV=py34-unit SETUP=true
+  - TOX_ENV=py27-install-wheel
 
 install:
   - pip install tox
