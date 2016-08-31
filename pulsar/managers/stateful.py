@@ -113,7 +113,8 @@ class StatefulManagerProxy(ManagerProxy):
         """
         state_change = None
         if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
-            proxy_status = status.COMPLETE
+            proxy_status = status.FAILED
+            job_directory.store_metadata(JOB_FILE_FINAL_STATUS, proxy_status)
             state_change = "to_complete"
         elif not job_directory.has_metadata(JOB_FILE_PREPROCESSED):
             proxy_status = status.PREPROCESSING
