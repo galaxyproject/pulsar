@@ -6,10 +6,10 @@ History
 .. to_doc
 
 ---------------------
-0.8.0.dev0
+0.7.2.dev0
 ---------------------
 
-    
+* Fix bug causing loops on in response to preprocessing error conditions.
 
 ---------------------
 0.7.1 (2016-08-29)
