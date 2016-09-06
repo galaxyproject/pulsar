@@ -4,8 +4,6 @@ set -e
 
 shopt -s nullglob
 PULSAR_INSTALL_TARGET="${PULSAR_INSTALL_TARGET:-pulsar-app}"
-
-#PULSAR_INSTALL_TARGET=`echo $PULSAR_INSTALL_TARGET`  # Expand wildcards
 PLANEMO_INSTALL_TARGET="${PLANEMO_INSTALL_TARGET:-planemo==0.29.1}"
 
 echo "Begin Pulsar checks"
@@ -54,7 +52,13 @@ pip install "$PLANEMO_INSTALL_TARGET"
 echo "Setting up Planemo test tools."
 planemo project_init --template=demo test_tools
 echo "Running tool tests with Planemo through Pulsar"
-planemo --verbose test --job_config_file "$SCRIPT_DIR/galaxy_job_conf.xml" test_tools/cat.xml
+: ${GALAXY_ROOT:=""}
+galaxy_root_args=""
+if [ -d "$GALAXY_ROOT" ];
+then
+    galaxy_root_args="--galaxy_root $GALAXY_ROOT"
+fi
+planemo --verbose test $galaxy_root_args --job_config_file "$SCRIPT_DIR/galaxy_job_conf.xml" test_tools/cat.xml
 echo "Tests complete."
 
 cd pulsar
