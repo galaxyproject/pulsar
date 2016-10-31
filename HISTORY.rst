@@ -6,10 +6,11 @@ History
 .. to_doc
 
 ---------------------
-0.8.0.dev0
+0.7.3.dev0
 ---------------------
 
-    
+* Fix  "AttributeError" when submitting a job as a real user.
+  `Pull Request 124`_, `Issue 123`_
 
 ---------------------
 0.7.2 (2016-08-31)
@@ -130,6 +131,8 @@ History
 
 
 .. github_links
+.. _Pull Request 124: https://github.com/galaxyproject/pulsar/pull/124
+.. _Issue 123: https://github.com/galaxyproject/pulsar/issues/123
 .. _ad33cb9: https://github.com/galaxyproject/pulsar/commit/ad33cb9
 .. _d7c524e: https://github.com/galaxyproject/pulsar/commit/d7c524e
 .. _fd82d00: https://github.com/galaxyproject/pulsar/commit/fd82d00
