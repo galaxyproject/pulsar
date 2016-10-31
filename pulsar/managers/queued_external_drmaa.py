@@ -27,7 +27,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         self.chown_working_directory_script = _handle_default(kwds.get('chown_working_directory_script', None), "chown_working_directory")
         self.drmaa_kill_script = _handle_default(kwds.get('drmaa_kill_script', None), "drmaa_kill")
         self.drmaa_launch_script = _handle_default(kwds.get('drmaa_launch_script', None), "drmaa_launch")
-        self.production = kwds.get('production', "true").lower() != "false"
+        self.production = str(kwds.get('production', "true")).lower() != "false"
         self.reclaimed = {}
         self.user_map = {}
 
