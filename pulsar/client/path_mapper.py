@@ -100,4 +100,4 @@ class PathMapper(object):
             raise Exception(message)
 
 
-__all__ = ('PathMapper')
+__all__ = ('PathMapper',)

@@ -306,4 +306,4 @@ def new_thread_for_manager(manager, name, target, daemon):
     return thread
 
 
-__all__ = ('StatefulManagerProxy')
+__all__ = ('StatefulManagerProxy',)

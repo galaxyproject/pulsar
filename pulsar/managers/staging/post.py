@@ -70,4 +70,4 @@ def __pulsar_outputs(job_directory):
     )
 
 
-__all__ = ('postprocess')
+__all__ = ('postprocess',)

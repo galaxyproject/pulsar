@@ -78,4 +78,4 @@ class BaseDrmaaManager(ExternalBaseManager):
         return attributes
 
 
-__all__ = ("BaseDrmaaManager")
+__all__ = ("BaseDrmaaManager",)
