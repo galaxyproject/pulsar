@@ -29,6 +29,8 @@ DESCRIPTION = "Initialize a directory with a minimal pulsar config."
 HELP_DIRECTORY = "Directory containing the configuration files for Pulsar."
 HELP_MQ = ("Write configuration files for message queue server deployment "
            "instead of more traditional RESTful web based pulsar.")
+HELP_AUTO_CONDA = ("Auto initialize Conda for tool resolution and auto install "
+                   "dependencies on demand.")
 HELP_NO_LOGGING = ("Do not write Pulsar's default logging configuration to server.ini "
                    "and if uwsgi is configured do not configure its logging either.")
 HELP_SUPERVISOR = ("Write a supervisord configuration file for "
@@ -145,6 +147,10 @@ def main(argv=None):
     arg_parser.add_argument("--directory",
                             default=".",
                             help=HELP_DIRECTORY)
+    arg_parser.add_argument("--auto_conda",
+                            action="store_true",
+                            default=False,
+                            help=HELP_AUTO_CONDA)
     arg_parser.add_argument("--mq",
                             action="store_true",
                             default=False,
@@ -197,6 +203,10 @@ def main(argv=None):
 
     if not os.path.exists(directory):
         os.makedirs(directory)
+
+    default_dependencies_dir = os.path.join(directory, "dependencies")
+    if not os.path.exists(default_dependencies_dir):
+        os.makedirs(default_dependencies_dir)
 
     print("Bootstrapping pulsar configuration into directory %s" % relative_directory)
     _handle_app_yaml(args, directory)
@@ -298,6 +308,9 @@ def _handle_app_yaml(args, directory):
         contents += 'private_token: %s\n' % args.private_token
     if args.mq:
         contents += 'message_queue_url: "amqp://guest:guest@localhost:5672//"\n'
+    if args.auto_conda:
+        contents += 'conda_auto_init: true\n'
+        contents += 'conda_auto_install: true\n'
     else:
         if not IS_WINDOWS and args.libdrmaa_path:
             contents += 'manager:\n  type: queued_drmaa\n'

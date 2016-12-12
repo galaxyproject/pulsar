@@ -176,7 +176,7 @@ class BaseManager(ManagerInterface):
         else:
             return listdir(directory_or_none)
 
-    def _expand_command_line(self, command_line, dependencies_description):
+    def _expand_command_line(self, command_line, dependencies_description, job_directory=None):
         if dependencies_description is None:
             return command_line
 
@@ -184,7 +184,8 @@ class BaseManager(ManagerInterface):
         installed_tool_dependencies = dependencies_description.installed_tool_dependencies
         dependency_commands = self.dependency_manager.dependency_shell_commands(
             requirements=requirements,
-            installed_tool_dependencies=installed_tool_dependencies
+            installed_tool_dependencies=installed_tool_dependencies,
+            job_directory=job_directory,
         )
         if dependency_commands:
             command_line = "%s; %s" % ("; ".join(dependency_commands), command_line)

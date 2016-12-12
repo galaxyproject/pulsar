@@ -152,7 +152,7 @@ class Manager(DirectoryBaseManager):
         if platform.system().lower() == "windows":
             # TODO: Don't ignore requirements and env without warning. Ideally
             # process them or at least warn about them being ignored.
-            command_line = self._expand_command_line(command_line, dependencies_description)
+            command_line = self._expand_command_line(command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory)
         else:
             command_line = self._setup_job_file(job_id, command_line, dependencies_description=dependencies_description, env=env)
         return command_line

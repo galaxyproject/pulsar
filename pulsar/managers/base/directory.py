@@ -105,7 +105,7 @@ class DirectoryBaseManager(BaseManager):
 
     # Helpers methods related to setting up job script files.
     def _setup_job_file(self, job_id, command_line, dependencies_description=None, env=[]):
-        command_line = self._expand_command_line(command_line, dependencies_description)
+        command_line = self._expand_command_line(command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory)
         script_env = self._job_template_env(job_id, command_line=command_line, env=env)
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
