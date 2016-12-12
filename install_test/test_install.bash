@@ -20,8 +20,6 @@ cd pulsar
 echo "Setting up virtualenv for Pulsar"
 virtualenv venv
 . venv/bin/activate # .venv\Scripts\activate if Windows
-moo=`echo $PULSAR_INSTALL_TARGET`
-echo $moo
 echo "Installing Pulsar using 'pip install $PULSAR_INSTALL_TARGET'"
 pip install $PULSAR_INSTALL_TARGET
 echo "Running pulsar-config with default arguments"
