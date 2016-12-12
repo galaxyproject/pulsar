@@ -1,12 +1,18 @@
 .. figure:: https://wiki.galaxyproject.org/Images/GalaxyLogos?action=AttachFile&do=get&target=pulsar_transparent.png
    :alt: Pulsar Logo
 
-.. image:: https://readthedocs.org/projects/pip/badge/?version=latest
-        :target: https://pulsar.readthedocs.org.
+.. image:: https://readthedocs.org/projects/pulsar/badge/?version=latest
+   :target: http://pulsar.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
+.. image:: https://badge.fury.io/py/pulsar-app.svg
+   :target: https://pypi.python.org/pypi/pulsar-app/
+   :alt: Pulsar on the Python Package Index (PyPI)
 .. image:: https://travis-ci.org/galaxyproject/pulsar.png?branch=master
-        :target: https://travis-ci.org/galaxyproject/pulsar
+   :target: https://travis-ci.org/galaxyproject/pulsar
+   :alt: Build Status
 .. image:: https://coveralls.io/repos/galaxyproject/pulsar/badge.png?branch=master
-        :target: https://coveralls.io/r/galaxyproject/pulsar?branch=master
+   :target: https://coveralls.io/r/galaxyproject/pulsar?branch=master
+   :alt: Test Coverage
 
 This project is a Python server application that allows a `Galaxy
 <http://galaxyproject.org>`_ server to run jobs on remote systems (including
@@ -16,7 +22,7 @@ to the remote system, the job is executed, and the results are transfered back
 to the Galaxy server - eliminating the need for a shared file system.
 
 Full documentation for the project can be found on `Read The Docs
-<https://pulsar.readthedocs.org/>`_.
+<https://pulsar.readthedocs.io/>`_.
 
 ------------------
 Configuring Galaxy
