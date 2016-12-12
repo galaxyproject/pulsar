@@ -83,7 +83,7 @@ test-install-pypi:
 	bash install_test/test_install.bash
 
 test-install-wheel: dist
-	PULSAR_INSTALL_TARGET=$(shell pwd)/dist/pulsar_app*.whl bash install_test/test_install.bash
+	PULSAR_INSTALL_TARGET=$(shell pwd)/dist/pulsar_app*.whl bash install_test/test_install_conda.bash
 
 coverage:
 	coverage run --source $(SOURCE_DIR) setup.py $(TEST_DIR)

@@ -26,7 +26,7 @@ class CliQueueManager(ExternalBaseManager):
         stdout_path = self._stdout_path(job_id)
         stderr_path = self._stderr_path(job_id)
         job_name = self._job_name(job_id)
-        command_line = self._expand_command_line(command_line, dependencies_description)
+        command_line = self._expand_command_line(command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory)
         job_script_kwargs = self._job_template_env(job_id, command_line=command_line, env=env)
         extra_kwargs = job_interface.job_script_kwargs(stdout_path, stderr_path, job_name)
         job_script_kwargs.update(extra_kwargs)

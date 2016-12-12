@@ -124,7 +124,11 @@ class PulsarApp(object):
     def __setup_dependency_manager(self, conf):
         dependencies_dir = conf.get("tool_dependency_dir", "dependencies")
         resolvers_config_file = conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml")
-        self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file)
+        conda_config = {}
+        for key, value in conf.items():
+            if key.startswith("conda_"):
+                conda_config[key] = value
+        self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file, **conda_config)
 
     def __setup_job_metrics(self, conf):
         job_metrics = conf.get("job_metrics", None)
