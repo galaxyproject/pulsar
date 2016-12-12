@@ -14,5 +14,6 @@ def main(argv=None):
     session = DrmaaSessionFactory().get()
     external_id = session.kill(external_id)
 
+
 if __name__ == "__main__":
     main()

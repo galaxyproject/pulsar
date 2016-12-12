@@ -82,6 +82,7 @@ def __start_consumer(name, exchange, target):
     thread.start()
     return thread
 
+
 start_setup_consumer = functools.partial(__start_consumer, "setup")
 start_kill_consumer = functools.partial(__start_consumer, "kill")
 start_status_update_ack_consumer = functools.partial(__start_consumer, "status_update_ack")

@@ -77,4 +77,5 @@ class BaseDrmaaManager(ExternalBaseManager):
             log.debug("Not native specification supplied, DRMAA job will be submitted with default parameters.")
         return attributes
 
-__all__ = ["BaseDrmaaManager"]
+
+__all__ = ("BaseDrmaaManager")

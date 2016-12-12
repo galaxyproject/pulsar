@@ -54,6 +54,7 @@ def timed(timeout):
 
     return outer_wrapper
 
+
 INTEGRATION_MAXIMUM_TEST_TIME = 15
 integration_test = timed(INTEGRATION_MAXIMUM_TEST_TIME)
 

@@ -131,6 +131,7 @@ def _check_project_directory(project_dir):
 
     return Project(ini_config, app_config)
 
+
 Project = collections.namedtuple('Project', ['ini_config', 'app_config'])
 
 

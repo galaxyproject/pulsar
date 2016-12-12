@@ -87,4 +87,5 @@ def get_authorizer(toolbox):
         authorizer = AllowAnyAuthorizer()
     return authorizer
 
-__all__ = ['get_authorizer']
+
+__all__ = ('get_authorizer')

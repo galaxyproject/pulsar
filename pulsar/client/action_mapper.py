@@ -666,6 +666,7 @@ class RegexPathMapper(BasePathMapper):
     def to_dict(self):
         return self._extend_base_dict(path=self.pattern_raw)
 
+
 MAPPER_CLASSES = [PrefixPathMapper, GlobPathMapper, RegexPathMapper]
 MAPPER_CLASS_DICT = dict(map(lambda c: (c.match_type, c), MAPPER_CLASSES))
 
@@ -699,6 +700,7 @@ class FileLister(object):
                 depth -= 1
             return dict([(join(path, f), f) for f in directory_files(path)])
 
+
 DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
 
 ACTION_CLASSES = [
@@ -714,10 +716,10 @@ ACTION_CLASSES = [
 actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
 
 
-__all__ = [
+__all__ = (
     'FileActionMapper',
     'path_type',
     'from_dict',
     'MessageAction',
     'RemoteTransferAction',  # For testing
-]
+)

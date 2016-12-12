@@ -16,4 +16,5 @@ def preprocess(job_directory, setup_actions, action_executor):
         log.debug(description)
         action_executor.execute(lambda: action.write_to_path(path), "action[%s]" % description)
 
-__all__ = ['preprocess']
+
+__all__ = ('preprocess')

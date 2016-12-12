@@ -173,4 +173,5 @@ def _clean(collection_failure_exceptions, cleanup_job, client):
         except Exception:
             log.warn("Failed to cleanup remote Pulsar job")
 
-__all__ = ['finish_job']
+
+__all__ = ('finish_job')

@@ -70,6 +70,7 @@ def __read_json(path):
     with open(path, "rb") as f:
         return json.load(reader(f))
 
+
 EXT_READERS = {
     CONFIG_TYPE_JSON: __read_json,
     CONFIG_TYPE_YAML: __read_yaml,
