@@ -5,10 +5,15 @@ History
 
 .. to_doc
 
+
 ---------------------
-0.8.0.dev0
+0.7.4.dev0
 ---------------------
 
+* Fix Conda resolution and add a test case. 11ce744_
+* Style fixes for updated flake8 libraries. 93ab8a1_, 3573341_
+* Remove unused script. 929bffa_
+* Fixup README. 629fdea_
     
 
 ---------------------
@@ -137,6 +142,11 @@ History
 
 
 .. github_links
+.. _11ce744: https://github.com/galaxyproject/pulsar/commit/11ce744
+.. _3573341: https://github.com/galaxyproject/pulsar/commit/3573341
+.. _93ab8a1: https://github.com/galaxyproject/pulsar/commit/93ab8a1
+.. _929bffa: https://github.com/galaxyproject/pulsar/commit/929bffa
+.. _629fdea: https://github.com/galaxyproject/pulsar/commit/629fdea
 .. _Pull Request 124: https://github.com/galaxyproject/pulsar/pull/124
 .. _Issue 123: https://github.com/galaxyproject/pulsar/issues/123
 .. _ad33cb9: https://github.com/galaxyproject/pulsar/commit/ad33cb9
