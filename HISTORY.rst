@@ -7,7 +7,7 @@ History
 
 
 ---------------------
-0.7.4.dev0
+0.7.4 (2017-02-07)
 ---------------------
 
 * Fix Conda resolution and add a test case. 11ce744_
