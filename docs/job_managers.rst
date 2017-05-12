@@ -37,7 +37,7 @@ The ``managers`` section can contain any number of named managers. For example::
 
       example:
         type: queued_python
-        num_concurrent_jobs: *
+        num_concurrent_jobs: "*"
 
 In this instance, Pulsar creates a second named queued (``example``) that will
 run as many concurrent jobs as the server has cores. The Galaxy Pulsar url
