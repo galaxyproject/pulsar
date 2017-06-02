@@ -99,6 +99,7 @@ class HttpPulsarInterface(PulsarInterface):
             remote_host = "%s/" % remote_host
         self.remote_host = remote_host
         self.private_token = destination_params.get("private_token", None)
+        self.manager = destination_params.get("manager", None)
 
     def execute(self, command, args={}, data=None, input_path=None, output_path=None):
         url = self.__build_url(command, args)
@@ -110,6 +111,8 @@ class HttpPulsarInterface(PulsarInterface):
         path = COMMAND_TO_PATH.get(command, Template(command)).safe_substitute(args)
         if self.private_token:
             args["private_token"] = self.private_token
+        if self.manager:
+            args["manager_name"] = self.manager
         arg_bytes = dict([(k, text_type(args[k]).encode('utf-8')) for k in args])
         data = urlencode(arg_bytes)
         url = self.remote_host + path + "?" + data
