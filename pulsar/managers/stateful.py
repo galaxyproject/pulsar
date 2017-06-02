@@ -35,6 +35,7 @@ class StatefulManagerProxy(ManagerProxy):
 
     def __init__(self, manager, **manager_options):
         super(StatefulManagerProxy, self).__init__(manager)
+        self._proxied_manager.check_job_script_integrity = manager_options.get("check_job_script_integrity", True)
         min_polling_interval = float(manager_options.get("min_polling_interval", DEFAULT_MIN_POLLING_INTERVAL))
         preprocess_retry_action_kwds = filter_destination_params(manager_options, "preprocess_action_")
         postprocess_retry_action_kwds = filter_destination_params(manager_options, "postprocess_action_")

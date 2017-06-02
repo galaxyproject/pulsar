@@ -8,6 +8,7 @@
 #  _default_:
 #    type: queued_python
 #    num_concurrent_jobs: 1
+#    check_job_script_integrity: True
 
 
 ## Mode to create job releated directories with. If unset
