@@ -51,12 +51,18 @@ class BaseDrmaaManager(ExternalBaseManager):
             JobState.FAILED: status.COMPLETE,  # Should be a FAILED state here as well
         }[drmaa_state]
 
-    def _build_template_attributes(self, job_id, command_line, dependencies_description=None, env=[], submit_params={}):
+    def _build_template_attributes(self, job_id, command_line, dependencies_description=None, env=[], submit_params={}, setup_params=None):
         stdout_path = self._stdout_path(job_id)
         stderr_path = self._stderr_path(job_id)
 
         attributes = {
-            "remoteCommand": self._setup_job_file(job_id, command_line, dependencies_description=dependencies_description, env=env),
+            "remoteCommand": self._setup_job_file(
+                job_id,
+                command_line,
+                dependencies_description=dependencies_description,
+                env=env,
+                setup_params=setup_params
+            ),
             "jobName": self._job_name(job_id),
             "outputPath": ":%s" % stdout_path,
             "errorPath": ":%s" % stderr_path,

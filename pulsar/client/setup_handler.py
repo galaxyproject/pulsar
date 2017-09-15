@@ -39,13 +39,14 @@ class LocalSetupHandler(object):
         self.system_properties = system_properties
         self.jobs_directory = destination_args["jobs_directory"]
 
-    def setup(self, job_id, tool_id=None, tool_version=None):
+    def setup(self, job_id, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
         return build_job_config(
             job_id=job_id,
             job_directory=self.client.job_directory,
             system_properties=self.system_properties,
             tool_id=tool_id,
             tool_version=tool_version,
+            preserve_galaxy_python_environment=preserve_galaxy_python_environment,
         )
 
     @property
@@ -75,7 +76,7 @@ class RemoteSetupHandler(object):
         return False
 
 
-def build_job_config(job_id, job_directory, system_properties={}, tool_id=None, tool_version=None):
+def build_job_config(job_id, job_directory, system_properties={}, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
     """
     """
     inputs_directory = job_directory.inputs_directory()
@@ -100,6 +101,7 @@ def build_job_config(job_id, job_directory, system_properties={}, tool_id=None, 
         "job_id": job_id,
         "system_properties": system_properties,
         "pulsar_version": pulsar_version,
+        "preserve_galaxy_python_environment": preserve_galaxy_python_environment,
     }
     if tool_id:
         job_config["tool_id"] = tool_id

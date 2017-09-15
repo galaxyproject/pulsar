@@ -80,7 +80,7 @@ def submit_job(manager, job_config):
             input_job_id,
             tool_id,
             tool_version,
-            use_metadata
+            use_metadata,
         )
 
     if job_config is not None:
@@ -98,6 +98,7 @@ def submit_job(manager, job_config):
         submit_params,
         dependencies_description=dependencies_description,
         env=env,
+        setup_params=setup_params,
     )
 
 

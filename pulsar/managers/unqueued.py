@@ -142,11 +142,11 @@ class Manager(DirectoryBaseManager):
         else:
             self._monitor_execution(job_id, proc, stdout, stderr)
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[]):
-        command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env)
+    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
+        command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env, setup_params=setup_params)
         self._run(job_id, command_line)
 
-    def _prepare_run(self, job_id, command_line, dependencies_description, env):
+    def _prepare_run(self, job_id, command_line, dependencies_description, env, setup_params=None):
         self._check_execution_with_tool_file(job_id, command_line)
         self._record_submission(job_id)
         if platform.system().lower() == "windows":
@@ -154,7 +154,13 @@ class Manager(DirectoryBaseManager):
             # process them or at least warn about them being ignored.
             command_line = self._expand_command_line(command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory)
         else:
-            command_line = self._setup_job_file(job_id, command_line, dependencies_description=dependencies_description, env=env)
+            command_line = self._setup_job_file(
+                job_id,
+                command_line,
+                dependencies_description=dependencies_description,
+                env=env,
+                setup_params=setup_params
+            )
         return command_line
 
 
