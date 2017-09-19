@@ -7,7 +7,11 @@
 
 ## If you wish to use a variety of Galaxy tools that depend on galaxy.eggs being defined, 
 ## set GALAXY_HOME to point to a copy of Galaxy.
-#export GALAXY_HOME=/path/to/galaxy-dist
+#export GALAXY_HOME=/path/to/galaxy
+
+## In order to set metadata on the pulsar side, Pulsar needs to know where
+## Galaxy's virtualenv is. If not using remote metadata, this is unnecessary.
+#export GALAXY_VIRTUAL_ENV=/path/to/galaxy/.venv
 
 ## Uncomment to verify GALAXY_HOME is set properly before starting the Pulsar.
 #export TEST_GALAXY_LIBS=1

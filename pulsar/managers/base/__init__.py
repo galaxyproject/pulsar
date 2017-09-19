@@ -87,6 +87,7 @@ class BaseManager(ManagerInterface):
 
     def __init_galaxy_system_properties(self, kwds):
         self.galaxy_home = kwds.get('galaxy_home', None)
+        self.galaxy_virtual_env = kwds.get('galaxy_virtual_env', None)
         self.galaxy_config_file = kwds.get('galaxy_config_file', None)
         self.galaxy_dataset_files_path = kwds.get('galaxy_dataset_files_path', None)
         self.galaxy_datatypes_config_file = kwds.get('galaxy_datatypes_config_file', None)
@@ -98,6 +99,9 @@ class BaseManager(ManagerInterface):
         galaxy_home = self._galaxy_home()
         if galaxy_home:
             system_properties["galaxy_home"] = galaxy_home
+        galaxy_virtual_env = self._galaxy_virtual_env()
+        if galaxy_virtual_env:
+            system_properties["galaxy_virtual_env"] = galaxy_virtual_env
         for property in ['galaxy_config_file', 'galaxy_dataset_files_path', 'galaxy_datatypes_config_file']:
             value = getattr(self, property, None)
             if value:
@@ -115,6 +119,9 @@ class BaseManager(ManagerInterface):
 
     def _galaxy_home(self):
         return self.galaxy_home or getenv('GALAXY_HOME', None)
+
+    def _galaxy_virtual_env(self):
+        return self.galaxy_virtual_env or getenv('GALAXY_VIRTUAL_ENV', None)
 
     def _galaxy_lib(self):
         galaxy_home = self._galaxy_home()

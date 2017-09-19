@@ -16,13 +16,14 @@ class XsedeDrmaaQueueManager(DrmaaQueueManager):
     """
     manager_type = "queued_drmaa_xsede"
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[]):
+    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
         super(XsedeDrmaaQueueManager, self).launch(
             job_id,
             command_line,
             submit_params=submit_params,
             dependencies_description=dependencies_description,
-            env=env
+            env=env,
+            setup_params=setup_params,
         )
         try:
             check_call([

@@ -104,20 +104,23 @@ class DirectoryBaseManager(BaseManager):
         return tool_id
 
     # Helpers methods related to setting up job script files.
-    def _setup_job_file(self, job_id, command_line, dependencies_description=None, env=[]):
+    def _setup_job_file(self, job_id, command_line, dependencies_description=None, env=[], setup_params=None):
         command_line = self._expand_command_line(command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory)
-        script_env = self._job_template_env(job_id, command_line=command_line, env=env)
+        script_env = self._job_template_env(job_id, command_line=command_line, env=env, setup_params=setup_params)
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
 
-    def _job_template_env(self, job_id, command_line=None, env=[]):
+    def _job_template_env(self, job_id, command_line=None, env=[], setup_params=None):
         return_code_path = self._return_code_path(job_id)
         # TODO: Add option to ignore remote env.
         env = env + self.env_vars
+        setup_params = setup_params or {}
         env_setup_commands = map(env_to_statement, env)
         job_template_env = {
             'job_instrumenter': self.job_metrics.default_job_instrumenter,
+            'galaxy_virtual_env': self._galaxy_virtual_env(),
             'galaxy_lib': self._galaxy_lib(),
+            'preserve_python_environment': setup_params.get('preserve_galaxy_python_environment', False),
             'env_setup_commands': env_setup_commands,
             'exit_code_path': return_code_path,
             'working_directory': self.job_directory(job_id).working_directory(),

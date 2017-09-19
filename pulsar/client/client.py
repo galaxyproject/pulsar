@@ -63,7 +63,7 @@ class BaseJobClient(object):
 
         self.setup_handler = build_setup_handler(self, destination_params)
 
-    def setup(self, tool_id=None, tool_version=None):
+    def setup(self, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
         """
         Setup remote Pulsar server to run this job.
         """
@@ -72,6 +72,8 @@ class BaseJobClient(object):
             setup_args["tool_id"] = tool_id
         if tool_version:
             setup_args["tool_version"] = tool_version
+        if preserve_galaxy_python_environment:
+            setup_args["preserve_galaxy_python_environment"] = preserve_galaxy_python_environment
         return self.setup_handler.setup(**setup_args)
 
     @property
@@ -394,9 +396,11 @@ def _setup_params_from_job_config(job_config):
     job_id = job_config.get("job_id", None)
     tool_id = job_config.get("tool_id", None)
     tool_version = job_config.get("tool_version", None)
+    preserve_galaxy_python_environment = job_config.get("preserve_galaxy_python_environment", None)
     return dict(
         job_id=job_id,
         tool_id=tool_id,
         tool_version=tool_version,
         use_metadata=True,
+        preserve_galaxy_python_environment=preserve_galaxy_python_environment,
     )

@@ -10,7 +10,7 @@ class DrmaaQueueManager(BaseDrmaaManager):
     """
     manager_type = "queued_drmaa"
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[]):
+    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
         self._check_execution_with_tool_file(job_id, command_line)
         attributes = self._build_template_attributes(
             job_id,
@@ -18,6 +18,7 @@ class DrmaaQueueManager(BaseDrmaaManager):
             dependencies_description=dependencies_description,
             env=env,
             submit_params=submit_params,
+            setup_params=setup_params,
         )
         external_id = self.drmaa_session.run_job(**attributes)
         log.info("Submitted DRMAA job with Pulsar job id %s and external id %s", job_id, external_id)

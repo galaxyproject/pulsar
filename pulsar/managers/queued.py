@@ -45,8 +45,14 @@ class QueueManager(Manager):
             worker.start()
             self.work_threads.append(worker)
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[]):
-        command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env)
+    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
+        command_line = self._prepare_run(
+            job_id,
+            command_line,
+            dependencies_description=dependencies_description,
+            env=env,
+            setup_params=setup_params
+        )
         try:
             self._job_directory(job_id).store_metadata(JOB_FILE_COMMAND_LINE, command_line)
         except Exception:

@@ -31,7 +31,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         self.reclaimed = {}
         self.user_map = {}
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[]):
+    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
         self._check_execution_with_tool_file(job_id, command_line)
         attributes = self._build_template_attributes(
             job_id,
@@ -39,6 +39,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
             dependencies_description=dependencies_description,
             env=env,
             submit_params=submit_params,
+            setup_params=setup_params,
         )
         print(open(attributes['remoteCommand'], 'r').read())
         job_attributes_file = self._write_job_file(job_id, 'jt.json', dumps(attributes))
