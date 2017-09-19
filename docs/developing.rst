@@ -33,12 +33,19 @@ are fine.
 * Review ``git status`` for missing files.
 * Verify the latest Travis CI builds pass.
 * ``make open-docs`` and review changelog.
+* Ensure the target release is set correctly in ``pulsar/__init__.py``
+  (``version`` will be a ``devN`` variant of target release).
 * ``make clean && make lint && make tests``
-* ``python tools/commit_version.py <new_version>``
 * ``make release``
-    * Review `Test PyPI site <https://testpypi.python.org/pypi/pulsar-app>`_
-      for errors.
-    * Test intall ``pip install -i https://testpypi.python.org/pypi pulsar-app``.
-* ``python tools/new_version.py <new_version>``
-* ``git push origin master``
-* ``git push --tags origin``
+
+  * Review `Test PyPI site <https://testpypi.python.org/pypi/pulsar-app>`_
+    for errors.
+  * Test intall ``pip install -i https://testpypi.python.org/pypi pulsar-app``.
+
+  This process will push packages to test PyPI, allow review, publish
+  to production PyPI, tag the git repository, and push the tag upstream.
+  If changes are needed, this can be broken down into steps
+  such as:
+
+  * ``make release-local``
+  * ``make push-release``
