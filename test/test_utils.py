@@ -304,6 +304,8 @@ def test_pulsar_app(
     app_conf["staging_directory"] = staging_directory
     app_conf["file_cache_dir"] = cache_directory
     app_conf["ensure_cleanup"] = True
+    app_conf["conda_auto_init"] = app_conf.get("conda_auto_init", False)
+    app_conf["conda_auto_install"] = app_conf.get("conda_auto_install", False)
     try:
         with _yield_app(global_conf, app_conf, test_conf, web) as app:
             yield app
