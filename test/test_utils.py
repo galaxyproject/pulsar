@@ -6,7 +6,7 @@ import sys
 import threading
 
 from contextlib import contextmanager
-from stat import S_IXOTH
+from stat import S_IXGRP, S_IXOTH
 from os import pardir, stat, chmod, access, X_OK, pathsep, environ
 from os import makedirs, listdir
 from os.path import join, dirname, isfile, split
@@ -60,12 +60,13 @@ integration_test = timed(INTEGRATION_MAXIMUM_TEST_TIME)
 
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)
+TEST_TEMPDIR_PREFIX='tmp_pulsar_'
 
 
 class TempDirectoryTestCase(TestCase):
 
     def setUp(self):
-        self.temp_directory = mkdtemp()
+        self.temp_directory = temp_directory_persist(prefix=TEST_TEMPDIR_PREFIX)
 
     def tearDown(self):
         rmtree(self.temp_directory)
@@ -84,7 +85,7 @@ def get_test_tool():
 class TestManager(object):
 
     def setup_temp_directory(self):
-        self.temp_directory = mkdtemp()
+        self.temp_directory = temp_directory_persist(prefix='test_manager_')
         self.__job_directory = JobDirectory(self.temp_directory, '1')
 
     def cleanup_temp_directory(self):
@@ -96,17 +97,21 @@ class TestManager(object):
 
 @contextmanager
 def test_job_directory():
-    with temp_directory() as directory:
+    with temp_directory(prefix='job_') as directory:
         yield JobDirectory(directory, '1')
 
 
 @contextmanager
-def temp_directory():
-    directory = mkdtemp()
+def temp_directory(prefix=''):
+    directory = temp_directory_persist(prefix=prefix)
     try:
         yield directory
     finally:
         rmtree(directory)
+
+
+def temp_directory_persist(prefix=''):
+    return mkdtemp(prefix=TEST_TEMPDIR_PREFIX + prefix)
 
 
 @contextmanager
@@ -202,7 +207,7 @@ class BaseManagerTestCase(TestCase):
 def minimal_app_for_managers():
     """ Minimimal app description for consumption by managers.
     """
-    staging_directory = mkdtemp()
+    staging_directory = temp_directory_persist(prefix='minimal_app_')
     rmtree(staging_directory)
     authorizer = TestAuthorizer()
     return Bunch(staging_directory=staging_directory,
@@ -251,7 +256,7 @@ def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
 class RestartablePulsarAppProvider(object):
 
     def __init__(self, global_conf={}, app_conf={}, test_conf={}, web=True):
-        self.staging_directory = mkdtemp()
+        self.staging_directory = temp_directory_persist(prefix='staging_')
         self.global_conf = global_conf
         self.app_conf = app_conf
         self.test_conf = test_conf
@@ -295,12 +300,12 @@ def test_pulsar_app(
 ):
     clean_staging_directory = False
     if staging_directory is None:
-        staging_directory = mkdtemp()
+        staging_directory = temp_directory_persist(prefix='staging_')
         clean_staging_directory = True
     # Make staging directory world executable for run as user tests.
     mode = stat(staging_directory).st_mode
-    chmod(staging_directory, mode | S_IXOTH)
-    cache_directory = mkdtemp()
+    chmod(staging_directory, mode | S_IXGRP | S_IXOTH)
+    cache_directory = temp_directory_persist(prefix='cache_')
     app_conf["staging_directory"] = staging_directory
     app_conf["file_cache_dir"] = cache_directory
     app_conf["ensure_cleanup"] = True
