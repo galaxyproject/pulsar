@@ -60,7 +60,7 @@ integration_test = timed(INTEGRATION_MAXIMUM_TEST_TIME)
 
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)
-TEST_TEMPDIR_PREFIX='tmp_pulsar_'
+TEST_TEMPDIR_PREFIX = 'tmp_pulsar_'
 
 
 class TempDirectoryTestCase(TestCase):
