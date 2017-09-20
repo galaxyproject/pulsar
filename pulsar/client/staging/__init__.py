@@ -69,6 +69,7 @@ class ClientJobDescription(object):
         env=[],
         arbitrary_files=None,
         rewrite_paths=True,
+        touch_outputs=None,
     ):
         self.tool = tool
         self.command_line = command_line
@@ -81,6 +82,7 @@ class ClientJobDescription(object):
         self.env = env
         self.rewrite_paths = rewrite_paths
         self.arbitrary_files = arbitrary_files or {}
+        self.touch_outputs = touch_outputs or []
 
     @property
     def output_files(self):

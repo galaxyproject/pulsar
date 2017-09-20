@@ -120,6 +120,9 @@ class JobClient(BaseJobClient):
             launch_params['env'] = json_dumps(env)
         if remote_staging:
             launch_params['remote_staging'] = json_dumps(remote_staging)
+        if job_config and 'touch_outputs' in job_config:
+            # message clients pass the entire job config
+            launch_params['submit_extras'] = json_dumps({'touch_outputs': job_config['touch_outputs']})
 
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from

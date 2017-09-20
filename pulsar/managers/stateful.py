@@ -64,6 +64,12 @@ class StatefulManagerProxy(ManagerProxy):
         job_directory = self._proxied_manager.job_directory(job_id)
         job_directory.store_metadata("staging_config", staging_config)
 
+    def touch_outputs(self, job_id, touch_outputs):
+        job_directory = self._proxied_manager.job_directory(job_id)
+        for name in touch_outputs:
+            path = job_directory.calculate_path(name, 'output')
+            job_directory.open_file(path, mode='a')
+
     def launch(self, job_id, *args, **kwargs):
         job_directory = self._proxied_manager.job_directory(job_id)
 
