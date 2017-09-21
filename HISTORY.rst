@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.8.0.dev0
+0.8.0 (2017-09-21)
 ---------------------
 
 * Support new features in Galaxy job running/scripting so that Pulsar respects
