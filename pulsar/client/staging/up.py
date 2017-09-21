@@ -92,6 +92,7 @@ class FileStager(object):
         self.action_mapper = FileActionMapper(client)
 
         self.__handle_setup(job_config)
+        self.__setup_touch_outputs(client_job_description.touch_outputs)
 
         self.transfer_tracker = TransferTracker(client, self.path_helper, self.action_mapper, self.job_inputs, rewrite_paths=self.rewrite_paths)
 
@@ -136,6 +137,9 @@ class FileStager(object):
             # Galaxy job id, update client to reflect this.
             self.client.job_id = self.job_id
         self.job_config = job_config
+
+    def __setup_touch_outputs(self, touch_outputs):
+        self.job_config['touch_outputs'] = touch_outputs
 
     def __parse_remote_separator(self, job_config):
         separator = job_config.get("system_properties", {}).get("separator", None)

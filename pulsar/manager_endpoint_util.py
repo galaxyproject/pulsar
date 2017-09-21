@@ -69,6 +69,7 @@ def submit_job(manager, job_config):
     dependencies_description = job_config.get('dependencies_description', None)
     env = job_config.get('env', [])
     submit_params = job_config.get('submit_params', {})
+    touch_outputs = job_config.get('touch_outputs', [])
     job_config = None
     if setup_params or force_setup:
         input_job_id = setup_params.get("job_id", job_id)
@@ -89,6 +90,7 @@ def submit_job(manager, job_config):
         command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
 
     # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
+    manager.touch_outputs(job_id, touch_outputs)
     manager.handle_remote_staging(job_id, remote_staging)
 
     dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
