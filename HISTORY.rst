@@ -23,6 +23,7 @@ History
   ``dependency_resolvers_conf.xml`` (thanks to @mapa17). `Pull Request 132`_
 * Fix tox/Travis tests. `Pull Request 138`_, `Pull Request 139`_,
   `Pull Request 140`_
+* Fix a bug with AMQP acknowledgement. `Pull Request 143`_
 
 ---------------------
 0.7.4 (2017-02-07)
@@ -160,6 +161,7 @@ History
 
 
 .. github_links
+.. _Pull Request 143: https://github.com/galaxyproject/pulsar/pull/143
 .. _Pull Request 141: https://github.com/galaxyproject/pulsar/pull/141
 .. _Pull Request 136: https://github.com/galaxyproject/pulsar/pull/136
 .. _Pull Request 137: https://github.com/galaxyproject/pulsar/pull/137
