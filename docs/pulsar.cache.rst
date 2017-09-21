@@ -1,19 +1,19 @@
-pulsar.cache package
-====================
+pulsar\.cache package
+=====================
 
 Submodules
 ----------
 
-pulsar.cache.persistence module
--------------------------------
+pulsar\.cache\.persistence module
+---------------------------------
 
 .. automodule:: pulsar.cache.persistence
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.cache.util module
-------------------------
+pulsar\.cache\.util module
+--------------------------
 
 .. automodule:: pulsar.cache.util
     :members:

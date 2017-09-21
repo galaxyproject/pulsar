@@ -1,75 +1,75 @@
-pulsar.scripts package
-======================
+pulsar\.scripts package
+=======================
 
 Submodules
 ----------
 
-pulsar.scripts.chown_working_directory module
----------------------------------------------
+pulsar\.scripts\.chown\_working\_directory module
+-------------------------------------------------
 
 .. automodule:: pulsar.scripts.chown_working_directory
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.scripts.config module
-----------------------------
+pulsar\.scripts\.config module
+------------------------------
 
 .. automodule:: pulsar.scripts.config
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.scripts.drmaa_kill module
---------------------------------
+pulsar\.scripts\.drmaa\_kill module
+-----------------------------------
 
 .. automodule:: pulsar.scripts.drmaa_kill
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.scripts.drmaa_launch module
-----------------------------------
+pulsar\.scripts\.drmaa\_launch module
+-------------------------------------
 
 .. automodule:: pulsar.scripts.drmaa_launch
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.scripts.mesos_executor module
-------------------------------------
+pulsar\.scripts\.mesos\_executor module
+---------------------------------------
 
 .. automodule:: pulsar.scripts.mesos_executor
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.scripts.mesos_framework module
--------------------------------------
+pulsar\.scripts\.mesos\_framework module
+----------------------------------------
 
 .. automodule:: pulsar.scripts.mesos_framework
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.scripts.run module
--------------------------
+pulsar\.scripts\.run module
+---------------------------
 
 .. automodule:: pulsar.scripts.run
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.scripts.submit module
-----------------------------
+pulsar\.scripts\.submit module
+------------------------------
 
 .. automodule:: pulsar.scripts.submit
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.scripts.submit_util module
----------------------------------
+pulsar\.scripts\.submit\_util module
+------------------------------------
 
 .. automodule:: pulsar.scripts.submit_util
     :members:

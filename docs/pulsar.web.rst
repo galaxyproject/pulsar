@@ -1,27 +1,27 @@
-pulsar.web package
-==================
+pulsar\.web package
+===================
 
 Submodules
 ----------
 
-pulsar.web.framework module
----------------------------
+pulsar\.web\.framework module
+-----------------------------
 
 .. automodule:: pulsar.web.framework
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.web.routes module
-------------------------
+pulsar\.web\.routes module
+--------------------------
 
 .. automodule:: pulsar.web.routes
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.web.wsgi module
-----------------------
+pulsar\.web\.wsgi module
+------------------------
 
 .. automodule:: pulsar.web.wsgi
     :members:

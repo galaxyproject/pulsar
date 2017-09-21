@@ -9,8 +9,21 @@ History
 0.8.0.dev0
 ---------------------
 
-    
-
+* Support new features in Galaxy job running/scripting so that Pulsar respects
+  ``$GALAXY_VIRTUAL_ENV`` and ``$PRESERVE_GALAXY_ENVIRONMENT``. Fix remote
+  metadata in cases where the tool environment changes the ``python`` on
+  ``$PATH``. `Pull Request 137`_
+* Precreate Galaxy tool outputs on the remote before executing (fixes a bug
+  related to missing output files on stage out). `Pull Request 141`_
+* Support the remote_transfer file action without setting the
+  ``jobs_directory`` destination param `Pull Request 136`_
+* Fix invalid character in job managers documentation (thanks to @mapa17).
+  `Pull Request 130`_
+* Fix ``conda_auto_*`` option resolution and include a sample
+  ``dependency_resolvers_conf.xml`` (thanks to @mapa17). `Pull Request 132`_
+* Fix tox/Travis tests. `Pull Request 138`_, `Pull Request 139`_,
+  `Pull Request 140`_
+* Fix a bug with AMQP acknowledgement. `Pull Request 143`_
 
 ---------------------
 0.7.4 (2017-02-07)
@@ -148,6 +161,15 @@ History
 
 
 .. github_links
+.. _Pull Request 143: https://github.com/galaxyproject/pulsar/pull/143
+.. _Pull Request 141: https://github.com/galaxyproject/pulsar/pull/141
+.. _Pull Request 136: https://github.com/galaxyproject/pulsar/pull/136
+.. _Pull Request 137: https://github.com/galaxyproject/pulsar/pull/137
+.. _Pull Request 140: https://github.com/galaxyproject/pulsar/pull/140
+.. _Pull Request 139: https://github.com/galaxyproject/pulsar/pull/139
+.. _Pull Request 138: https://github.com/galaxyproject/pulsar/pull/138
+.. _Pull Request 132: https://github.com/galaxyproject/pulsar/pull/132
+.. _Pull Request 130: https://github.com/galaxyproject/pulsar/pull/130
 .. _11ce744: https://github.com/galaxyproject/pulsar/commit/11ce744
 .. _3573341: https://github.com/galaxyproject/pulsar/commit/3573341
 .. _93ab8a1: https://github.com/galaxyproject/pulsar/commit/93ab8a1

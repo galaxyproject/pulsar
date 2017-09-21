@@ -122,7 +122,7 @@ open-project:
 	open $(PROJECT_URL) || xdg-open $(PROJECT_URL)
 
 dist: clean
-	$(IN_VENV) python setup.py sdist bdist_egg bdist_wheel
+	$(IN_VENV) python setup.py sdist bdist_wheel
 	ls -l dist
 
 _release-test-artifacts:
@@ -133,7 +133,7 @@ dist-all: dist _dist-lib
 
 release-test-artifacts: dist-all _release-test-artifacts
 
-_release-aritfacts:
+_release-artifacts:
 	@while [ -z "$$CONTINUE" ]; do \
 	  read -r -p "Have you executed release-test and reviewed results? [y/N]: " CONTINUE; \
 	done ; \
@@ -141,7 +141,7 @@ _release-aritfacts:
 	@echo "Releasing"
 	$(IN_VENV) twine upload dist/*
 
-release-aritfacts: release-test-artifacts _release-aritfacts
+release-artifacts: release-test-artifacts _release-artifacts
 
 commit-version:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/commit_version.py $(SOURCE_DIR) $(VERSION)
@@ -149,7 +149,7 @@ commit-version:
 new-version:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/new_version.py $(SOURCE_DIR) $(VERSION)
 
-release-local: commit-version release-aritfacts new-version
+release-local: commit-version release-artifacts new-version
 
 push-release:
 	git push $(UPSTREAM) master
@@ -161,10 +161,10 @@ add-history:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/bootstrap_history.py $(ITEM)
 
 _dist-lib:
-	$(IN_VENV) PULSAR_GALAXY_LIB=1 python setup.py sdist bdist_egg bdist_wheel
+	$(IN_VENV) PULSAR_GALAXY_LIB=1 python setup.py sdist bdist_wheel
 	ls -l dist
 
 dist-lib: clean _dist-lib
 
 #release-test-lib-artifacts: dist-lib _release-test-artifacts
-#release-lib-aritfacts: release-test-lib-artifacts _release-aritfacts
+#release-lib-artifacts: release-test-lib-artifacts _release-artifacts

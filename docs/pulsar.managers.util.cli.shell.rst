@@ -1,19 +1,19 @@
-pulsar.managers.util.cli.shell package
-======================================
+pulsar\.managers\.util\.cli\.shell package
+==========================================
 
 Submodules
 ----------
 
-pulsar.managers.util.cli.shell.local module
--------------------------------------------
+pulsar\.managers\.util\.cli\.shell\.local module
+------------------------------------------------
 
 .. automodule:: pulsar.managers.util.cli.shell.local
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.managers.util.cli.shell.rsh module
------------------------------------------
+pulsar\.managers\.util\.cli\.shell\.rsh module
+----------------------------------------------
 
 .. automodule:: pulsar.managers.util.cli.shell.rsh
     :members:
