@@ -31,10 +31,13 @@ class RemoteJobDirectory(object):
 
     def __init__(self, remote_staging_directory, remote_id, remote_sep):
         self.path_helper = PathHelper(remote_sep)
-        self.job_directory = self.path_helper.remote_join(
-            remote_staging_directory,
-            remote_id
-        )
+        if remote_id:
+            self.job_directory = self.path_helper.remote_join(
+                remote_staging_directory,
+                remote_id
+            )
+        else:
+            self.job_directory = remote_staging_directory
 
     def metadata_directory(self):
         return self._sub_dir('metadata')

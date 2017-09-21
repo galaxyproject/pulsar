@@ -131,6 +131,7 @@ class MockClient(object):
 
     def __init__(self, temp_directory, tool):
         self.temp_directory = temp_directory
+        self.job_directory = None
         self.default_file_action = "transfer"
         self.action_config_path = None
         self.files_endpoint = None

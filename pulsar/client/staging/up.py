@@ -15,6 +15,7 @@ from re import findall
 from ..action_mapper import FileActionMapper
 from ..action_mapper import MessageAction
 from ..action_mapper import path_type
+from ..job_directory import RemoteJobDirectory
 from ..staging import COMMAND_VERSION_FILENAME
 from ..util import directory_files
 from ..util import PathHelper
@@ -94,7 +95,14 @@ class FileStager(object):
         self.__handle_setup(job_config)
         self.__setup_touch_outputs(client_job_description.touch_outputs)
 
-        self.transfer_tracker = TransferTracker(client, self.path_helper, self.action_mapper, self.job_inputs, rewrite_paths=self.rewrite_paths)
+        self.transfer_tracker = TransferTracker(
+            client,
+            self.path_helper,
+            self.action_mapper,
+            self.job_inputs,
+            self.rewrite_paths,
+            self.job_directory,
+        )
 
         self.__initialize_referenced_tool_files()
         if self.rewrite_paths:
@@ -137,6 +145,7 @@ class FileStager(object):
             # Galaxy job id, update client to reflect this.
             self.client.job_id = self.job_id
         self.job_config = job_config
+        self.job_directory = self.__setup_job_directory()
 
     def __setup_touch_outputs(self, touch_outputs):
         self.job_config['touch_outputs'] = touch_outputs
@@ -146,6 +155,18 @@ class FileStager(object):
         if not separator:  # Legacy Pulsar
             separator = job_config["path_separator"]  # Poorly named
         return separator
+
+    def __setup_job_directory(self):
+        if self.client.job_directory:
+            return self.client.job_directory
+        elif self.job_config.get('job_directory', None):
+            return RemoteJobDirectory(
+                remote_staging_directory=self.job_config['job_directory'],
+                remote_id=None,
+                remote_sep=self.remote_separator,
+            )
+        else:
+            return None
 
     def __initialize_referenced_tool_files(self):
         # Was this following line only for interpreter, should we disable it of 16.04+ tools
@@ -381,13 +402,14 @@ class JobInputs(object):
 
 class TransferTracker(object):
 
-    def __init__(self, client, path_helper, action_mapper, job_inputs, rewrite_paths):
+    def __init__(self, client, path_helper, action_mapper, job_inputs, rewrite_paths, job_directory):
         self.client = client
         self.path_helper = path_helper
         self.action_mapper = action_mapper
 
         self.job_inputs = job_inputs
         self.rewrite_paths = rewrite_paths
+        self.job_directory = job_directory
         self.file_renames = {}
         self.remote_staging_actions = []
 
@@ -402,7 +424,7 @@ class TransferTracker(object):
                 def get_path():
                     return response['path']
             else:
-                job_directory = self.client.job_directory
+                job_directory = self.job_directory
                 assert job_directory, "job directory required for action %s" % action
                 if not name:
                     name = basename(path)
