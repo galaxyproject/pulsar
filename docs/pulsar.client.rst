@@ -1,5 +1,5 @@
-pulsar.client package
-=====================
+pulsar\.client package
+======================
 
 Subpackages
 -----------
@@ -13,112 +13,120 @@ Subpackages
 Submodules
 ----------
 
-pulsar.client.action_mapper module
-----------------------------------
+pulsar\.client\.action\_mapper module
+-------------------------------------
 
 .. automodule:: pulsar.client.action_mapper
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.amqp_exchange module
-----------------------------------
+pulsar\.client\.amqp\_exchange module
+-------------------------------------
 
 .. automodule:: pulsar.client.amqp_exchange
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.amqp_exchange_factory module
-------------------------------------------
+pulsar\.client\.amqp\_exchange\_factory module
+----------------------------------------------
 
 .. automodule:: pulsar.client.amqp_exchange_factory
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.client module
----------------------------
+pulsar\.client\.client module
+-----------------------------
 
 .. automodule:: pulsar.client.client
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.config_util module
---------------------------------
+pulsar\.client\.config\_util module
+-----------------------------------
 
 .. automodule:: pulsar.client.config_util
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.decorators module
--------------------------------
+pulsar\.client\.decorators module
+---------------------------------
 
 .. automodule:: pulsar.client.decorators
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.destination module
---------------------------------
+pulsar\.client\.destination module
+----------------------------------
 
 .. automodule:: pulsar.client.destination
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.interface module
-------------------------------
+pulsar\.client\.exceptions module
+---------------------------------
+
+.. automodule:: pulsar.client.exceptions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pulsar\.client\.interface module
+--------------------------------
 
 .. automodule:: pulsar.client.interface
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.job_directory module
-----------------------------------
+pulsar\.client\.job\_directory module
+-------------------------------------
 
 .. automodule:: pulsar.client.job_directory
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.manager module
-----------------------------
+pulsar\.client\.manager module
+------------------------------
 
 .. automodule:: pulsar.client.manager
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.object_client module
-----------------------------------
+pulsar\.client\.object\_client module
+-------------------------------------
 
 .. automodule:: pulsar.client.object_client
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.path_mapper module
---------------------------------
+pulsar\.client\.path\_mapper module
+-----------------------------------
 
 .. automodule:: pulsar.client.path_mapper
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.setup_handler module
-----------------------------------
+pulsar\.client\.setup\_handler module
+-------------------------------------
 
 .. automodule:: pulsar.client.setup_handler
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.util module
--------------------------
+pulsar\.client\.util module
+---------------------------
 
 .. automodule:: pulsar.client.util
     :members:

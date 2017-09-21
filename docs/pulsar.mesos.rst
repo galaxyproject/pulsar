@@ -1,11 +1,11 @@
-pulsar.mesos package
-====================
+pulsar\.mesos package
+=====================
 
 Submodules
 ----------
 
-pulsar.mesos.framework module
------------------------------
+pulsar\.mesos\.framework module
+-------------------------------
 
 .. automodule:: pulsar.mesos.framework
     :members:

@@ -1,27 +1,27 @@
-pulsar.managers.util.cli.job package
-====================================
+pulsar\.managers\.util\.cli\.job package
+========================================
 
 Submodules
 ----------
 
-pulsar.managers.util.cli.job.slurm module
------------------------------------------
+pulsar\.managers\.util\.cli\.job\.slurm module
+----------------------------------------------
 
 .. automodule:: pulsar.managers.util.cli.job.slurm
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.managers.util.cli.job.slurm_torque module
-------------------------------------------------
+pulsar\.managers\.util\.cli\.job\.slurm\_torque module
+------------------------------------------------------
 
 .. automodule:: pulsar.managers.util.cli.job.slurm_torque
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar.managers.util.cli.job.torque module
-------------------------------------------
+pulsar\.managers\.util\.cli\.job\.torque module
+-----------------------------------------------
 
 .. automodule:: pulsar.managers.util.cli.job.torque
     :members:

@@ -1,5 +1,5 @@
-pulsar.managers.util.cli package
-================================
+pulsar\.managers\.util\.cli package
+===================================
 
 Subpackages
 -----------
@@ -12,8 +12,8 @@ Subpackages
 Submodules
 ----------
 
-pulsar.managers.util.cli.factory module
----------------------------------------
+pulsar\.managers\.util\.cli\.factory module
+-------------------------------------------
 
 .. automodule:: pulsar.managers.util.cli.factory
     :members:

@@ -1,5 +1,5 @@
-pulsar.managers.util.drmaa package
-==================================
+pulsar\.managers\.util\.drmaa package
+=====================================
 
 Module contents
 ---------------
