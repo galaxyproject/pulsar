@@ -1,4 +1,4 @@
-.. figure:: https://wiki.galaxyproject.org/Images/GalaxyLogos?action=AttachFile&do=get&target=pulsar_transparent.png
+.. figure:: https://galaxyproject.org/images/galaxy-logos/pulsar_transparent.png
    :alt: Pulsar Logo
 
 .. image:: https://readthedocs.org/projects/pulsar/badge/?version=latest
