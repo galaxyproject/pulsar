@@ -457,7 +457,7 @@ class TransferTracker(object):
             action = MessageAction(contents=contents, client=self.client)
         else:
             if not exists(path):
-                message = "handle_tranfer called on non-existent file - [%s]" % path
+                message = "handle_transfer called on non-existent file - [%s]" % path
                 log.warn(message)
                 raise Exception(message)
             action = self.__action(path, type)
