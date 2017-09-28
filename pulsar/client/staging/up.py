@@ -351,7 +351,7 @@ class JobInputs(object):
         referenced_files = set()
         for input_contents in self.__items():
             referenced_files.update(findall(pattern, input_contents))
-        return list(referenced_files)
+        return map(lambda x: x.strip("'\""), list(referenced_files))
 
     def find_referenced_subfiles(self, directory):
         """
