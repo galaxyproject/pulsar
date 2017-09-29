@@ -151,6 +151,8 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
     local_conf = local_conf or {}
     if app_conf_path is None and "app_config" in local_conf:
         app_conf_path = absolute_config_path(local_conf["app_config"], config_dir)
+        if not os.path.exists(app_conf_path) and os.path.exists(app_conf_path + ".sample"):
+            app_conf_path = app_conf_path + ".sample"
     elif ini_path:
         # If not explicit app.yml file found - look next to server.ini -
         # be it in pulsar root, some temporary staging directory, or /etc.
