@@ -10,7 +10,7 @@ from os.path import (
     join,
     relpath,
 )
-from re import findall
+from re import escape, findall
 
 from ..action_mapper import FileActionMapper
 from ..action_mapper import MessageAction
@@ -315,19 +315,19 @@ class JobInputs(object):
     >>> import tempfile
     >>> tf = tempfile.NamedTemporaryFile()
     >>> def setup_inputs(tf):
-    ...     open(tf.name, "w").write(u"world /path/to/input the rest")
+    ...     open(tf.name, "w").write(u'''world /path/to/input '/path/to/moo' "/path/to/cow" the rest''')
     ...     inputs = JobInputs(u"hello /path/to/input", [tf.name])
     ...     return inputs
     >>> inputs = setup_inputs(tf)
     >>> inputs.rewrite_paths(u"/path/to/input", u'C:\\input')
     >>> inputs.command_line == u'hello C:\\\\input'
     True
-    >>> inputs.config_files[tf.name] == u'world C:\\\\input the rest'
+    >>> inputs.config_files[tf.name] == u'''world C:\\\\input '/path/to/moo' "/path/to/cow" the rest'''
     True
     >>> tf.close()
     >>> tf = tempfile.NamedTemporaryFile()
     >>> inputs = setup_inputs(tf)
-    >>> inputs.find_referenced_subfiles('/path/to') == [u'/path/to/input']
+    >>> sorted(inputs.find_referenced_subfiles('/path/to')) == [u'/path/to/cow', u'/path/to/input', u'/path/to/moo']
     True
     >>> inputs.path_referenced('/path/to')
     True
@@ -368,7 +368,7 @@ class JobInputs(object):
         if directory is None:
             return []
 
-        pattern = r"(%s%s\S+)" % (directory, sep)
+        pattern = r'''[\'\"]?(%s%s[^\s\'\"]+)[\'\"]?''' % (escape(directory), escape(sep))
         return self.find_pattern_references(pattern)
 
     def path_referenced(self, path):
