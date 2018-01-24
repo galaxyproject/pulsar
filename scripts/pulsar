@@ -22,7 +22,7 @@ Extra Options:
 EOF
 }
 
-MODE=""
+: ${MODE:=""}
 while :
 do
     case "$1" in
@@ -58,7 +58,7 @@ do
     esac
 done
 
-SCRIPTS_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPTS_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/scripts"
 PROJECT_DIRECTORY=$SCRIPTS_DIRECTORY/..
 
 PULSAR_CONFIG_DIR=${PULSAR_CONFIG_DIR:-"."}
