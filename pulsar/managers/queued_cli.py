@@ -44,7 +44,7 @@ class CliQueueManager(ExternalBaseManager):
             raise Exception("Failed to submit job, error was:\n%s" % cmd_out.stderr)
         external_id = parse_external_id(cmd_out.stdout.strip())
         if not external_id:
-            message_template = "Failed to obtain externl id for job_id %s and submission_command %s"
+            message_template = "Failed to obtain external id for job_id %s and submission_command %s"
             message = message_template % (job_id, submission_command)
             log.warn(message)
             raise Exception("Failed to obtain external id")
