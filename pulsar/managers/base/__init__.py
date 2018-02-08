@@ -79,7 +79,7 @@ class BaseManager(ManagerInterface):
         if job_directory.exists():
             try:
                 job_directory.delete()
-            except:
+            except Exception:
                 pass
 
     def system_properties(self):
@@ -241,7 +241,7 @@ class JobDirectory(RemoteJobDirectory):
         try:
             job_file = open(path, 'rb')
             return job_file.read()
-        except:
+        except Exception:
             if default is not None:
                 return default
             else:

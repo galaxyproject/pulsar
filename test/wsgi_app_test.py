@@ -45,7 +45,7 @@ def test_standard_requests():
         try:
             app.get("/jobs/%s/files?name=test_output2&type=output" % job_id)
             assert False  # Should throw exception
-        except:
+        except Exception:
             pass
 
         command_line = quote("""python -c "import sys; sys.stdout.write('test_out')" """)

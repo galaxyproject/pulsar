@@ -46,7 +46,7 @@ class Manager(DirectoryBaseManager):
             pid = self._job_directory(job_id).load_metadata(JOB_FILE_PID)
             if pid is not None:
                 pid = int(pid)
-        except:
+        except Exception:
             pass
         return pid
 

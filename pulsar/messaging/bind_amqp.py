@@ -64,7 +64,7 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
             log.debug(message)
             payload = manager_endpoint_util.full_status(manager, new_status, job_id)
             pulsar_exchange.publish("status_update", payload)
-        except:
+        except Exception:
             log.exception("Failure to publish Pulsar state change for job_id %s." % job_id)
             raise
 

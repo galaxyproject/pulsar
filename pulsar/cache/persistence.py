@@ -31,7 +31,7 @@ class PersistenceStore(object):
             with self._lock():
                 try:
                     return func()
-                except:
+                except Exception:
                     traceback.print_exc()
                     if not suppress_exception:
                         raise

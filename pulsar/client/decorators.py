@@ -26,7 +26,7 @@ class retry(object):
                 count += 1
                 try:
                     return func(*args, **kwargs)
-                except:
+                except Exception:
                     if count >= max_count:
                         raise
                     else:
