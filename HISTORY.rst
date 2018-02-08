@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.8.1.dev0
+0.8.1 (2018-02-08)
 ---------------------
 
 * Update link for logo image. `Pull Request 145`_
