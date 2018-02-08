@@ -6,17 +6,19 @@ History
 .. to_doc
 
 ---------------------
-0.9.0.dev0
+0.8.3 (2018-02-08)
 ---------------------
 
-    
+* Create universal wheels to enable Python 3 support when installing from PyPI
+  (thanks to @nsoranzo).
+  `Pull Request 156`_
 
 ---------------------
 0.8.1 (2018-02-08)
 ---------------------
 
 * Update link for logo image. `Pull Request 145`_
-* Minor error and log message typos (thanks to @blankenberg & ).
+* Minor error and log message typos (thanks to @blankenberg).
   `Pull Request 146`_, `Pull Request 153`_
 * Fixes/improvements for catching quoted tool files. `Pull Request 148`_
 * Fix config sample parsing so run.sh works out of the box.
@@ -178,6 +180,7 @@ History
 
 
 .. github_links
+.. _Pull Request 156: https://github.com/galaxyproject/pulsar/pull/156
 .. _Pull Request 145: https://github.com/galaxyproject/pulsar/pull/145
 .. _Pull Request 146: https://github.com/galaxyproject/pulsar/pull/146
 .. _Pull Request 148: https://github.com/galaxyproject/pulsar/pull/148
