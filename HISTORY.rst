@@ -6,10 +6,15 @@ History
 .. to_doc
 
 ---------------------
-0.9.0.dev0
+0.8.1.dev0
 ---------------------
 
-    
+* Update link for logo image. `Pull Request 145`_
+* Minor error and log message typos (thanks to @blankenberg & ).
+  `Pull Request 146`_, `Pull Request 153`_
+* Fixes/improvements for catching quoted tool files. `Pull Request 148`_
+* Fix config sample parsing so run.sh works out of the box.
+  `Pull Request 149`_
 
 ---------------------
 0.8.0 (2017-09-21)
@@ -167,6 +172,11 @@ History
 
 
 .. github_links
+.. _Pull Request 145: https://github.com/galaxyproject/pulsar/pull/145
+.. _Pull Request 146: https://github.com/galaxyproject/pulsar/pull/146
+.. _Pull Request 148: https://github.com/galaxyproject/pulsar/pull/148
+.. _Pull Request 149: https://github.com/galaxyproject/pulsar/pull/149
+.. _Pull Request 153: https://github.com/galaxyproject/pulsar/pull/153
 .. _Pull Request 143: https://github.com/galaxyproject/pulsar/pull/143
 .. _Pull Request 141: https://github.com/galaxyproject/pulsar/pull/141
 .. _Pull Request 136: https://github.com/galaxyproject/pulsar/pull/136
