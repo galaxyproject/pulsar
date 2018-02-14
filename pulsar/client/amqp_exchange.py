@@ -231,7 +231,7 @@ class PulsarExchange(object):
                                       unack_uuid, resubmit_queue)
                             self.publish(resubmit_queue, payload)
                             self.publish_uuid_store.set_time(unack_uuid)
-        except:
+        except Exception:
             log.exception("Problem with acknowledgement manager, leaving ack_manager method in problematic state!")
             raise
         log.debug('Acknowledgedment manager thread exiting')

@@ -19,6 +19,6 @@ def test_output_path_security():
         raised_exception = False
         try:
             _output_path(manager, '1', '../moo', 'direct')
-        except:
+        except Exception:
             raised_exception = True
         assert raised_exception

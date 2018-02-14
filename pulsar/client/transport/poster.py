@@ -31,8 +31,8 @@ def post_file(url, path):
         datagen, headers = poster.encode.multipart_encode({"file": open(path, "rb")})
         request = Request(url, datagen, headers)
         return urlopen(request).read()
-    except:
-        log.exception("problem")
+    except Exception:
+        log.exception("Problem with poster post of [%s]" % path)
         raise
 
 

@@ -73,7 +73,7 @@ class ToolBasedAuthorizer(object):
         tool = None
         try:
             tool = self.toolbox.get_tool(tool_id)
-        except:
+        except Exception:
             pass
         return ToolBasedAuthorization(tool)
 

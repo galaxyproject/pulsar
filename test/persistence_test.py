@@ -40,5 +40,5 @@ def test_persistence():
         shutil.rmtree(staging_directory)
         try:
             queue2.shutdown()
-        except:
+        except Exception:
             pass
