@@ -67,6 +67,9 @@ def _get_default_options(conf):
         if simple_key in conf:
             options[simple_key] = conf[simple_key]
     options["debug"] = conf.get("debug", False)
+    maximum_stream_size = conf.get("maximum_stream_size", 1024 * 1024)
+    if maximum_stream_size:
+        options["maximum_stream_size"] = int(maximum_stream_size)
     # mode to create job directories with, if None just use
     # default (usually 0777 with umask applied).
     job_directory_mode = conf.get("job_directory_mode", None)
