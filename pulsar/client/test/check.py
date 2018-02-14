@@ -33,16 +33,19 @@ from pulsar.client import (
 from .test_common import write_config
 
 TEST_SCRIPT = b"""# -*- coding: utf-8 -*-
+from __future__ import print_function
+
 import sys
+
 from os import getenv
-from os import makedirs
 from os import listdir
-from os.path import exists
-from os.path import join
+from os import makedirs
 from os.path import basename
 from os.path import dirname
+from os.path import exists
+from os.path import join
 
-
+print("stdout output")
 def assert_path_contents(path, expected_contents):
     if not exists(path):
         message = "Expected path [%s] to exist, but it doesn't."
@@ -229,6 +232,11 @@ def run(options):
         )
         submit_job(client, job_description)
         result_status = waiter.wait()
+
+        stdout = result_status["stdout"].strip()
+        assert "stdout output".startswith(stdout)
+        if hasattr(options, "maximum_stream_size"):
+            assert len(stdout) == options.maximum_stream_size
 
         __finish(options, client, client_outputs, result_status)
         __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)

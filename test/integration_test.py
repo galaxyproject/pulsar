@@ -105,6 +105,11 @@ class IntegrationTests(BaseIntegrationTest):
     def test_integration_no_requirement(self):
         self._run(private_token=None, **self.default_kwargs)
 
+    @integration_test
+    def test_integration_maximum_stream_size(self):
+        app_conf = dict(maximum_stream_size=4)
+        self._run(app_conf=app_conf, private_token=None, maximum_stream_size=4, **self.default_kwargs)
+
     @skip_without_drmaa
     @integration_test
     def test_integration_as_user(self):

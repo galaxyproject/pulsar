@@ -62,6 +62,7 @@ class BaseManager(ManagerInterface):
         staging_directory = kwds.get("staging_directory", app.staging_directory)
         self._setup_staging_directory(staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
+        self.maximum_stream_size = kwds.get("maximum_stream_size", -1)
         self.__init_galaxy_system_properties(kwds)
         self.debug = str(kwds.get("debug", False)).lower() == "true"
         self.authorizer = app.authorizer
@@ -235,12 +236,12 @@ class JobDirectory(RemoteJobDirectory):
         path = get_mapped_file(directory, remote_path, allow_nested_files=allow_nested_files)
         return path
 
-    def read_file(self, name, default=None):
+    def read_file(self, name, size=-1, default=None):
         path = self._job_file(name)
         job_file = None
         try:
             job_file = open(path, 'rb')
-            return job_file.read()
+            return job_file.read(size)
         except Exception:
             if default is not None:
                 return default
