@@ -97,6 +97,9 @@ class StatefulManagerProxy(ManagerProxy):
 
         new_thread_for_job(self, "preprocess", job_id, do_preprocess, daemon=False)
 
+    def handle_failure_before_launch(self, job_id):
+        self.__state_change_callback(status.FAILED, job_id)
+
     def get_status(self, job_id):
         """ Compute status used proxied manager and handle state transitions
         and track additional state information needed.

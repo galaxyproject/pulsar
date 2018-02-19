@@ -61,47 +61,51 @@ def submit_job(manager, job_config):
     """
     # job_config is raw dictionary from JSON (from MQ or HTTP endpoint).
     job_id = job_config.get('job_id')
-    command_line = job_config.get('command_line')
+    try:
+        command_line = job_config.get('command_line')
 
-    setup_params = job_config.get('setup_params', {})
-    force_setup = job_config.get('setup')
-    remote_staging = job_config.get('remote_staging', {})
-    dependencies_description = job_config.get('dependencies_description', None)
-    env = job_config.get('env', [])
-    submit_params = job_config.get('submit_params', {})
-    touch_outputs = job_config.get('touch_outputs', [])
-    job_config = None
-    if setup_params or force_setup:
-        input_job_id = setup_params.get("job_id", job_id)
-        tool_id = setup_params.get("tool_id", None)
-        tool_version = setup_params.get("tool_version", None)
-        use_metadata = setup_params.get("use_metadata", False)
-        job_config = setup_job(
-            manager,
-            input_job_id,
-            tool_id,
-            tool_version,
-            use_metadata,
+        setup_params = job_config.get('setup_params', {})
+        force_setup = job_config.get('setup')
+        remote_staging = job_config.get('remote_staging', {})
+        dependencies_description = job_config.get('dependencies_description', None)
+        env = job_config.get('env', [])
+        submit_params = job_config.get('submit_params', {})
+        touch_outputs = job_config.get('touch_outputs', [])
+        job_config = None
+        if setup_params or force_setup:
+            input_job_id = setup_params.get("job_id", job_id)
+            tool_id = setup_params.get("tool_id", None)
+            tool_version = setup_params.get("tool_version", None)
+            use_metadata = setup_params.get("use_metadata", False)
+            job_config = setup_job(
+                manager,
+                input_job_id,
+                tool_id,
+                tool_version,
+                use_metadata,
+            )
+
+        if job_config is not None:
+            job_directory = job_config["job_directory"]
+            jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
+            command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
+
+        # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
+        manager.touch_outputs(job_id, touch_outputs)
+        manager.handle_remote_staging(job_id, remote_staging)
+
+        dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
+        return manager.launch(
+            job_id,
+            command_line,
+            submit_params,
+            dependencies_description=dependencies_description,
+            env=env,
+            setup_params=setup_params,
         )
-
-    if job_config is not None:
-        job_directory = job_config["job_directory"]
-        jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
-        command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
-
-    # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
-    manager.touch_outputs(job_id, touch_outputs)
-    manager.handle_remote_staging(job_id, remote_staging)
-
-    dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
-    return manager.launch(
-        job_id,
-        command_line,
-        submit_params,
-        dependencies_description=dependencies_description,
-        env=env,
-        setup_params=setup_params,
-    )
+    except Exception:
+        manager.handle_failure_before_launch(job_id)
+        raise
 
 
 def setup_job(manager, job_id, tool_id, tool_version, use_metadata=False):
