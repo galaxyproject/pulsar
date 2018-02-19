@@ -17,13 +17,14 @@ from pulsar.client.amqp_exchange_factory import get_exchange
 from pulsar.managers.util.drmaa import DrmaaSessionFactory
 
 
-class RestartTestCase(TempDirectoryTestCase):
+class StateIntegrationTestCase(TempDirectoryTestCase):
 
     @skip_without_drmaa
     @skip_unless_module("kombu")
     @integration_test
     def test_restart_finishes_job(self):
-        with self._setup_app_provider("restart_and_finish") as app_provider:
+        test = "restart_finishes"
+        with self._setup_app_provider(test) as app_provider:
             job_id = '12345'
 
             with app_provider.new_app() as app:
@@ -47,7 +48,7 @@ class RestartTestCase(TempDirectoryTestCase):
             drmaa_session = DrmaaSessionFactory().get()
             drmaa_session.kill(external_id)
             drmaa_session.close()
-            consumer = self._status_update_consumer("restart_and_finish")
+            consumer = self._status_update_consumer(test)
             consumer.start()
 
             with app_provider.new_app() as app:
@@ -61,7 +62,7 @@ class RestartTestCase(TempDirectoryTestCase):
     @skip_unless_module("kombu")
     @integration_test
     def test_recovery_failure_fires_lost_status(self):
-        test = "restart_and_finish"
+        test = "restart_failure_fires_lost"
         with self._setup_app_provider(test) as app_provider:
             job_id = '12345'
 
@@ -85,12 +86,42 @@ class RestartTestCase(TempDirectoryTestCase):
             assert len(consumer.messages) == 1, len(consumer.messages)
             assert consumer.messages[0]["status"] == "lost"
 
+    @skip_unless_module("kombu")
+    @integration_test
+    def test_staging_failure_fires_failed_status(self):
+        test = "stating_failure_fires_failed"
+        with self._setup_app_provider(test, manager_type="queued_python") as app_provider:
+            job_id = '12345'
+
+            consumer = self._status_update_consumer(test)
+            consumer.start()
+
+            with app_provider.new_app() as app:
+                manager = app.only_manager
+                job_info = {
+                    'job_id': job_id,
+                    'command_line': 'sleep 1000',
+                    'setup': True,
+                    'remote_staging': {"setup": [{"moo": "cow"}]}
+                }
+                submit_job(manager, job_info)
+
+            import time
+            time.sleep(5)
+            consumer.wait_for_messages()
+
+            consumer.join()
+            for message in consumer.messages:
+                print(message)
+            assert len(consumer.messages) == 1, len(consumer.messages)
+            assert consumer.messages[0]["status"] == "failed"
+
     @contextlib.contextmanager
-    def _setup_app_provider(self, test):
+    def _setup_app_provider(self, test, manager_type="queued_drama"):
         mq_url = "memory://test_%s" % test
         manager = "manager_%s" % test
         app_conf = dict(message_queue_url=mq_url)
-        app_conf["managers"] = {manager: {'type': 'queued_drmaa'}}
+        app_conf["managers"] = {manager: {'type': manager_type}}
         with restartable_pulsar_app_provider(app_conf=app_conf, web=False) as app_provider:
             yield app_provider
 
