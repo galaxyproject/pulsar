@@ -28,7 +28,7 @@ def test_persistence():
         queue1 = StatefulManagerProxy(QueueManager('test', app, num_concurrent_jobs=0))
         job_id = queue1.setup_job('4', 'tool1', '1.0.0')
         touch_file = join(staging_directory, 'ran')
-        queue1.launch(job_id, 'touch %s' % touch_file)
+        queue1.preprocess_and_launch(job_id, {"command_line": 'touch %s' % touch_file})
         time.sleep(.4)
         assert (not(exists(touch_file)))
         queue1.shutdown()

@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 def postprocess(job_directory, action_executor):
     # Returns True if outputs were collected.
     try:
-        staging_config = job_directory.load_metadata("staging_config", None)
+        staging_config = job_directory.load_metadata("launch_config", {}).get("remote_staging", {})
         collected = __collect_outputs(job_directory, staging_config, action_executor)
         return collected
     finally:

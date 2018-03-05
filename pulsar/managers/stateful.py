@@ -1,9 +1,12 @@
 from __future__ import division
 
+import contextlib
 import datetime
 import os
 import time
 import threading
+
+from galaxy.tools.deps import dependencies
 
 from pulsar.client.util import filter_destination_params
 from pulsar.managers import ManagerProxy
@@ -25,6 +28,9 @@ JOB_FILE_POSTPROCESSED = "postprocessed"
 JOB_FILE_PREPROCESSED = "preprocessed"
 JOB_FILE_PREPROCESSING_FAILED = "preprocessing_failed"
 JOB_METADATA_RUNNING = "running"
+
+ACTIVE_STATUS_PREPROCESSING = "preprocessing"
+ACTIVE_STATUS_LAUNCHED = "launched"
 
 DEFAULT_MIN_POLLING_INTERVAL = 0.5
 
@@ -60,9 +66,9 @@ class StatefulManagerProxy(ManagerProxy):
         job_id = self._proxied_manager.setup_job(*args, **kwargs)
         return job_id
 
-    def handle_remote_staging(self, job_id, staging_config):
+    def _persist_launch_config(self, job_id, launch_config):
         job_directory = self._proxied_manager.job_directory(job_id)
-        job_directory.store_metadata("staging_config", staging_config)
+        job_directory.store_metadata("launch_config", launch_config)
 
     def touch_outputs(self, job_id, touch_outputs):
         job_directory = self._proxied_manager.job_directory(job_id)
@@ -70,12 +76,21 @@ class StatefulManagerProxy(ManagerProxy):
             path = job_directory.calculate_path(name, 'output')
             job_directory.open_file(path, mode='a')
 
-    def launch(self, job_id, *args, **kwargs):
-        job_directory = self._proxied_manager.job_directory(job_id)
+    def preprocess_and_launch(self, job_id, launch_config):
+        self._persist_launch_config(job_id, launch_config)
+        requires_preprocessing = launch_config.get("remote_staging") and launch_config["remote_staging"].get("setup")
+        if requires_preprocessing:
+            self.active_jobs.activate_job(job_id, active_status=ACTIVE_STATUS_PREPROCESSING)
+            self._launch_prepreprocessing_thread(job_id, launch_config)
+        else:
+            with self._handling_of_preprocessing_state(job_id, launch_config):
+                pass
 
+    def _launch_prepreprocessing_thread(self, job_id, launch_config):
         def do_preprocess():
-            try:
-                staging_config = job_directory.load_metadata("staging_config", {})
+            with self._handling_of_preprocessing_state(job_id, launch_config):
+                job_directory = self._proxied_manager.job_directory(job_id)
+                staging_config = launch_config.get("remote_staging", {})
                 # TODO: swap out for a generic "job_extra_params"
                 if 'action_mapper' in staging_config and \
                         'ssh_key' in staging_config['action_mapper'] and \
@@ -83,19 +98,38 @@ class StatefulManagerProxy(ManagerProxy):
                     for action in staging_config['setup']:
                         action['action'].update(ssh_key=staging_config['action_mapper']['ssh_key'])
                 preprocess(job_directory, staging_config.get("setup", []), self.__preprocess_action_executor)
-                self._proxied_manager.launch(job_id, *args, **kwargs)
-                with job_directory.lock("status"):
-                    job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
-                self.active_jobs.activate_job(job_id)
-            except Exception as e:
-                with job_directory.lock("status"):
-                    job_directory.store_metadata(JOB_FILE_PREPROCESSING_FAILED, True)
-                    job_directory.store_metadata("return_code", 1)
-                    job_directory.write_file("stderr", str(e))
-                self.__state_change_callback(status.FAILED, job_id)
-                log.exception("Failed job preprocessing for job %s:", job_id)
+                self.active_jobs.deactivate_job(job_id, active_status=ACTIVE_STATUS_PREPROCESSING)
 
         new_thread_for_job(self, "preprocess", job_id, do_preprocess, daemon=False)
+
+    @contextlib.contextmanager
+    def _handling_of_preprocessing_state(self, job_id, launch_config):
+        job_directory = self._proxied_manager.job_directory(job_id)
+        try:
+            yield
+            launch_kwds = {}
+            if launch_config.get("dependencies_description"):
+                dependencies_description = dependencies.DependenciesDescription.from_dict(launch_config["dependencies_description"])
+                launch_kwds["dependencies_description"] = dependencies_description
+            for kwd in ["submit_params", "setup_params", "env"]:
+                if kwd in launch_config:
+                    launch_kwds[kwd] = launch_config[kwd]
+
+            self._proxied_manager.launch(
+                job_id,
+                launch_config["command_line"],
+                **launch_kwds
+            )
+            with job_directory.lock("status"):
+                job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
+            self.active_jobs.activate_job(job_id)
+        except Exception as e:
+            with job_directory.lock("status"):
+                job_directory.store_metadata(JOB_FILE_PREPROCESSING_FAILED, True)
+                job_directory.store_metadata("return_code", 1)
+                job_directory.write_file("stderr", str(e))
+            self.__state_change_callback(status.FAILED, job_id)
+            log.exception("Failed job preprocessing for job %s:", job_id)
 
     def handle_failure_before_launch(self, job_id):
         self.__state_change_callback(status.FAILED, job_id)
@@ -187,11 +221,30 @@ class StatefulManagerProxy(ManagerProxy):
         super(StatefulManagerProxy, self).shutdown(timeout)
 
     def recover_active_jobs(self):
+        unqueue_preprocessing_ids = []
+        for job_id in self.active_jobs.active_job_ids(active_status=ACTIVE_STATUS_PREPROCESSING):
+            job_directory = self._proxied_manager.job_directory(job_id)
+            if not job_directory.has_metadata("launch_config"):
+                log.warn("Failed to find launch parameters for job scheduled to prepreprocess [%s]" % job_id)
+                unqueue_preprocessing_ids.append(job_id)
+            elif job_directory.has_metadata(JOB_FILE_PREPROCESSED):
+                log.warn("Job scheduled to prepreprocess [%s] already preprocessed, skipping" % job_id)
+                unqueue_preprocessing_ids.append(job_id)
+            elif job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
+                log.warn("Job scheduled to prepreprocess [%s] previously failed preprocessing, skipping" % job_id)
+                unqueue_preprocessing_ids.append(job_id)
+            else:
+                launch_config = job_directory.load_metadata("launch_config")
+                self._launch_prepreprocessing_thread(job_id, launch_config)
+
+        for unqueue_preprocessing_id in unqueue_preprocessing_ids:
+            self.active_job_directory.deactivate_job(unqueue_preprocessing_id, active_status=ACTIVE_STATUS_PREPROCESSING)
+
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
         if recover_method is None:
             return
 
-        for job_id in self.active_jobs.active_job_ids():
+        for job_id in self.active_jobs.active_job_ids(active_status=ACTIVE_STATUS_LAUNCHED):
             try:
                 recover_method(job_id)
             except Exception:
@@ -209,7 +262,7 @@ class ActiveJobs(object):
     Current implementation is file based, but could easily be made
     database-based instead.
 
-    TODO: Keep active jobs in memory after initial load so don't need to repeatedly
+    TODO: Keep jobs in memory after initial load so don't need to repeatedly
     hit disk to recover this information.
     """
 
@@ -224,35 +277,50 @@ class ActiveJobs(object):
             active_job_directory = os.path.join(persistence_directory, "%s-active-jobs" % manager_name)
             if not os.path.exists(active_job_directory):
                 os.makedirs(active_job_directory)
+            preprocessing_job_directory = os.path.join(persistence_directory, "%s-preprocessing-jobs" % manager_name)
+            if not os.path.exists(preprocessing_job_directory):
+                os.makedirs(preprocessing_job_directory)
         else:
             active_job_directory = None
-        self.active_job_directory = active_job_directory
+            preprocessing_job_directory = None
+        self.launched_job_directory = active_job_directory
+        self.preprocessing_job_directory = preprocessing_job_directory
 
-    def active_job_ids(self):
+    def active_job_ids(self, active_status=ACTIVE_STATUS_LAUNCHED):
         job_ids = []
-        if self.active_job_directory:
-            job_ids = os.listdir(self.active_job_directory)
+        target_directory = self._active_job_directory(active_status)
+        if target_directory:
+            job_ids = os.listdir(target_directory)
         return job_ids
 
-    def activate_job(self, job_id):
-        if self.active_job_directory:
-            path = self._active_job_file(job_id)
+    def activate_job(self, job_id, active_status=ACTIVE_STATUS_LAUNCHED):
+        if self._active_job_directory(active_status):
+            path = self._active_job_file(job_id, active_status=active_status)
             try:
                 open(path, "w").close()
             except Exception:
                 log.warn(ACTIVATE_FAILED_MESSAGE % job_id)
 
-    def deactivate_job(self, job_id):
-        if self.active_job_directory:
-            path = self._active_job_file(job_id)
+    def deactivate_job(self, job_id, active_status=ACTIVE_STATUS_LAUNCHED):
+        if self._active_job_directory(active_status):
+            path = self._active_job_file(job_id, active_status=active_status)
             if os.path.exists(path):
                 try:
                     os.remove(path)
                 except Exception:
                     log.warn(DECACTIVATE_FAILED_MESSAGE % job_id)
 
-    def _active_job_file(self, job_id):
-        return os.path.join(self.active_job_directory, job_id)
+    def _active_job_directory(self, active_status):
+        if active_status == ACTIVE_STATUS_LAUNCHED:
+            target_directory = self.launched_job_directory
+        elif active_status == ACTIVE_STATUS_PREPROCESSING:
+            target_directory = self.preprocessing_job_directory
+        else:
+            raise Exception("Unknown active state encountered [%s]" % active_status)
+        return target_directory
+
+    def _active_job_file(self, job_id, active_status=ACTIVE_STATUS_LAUNCHED):
+        return os.path.join(self._active_job_directory(active_status), job_id)
 
 
 class ManagerMonitor(object):
