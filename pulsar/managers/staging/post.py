@@ -14,7 +14,16 @@ log = logging.getLogger(__name__)
 def postprocess(job_directory, action_executor):
     # Returns True if outputs were collected.
     try:
-        staging_config = job_directory.load_metadata("staging_config", None)
+        if job_directory.has_metadata("launch_config"):
+            staging_config = job_directory.load_metadata("launch_config").get("remote_staging", None)
+        elif job_directory.has_metadata("staging_config"):
+            # This branch of the if is for Pulsar servers that have created jobs prior to
+            # #164 but are postprocessing after the inclusion of #164 (upgraded in the middle).
+            # This can be eliminated sometime - say in 2019 or whenever there is a breaking
+            # change in some other way.
+            staging_config = job_directory.load_metadata("staging_config", None)
+        else:
+            staging_config = None
         collected = __collect_outputs(job_directory, staging_config, action_executor)
         return collected
     finally:

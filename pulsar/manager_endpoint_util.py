@@ -9,7 +9,6 @@ from pulsar import __version__ as pulsar_version
 from pulsar.client.setup_handler import build_job_config
 from pulsar.managers import status
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
-from galaxy.tools.deps import dependencies
 
 log = logging.getLogger(__name__)
 
@@ -92,17 +91,15 @@ def submit_job(manager, job_config):
 
         # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
         manager.touch_outputs(job_id, touch_outputs)
-        manager.handle_remote_staging(job_id, remote_staging)
-
-        dependencies_description = dependencies.DependenciesDescription.from_dict(dependencies_description)
-        return manager.launch(
-            job_id,
-            command_line,
-            submit_params,
-            dependencies_description=dependencies_description,
-            env=env,
-            setup_params=setup_params,
-        )
+        launch_config = {
+            "remote_staging": remote_staging,
+            "command_line": command_line,
+            "dependencies_description": dependencies_description,
+            "submit_params": submit_params,
+            "env": env,
+            "setup_params": setup_params,
+        }
+        manager.preprocess_and_launch(job_id, launch_config)
     except Exception:
         manager.handle_failure_before_launch(job_id)
         raise
