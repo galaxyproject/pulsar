@@ -150,7 +150,7 @@ History
 
 * Changed the name of project to Pulsar, moved to Github.
 * New RESTful web services interface.
-* SCP and Rsync file staging options added by Eric Rasche. `Pull 
+* SCP and Rsync file staging options added by E. Rasche. `Pull 
   Request <https://github.com/galaxyproject/pulsar/pull/34>`__
 * Allow YAML based configuration.
 * Support for more traditional ``pip``/``setup.py``-style
