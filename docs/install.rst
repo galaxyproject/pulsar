@@ -182,7 +182,12 @@ If Pulsar's ``server.ini`` has been modified and it is not running on the
 default port ``8913``, ``run_client_tests.py`` should be called with an
 explicit URL using the argument ``--url=http://localhost:8913``. Likewise if a
 private token has been configured it can be supplied using
-``--private_token=<token>``.
+``--private_token=<token>``. ``server.ini`` settings can be overridden by
+setting environment variables, just as with Galaxy, by prefixing the config
+setting name with ``PULSAR_CONFIG_OVERRIDE``. For example
+``PULSAR_CONFIG_OVERRIDE_PRIVATE_TOKEN``. Defaults can also be set via
+environment variables by just prefixing with ``PULSAR_CONFIG``. For example,
+``PULSAR_CONFIG_PRIVATE_TOKEN``.
 
 A Note on ``run.sh``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
