@@ -60,6 +60,7 @@ HELP_CONFIG_DIR = "Default directory to search for relevant Pulsar configuration
 HELP_INI_PATH = "Specify an explicit path to Pulsar's server.ini configuration file."
 HELP_APP_CONF_PATH = "Specify an explicit path to Pulsar's app.yml configuration file."
 HELP_DAEMONIZE = "Daemonzie process (requires daemonize library)."
+CONFIG_PREFIX = "PULSAR_CONFIG_"
 
 
 def load_pulsar_app(
@@ -143,6 +144,19 @@ def _find_default_app_config(*config_dirs):
     return None
 
 
+def apply_env_overrides_and_defaults(conf):
+    override_prefix = "%sOVERRIDE_" % CONFIG_PREFIX
+    for key in os.environ:
+        if key.startswith(override_prefix):
+            config_key = key[len(override_prefix):].lower()
+            conf[config_key] = os.environ[key]
+        elif key.startswith(CONFIG_PREFIX):
+            config_key = key[len(CONFIG_PREFIX):].lower()
+            if config_key not in conf:
+                conf[config_key] = os.environ[key]
+    return conf
+
+
 def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, local_conf=None, config_dir=PULSAR_CONFIG_DIR):
     """
     """
@@ -162,13 +176,13 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
         )
     if app_conf_path:
         if yaml is None:
-            raise Exception("Cannot load confiuration from file %s, pyyaml is not available." % app_conf_path)
+            raise Exception("Cannot load configuration from file %s, pyyaml is not available." % app_conf_path)
 
         with open(app_conf_path, "r") as f:
             app_conf = yaml.load(f) or {}
             local_conf.update(app_conf)
 
-    return local_conf
+    return apply_env_overrides_and_defaults(local_conf)
 
 
 def find_ini(supplied_ini, config_dir):
