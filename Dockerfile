@@ -1,27 +1,26 @@
-FROM frolvlad/alpine-miniconda2
+FROM conda/miniconda2
 
 ENV PYTHONUNBUFFERED 1
 ENV DEBIAN_FRONTEND noninteractive
-ENV PULSAR_CONFIG_CONDA_PREFIX /opt/conda
+ENV PULSAR_CONFIG_CONDA_PREFIX /usr/local
 
 ADD ./requirements.txt /pulsar/
 
-RUN apk update \
-    # psycopg2 dependencies
-    && apk add --no-cache --virtual build-deps gcc python-dev musl-dev \
-    # CFFI dependencies
-    && apk --no-cache add libffi-dev py-cffi \
-    && apk --no-cache add make linux-headers \
+RUN apt-get update \
+    # build dependencies
+    && apt-get install -y --no-install-recommends gcc python-setuptools python-dev python-pip \
     \
-    # Install python requirements
+    # Install pulsar python requirements
     && pip install --no-cache-dir -r /pulsar/requirements.txt \
     \
-    # Remove build deps
-    && apk del build-deps \
-    && rm /var/cache/apk/*
+    # Remove build deps and cleanup
+    && apt-get -y remove curl bzip2 python-dev gcc \
+    && apt-get -y autoremove \
+    && apt-get autoclean \
+    && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log
 
 # Create pulsar user environment
-RUN adduser -D -g '' pulsar \
+RUN adduser --disabled-password --gecos '' pulsar \
     && mkdir -p /pulsar
 
 # Set working directory to /pulsar/
@@ -33,12 +32,13 @@ ADD . /pulsar
 # Change ownership to pulsar
 RUN python setup.py install \
     && pulsar-config --auto_conda --host 0.0.0.0 \
-    && chown -R pulsar:pulsar /pulsar
+    && chown -R pulsar:pulsar /pulsar \
+    && chmod +x /usr/local/bin/pulsar
 
 # Switch to new, lower-privilege user
 USER pulsar
 
-# gunicorn will listen on this port
+# pulsar will listen on this port
 EXPOSE 8913
 
-CMD sh $PULSAR_CONFIG_CONDA_PREFIX/bin/pulsar
+CMD /usr/local/bin/pulsar
