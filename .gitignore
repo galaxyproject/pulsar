@@ -27,3 +27,4 @@ toolbox
 dependencies
 dependency_resolvers_conf.xml
 job_metrics_conf.xml
+.DS_Store
