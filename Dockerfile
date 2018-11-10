@@ -40,7 +40,8 @@ RUN python setup.py install \
     && chmod +x /usr/local/bin/pulsar \
     && cp /pulsar/docker/cvmfs/default.local /etc/cvmfs/ \
     && cp /pulsar/docker/cvmfs/galaxyproject.org.conf /etc/cvmfs/domain.d/ \
-    && cp /pulsar/docker/cvmfs/data.galaxyproject.org.pub /etc/cvmfs/keys/
+    && cp /pulsar/docker/cvmfs/data.galaxyproject.org.pub /etc/cvmfs/keys/ \
+    && chown pulsar -R /usr/local
 
 # Pulsar will listen on this port
 EXPOSE 8913
