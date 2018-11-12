@@ -96,29 +96,30 @@ please don't hesitate to ask John Chilton (jmchilton@gmail.com).
 
 
 
-File Actions
+Data Staging
 ------------
 
 Most of the parameters settable in Galaxy's job configuration file
 ``job_conf.xml`` are straight forward - but specifying how Galaxy and the Pulsar
 stage various files may benefit from more explanation.
 
-``default_file_action`` describes how inputs, outputs, indexed reference data,
-etc... are staged. The default ``transfer`` has Galaxy initiate HTTP transfers.
-This makes little sense in the context of message queues so this should be
-overridden and set to ``remote_transfer``, which causes the Pulsar to initiate
-the file transfers. Additional options are available including ``none``,
-``copy``, and ``remote_copy``.
+``default_file_action`` defined in Galaxy's `job_conf.xml` describes how
+inputs, outputs, indexed reference data, etc... are staged. The default
+``transfer`` has Galaxy initiate HTTP transfers. This makes little sense in the
+context of message queues so this should be set to ``remote_transfer``, which
+causes Pulsar to initiate the file transfers. Additional options are available
+including ``none``, ``copy``, and ``remote_copy``.
 
 In addition to this default - paths may be overridden based on various
 patterns to allow optimization of file transfers in production
 infrastructures where various systems mount different file stores and file
 stores with different paths on different systems.
 
-To do this, the Pulsar destination in ``job_conf.xml`` may specify a parameter
-named ``file_action_config``. This needs to be some config file path (if
-relative, relative to Galaxy's root) like ``pulsar_actions.yaml``
-(can be YAML or JSON - but older Galaxy's only supported JSON):
+To do this, the defined Pulsar destination in Galaxy's ``job_conf.xml`` may
+specify a parameter named ``file_action_config``. This needs to be a config
+file path (if relative, relative to Galaxy's root) like
+``config/pulsar_actions.yaml`` (can be YAML or JSON - but older Galaxy's only
+supported JSON). The following captures available options:
 
 .. literalinclude:: files/file_actions_sample_1.yaml
    :language: yaml
