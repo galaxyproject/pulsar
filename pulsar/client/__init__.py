@@ -10,7 +10,7 @@ Configuring Galaxy
 
 Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. See ``job_conf.xml.sample_advanced``
 in your Galaxy code base or on
-`Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/config/job_conf.xml.sample_advanced?at=default>`_
+`Github <https://github.com/galaxyproject/galaxy/blob/dev/config/job_conf.xml.sample_advanced>`_
 for information on how to configure Galaxy to interact with the Pulsar.
 
 Galaxy also supports an older, less rich configuration of job runners directly

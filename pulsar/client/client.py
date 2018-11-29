@@ -184,7 +184,7 @@ class JobClient(BaseJobClient):
         if action_type in ['transfer', 'message']:
             if isinstance(contents, string_types):
                 contents = contents.encode("utf-8")
-            message = "Uplodaing path [%s] (action_type: [%s])"
+            message = "Uploading path [%s] (action_type: [%s])"
             log.debug(message, path, action_type)
             return self._upload_file(args, contents, input_path)
         elif action_type == 'copy':
