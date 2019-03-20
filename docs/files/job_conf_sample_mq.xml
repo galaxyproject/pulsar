@@ -7,7 +7,7 @@
             <param id="galaxy_url">https://galaxyserver</param>
             <!-- Message Queue Connection (should match message_queue_url in Pulsar's app.yml)
             -->
-            <param id="url">amqp://rabbituser:rabb8pa8sw0d@mqserver:5672//</param>
+            <param id="amqp_url">amqp://rabbituser:rabb8pa8sw0d@mqserver:5672//</param>
         </plugin>
     </plugins>
     <handlers>
