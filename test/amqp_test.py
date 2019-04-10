@@ -37,7 +37,7 @@ def test_amqp():
 class TestThread(threading.Thread):
 
     def __init__(self, queue_name, exchange):
-        super(TestThread, self).__init__()
+        super(TestThread, self).__init__(target=self.run)
         self.queue_name = queue_name
         self.daemon = True
         self.exchange = exchange
