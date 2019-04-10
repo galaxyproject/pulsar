@@ -123,7 +123,7 @@ class Manager(DirectoryBaseManager):
             self._job_directory(job_id).remove_metadata(JOB_FILE_SUBMITTED)
         return pid
 
-    def _run(self, job_id, command_line, async=True):
+    def _run(self, job_id, command_line, background=True):
         with self._get_job_lock(job_id):
             if self._was_cancelled(job_id):
                 return
@@ -137,7 +137,7 @@ class Manager(DirectoryBaseManager):
                        stderr=stderr)
         with self._get_job_lock(job_id):
             self._record_pid(job_id, proc.pid)
-        if async:
+        if background:
             thread.start_new_thread(self._monitor_execution, (job_id, proc, stdout, stderr))
         else:
             self._monitor_execution(job_id, proc, stdout, stderr)

@@ -625,7 +625,7 @@ class PrefixPathMapper(BasePathMapper):
         return path.startswith(self.prefix_path)
 
     def to_pattern(self):
-        pattern_str = "(%s%s[^\s,\"\']+)" % (escape(self.prefix_path), escape(sep))
+        pattern_str = r"(%s%s[^\s,\"\']+)" % (escape(self.prefix_path), escape(sep))
         return compile(pattern_str)
 
     def to_dict(self):

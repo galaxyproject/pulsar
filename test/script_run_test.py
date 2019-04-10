@@ -31,7 +31,7 @@ class ScriptRunTestCase(TempDirectoryTestCase):
             "--command", "echo `pwd` > output1; cp input1 output_test2",
             "--working_directory", self._working_directory,
             "--output", "output1",
-            "--output_pattern", "output_test\d",
+            "--output_pattern", r"output_test\d",
             "--result_json", self._result,
         ])
         exit_code = run.main(run_args)

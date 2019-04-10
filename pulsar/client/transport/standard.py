@@ -43,7 +43,7 @@ class Urllib2Transport(object):
                 request.add_header('Content-Length', str(size))
             try:
                 response = self._url_open(request, data)
-            except socket.timeout as exc:
+            except socket.timeout:
                 raise PulsarClientTransportError(code=PulsarClientTransportError.TIMEOUT)
             except URLError as exc:
                 raise PulsarClientTransportError(transport_message=exc.reason)
