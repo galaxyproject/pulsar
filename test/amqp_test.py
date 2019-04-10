@@ -25,6 +25,7 @@ def test_amqp():
     thread1.start()
     thread2.start()
     thread3.start()
+    time.sleep(0.5)
     manager1_exchange.publish("manager_test", u"cow1")
     manager2_exchange.publish("manager2_test", u"cow2")
     manager3_exchange.publish("manager3_test", u"cow3")
