@@ -271,11 +271,11 @@ class Waiter(object):
     def __init__(self, client, client_manager):
         self.client = client
         self.client_manager = client_manager
-        self.async = hasattr(client_manager, 'ensure_has_status_update_callback')
+        self.background = hasattr(client_manager, 'ensure_has_status_update_callback')
         self.__setup_callback()
 
     def __setup_callback(self):
-        if self.async:
+        if self.background:
             self.event = threading.Event()
 
             def on_update(message):
@@ -287,7 +287,7 @@ class Waiter(object):
 
     def wait(self, seconds=15):
         final_status = None
-        if not self.async:
+        if not self.background:
             i = 0
             # Wait for seconds * 2 half second intervals
             while i < (seconds * 2):
