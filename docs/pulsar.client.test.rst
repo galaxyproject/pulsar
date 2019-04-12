@@ -1,19 +1,19 @@
-pulsar\.client\.test package
-============================
+pulsar.client.test package
+==========================
 
 Submodules
 ----------
 
-pulsar\.client\.test\.check module
-----------------------------------
+pulsar.client.test.check module
+-------------------------------
 
 .. automodule:: pulsar.client.test.check
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.client\.test\.test\_common module
------------------------------------------
+pulsar.client.test.test\_common module
+--------------------------------------
 
 .. automodule:: pulsar.client.test.test_common
     :members:

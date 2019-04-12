@@ -1,19 +1,19 @@
-pulsar\.util\.pastescript package
-=================================
+pulsar.util.pastescript package
+===============================
 
 Submodules
 ----------
 
-pulsar\.util\.pastescript\.loadwsgi module
-------------------------------------------
+pulsar.util.pastescript.loadwsgi module
+---------------------------------------
 
 .. automodule:: pulsar.util.pastescript.loadwsgi
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.util\.pastescript\.serve module
----------------------------------------
+pulsar.util.pastescript.serve module
+------------------------------------
 
 .. automodule:: pulsar.util.pastescript.serve
     :members:

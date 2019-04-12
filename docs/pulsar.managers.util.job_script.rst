@@ -1,5 +1,5 @@
-pulsar\.managers\.util\.job\_script package
-===========================================
+pulsar.managers.util.job\_script package
+========================================
 
 Module contents
 ---------------

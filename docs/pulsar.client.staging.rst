@@ -1,19 +1,19 @@
-pulsar\.client\.staging package
-===============================
+pulsar.client.staging package
+=============================
 
 Submodules
 ----------
 
-pulsar\.client\.staging\.down module
-------------------------------------
+pulsar.client.staging.down module
+---------------------------------
 
 .. automodule:: pulsar.client.staging.down
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.client\.staging\.up module
-----------------------------------
+pulsar.client.staging.up module
+-------------------------------
 
 .. automodule:: pulsar.client.staging.up
     :members:

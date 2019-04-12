@@ -6,10 +6,21 @@ History
 .. to_doc
 
 ---------------------
-0.9.0.dev0
+0.9.0 (2019-04-12)
 ---------------------
-
     
+* Add configuration parameter to limit stream size read from disk. `Pull
+  Request 157`_
+* Pass full job status for failed and lost jobs. `Pull Request 159`_
+* Improve message handling if problems occur during job setup/staging. `Pull
+  Request 160`_
+* Rework preprocessing job state to improve restartability and reduce job loss.
+  **This change should be applied while no jobs are running.**
+  `Pull Request 164`_
+* Add support for overriding config through environment variables (thanks to
+  @nuwang). `Pull Request 165`_
+* Minor docs updates (thanks to @afgane). `Pull Request 170`_
+* Python 3 fixes in Pulsar client (thanks to @mvdbeek). `Pull Request 172`_
 
 ---------------------
 0.8.3 (2018-02-08)
@@ -186,6 +197,13 @@ History
 
 
 .. github_links
+.. _Pull Request 172: https://github.com/galaxyproject/pulsar/pull/172
+.. _Pull Request 170: https://github.com/galaxyproject/pulsar/pull/170
+.. _Pull Request 165: https://github.com/galaxyproject/pulsar/pull/165
+.. _Pull Request 164: https://github.com/galaxyproject/pulsar/pull/164
+.. _Pull Request 160: https://github.com/galaxyproject/pulsar/pull/160
+.. _Pull Request 159: https://github.com/galaxyproject/pulsar/pull/159
+.. _Pull Request 157: https://github.com/galaxyproject/pulsar/pull/157
 .. _Pull Request 156: https://github.com/galaxyproject/pulsar/pull/156
 .. _Pull Request 145: https://github.com/galaxyproject/pulsar/pull/145
 .. _Pull Request 146: https://github.com/galaxyproject/pulsar/pull/146

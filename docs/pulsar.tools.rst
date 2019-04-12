@@ -1,27 +1,27 @@
-pulsar\.tools package
-=====================
+pulsar.tools package
+====================
 
 Submodules
 ----------
 
-pulsar\.tools\.authorization module
------------------------------------
+pulsar.tools.authorization module
+---------------------------------
 
 .. automodule:: pulsar.tools.authorization
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.tools\.toolbox module
------------------------------
+pulsar.tools.toolbox module
+---------------------------
 
 .. automodule:: pulsar.tools.toolbox
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.tools\.validator module
--------------------------------
+pulsar.tools.validator module
+-----------------------------
 
 .. automodule:: pulsar.tools.validator
     :members:

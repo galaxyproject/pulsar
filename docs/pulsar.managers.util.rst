@@ -1,5 +1,5 @@
-pulsar\.managers\.util package
-==============================
+pulsar.managers.util package
+============================
 
 Subpackages
 -----------
@@ -14,40 +14,40 @@ Subpackages
 Submodules
 ----------
 
-pulsar\.managers\.util\.env module
-----------------------------------
+pulsar.managers.util.env module
+-------------------------------
 
 .. automodule:: pulsar.managers.util.env
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.managers\.util\.external module
----------------------------------------
+pulsar.managers.util.external module
+------------------------------------
 
 .. automodule:: pulsar.managers.util.external
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.managers\.util\.kill module
------------------------------------
+pulsar.managers.util.kill module
+--------------------------------
 
 .. automodule:: pulsar.managers.util.kill
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.managers\.util\.retry module
-------------------------------------
+pulsar.managers.util.retry module
+---------------------------------
 
 .. automodule:: pulsar.managers.util.retry
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.managers\.util\.sudo module
------------------------------------
+pulsar.managers.util.sudo module
+--------------------------------
 
 .. automodule:: pulsar.managers.util.sudo
     :members:
