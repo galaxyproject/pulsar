@@ -116,7 +116,7 @@ def __process_setup_message(manager, body, message):
         job_id = __client_job_id_from_body(body)
         assert job_id, 'Could not parse job id from body: %s' % body
         log.debug("Received message in setup queue for Pulsar job id: %s", job_id)
-        manager_endpoint_util.submit_job(manager, body)
+        __process_setup_request_message(manager, body, job_id)
     except Exception:
         job_id = job_id or 'unknown'
         log.exception("Failed to setup job %s obtained via message queue." % job_id)
@@ -126,3 +126,11 @@ def __process_setup_message(manager, body, message):
 def __client_job_id_from_body(body):
     job_id = body.get("job_id", None)
     return job_id
+
+
+def __process_setup_request_message(manager, body, job_id):
+    request = body.get("request", None)
+    if request == "status":
+        manager.trigger_state_change_callback(job_id)
+    else:
+        manager_endpoint_util.submit_job(manager, body)
