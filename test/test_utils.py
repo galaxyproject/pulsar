@@ -171,11 +171,11 @@ class BaseManagerTestCase(TestCase):
         manager.launch(job_id, command)
         while manager.get_status(job_id) not in ['complete', 'cancelled']:
             pass
-        self.assertEquals(manager.stderr_contents(job_id), b'moo')
-        self.assertEquals(manager.stdout_contents(job_id), b'Hello World!')
-        self.assertEquals(manager.return_code(job_id), 0)
+        self.assertEqual(manager.stderr_contents(job_id), b'moo')
+        self.assertEqual(manager.stdout_contents(job_id), b'Hello World!')
+        self.assertEqual(manager.return_code(job_id), 0)
         manager.clean(job_id)
-        self.assertEquals(len(listdir(self.staging_directory)), 0)
+        self.assertEqual(len(listdir(self.staging_directory)), 0)
 
     def _test_cancelling(self, manager):
         job_id = manager.setup_job("124", "tool1", "1.0.0")
