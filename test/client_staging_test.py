@@ -61,7 +61,7 @@ class TestStager(TempDirectoryTestCase):
         self._submit()
         uploaded_file1 = self.client.put_files[0]
         assert uploaded_file1[1] == "tool"
-        self.assertEquals(uploaded_file1[0], "%s/tool1_wrapper.py" % tool_dir)
+        self.assertEqual(uploaded_file1[0], "%s/tool1_wrapper.py" % tool_dir)
 
     def test_input_extra_rewrite(self):
         self.client_job_description.rewrite_paths = True
@@ -91,7 +91,7 @@ class TestStager(TempDirectoryTestCase):
         self._submit()
         uploaded_file1 = self.client.put_files[0]
         assert uploaded_file1[1] == "unstructured"
-        self.assertEquals(uploaded_file1[0], local_unstructured_file)
+        self.assertEqual(uploaded_file1[0], local_unstructured_file)
 
     def test_submit_no_rewrite(self):
         # Expect no rewrite of paths
