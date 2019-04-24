@@ -21,7 +21,7 @@ def test_pycurl_transport():
 
 
 def _test_transport(transport):
-    with files_server() as (server, directory):
+    with files_server(allow_multiple_downloads=True) as (server, directory):
         path = os.path.join(directory, "test_for_GET")
         open(path, "w").write(" Test123 ")
 

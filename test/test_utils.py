@@ -429,8 +429,10 @@ class TestAuthorizer(object):
 
 class JobFilesApp(object):
 
-    def __init__(self, root_directory=None):
+    def __init__(self, root_directory=None, allow_multiple_downloads=False):
         self.root_directory = root_directory
+        self.served_files = []
+        self.allow_multiple_downloads = allow_multiple_downloads
 
     def __call__(self, environ, start_response):
         req = webob.Request(environ)
@@ -456,20 +458,23 @@ class JobFilesApp(object):
 
     def _get(self, request, params):
         path = params['path']
+        if path in self.served_files and not self.allow_multiple_downloads:  # emulate Galaxy not allowing the same request twice...
+            raise Exception("Same file copied multiple times...")
         if not galaxy.util.in_directory(path, self.root_directory):
             assert False, "%s not in %s" % (path, self.root_directory)
+        self.served_files.append(path)
         return file_response(path)
 
 
 @contextmanager
-def files_server(directory=None):
+def files_server(directory=None, allow_multiple_downloads=False):
     if not directory:
         with temp_directory() as directory:
-            app = TestApp(JobFilesApp(directory))
+            app = TestApp(JobFilesApp(directory, allow_multiple_downloads=allow_multiple_downloads))
             with server_for_test_app(app) as server:
                 yield server, directory
     else:
-        app = TestApp(JobFilesApp(directory))
+        app = TestApp(JobFilesApp(directory, allow_multiple_downloads=allow_multiple_downloads))
         with server_for_test_app(app) as server:
             yield server
 

@@ -198,7 +198,7 @@ def run(options):
         assert os.path.exists(temp_index_path)
         command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
-        input_files = [temp_input_path, empty_input]
+        input_files = [temp_input_path, temp_input_path, empty_input]
         output_files = [
             temp_output_path,
             temp_output2_path,
