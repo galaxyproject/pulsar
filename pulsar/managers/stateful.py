@@ -238,7 +238,7 @@ class StatefulManagerProxy(ManagerProxy):
                 self._launch_prepreprocessing_thread(job_id, launch_config)
 
         for unqueue_preprocessing_id in unqueue_preprocessing_ids:
-            self.active_job_directory.deactivate_job(unqueue_preprocessing_id, active_status=ACTIVE_STATUS_PREPROCESSING)
+            self.active_jobs.deactivate_job(unqueue_preprocessing_id, active_status=ACTIVE_STATUS_PREPROCESSING)
 
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
         if recover_method is None:
