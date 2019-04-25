@@ -205,9 +205,13 @@ class FileStager(object):
             self.transfer_tracker.handle_transfer(path, path_type.UNSTRUCTURED, name=name)
 
     def __upload_input_files(self):
+        handled_inputs = set()
         for input_file in self.input_files:
+            if input_file in handled_inputs:
+                continue
             self.__upload_input_file(input_file)
             self.__upload_input_extra_files(input_file)
+            handled_inputs.add(input_file)
 
     def __upload_input_file(self, input_file):
         if self.__stage_input(input_file):
