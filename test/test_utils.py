@@ -165,12 +165,15 @@ class BaseManagerTestCase(TestCase):
         rmtree(self.staging_directory)
 
     @nottest
-    def _test_simple_execution(self, manager):
-        command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stderr.write(\'moo\')" """
+    def _test_simple_execution(self, manager, timeout=None):
+        command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stdout.flush(); sys.stderr.write(\'moo\'); sys.stderr.flush()" """
         job_id = manager.setup_job("123", "tool1", "1.0.0")
         manager.launch(job_id, command)
+
+        time_end = None if timeout is None else time.time() + timeout
         while manager.get_status(job_id) not in ['complete', 'cancelled']:
-            pass
+            if time_end and time.time() > time_end:
+                raise Exception("Timeout.")
         self.assertEqual(manager.stderr_contents(job_id), b'moo')
         self.assertEqual(manager.stdout_contents(job_id), b'Hello World!')
         self.assertEqual(manager.return_code(job_id), 0)

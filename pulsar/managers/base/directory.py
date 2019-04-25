@@ -18,6 +18,7 @@ JOB_FILE_STANDARD_ERROR = "stderr"
 JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
+JOB_FILE_COMMAND_LINE = "command_line"
 
 
 class DirectoryBaseManager(BaseManager):
@@ -34,6 +35,14 @@ class DirectoryBaseManager(BaseManager):
 
     def stderr_contents(self, job_id):
         return self._read_job_file(job_id, JOB_FILE_STANDARD_ERROR, size=self.maximum_stream_size, default=b"")
+
+    def read_command_line(self, job_id):
+        command_line = self._read_job_file(job_id, JOB_FILE_COMMAND_LINE)
+        if command_line.startswith(b'"'):
+            # legacy JSON...
+            import json
+            command_line = json.loads(command_line)
+        return command_line
 
     def _stdout_path(self, job_id):
         return self._job_file(job_id, JOB_FILE_STANDARD_OUTPUT)
@@ -69,6 +78,9 @@ class DirectoryBaseManager(BaseManager):
         job_directory = self._job_directory(job_id)
         job_directory.store_metadata(JOB_FILE_TOOL_ID, tool_id)
         job_directory.store_metadata(JOB_FILE_TOOL_VERSION, tool_version)
+
+    def _write_command_line(self, job_id, command_line):
+        self._write_job_file(job_id, JOB_FILE_COMMAND_LINE, command_line)
 
     def enable_metadata_directory(self, job_id):
         self._job_directory(job_id).enable_metadata_directory()
