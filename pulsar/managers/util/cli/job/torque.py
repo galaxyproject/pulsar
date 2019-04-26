@@ -18,7 +18,6 @@ log = getLogger(__name__)
 
 ERROR_MESSAGE_UNRECOGNIZED_ARG = 'Unrecognized long argument passed to Torque CLI plugin: %s'
 
-
 argmap = {'destination': '-q',
           'Execution_Time': '-a',
           'Account_Name': '-A',
