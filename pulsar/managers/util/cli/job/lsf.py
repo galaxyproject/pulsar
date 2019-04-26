@@ -2,7 +2,6 @@
 # non-submit host and using a Slurm cluster.
 from logging import getLogger
 
-from galaxy.jobs import JobState
 try:
     from galaxy.model import Job
     job_states = Job.states
@@ -102,6 +101,7 @@ class LSF(BaseJobExec):
         # Exited with exit code 143.
         for line in reason.splitlines():
             if "TERM_MEMLIMIT" in line:
+                from galaxy.jobs import JobState
                 return JobState.runner_states.MEMORY_LIMIT_REACHED
         return None
 
