@@ -232,11 +232,15 @@ def server_for_test_app(app):
     try:
         from paste.exceptions.errormiddleware import ErrorMiddleware
         error_app = ErrorMiddleware(app.app, debug=True, error_log="errors.log")
-        server = StopableWSGIServer.create(error_app)
     except ImportError:
         # paste.exceptions not available for Python 3.
         error_app = app.app
-        server = StopableWSGIServer.create(error_app)
+
+    create_kwds = {
+    }
+    if os.environ.get("PULSAR_TEST_FILE_SERVER_HOST"):
+        create_kwds["host"] = os.environ.get("PULSAR_TEST_FILE_SERVER_HOST")
+    server = StopableWSGIServer.create(error_app, **create_kwds)
     try:
         server.wait()
         yield server
