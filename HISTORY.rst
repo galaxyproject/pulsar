@@ -6,6 +6,16 @@ History
 .. to_doc
 
 ---------------------
+0.9.1.dev0
+---------------------
+
+* Fix duplicate inputs being a problem when staging Galaxy files.
+  `Pull Request 175`_
+* Fix deprecated ``assertEquals()`` (thanks to @nsoranzo). `Pull Request 173`_
+* Fix a method missing problem. `Pull Request 174`_
+* Sync "recent" galaxy runner util changes. `Pull Request 177`_
+
+---------------------
 0.9.0 (2019-04-12)
 ---------------------
     
@@ -197,6 +207,10 @@ History
 
 
 .. github_links
+.. _Pull Request 173: https://github.com/galaxyproject/pulsar/pull/173
+.. _Pull Request 174: https://github.com/galaxyproject/pulsar/pull/174
+.. _Pull Request 175: https://github.com/galaxyproject/pulsar/pull/175
+.. _Pull Request 177: https://github.com/galaxyproject/pulsar/pull/177
 .. _Pull Request 172: https://github.com/galaxyproject/pulsar/pull/172
 .. _Pull Request 170: https://github.com/galaxyproject/pulsar/pull/170
 .. _Pull Request 165: https://github.com/galaxyproject/pulsar/pull/165
