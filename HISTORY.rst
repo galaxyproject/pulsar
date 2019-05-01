@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.9.1.dev0
+0.9.1 (2019-05-01)
 ---------------------
 
 * Fix duplicate inputs being a problem when staging Galaxy files.
