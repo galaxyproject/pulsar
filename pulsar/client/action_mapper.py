@@ -196,7 +196,7 @@ class FileActionMapper(object):
         if action_config_path:
             config = read_file(action_config_path)
         else:
-            config = dict()
+            config = getattr(client, "file_actions", {})
         config["default_action"] = client.default_file_action
         config["files_endpoint"] = client.files_endpoint
         for attr in ['ssh_key', 'ssh_user', 'ssh_port', 'ssh_host']:

@@ -93,6 +93,22 @@ class TestStager(TempDirectoryTestCase):
         assert uploaded_file1[1] == "unstructured"
         self.assertEqual(uploaded_file1[0], local_unstructured_file)
 
+    def test_file_actions_by_dict(self):
+        self.client_job_description.rewrite_paths = True
+        self.client.set_action_map_config(dict(paths=[
+            dict(path=self.temp_directory, path_types="*any*"),
+        ]), by_path=False)
+        local_unstructured_file = os.path.join(self.temp_directory, "A_RANDOM_FILE")
+        open(local_unstructured_file, "wb").write(b"Hello World!")
+        command_line = "foo.exe %s" % local_unstructured_file
+        self.client_job_description.command_line = command_line
+        self.client.expect_put_paths(["/pulsar/staging/1/other/A_RANDOM_FILE"])
+        self.client.expect_command_line("foo.exe /pulsar/staging/1/other/A_RANDOM_FILE")
+        self._submit()
+        uploaded_file1 = self.client.put_files[0]
+        assert uploaded_file1[1] == "unstructured"
+        self.assertEqual(uploaded_file1[0], local_unstructured_file)
+
     def test_submit_no_rewrite(self):
         # Expect no rewrite of paths
         command_line_template = "run_test.exe --input1=%s --input2=%s"
@@ -144,8 +160,11 @@ class MockClient(object):
         ])
         self.put_files = []
 
-    def set_action_map_config(self, config):
-        self.action_config_path = write_config(self, config, name="actions.yaml")
+    def set_action_map_config(self, config, by_path=True):
+        if by_path:
+            self.action_config_path = write_config(self, config, name="actions.yaml")
+        else:
+            self.file_actions = config
 
     def expect_put_paths(self, paths):
         self.put_paths = deque(paths)
