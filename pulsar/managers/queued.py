@@ -54,13 +54,13 @@ class QueueManager(Manager):
             setup_params=setup_params
         )
         try:
-            self._job_directory(job_id).store_metadata(JOB_FILE_COMMAND_LINE, command_line)
+            self._write_command_line(job_id, command_line)
         except Exception:
             log.info("Failed to persist command line for job %s, will not be able to recover." % job_id)
         self.work_queue.put((RUN, (job_id, command_line)))
 
     def _recover_active_job(self, job_id):
-        command_line = self._job_directory(job_id).load_metadata(JOB_FILE_COMMAND_LINE, None)
+        command_line = self.read_command_line(job_id)
         if command_line:
             self.work_queue.put((RUN, (job_id, command_line)))
         else:

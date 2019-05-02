@@ -34,6 +34,11 @@ def submit_job(client, client_job_description, job_config=None):
         dependencies_description=client_job_description.dependencies_description,
         env=client_job_description.env,
     )
+    if client_job_description.container:
+        launch_kwds["container"] = client_job_description.container
+    if client_job_description.remote_pulsar_app_config:
+        launch_kwds["pulsar_app_config"] = client_job_description.remote_pulsar_app_config
+
     if file_stager.job_config:
         launch_kwds["job_config"] = file_stager.job_config
     remote_staging = {}

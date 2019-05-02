@@ -332,8 +332,8 @@ def __assert_has_rewritten_bwa_path(client, temp_output4_path):
     if client.default_file_action != "none":
         rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
         # Path written to this file will differ between Windows and Linux.
-        if re.search(r"123456[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa", rewritten_index_path) is None:
-            raise AssertionError("[%s] does not container rewritten path." % rewritten_index_path)
+        if re.search(r"%s[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa" % client.job_id, rewritten_index_path) is None:
+            raise AssertionError("[%s] does not contain rewritten path." % rewritten_index_path)
 
 
 def __exercise_errors(options, client, temp_output_path, temp_directory):
@@ -399,6 +399,10 @@ def extract_client_options(options):
         client_options["jobs_directory"] = getattr(options, "jobs_directory")
     if hasattr(options, "files_endpoint"):
         client_options["files_endpoint"] = getattr(options, "files_endpoint")
+    if hasattr(options, "k8s_enabled"):
+        client_options["k8s_enabled"] = getattr(options, "k8s_enabled")
+    if hasattr(options, "container"):
+        client_options["container"] = getattr(options, "container")
     return client_options
 
 
@@ -452,7 +456,9 @@ def __extra_job_description_kwargs(options):
     env = []
     if test_env:
         env.append(dict(name="TEST_ENV", value="TEST_ENV_VALUE"))
-    return dict(dependencies_description=dependencies_description, env=env)
+    container = getattr(options, "container", None)
+    remote_pulsar_app_config = getattr(options, "remote_pulsar_app_config", None)
+    return dict(dependencies_description=dependencies_description, env=env, container=container, remote_pulsar_app_config=remote_pulsar_app_config)
 
 
 def __finish(options, client, client_outputs, result_status):

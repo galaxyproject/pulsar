@@ -2,7 +2,6 @@ import fnmatch
 import tempfile
 
 from contextlib import contextmanager
-from json import load
 from os import makedirs
 from os import unlink
 from os.path import (
@@ -196,17 +195,13 @@ class FileActionMapper(object):
         if action_config_path:
             config = read_file(action_config_path)
         else:
-            config = dict()
+            config = getattr(client, "file_actions", {})
         config["default_action"] = client.default_file_action
         config["files_endpoint"] = client.files_endpoint
         for attr in ['ssh_key', 'ssh_user', 'ssh_port', 'ssh_host']:
             if hasattr(client, attr):
                 config[attr] = getattr(client, attr)
         return config
-
-    def __load_action_config(self, path):
-        config = load(open(path, 'rb'))
-        self.mappers = mappers_from_dicts(config.get('paths', []))
 
     def __find_mapper(self, path, type, mapper=None):
         if not mapper:

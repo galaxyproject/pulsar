@@ -59,6 +59,7 @@ DEFAULT_VERBOSE = True
 HELP_CONFIG_DIR = "Default directory to search for relevant Pulsar configuration files (e.g. app.yml, server.ini)."
 HELP_INI_PATH = "Specify an explicit path to Pulsar's server.ini configuration file."
 HELP_APP_CONF_PATH = "Specify an explicit path to Pulsar's app.yml configuration file."
+HELP_APP_CONF_BASE64 = "Specify an application configuration as a base64 encoded JSON blob."
 HELP_DAEMONIZE = "Daemonzie process (requires daemonize library)."
 CONFIG_PREFIX = "PULSAR_CONFIG_"
 
@@ -207,14 +208,17 @@ class PulsarConfigBuilder(object):
         config_dir = kwds.get("config_dir", None) or PULSAR_CONFIG_DIR
         ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
         app_conf_path = kwds.get("app_conf_path", None) or (args and args.app_conf_path)
-        # If given app_conf_path - use that - else we need to ensure we have an
-        # ini path.
-        if not app_conf_path:
+        app_conf_base64 = args and args.app_conf_base64
+
+        if not app_conf_base64 and not app_conf_path:
+            # If given app_conf_path - use that - else we need to ensure we have an
+            # ini path.
             ini_path = find_ini(ini_path, config_dir)
             ini_path = absolute_config_path(ini_path, config_dir=config_dir)
         self.config_dir = config_dir
         self.ini_path = ini_path
         self.app_conf_path = app_conf_path
+        self.app_conf_base64 = app_conf_base64
         self.app_name = kwds.get("app") or (args and args.app) or DEFAULT_INI_APP
 
     @classmethod
@@ -222,6 +226,7 @@ class PulsarConfigBuilder(object):
         arg_parser.add_argument("-c", "--config_dir", default=None, help=HELP_CONFIG_DIR)
         arg_parser.add_argument("--ini_path", default=None, help=HELP_INI_PATH)
         arg_parser.add_argument("--app_conf_path", default=None, help=HELP_APP_CONF_PATH)
+        arg_parser.add_argument("--app_conf_base64", default=None, help=HELP_APP_CONF_BASE64)
         arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
         # daemon related options...
         arg_parser.add_argument("-d", "--daemonize", default=False, help=HELP_DAEMONIZE, action="store_true")
@@ -229,13 +234,20 @@ class PulsarConfigBuilder(object):
         arg_parser.add_argument("--pid-file", default=DEFAULT_PID, help="Pid file for daemon, if --daemonize supplied (default is %s)." % DEFAULT_PID)
 
     def load(self):
-        config = load_app_configuration(
-            config_dir=self.config_dir,
-            ini_path=self.ini_path,
-            app_conf_path=self.app_conf_path,
+        load_kwds = dict(
             app_name=self.app_name
         )
-        return config
+        if self.app_conf_base64:
+            from pulsar.client.util import from_base64_json
+            local_conf = from_base64_json(self.app_conf_base64)
+            load_kwds["local_conf"] = local_conf
+        else:
+            load_kwds.update(dict(
+                config_dir=self.config_dir,
+                ini_path=self.ini_path,
+                app_conf_path=self.app_conf_path,
+            ))
+        return load_app_configuration(**load_kwds)
 
     def setup_logging(self):
         if not self.ini_path:

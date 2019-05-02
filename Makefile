@@ -166,5 +166,8 @@ _dist-lib:
 
 dist-lib: clean _dist-lib
 
+build-coexecutor-container:
+	$(MAKE) -C docker/coexecutor all
+
 #release-test-lib-artifacts: dist-lib _release-test-artifacts
 #release-lib-artifacts: release-test-lib-artifacts _release-artifacts

@@ -70,6 +70,8 @@ class ClientJobDescription(object):
         arbitrary_files=None,
         rewrite_paths=True,
         touch_outputs=None,
+        container=None,
+        remote_pulsar_app_config=None,
     ):
         self.tool = tool
         self.command_line = command_line
@@ -83,6 +85,8 @@ class ClientJobDescription(object):
         self.rewrite_paths = rewrite_paths
         self.arbitrary_files = arbitrary_files or {}
         self.touch_outputs = touch_outputs or []
+        self.container = container
+        self.remote_pulsar_app_config = remote_pulsar_app_config
 
     @property
     def output_files(self):
