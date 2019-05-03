@@ -188,10 +188,9 @@ class CoexecutionManager(BaseUnqueuedManager):
 
     def __init__(self, name, app, **kwds):
         super(CoexecutionManager, self).__init__(name, app, **kwds)
-        self.singleton_job_id = "0"
 
     def setup_job(self, input_job_id, tool_id, tool_version):
-        return self._setup_job_for_job_id(self.singleton_job_id, tool_id, tool_version)
+        return self._setup_job_for_job_id(input_job_id, tool_id, tool_version)
 
     def get_status(self, job_id):
         return self._get_status(job_id)

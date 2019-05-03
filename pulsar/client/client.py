@@ -31,7 +31,7 @@ CACHE_WAIT_SECONDS = 3
 TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE = """
 path='%s/command_line';
 while [ ! -e $path ];
-    do sleep 1; echo 'waiting for job script...';
+    do sleep 1; echo "waiting for job script $path";
 done;
 echo 'running script';
 sh $path;
@@ -410,7 +410,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         tool_container_spec = {
             "name": "tool-container",
             "image": tool_container_image,
-            "command": ["bash"],
+            "command": ["sh"],
             "args": ["-c", command],
             "workingDir": "/",
             "volumeMounts": volume_mounts,
