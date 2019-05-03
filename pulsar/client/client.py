@@ -396,6 +396,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             {"mountPath": "/pulsar_staging", "name": "staging-directory"},
         ]
         tool_container_image = container  # TODO: this isn't right at all...
+        if not container:
+            raise Exception("Must declare a container for kubernetes job execution.")
         pulsar_container_dict = {
             "name": "pulsar-container",
             "image": pulsar_container_image,
