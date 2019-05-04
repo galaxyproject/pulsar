@@ -257,7 +257,6 @@ class ExternalQueueIntegrationTests(IntegrationTests):
             k8s_enabled=True,
             container="conda/miniconda2",
             remote_pulsar_app_config=remote_pulsar_app_config,
-            job_id="0",
             **self.default_kwargs
         )
 

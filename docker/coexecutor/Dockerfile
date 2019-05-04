@@ -17,8 +17,8 @@ RUN apt-get update \
 
 RUN pip install -U pip && pip install wheel
 
-ADD pulsar_app-0.9.0-py2.py3-none-any.whl /pulsar_app-0.9.0-py2.py3-none-any.whl
+ADD pulsar_app-0.10.0.dev0-py2.py3-none-any.whl /pulsar_app-0.10.0.dev0-py2.py3-none-any.whl
 
-RUN pip install /pulsar_app-0.9.0-py2.py3-none-any.whl
+RUN pip install /pulsar_app-0.10.0.dev0-py2.py3-none-any.whl
 
 RUN pip install kombu pykube poster

@@ -17,11 +17,9 @@ class Coexecutor(object):
         self.command_line = None
 
     def monitor(self):
-        singleton_job_id = "0"
-
         while not self.has_command_line:
             try:
-                command_line = self.manager.read_command_line(singleton_job_id)
+                command_line = self.manager.read_command_line("123")
             except (IOError, ValueError):
                 continue
             if not command_line:
