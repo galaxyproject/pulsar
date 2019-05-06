@@ -15,10 +15,10 @@ RUN apt-get update \
     && apt-get autoclean \
     && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log
 
-RUN pip install -U pip && pip install wheel
+RUN pip install -U pip && pip install wheel kombu pykube poster
 
-ADD pulsar_app-0.10.0.dev0-py2.py3-none-any.whl /pulsar_app-0.10.0.dev0-py2.py3-none-any.whl
+ENV PULSAR_VERSION 0.11.0.dev0
 
-RUN pip install /pulsar_app-0.10.0.dev0-py2.py3-none-any.whl
+ADD pulsar_app-$PULSAR_VERSION-py2.py3-none-any.whl /pulsar_app-$PULSAR_VERSION-py2.py3-none-any.whl
 
-RUN pip install kombu pykube poster
+RUN pip install /pulsar_app-$PULSAR_VERSION-py2.py3-none-any.whl
