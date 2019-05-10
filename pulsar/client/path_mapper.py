@@ -60,7 +60,7 @@ class PathMapper(object):
 
     def check_for_arbitrary_rewrite(self, local_path):
         path = str(local_path)  # Use false_path if needed.
-        action = self.action_mapper.action(path, path_type.UNSTRUCTURED)
+        action = self.action_mapper.action({"path": path}, path_type.UNSTRUCTURED)
         if not action.staging_needed:
             return action.path_rewrite(self.path_helper), []
         unique_names = action.unstructured_map()
@@ -72,7 +72,7 @@ class PathMapper(object):
         """ Return remote path of this file (if staging is required) else None.
         """
         path = str(dataset_path)  # Use false_path if needed.
-        action = self.action_mapper.action(path, dataset_path_type)
+        action = self.action_mapper.action({"path": path}, dataset_path_type)
         if action.staging_needed:
             if name is None:
                 name = os.path.basename(path)

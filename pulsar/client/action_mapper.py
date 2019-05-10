@@ -104,46 +104,46 @@ class FileActionMapper(object):
     ...     return mapper
     >>> mapper = mapper_for(default_action='none', config_contents=json_string)
     >>> # Test first config line above, implicit path prefix mapper
-    >>> action = mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
+    >>> action = mapper.action({'path': '/opt/galaxy/tools/filters/catWrapper.py'}, 'input')
     >>> action.action_type == u'none'
     True
     >>> action.staging_needed
     False
     >>> # Test another (2nd) mapper, this one with a different action
-    >>> action = mapper.action('/galaxy/data/files/000/dataset_1.dat', 'input')
+    >>> action = mapper.action({'path': '/galaxy/data/files/000/dataset_1.dat'}, 'input')
     >>> action.action_type == u'transfer'
     True
     >>> action.staging_needed
     True
     >>> # Always at least copy work_dir outputs.
-    >>> action = mapper.action('/opt/galaxy/database/working_directory/45.sh', 'workdir')
+    >>> action = mapper.action({'path': '/opt/galaxy/database/working_directory/45.sh'}, 'workdir')
     >>> action.action_type == u'copy'
     True
     >>> action.staging_needed
     True
     >>> # Test glob mapper (matching test)
-    >>> mapper.action('/cool/bamfiles/projectABC/study1/patient3.bam', 'input').action_type == u'copy'
+    >>> mapper.action({'path': '/cool/bamfiles/projectABC/study1/patient3.bam'}, 'input').action_type == u'copy'
     True
     >>> # Test glob mapper (non-matching test)
-    >>> mapper.action('/cool/bamfiles/projectABC/study1/patient3.bam.bai', 'input').action_type == u'none'
+    >>> mapper.action({'path': '/cool/bamfiles/projectABC/study1/patient3.bam.bai'}, 'input').action_type == u'none'
     True
     >>> # Regex mapper test.
-    >>> mapper.action('/old/galaxy/data/dataset_10245.dat', 'input').action_type == u'copy'
+    >>> mapper.action({'path': '/old/galaxy/data/dataset_10245.dat'}, 'input').action_type == u'copy'
     True
     >>> # Doesn't map unstructured paths by default
-    >>> mapper.action('/old/galaxy/data/dataset_10245.dat', 'unstructured').action_type == u'none'
+    >>> mapper.action({'path': '/old/galaxy/data/dataset_10245.dat'}, 'unstructured').action_type == u'none'
     True
     >>> input_only_mapper = mapper_for(default_action="none", config_contents=r'''{"paths": [ \
       {"path": "/", "action": "transfer", "path_types": "input"} \
     ] }''')
-    >>> input_only_mapper.action('/dataset_1.dat', 'input').action_type == u'transfer'
+    >>> input_only_mapper.action({'path': '/dataset_1.dat'}, 'input').action_type == u'transfer'
     True
-    >>> input_only_mapper.action('/dataset_1.dat', 'output').action_type == u'none'
+    >>> input_only_mapper.action({'path': '/dataset_1.dat'}, 'output').action_type == u'none'
     True
     >>> unstructured_mapper = mapper_for(default_action="none", config_contents=r'''{"paths": [ \
       {"path": "/", "action": "transfer", "path_types": "*any*"} \
     ] }''')
-    >>> unstructured_mapper.action('/old/galaxy/data/dataset_10245.dat', 'unstructured').action_type == u'transfer'
+    >>> unstructured_mapper.action({'path': '/old/galaxy/data/dataset_10245.dat'}, 'unstructured').action_type == u'transfer'
     True
     """
 
@@ -161,7 +161,8 @@ class FileActionMapper(object):
         self.mappers = mappers_from_dicts(config.get("paths", []))
         self.files_endpoint = config.get("files_endpoint", None)
 
-    def action(self, path, type, mapper=None):
+    def action(self, source, type, mapper=None):
+        path = source["path"]
         mapper = self.__find_mapper(path, type, mapper)
         action_class = self.__action_class(path, type, mapper)
         file_lister = DEFAULT_FILE_LISTER

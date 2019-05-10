@@ -75,7 +75,7 @@ class TestActionMapper(object):
         if not staging_needed:
             self._action.path_rewrite = lambda path: None
 
-    def action(self, path, type):
-        assert self.expected_path == path
+    def action(self, source, type):
+        assert self.expected_path == source["path"]
         assert self.expected_type == type
         return self._action

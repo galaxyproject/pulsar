@@ -197,7 +197,7 @@ class FileStager(object):
                 if path not in referenced_arbitrary_path_mappers:
                     referenced_arbitrary_path_mappers[path] = mapper
         for path, mapper in referenced_arbitrary_path_mappers.items():
-            action = self.action_mapper.action(path, path_type.UNSTRUCTURED, mapper)
+            action = self.action_mapper.action({"path": path}, path_type.UNSTRUCTURED, mapper)
             unstructured_map = action.unstructured_map(self.path_helper)
             self.arbitrary_files.update(unstructured_map)
 
@@ -501,7 +501,7 @@ class TransferTracker(object):
             self.job_inputs.rewrite_paths(local_path, remote_path)
 
     def __action(self, path, type):
-        return self.action_mapper.action(path, type)
+        return self.action_mapper.action({"path": path}, type)
 
 
 def _read(path):
