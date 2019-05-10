@@ -215,14 +215,17 @@ class FileStager(object):
             path = client_input.path
             if path in handled_inputs:
                 continue
+
             if client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_PATH:
                 self.__upload_input_file(path)
                 handled_inputs.add(path)
             elif client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH:
                 self.__upload_input_extra_files(path)
                 handled_inputs.add(path)
+            elif client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_METADATA_PATH:
+                self.__upload_input_metadata_file(path)
+                handled_inputs.add(path)
             else:
-                # TODO: implement metadata...
                 raise NotImplementedError()
 
     def __upload_input_file(self, input_file):
@@ -240,6 +243,12 @@ class FileStager(object):
                 extra_file_path = join(files_path, extra_file_name)
                 remote_name = self.path_helper.remote_name(relpath(extra_file_path, dirname(files_path)))
                 self.transfer_tracker.handle_transfer(extra_file_path, path_type.INPUT, name=remote_name)
+
+    def __upload_input_metadata_file(self, path):
+        if self.__stage_input(path):
+            # Name must match what is generated in remote_input_path_rewrite in path_mapper.
+            remote_name = "metadata_%s" % basename(path)
+            self.transfer_tracker.handle_transfer(path, path_type.INPUT, name=remote_name)
 
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be

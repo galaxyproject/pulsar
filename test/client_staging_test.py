@@ -45,6 +45,7 @@ class TestStager(TempDirectoryTestCase):
         os.makedirs(files_directory)
         self.input1 = os.path.join(files_directory, "dataset_1.dat")
         self.input1_files_path = os.path.join(files_directory, "dataset_1_files")
+        os.makedirs(self.input1_files_path)
         open(self.input1, "wb").write(b"012345")
         self.input2 = os.path.join(files_directory, "dataset_2.dat")
         open(self.input2, "wb").write(b"6789")

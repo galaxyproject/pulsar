@@ -84,7 +84,7 @@ class ClientJobDescription(object):
             # Deprecated input but provided for backward compatibility.
             assert client_inputs is None
             client_inputs = ClientInputs.for_simple_input_paths(input_files)
-        self.client_inputs = client_inputs
+        self.client_inputs = client_inputs or ClientInputs([])
         self.client_outputs = client_outputs or ClientOutputs()
         self.working_directory = working_directory
         self.metadata_directory = metadata_directory
@@ -141,7 +141,7 @@ class ClientInputs(object):
             client_inputs.append(ClientInput(input_file, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
             files_path = "%s_files" % input_file[0:-len(".dat")]
             if exists(files_path):
-                client_inputs.append(ClientInput(input_file, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
+                client_inputs.append(ClientInput(files_path, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
 
         return ClientInputs(client_inputs)
 

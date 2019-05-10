@@ -24,7 +24,10 @@ from six import binary_type
 from pulsar.client import (
     build_client_manager,
     ClientJobDescription,
+    ClientInputs,
+    ClientInput,
     ClientOutputs,
+    CLIENT_INPUT_PATH_TYPES,
     finish_job,
     PulsarOutputs,
     submit_job,
@@ -73,6 +76,7 @@ try:
     assert_path_contents(sys.argv[2], "Hello world input!!@!")
     assert_path_contents(sys.argv[8], "INPUT_EXTRA_CONTENTS")
     assert_path_contents(sys.argv[13], "meta input")
+    assert_path_contents(sys.argv[14], "INPUT METADATA CONTENTS...")
     contents = config_input.read(1024)
     output.write(contents)
     open("workdir_output", "w").write("WORK DIR OUTPUT")
@@ -149,6 +153,7 @@ def run(options):
 
         temp_input_path = os.path.join(temp_directory, "dataset_0.dat")
         temp_input_extra_path = os.path.join(temp_directory, "dataset_0_files", "input_subdir", "extra")
+        temp_input_metadata_path = os.path.join(temp_directory, "metadata", "12312231231231.dat")
         temp_index_path = os.path.join(temp_index_dir, "human.fa")
 
         temp_config_path = os.path.join(temp_work_dir, "config.txt")
@@ -167,6 +172,7 @@ def run(options):
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
+        __write_to_file(temp_input_metadata_path, b"INPUT METADATA CONTENTS...")
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
         __write_to_file(temp_metadata_path, "meta input")
         __write_to_file(temp_tool_path, TEST_SCRIPT)
@@ -194,11 +200,17 @@ def run(options):
             temp_output4_path,
             temp_shared_dir,
             temp_metadata_path,
+            temp_input_metadata_path,
         )
         assert os.path.exists(temp_index_path)
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
-        input_files = [temp_input_path, temp_input_path, empty_input]
+        client_inputs = []
+        client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
+        client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
+        client_inputs.append(ClientInput(empty_input, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
+        client_inputs.append(ClientInput(os.path.join(temp_directory, "dataset_0_files"), CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
+        client_inputs.append(ClientInput(temp_input_metadata_path, CLIENT_INPUT_PATH_TYPES.INPUT_METADATA_PATH))
         output_files = [
             temp_output_path,
             temp_output2_path,
@@ -224,7 +236,7 @@ def run(options):
             command_line=command_line,
             tool=MockTool(temp_tool_dir),
             config_files=config_files,
-            input_files=input_files,
+            client_inputs=ClientInputs(client_inputs),
             client_outputs=client_outputs,
             working_directory=temp_work_dir,
             metadata_directory=temp_metadata_dir,
