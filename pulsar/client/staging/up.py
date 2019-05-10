@@ -16,7 +16,7 @@ from ..action_mapper import FileActionMapper
 from ..action_mapper import MessageAction
 from ..action_mapper import path_type
 from ..job_directory import RemoteJobDirectory
-from ..staging import COMMAND_VERSION_FILENAME
+from ..staging import CLIENT_INPUT_PATH_TYPES, COMMAND_VERSION_FILENAME
 from ..util import directory_files
 from ..util import PathHelper
 
@@ -75,7 +75,7 @@ class FileStager(object):
         self.client = client
         self.command_line = client_job_description.command_line
         self.config_files = client_job_description.config_files
-        self.input_files = client_job_description.input_files
+        self.client_inputs = client_job_description.client_inputs
         self.output_files = client_job_description.output_files
         if client_job_description.tool is not None:
             self.tool_id = client_job_description.tool.id
@@ -211,12 +211,19 @@ class FileStager(object):
 
     def __upload_input_files(self):
         handled_inputs = set()
-        for input_file in self.input_files:
-            if input_file in handled_inputs:
+        for client_input in self.client_inputs:
+            path = client_input.path
+            if path in handled_inputs:
                 continue
-            self.__upload_input_file(input_file)
-            self.__upload_input_extra_files(input_file)
-            handled_inputs.add(input_file)
+            if client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_PATH:
+                self.__upload_input_file(path)
+                handled_inputs.add(path)
+            elif client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH:
+                self.__upload_input_extra_files(path)
+                handled_inputs.add(path)
+            else:
+                # TODO: implement metadata...
+                raise NotImplementedError()
 
     def __upload_input_file(self, input_file):
         if self.__stage_input(input_file):
@@ -224,12 +231,11 @@ class FileStager(object):
                 self.transfer_tracker.handle_transfer(input_file, path_type.INPUT)
             else:
                 message = "Pulsar: __upload_input_file called on empty or missing dataset." + \
-                          " So such file: [%s]" % input_file
+                          " No such file: [%s]" % input_file
                 log.debug(message)
 
-    def __upload_input_extra_files(self, input_file):
-        files_path = "%s_files" % input_file[0:-len(".dat")]
-        if exists(files_path) and self.__stage_input(files_path):
+    def __upload_input_extra_files(self, files_path):
+        if self.__stage_input(files_path):
             for extra_file_name in directory_files(files_path):
                 extra_file_path = join(files_path, extra_file_name)
                 remote_name = self.path_helper.remote_name(relpath(extra_file_path, dirname(files_path)))
