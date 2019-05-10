@@ -4,6 +4,7 @@ from galaxy.util import in_directory
 
 from .action_mapper import FileActionMapper
 from .action_mapper import path_type
+from .staging import CLIENT_INPUT_PATH_TYPES
 from .util import PathHelper
 
 
@@ -46,8 +47,11 @@ class PathMapper(object):
         remote_path = self.__remote_path_rewrite(local_path, output_type)
         return remote_path
 
-    def remote_input_path_rewrite(self, local_path):
-        remote_path = self.__remote_path_rewrite(local_path, path_type.INPUT)
+    def remote_input_path_rewrite(self, local_path, client_input_path_type=None):
+        name = None
+        if client_input_path_type == CLIENT_INPUT_PATH_TYPES.INPUT_METADATA_PATH:
+            name = "metadata_%s" % os.path.basename(local_path)
+        remote_path = self.__remote_path_rewrite(local_path, path_type.INPUT, name=name)
         return remote_path
 
     def remote_version_path_rewrite(self, local_path):
