@@ -85,11 +85,6 @@ class PathMapper(object):
 
         return remote_path_rewrite
 
-    def __action(self, dataset_path, dataset_path_type):
-        path = str(dataset_path)  # Use false_path if needed.
-        action = self.action_mapper.action(path, dataset_path_type)
-        return action
-
     def __remote_directory(self, dataset_path_type):
         if dataset_path_type in [path_type.OUTPUT]:
             return self.output_directory
