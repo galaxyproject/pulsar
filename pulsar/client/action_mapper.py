@@ -98,7 +98,6 @@ class FileActionMapper(object):
     ...     mock_client = Bunch(default_file_action=default_action, action_config_path=f.name, files_endpoint=None)
     ...     mapper = FileActionMapper(mock_client)
     ...     as_dict = config=mapper.to_dict()
-    ...     # print(as_dict["paths"])
     ...     mapper = FileActionMapper(config=as_dict) # Serialize and deserialize it to make sure still works
     ...     unlink(f.name)
     ...     return mapper
@@ -145,6 +144,16 @@ class FileActionMapper(object):
     ] }''')
     >>> unstructured_mapper.action({'path': '/old/galaxy/data/dataset_10245.dat'}, 'unstructured').action_type == u'transfer'
     True
+    >>> match_type_only_mapper = mapper_for(default_action="none", config_contents=r'''{"paths": [ \
+      {"action": "transfer", "path_types": "input"}, \
+      {"action": "remote_copy", "path_types": "output"} \
+    ] }''')
+    >>> input_action = match_type_only_mapper.action({}, 'input')
+    >>> input_action.action_type
+    'transfer'
+    >>> output_action = match_type_only_mapper.action({}, 'output')
+    >>> output_action.action_type
+    'remote_copy'
     """
 
     def __init__(self, client=None, config=None):
@@ -162,7 +171,7 @@ class FileActionMapper(object):
         self.files_endpoint = config.get("files_endpoint", None)
 
     def action(self, source, type, mapper=None):
-        path = source["path"]
+        path = source.get("path", None)
         mapper = self.__find_mapper(path, type, mapper)
         action_class = self.__action_class(path, type, mapper)
         file_lister = DEFAULT_FILE_LISTER
@@ -206,7 +215,10 @@ class FileActionMapper(object):
 
     def __find_mapper(self, path, type, mapper=None):
         if not mapper:
-            normalized_path = abspath(path)
+            if path is not None:
+                normalized_path = abspath(path)
+            else:
+                normalized_path = None
             for query_mapper in self.mappers:
                 if query_mapper.matches(normalized_path, type):
                     mapper = query_mapper
@@ -609,6 +621,22 @@ class BasePathMapper(object):
         base_dict.update(**kwds)
         return base_dict
 
+    def to_pattern(self):
+        raise NotImplementedError()
+
+
+class PathTypeOnlyMapper(BasePathMapper):
+    match_type = 'path_type_only'
+
+    def __init__(self, config):
+        super(PathTypeOnlyMapper, self).__init__(config)
+
+    def _path_matches(self, path):
+        return True
+
+    def to_dict(self):
+        return self._extend_base_dict()
+
 
 class PrefixPathMapper(BasePathMapper):
     match_type = 'prefix'
@@ -618,7 +646,7 @@ class PrefixPathMapper(BasePathMapper):
         self.prefix_path = abspath(config['path'])
 
     def _path_matches(self, path):
-        return path.startswith(self.prefix_path)
+        return path is not None and path.startswith(self.prefix_path)
 
     def to_pattern(self):
         pattern_str = r"(%s%s[^\s,\"\']+)" % (escape(self.prefix_path), escape(sep))
@@ -636,7 +664,7 @@ class GlobPathMapper(BasePathMapper):
         self.glob_path = config['path']
 
     def _path_matches(self, path):
-        return fnmatch.fnmatch(path, self.glob_path)
+        return path is not None and fnmatch.fnmatch(path, self.glob_path)
 
     def to_pattern(self):
         return compile(fnmatch.translate(self.glob_path))
@@ -654,7 +682,7 @@ class RegexPathMapper(BasePathMapper):
         self.pattern = compile(self.pattern_raw)
 
     def _path_matches(self, path):
-        return self.pattern.match(path) is not None
+        return path is not None and self.pattern.match(path) is not None
 
     def to_pattern(self):
         return self.pattern
@@ -663,7 +691,7 @@ class RegexPathMapper(BasePathMapper):
         return self._extend_base_dict(path=self.pattern_raw)
 
 
-MAPPER_CLASSES = [PrefixPathMapper, GlobPathMapper, RegexPathMapper]
+MAPPER_CLASSES = [PathTypeOnlyMapper, PrefixPathMapper, GlobPathMapper, RegexPathMapper]
 MAPPER_CLASS_DICT = dict(map(lambda c: (c.match_type, c), MAPPER_CLASSES))
 
 
@@ -672,7 +700,10 @@ def mappers_from_dicts(mapper_def_list):
 
 
 def _mappper_from_dict(mapper_dict):
-    map_type = mapper_dict.get('match_type', DEFAULT_PATH_MAPPER_TYPE)
+    if "path" in mapper_dict:
+        map_type = mapper_dict.get('match_type', DEFAULT_PATH_MAPPER_TYPE)
+    else:
+        map_type = 'path_type_only'
     return MAPPER_CLASS_DICT[map_type](mapper_dict)
 
 
