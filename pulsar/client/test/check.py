@@ -205,12 +205,11 @@ def run(options):
         assert os.path.exists(temp_index_path)
         command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
-        input_files = [temp_input_path, temp_input_path, empty_input]
         client_inputs = []
         client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
         client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
         client_inputs.append(ClientInput(empty_input, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
-        client_inputs.append(ClientInput(temp_input_extra_path, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
+        client_inputs.append(ClientInput(os.path.join(temp_directory, "dataset_0_files"), CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
         client_inputs.append(ClientInput(temp_input_metadata_path, CLIENT_INPUT_PATH_TYPES.INPUT_METADATA_PATH))
         output_files = [
             temp_output_path,

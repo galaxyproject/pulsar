@@ -141,7 +141,7 @@ class ClientInputs(object):
             client_inputs.append(ClientInput(input_file, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
             files_path = "%s_files" % input_file[0:-len(".dat")]
             if exists(files_path):
-                client_inputs.append(ClientInput(input_file, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
+                client_inputs.append(ClientInput(files_path, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
 
         return ClientInputs(client_inputs)
 
