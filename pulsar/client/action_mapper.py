@@ -48,7 +48,7 @@ path_type = Bunch(
     TOOL="tool",
     # Input work dir files - e.g.task-split input file
     WORKDIR="workdir",
-    # Input work dir files - e.g. metadata files, etc..
+    # Input metadata dir files - e.g. metadata files, etc..
     METADATA="metadata",
     # Galaxy output datasets in their final home.
     OUTPUT="output",
@@ -58,7 +58,7 @@ path_type = Bunch(
     # metric instrumentation files)
     OUTPUT_METADATA="output_metadata",
     # Other fixed tool parameter paths (likely coming from tool data, but not
-    # nessecarily). Not sure this is the best name...
+    # nessecarily).
     UNSTRUCTURED="unstructured",
 )
 
