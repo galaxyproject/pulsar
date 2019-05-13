@@ -159,6 +159,10 @@ class ClientInput(object):
         self.path = path
         self.input_type = input_type
 
+    @property
+    def action_source(self):
+        return {"path": self.path}
+
 
 class ClientOutputs(object):
     """ Abstraction describing the output datasets EXPECTED by the Galaxy job
