@@ -275,6 +275,7 @@ UNSET_ACTION_KWD = "__UNSET__"
 
 
 class BaseAction(object):
+    whole_directory_transfer_supported = False
     action_spec = {}
 
     def __init__(self, path, file_lister=None):

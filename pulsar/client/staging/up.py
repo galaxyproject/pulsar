@@ -1,12 +1,10 @@
 from io import open
 from logging import getLogger
-from os import listdir, sep
+from os import sep
 from os.path import (
     abspath,
     basename,
-    dirname,
     exists,
-    isfile,
     join,
     relpath,
 )
@@ -237,11 +235,7 @@ class FileStager(object):
         if self.__stage_input(input_action_source):
             # TODO: needs to happen else where if using remote object store staging
             # but we don't have the action type yet.
-            files_path = input_action_source['path']
-            for extra_file_name in directory_files(files_path):
-                extra_file_path = join(files_path, extra_file_name)
-                remote_name = self.path_helper.remote_name(relpath(extra_file_path, dirname(files_path)))
-                self.transfer_tracker.handle_transfer_path(extra_file_path, path_type.INPUT, name=remote_name)
+            self.transfer_tracker.handle_transfer_directory(path_type.INPUT, action_source=input_action_source)
 
     def __upload_input_metadata_file(self, input_action_source):
         if self.__stage_input(input_action_source):
@@ -252,28 +246,14 @@ class FileStager(object):
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
         # uploaded if present.
-        working_directory_files = self.__working_directory_files()
-        for working_directory_file in working_directory_files:
-            path = join(self.working_directory, working_directory_file)
-            self.transfer_tracker.handle_transfer_path(path, path_type.WORKDIR)
+        directory = self.working_directory
+        if directory and exists(directory):
+            self.transfer_tracker.handle_transfer_directory(path_type.WORKDIR, directory=directory)
 
     def __upload_metadata_directory_files(self):
-        metadata_directory_files = self.__metadata_directory_files()
-        for metadata_directory_file in metadata_directory_files:
-            path = join(self.metadata_directory, metadata_directory_file)
-            self.transfer_tracker.handle_transfer_path(path, path_type.METADATA)
-
-    def __working_directory_files(self):
-        return self.__list_files(self.working_directory)
-
-    def __metadata_directory_files(self):
-        return self.__list_files(self.metadata_directory)
-
-    def __list_files(self, directory):
+        directory = self.metadata_directory
         if directory and exists(directory):
-            return [f for f in listdir(directory) if isfile(join(directory, f))]
-        else:
-            return []
+            self.transfer_tracker.handle_transfer_directory(path_type.METADATA, directory=directory)
 
     def __initialize_version_file_rename(self):
         version_file = self.version_file
@@ -443,6 +423,30 @@ class TransferTracker(object):
         source = {"path": path}
         return self.handle_transfer_source(source, type, name=name, contents=contents)
 
+    def handle_transfer_directory(self, type, directory=None, action_source=None):
+        # TODO: needs to happen else where if using remote object store staging
+        # but we don't have the action type yet.
+        if directory is None:
+            assert action_source is not None
+            action = self.__action_for_transfer(action_source, type, None)
+            if not action.staging_action_local and action.whole_directory_transfer_supported:
+                # If we're going to transfer the whole directory remotely, don't walk the files
+                # here.
+
+                # We could still rewrite paths and just not transfer the files.
+                assert not self.rewrite_paths
+                self.__add_remote_staging_input(self, action, None, type)
+                return
+
+            directory = action_source['path']
+        else:
+            assert action_source is None
+
+        for directory_file_name in directory_files(directory):
+            directory_file_path = join(directory, directory_file_name)
+            remote_name = self.path_helper.remote_name(relpath(directory_file_path, directory))
+            self.handle_transfer_path(directory_file_path, type, name=remote_name)
+
     def handle_transfer_source(self, source, type, name=None, contents=None):
         action = self.__action_for_transfer(source, type, contents)
 
@@ -452,7 +456,7 @@ class TransferTracker(object):
                 path = source['path']
                 if not exists(path):
                     message = "Pulsar: __upload_input_file called on empty or missing dataset." + \
-                            " No such file: [%s]" % path
+                              " No such file: [%s]" % path
                     log.debug(message)
                     return
 
