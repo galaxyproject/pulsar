@@ -17,8 +17,14 @@ import traceback
 from collections import namedtuple
 from io import open
 
-from galaxy.tools.deps.dependencies import DependenciesDescription
-from galaxy.tools.deps.requirements import ToolRequirement
+try:
+    # If galaxy-lib or Galaxy 19.05 present.
+    from galaxy.tools.deps.dependencies import DependenciesDescription
+    from galaxy.tools.deps.requirements import ToolRequirement
+except ImportError:
+    # If galaxy-tool-util or Galaxy 19.09 present.
+    from galaxy.tool_util.deps.dependencies import DependenciesDescription
+    from galaxy.tool_util.deps.requirements import ToolRequirement
 from six import binary_type
 
 from pulsar.client import (

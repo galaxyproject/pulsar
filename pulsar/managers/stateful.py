@@ -6,7 +6,12 @@ import os
 import time
 import threading
 
-from galaxy.tools.deps import dependencies
+try:
+    # If galaxy-lib or Galaxy 19.05 present.
+    from galaxy.tools.deps.dependencies import DependenciesDescription
+except ImportError:
+    # If galaxy-tool-util or Galaxy 19.09 present.
+    from galaxy.tool_util.deps.dependencies import DependenciesDescription
 
 from pulsar.client.util import filter_destination_params
 from pulsar.managers import ManagerProxy
@@ -109,7 +114,7 @@ class StatefulManagerProxy(ManagerProxy):
             yield
             launch_kwds = {}
             if launch_config.get("dependencies_description"):
-                dependencies_description = dependencies.DependenciesDescription.from_dict(launch_config["dependencies_description"])
+                dependencies_description = DependenciesDescription.from_dict(launch_config["dependencies_description"])
                 launch_kwds["dependencies_description"] = dependencies_description
             for kwd in ["submit_params", "setup_params", "env"]:
                 if kwd in launch_config:
