@@ -1,6 +1,7 @@
 
 
 docker-image:
+	find . -regex './pulsar_app-.*.whl' -delete
 	cd ../..; make dist; cp dist/pulsar*whl docker/coexecutor
 
 all: docker-image
