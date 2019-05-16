@@ -14,6 +14,7 @@ local_env.sh
 coverage_html_report
 files/staging
 files/persisted_data
+docker/coexecutor/*whl
 app.yml
 server.ini
 job_managers.ini

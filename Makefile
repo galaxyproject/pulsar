@@ -45,6 +45,7 @@ clean-build:
 	rm -fr build/
 	rm -fr dist/
 	rm -fr pulsar.*.egg-info
+	rm -rf docker/coexecutor/*whl
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
