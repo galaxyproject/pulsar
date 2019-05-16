@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.11.0.dev0
+0.11.0 (2019-05-16)
 ---------------------
 
 * Implement staging Galaxy metadata input files in the client.
