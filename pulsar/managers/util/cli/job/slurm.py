@@ -1,8 +1,5 @@
 # A simple CLI runner for slurm that can be used when running Galaxy from a
 # non-submit host and using a Slurm cluster.
-
-from ..job import BaseJobExec
-
 from logging import getLogger
 
 try:
@@ -12,6 +9,8 @@ except ImportError:
     # Not in Galaxy, map Galaxy job states to Pulsar ones.
     from pulsar.util import enum
     job_states = enum(RUNNING='running', OK='complete', QUEUED='queued', ERROR="failed")
+
+from ..job import BaseJobExec
 
 log = getLogger(__name__)
 

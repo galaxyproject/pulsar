@@ -1,11 +1,12 @@
 """
 """
+import json
 from glob import glob
-from inspect import getsourcefile
-from os import pardir
-from os.path import abspath
-from os.path import basename
-from os.path import join
+from os import getcwd
+from os.path import (
+    basename,
+    join
+)
 
 DEFAULT_SHELL_PLUGIN = 'LocalShell'
 
@@ -22,13 +23,12 @@ class CliInterface(object):
     def __init__(self, code_dir='lib'):
         """
         """
-        def __load(module_prefix, d, code_dir):
-            module_pattern = join(join(code_dir, module_prefix), '*.py')
+        def __load(module_path, d):
+            module_pattern = join(join(getcwd(), code_dir, *module_path.split('.')), '*.py')
             for file in glob(module_pattern):
                 if basename(file).startswith('_'):
                     continue
-                file = file.split(code_dir)[1]
-                module_name = '%s.%s' % (module_prefix.replace("/", "."), basename(file).rsplit('.py', 1)[0])
+                module_name = '%s.%s' % (module_path, basename(file).rsplit('.py', 1)[0])
                 module = __import__(module_name)
                 for comp in module_name.split(".")[1:]:
                     module = getattr(module, comp)
@@ -40,13 +40,11 @@ class CliInterface(object):
 
         self.cli_shells = {}
         self.cli_job_interfaces = {}
+        self.active_cli_shells = {}
 
         module_prefix = self.__module__
-        module_prefix = join(*module_prefix.split("."))
-        module_path = abspath(join(getsourcefile(CliInterface), pardir))
-        code_dir = module_path.split(module_prefix)[0]
-        __load('%s/shell' % module_prefix, self.cli_shells, code_dir)
-        __load('%s/job' % module_prefix, self.cli_job_interfaces, code_dir)
+        __load('%s.shell' % module_prefix, self.cli_shells)
+        __load('%s.job' % module_prefix, self.cli_job_interfaces)
 
     def get_plugins(self, shell_params, job_params):
         """
@@ -59,8 +57,10 @@ class CliInterface(object):
 
     def get_shell_plugin(self, shell_params):
         shell_plugin = shell_params.get('plugin', DEFAULT_SHELL_PLUGIN)
-        shell = self.cli_shells[shell_plugin](**shell_params)
-        return shell
+        requested_shell_settings = json.dumps(shell_params, sort_keys=True)
+        if requested_shell_settings not in self.active_cli_shells:
+            self.active_cli_shells[requested_shell_settings] = self.cli_shells[shell_plugin](**shell_params)
+        return self.active_cli_shells[requested_shell_settings]
 
     def get_job_interface(self, job_params):
         job_plugin = job_params.get('plugin', None)
@@ -68,7 +68,7 @@ class CliInterface(object):
             raise ValueError(ERROR_MESSAGE_NO_JOB_PLUGIN)
         job_plugin_class = self.cli_job_interfaces.get(job_plugin, None)
         if not job_plugin_class:
-            raise ValueError(ERROR_MESSAGE_NO_SUCH_JOB_PLUGIN % (job_plugin, self.cli_job_interfaces.keys()))
+            raise ValueError(ERROR_MESSAGE_NO_SUCH_JOB_PLUGIN % (job_plugin, list(self.cli_job_interfaces.keys())))
         job_interface = job_plugin_class(**job_params)
 
         return job_interface

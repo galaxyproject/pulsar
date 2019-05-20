@@ -45,6 +45,7 @@ clean-build:
 	rm -fr build/
 	rm -fr dist/
 	rm -fr pulsar.*.egg-info
+	rm -rf docker/coexecutor/*whl
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -165,6 +166,9 @@ _dist-lib:
 	ls -l dist
 
 dist-lib: clean _dist-lib
+
+build-coexecutor-container:
+	$(MAKE) -C docker/coexecutor all
 
 #release-test-lib-artifacts: dist-lib _release-test-artifacts
 #release-lib-artifacts: release-test-lib-artifacts _release-artifacts

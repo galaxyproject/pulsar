@@ -1,6 +1,6 @@
 from __future__ import print_function
 from os.path import join
-from os import makedirs, system
+from os import environ, makedirs, system
 from six import next, itervalues
 from six.moves import configparser
 from .test_utils import (
@@ -35,15 +35,20 @@ class BaseIntegrationTest(TempDirectoryTestCase):
         self._run_in_app(app_conf, **kwds)
 
     def _run_in_app(self, app_conf, **kwds):
-        if kwds.get("direct_interface", None):
+        direct_interface = kwds.get("direct_interface", None)
+        inject_files_endpoint = direct_interface or kwds.get("inject_files_endpoint", False)
+        if inject_files_endpoint:
             # Client directory hasn't bee created yet, don't restrict where
             # test files written.
             # Can only run tests using files_server if not constructing a test
             # server for Pulsar - webtest doesn't seem to like having two test
             # servers alive at same time.
             with files_server("/") as test_files_server:
-                files_endpoint = test_files_server.application_url
-                self._run_direct(app_conf, files_endpoint=files_endpoint, **kwds)
+                files_endpoint = to_infrastructure_uri(test_files_server.application_url)
+                if direct_interface:
+                    self._run_direct(app_conf, files_endpoint=files_endpoint, **kwds)
+                else:
+                    self._run_in_test_server(app_conf, files_endpoint=files_endpoint, **kwds)
         else:
             self._run_in_test_server(app_conf, **kwds)
 
@@ -66,7 +71,10 @@ class BaseIntegrationTest(TempDirectoryTestCase):
     def _update_options_for_app(self, options, app, **kwds):
         if kwds.get("local_setup", False):
             staging_directory = app.staging_directory
-            options["jobs_directory"] = staging_directory
+            if kwds.get("k8s_enabled"):
+                options["jobs_directory"] = "/pulsar_staging"
+            else:
+                options["jobs_directory"] = staging_directory
 
     def __setup_job_properties(self, app_conf, job_conf_props):
         if job_conf_props:
@@ -209,6 +217,50 @@ class IntegrationTests(BaseIntegrationTest):
         self._run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Slurm'}, private_token=None, **self.default_kwargs)
 
 
+class ExternalQueueIntegrationTests(IntegrationTests):
+    default_kwargs = dict(direct_interface=False, test_requirement=False, test_unicode=True, test_env=True, test_rewrite_action=True)
+
+    @integration_test
+    @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
+    def test_integration_external_rabbit(self):
+        # e.g. amqp://guest:guest@localhost:5672//
+        # TODO: nc docker.for.mac.localhost 5679
+        message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
+        self._run(
+            app_conf=dict(message_queue_url=message_queue_url),
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            manager_url=message_queue_url,
+            inject_files_endpoint=True,
+            **self.default_kwargs
+        )
+
+    @integration_test
+    @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
+    def test_integration_kubernetes(self):
+        message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
+        remote_pulsar_app_config = {
+            "staging_directory": "/pulsar_staging/",
+            "message_queue_url": to_infrastructure_uri(message_queue_url),
+            "manager": {
+                "type": "coexecution",
+            }
+        }
+        self._run(
+            app_conf=dict(message_queue_url=message_queue_url),
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            manager_url=message_queue_url,
+            inject_files_endpoint=True,
+            k8s_enabled=True,
+            container="conda/miniconda2",
+            remote_pulsar_app_config=remote_pulsar_app_config,
+            **self.default_kwargs
+        )
+
+
 class DirectIntegrationTests(IntegrationTests):
     default_kwargs = dict(direct_interface=True, test_requirement=False)
 
@@ -221,3 +273,18 @@ class DirectIntegrationTests(IntegrationTests):
             default_file_action="remote_transfer",
             **self.default_kwargs
         )
+
+
+def to_infrastructure_uri(uri):
+    # remap MQ or file server URI hostnames for in-container versions, this is sloppy
+    # should actually parse the URI and rebuild with correct host
+    infrastructure_host = environ.get("PULSAR_TEST_INFRASTRUCTURE_HOST")
+    infrastructure_uri = uri
+    if infrastructure_host:
+        if "0.0.0.0" in infrastructure_uri:
+            infrastructure_uri = infrastructure_uri.replace("0.0.0.0", infrastructure_host)
+        elif "localhost" in infrastructure_uri:
+            infrastructure_uri = infrastructure_uri.replace("localhost", infrastructure_host)
+        elif "127.0.0.1" in infrastructure_uri:
+            infrastructure_uri = infrastructure_uri.replace("127.0.0.1", infrastructure_host)
+    return infrastructure_uri

@@ -17,14 +17,23 @@ import traceback
 from collections import namedtuple
 from io import open
 
-from galaxy.tools.deps.dependencies import DependenciesDescription
-from galaxy.tools.deps.requirements import ToolRequirement
+try:
+    # If galaxy-lib or Galaxy 19.05 present.
+    from galaxy.tools.deps.dependencies import DependenciesDescription
+    from galaxy.tools.deps.requirements import ToolRequirement
+except ImportError:
+    # If galaxy-tool-util or Galaxy 19.09 present.
+    from galaxy.tool_util.deps.dependencies import DependenciesDescription
+    from galaxy.tool_util.deps.requirements import ToolRequirement
 from six import binary_type
 
 from pulsar.client import (
     build_client_manager,
     ClientJobDescription,
+    ClientInputs,
+    ClientInput,
     ClientOutputs,
+    CLIENT_INPUT_PATH_TYPES,
     finish_job,
     PulsarOutputs,
     submit_job,
@@ -73,6 +82,7 @@ try:
     assert_path_contents(sys.argv[2], "Hello world input!!@!")
     assert_path_contents(sys.argv[8], "INPUT_EXTRA_CONTENTS")
     assert_path_contents(sys.argv[13], "meta input")
+    assert_path_contents(sys.argv[14], "INPUT METADATA CONTENTS...")
     contents = config_input.read(1024)
     output.write(contents)
     open("workdir_output", "w").write("WORK DIR OUTPUT")
@@ -149,6 +159,7 @@ def run(options):
 
         temp_input_path = os.path.join(temp_directory, "dataset_0.dat")
         temp_input_extra_path = os.path.join(temp_directory, "dataset_0_files", "input_subdir", "extra")
+        temp_input_metadata_path = os.path.join(temp_directory, "metadata", "12312231231231.dat")
         temp_index_path = os.path.join(temp_index_dir, "human.fa")
 
         temp_config_path = os.path.join(temp_work_dir, "config.txt")
@@ -167,6 +178,7 @@ def run(options):
 
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
+        __write_to_file(temp_input_metadata_path, b"INPUT METADATA CONTENTS...")
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
         __write_to_file(temp_metadata_path, "meta input")
         __write_to_file(temp_tool_path, TEST_SCRIPT)
@@ -194,11 +206,20 @@ def run(options):
             temp_output4_path,
             temp_shared_dir,
             temp_metadata_path,
+            temp_input_metadata_path,
         )
         assert os.path.exists(temp_index_path)
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
-        input_files = [temp_input_path, empty_input]
+        client_inputs = []
+        client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
+        client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
+        # Reverting empty input handling added in:
+        #  https://github.com/galaxyproject/pulsar/commit/2fb36ba979cf047a595c53cdef833cae79cbb380
+        # Seems like it really should cause a failure.
+        # client_inputs.append(ClientInput(empty_input, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
+        client_inputs.append(ClientInput(os.path.join(temp_directory, "dataset_0_files"), CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
+        client_inputs.append(ClientInput(temp_input_metadata_path, CLIENT_INPUT_PATH_TYPES.INPUT_METADATA_PATH))
         output_files = [
             temp_output_path,
             temp_output2_path,
@@ -224,7 +245,7 @@ def run(options):
             command_line=command_line,
             tool=MockTool(temp_tool_dir),
             config_files=config_files,
-            input_files=input_files,
+            client_inputs=ClientInputs(client_inputs),
             client_outputs=client_outputs,
             working_directory=temp_work_dir,
             metadata_directory=temp_metadata_dir,
@@ -271,11 +292,11 @@ class Waiter(object):
     def __init__(self, client, client_manager):
         self.client = client
         self.client_manager = client_manager
-        self.async = hasattr(client_manager, 'ensure_has_status_update_callback')
+        self.background = hasattr(client_manager, 'ensure_has_status_update_callback')
         self.__setup_callback()
 
     def __setup_callback(self):
-        if self.async:
+        if self.background:
             self.event = threading.Event()
 
             def on_update(message):
@@ -287,7 +308,7 @@ class Waiter(object):
 
     def wait(self, seconds=15):
         final_status = None
-        if not self.async:
+        if not self.background:
             i = 0
             # Wait for seconds * 2 half second intervals
             while i < (seconds * 2):
@@ -332,8 +353,8 @@ def __assert_has_rewritten_bwa_path(client, temp_output4_path):
     if client.default_file_action != "none":
         rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
         # Path written to this file will differ between Windows and Linux.
-        if re.search(r"123456[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa", rewritten_index_path) is None:
-            raise AssertionError("[%s] does not container rewritten path." % rewritten_index_path)
+        if re.search(r"%s[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa" % client.job_id, rewritten_index_path) is None:
+            raise AssertionError("[%s] does not contain rewritten path." % rewritten_index_path)
 
 
 def __exercise_errors(options, client, temp_output_path, temp_directory):
@@ -399,6 +420,10 @@ def extract_client_options(options):
         client_options["jobs_directory"] = getattr(options, "jobs_directory")
     if hasattr(options, "files_endpoint"):
         client_options["files_endpoint"] = getattr(options, "files_endpoint")
+    if hasattr(options, "k8s_enabled"):
+        client_options["k8s_enabled"] = getattr(options, "k8s_enabled")
+    if hasattr(options, "container"):
+        client_options["container"] = getattr(options, "container")
     return client_options
 
 
@@ -452,7 +477,9 @@ def __extra_job_description_kwargs(options):
     env = []
     if test_env:
         env.append(dict(name="TEST_ENV", value="TEST_ENV_VALUE"))
-    return dict(dependencies_description=dependencies_description, env=env)
+    container = getattr(options, "container", None)
+    remote_pulsar_app_config = getattr(options, "remote_pulsar_app_config", None)
+    return dict(dependencies_description=dependencies_description, env=env, container=container, remote_pulsar_app_config=remote_pulsar_app_config)
 
 
 def __finish(options, client, client_outputs, result_status):

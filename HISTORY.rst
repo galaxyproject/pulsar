@@ -6,10 +6,66 @@ History
 .. to_doc
 
 ---------------------
-0.9.0.dev0
+0.12.0.dev0
 ---------------------
 
     
+
+---------------------
+0.11.0 (2019-05-16)
+---------------------
+
+* Implement staging Galaxy metadata input files in the client.
+  39de377_
+* Fix 'amqp_ack_republish_time' in sample (thanks to `@dannon`_).
+  `Pull Request 185`_
+* Updated amqp_url in job_conf_sample_mq_rsync.xml (thanks to `@AndreasSko`_).
+  `Pull Request 184`_
+* Use wildcard char for pulsar version (thanks to `@VJalili`_).
+  `Pull Request 181`_
+* Refactor toward more structured inputs. f477bc4_
+* Refactor toward passing objectstore identifying information around.
+  `Pull Request 180`_
+* Rework imports for new Galaxy library structure. da086c9_
+* Revert empty input testing, it really probably should cause a failure
+  to transfer a non-existent file.
+  8bd5511_
+* Better client mapper documentation. b6278b4_
+
+---------------------
+0.10.0 (2019-05-06)
+---------------------
+
+* Implement support for Kubernetes two container pod jobs - staging and
+  tool execution as separate containers in the same job's pod.
+  `Pull Request 176`_, `Pull Request 178`_
+
+---------------------
+0.9.1 (2019-05-01)
+---------------------
+
+* Fix duplicate inputs being a problem when staging Galaxy files.
+  `Pull Request 175`_
+* Fix deprecated ``assertEquals()`` (thanks to @nsoranzo). `Pull Request 173`_
+* Fix a method missing problem. `Pull Request 174`_
+* Sync "recent" galaxy runner util changes. `Pull Request 177`_
+
+---------------------
+0.9.0 (2019-04-12)
+---------------------
+    
+* Add configuration parameter to limit stream size read from disk. `Pull
+  Request 157`_
+* Pass full job status for failed and lost jobs. `Pull Request 159`_
+* Improve message handling if problems occur during job setup/staging. `Pull
+  Request 160`_
+* Rework preprocessing job state to improve restartability and reduce job loss.
+  **This change should be applied while no jobs are running.**
+  `Pull Request 164`_
+* Add support for overriding config through environment variables (thanks to
+  @nuwang). `Pull Request 165`_
+* Minor docs updates (thanks to @afgane). `Pull Request 170`_
+* Python 3 fixes in Pulsar client (thanks to @mvdbeek). `Pull Request 172`_
 
 ---------------------
 0.8.3 (2018-02-08)
@@ -186,6 +242,28 @@ History
 
 
 .. github_links
+.. _Pull Request 185: https://github.com/galaxyproject/pulsar/pull/185
+.. _Pull Request 184: https://github.com/galaxyproject/pulsar/pull/184
+.. _Pull Request 181: https://github.com/galaxyproject/pulsar/pull/181
+.. _Pull Request 180: https://github.com/galaxyproject/pulsar/pull/180
+.. _da086c9: https://github.com/galaxyproject/pulsar/commit/da086c9
+.. _8bd5511: https://github.com/galaxyproject/pulsar/commit/8bd5511
+.. _b6278b4: https://github.com/galaxyproject/pulsar/commit/b6278b4
+.. _39de377: https://github.com/galaxyproject/pulsar/commit/39de377
+.. _f477bc4: https://github.com/galaxyproject/pulsar/commit/f477bc4
+.. _Pull Request 178: https://github.com/galaxyproject/pulsar/pull/178
+.. _Pull Request 176: https://github.com/galaxyproject/pulsar/pull/176
+.. _Pull Request 173: https://github.com/galaxyproject/pulsar/pull/173
+.. _Pull Request 174: https://github.com/galaxyproject/pulsar/pull/174
+.. _Pull Request 175: https://github.com/galaxyproject/pulsar/pull/175
+.. _Pull Request 177: https://github.com/galaxyproject/pulsar/pull/177
+.. _Pull Request 172: https://github.com/galaxyproject/pulsar/pull/172
+.. _Pull Request 170: https://github.com/galaxyproject/pulsar/pull/170
+.. _Pull Request 165: https://github.com/galaxyproject/pulsar/pull/165
+.. _Pull Request 164: https://github.com/galaxyproject/pulsar/pull/164
+.. _Pull Request 160: https://github.com/galaxyproject/pulsar/pull/160
+.. _Pull Request 159: https://github.com/galaxyproject/pulsar/pull/159
+.. _Pull Request 157: https://github.com/galaxyproject/pulsar/pull/157
 .. _Pull Request 156: https://github.com/galaxyproject/pulsar/pull/156
 .. _Pull Request 145: https://github.com/galaxyproject/pulsar/pull/145
 .. _Pull Request 146: https://github.com/galaxyproject/pulsar/pull/146
@@ -242,3 +320,6 @@ History
 .. _3cc7f74: https://github.com/galaxyproject/pulsar/commit/3cc7f74
 .. _9d43ae0: https://github.com/galaxyproject/pulsar/commit/9d43ae0
 .. _Pull Request 62: https://github.com/galaxyproject/pulsar/pull/62
+.. _@dannon: https://github.com/dannon
+.. _@AndreasSko: https://github.com/AndreasSko
+.. _@VJalili: https://github.com/VJalili

@@ -1,5 +1,5 @@
-pulsar\.util package
-====================
+pulsar.util package
+===================
 
 Subpackages
 -----------

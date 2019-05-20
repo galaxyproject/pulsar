@@ -1,12 +1,10 @@
 from io import open
 from logging import getLogger
-from os import listdir, sep
+from os import sep
 from os.path import (
     abspath,
     basename,
-    dirname,
     exists,
-    isfile,
     join,
     relpath,
 )
@@ -16,7 +14,7 @@ from ..action_mapper import FileActionMapper
 from ..action_mapper import MessageAction
 from ..action_mapper import path_type
 from ..job_directory import RemoteJobDirectory
-from ..staging import COMMAND_VERSION_FILENAME
+from ..staging import CLIENT_INPUT_PATH_TYPES, COMMAND_VERSION_FILENAME
 from ..util import directory_files
 from ..util import PathHelper
 
@@ -34,6 +32,11 @@ def submit_job(client, client_job_description, job_config=None):
         dependencies_description=client_job_description.dependencies_description,
         env=client_job_description.env,
     )
+    if client_job_description.container:
+        launch_kwds["container"] = client_job_description.container
+    if client_job_description.remote_pulsar_app_config:
+        launch_kwds["pulsar_app_config"] = client_job_description.remote_pulsar_app_config
+
     if file_stager.job_config:
         launch_kwds["job_config"] = file_stager.job_config
     remote_staging = {}
@@ -70,7 +73,7 @@ class FileStager(object):
         self.client = client
         self.command_line = client_job_description.command_line
         self.config_files = client_job_description.config_files
-        self.input_files = client_job_description.input_files
+        self.client_inputs = client_job_description.client_inputs
         self.output_files = client_job_description.output_files
         if client_job_description.tool is not None:
             self.tool_id = client_job_description.tool.id
@@ -192,65 +195,65 @@ class FileStager(object):
                 if path not in referenced_arbitrary_path_mappers:
                     referenced_arbitrary_path_mappers[path] = mapper
         for path, mapper in referenced_arbitrary_path_mappers.items():
-            action = self.action_mapper.action(path, path_type.UNSTRUCTURED, mapper)
+            action = self.action_mapper.action({"path": path}, path_type.UNSTRUCTURED, mapper)
             unstructured_map = action.unstructured_map(self.path_helper)
             self.arbitrary_files.update(unstructured_map)
 
     def __upload_tool_files(self):
         for referenced_tool_file in self.referenced_tool_files:
-            self.transfer_tracker.handle_transfer(referenced_tool_file, path_type.TOOL)
+            self.transfer_tracker.handle_transfer_path(referenced_tool_file, path_type.TOOL)
 
     def __upload_arbitrary_files(self):
         for path, name in self.arbitrary_files.items():
-            self.transfer_tracker.handle_transfer(path, path_type.UNSTRUCTURED, name=name)
+            self.transfer_tracker.handle_transfer_path(path, path_type.UNSTRUCTURED, name=name)
 
     def __upload_input_files(self):
-        for input_file in self.input_files:
-            self.__upload_input_file(input_file)
-            self.__upload_input_extra_files(input_file)
+        handled_inputs = set()
+        for client_input in self.client_inputs:
+            # TODO: use object identity to handle this.
+            path = client_input.path
+            if path in handled_inputs:
+                continue
 
-    def __upload_input_file(self, input_file):
-        if self.__stage_input(input_file):
-            if exists(input_file):
-                self.transfer_tracker.handle_transfer(input_file, path_type.INPUT)
+            if client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_PATH:
+                self.__upload_input_file(client_input.action_source)
+                handled_inputs.add(path)
+            elif client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH:
+                self.__upload_input_extra_files(client_input.action_source)
+                handled_inputs.add(path)
+            elif client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_METADATA_PATH:
+                self.__upload_input_metadata_file(client_input.action_source)
+                handled_inputs.add(path)
             else:
-                message = "Pulsar: __upload_input_file called on empty or missing dataset." + \
-                          " So such file: [%s]" % input_file
-                log.debug(message)
+                raise NotImplementedError()
 
-    def __upload_input_extra_files(self, input_file):
-        files_path = "%s_files" % input_file[0:-len(".dat")]
-        if exists(files_path) and self.__stage_input(files_path):
-            for extra_file_name in directory_files(files_path):
-                extra_file_path = join(files_path, extra_file_name)
-                remote_name = self.path_helper.remote_name(relpath(extra_file_path, dirname(files_path)))
-                self.transfer_tracker.handle_transfer(extra_file_path, path_type.INPUT, name=remote_name)
+    def __upload_input_file(self, input_action_source):
+        if self.__stage_input(input_action_source):
+            self.transfer_tracker.handle_transfer_source(input_action_source, path_type.INPUT)
+
+    def __upload_input_extra_files(self, input_action_source):
+        if self.__stage_input(input_action_source):
+            # TODO: needs to happen else where if using remote object store staging
+            # but we don't have the action type yet.
+            self.transfer_tracker.handle_transfer_directory(path_type.INPUT, action_source=input_action_source)
+
+    def __upload_input_metadata_file(self, input_action_source):
+        if self.__stage_input(input_action_source):
+            # Name must match what is generated in remote_input_path_rewrite in path_mapper.
+            remote_name = "metadata_%s" % basename(input_action_source['path'])
+            self.transfer_tracker.handle_transfer_source(input_action_source, path_type.INPUT, name=remote_name)
 
     def __upload_working_directory_files(self):
         # Task manager stages files into working directory, these need to be
         # uploaded if present.
-        working_directory_files = self.__working_directory_files()
-        for working_directory_file in working_directory_files:
-            path = join(self.working_directory, working_directory_file)
-            self.transfer_tracker.handle_transfer(path, path_type.WORKDIR)
+        directory = self.working_directory
+        if directory and exists(directory):
+            self.transfer_tracker.handle_transfer_directory(path_type.WORKDIR, directory=directory)
 
     def __upload_metadata_directory_files(self):
-        metadata_directory_files = self.__metadata_directory_files()
-        for metadata_directory_file in metadata_directory_files:
-            path = join(self.metadata_directory, metadata_directory_file)
-            self.transfer_tracker.handle_transfer(path, path_type.METADATA)
-
-    def __working_directory_files(self):
-        return self.__list_files(self.working_directory)
-
-    def __metadata_directory_files(self):
-        return self.__list_files(self.metadata_directory)
-
-    def __list_files(self, directory):
+        directory = self.metadata_directory
         if directory and exists(directory):
-            return [f for f in listdir(directory) if isfile(join(directory, f))]
-        else:
-            return []
+            self.transfer_tracker.handle_transfer_directory(path_type.METADATA, directory=directory)
 
     def __initialize_version_file_rename(self):
         version_file = self.version_file
@@ -284,7 +287,7 @@ class FileStager(object):
 
     def __upload_rewritten_config_files(self):
         for config_file, new_config_contents in self.job_inputs.config_files.items():
-            self.transfer_tracker.handle_transfer(config_file, type=path_type.CONFIG, contents=new_config_contents)
+            self.transfer_tracker.handle_transfer_path(config_file, type=path_type.CONFIG, contents=new_config_contents)
 
     def get_command_line(self):
         """
@@ -293,10 +296,13 @@ class FileStager(object):
         """
         return self.job_inputs.command_line
 
-    def __stage_input(self, file_path):
+    def __stage_input(self, source):
+        if not self.rewrite_paths:
+            return True
+
         # If we have disabled path rewriting, just assume everything needs to be transferred,
         # else check to ensure the file is referenced before transferring it.
-        return (not self.rewrite_paths) or self.job_inputs.path_referenced(file_path)
+        return self.job_inputs.path_referenced(source['path'])
 
 
 class JobInputs(object):
@@ -413,20 +419,58 @@ class TransferTracker(object):
         self.file_renames = {}
         self.remote_staging_actions = []
 
-    def handle_transfer(self, path, type, name=None, contents=None):
-        action = self.__action_for_transfer(path, type, contents)
+    def handle_transfer_path(self, path, type, name=None, contents=None):
+        source = {"path": path}
+        return self.handle_transfer_source(source, type, name=name, contents=contents)
+
+    def handle_transfer_directory(self, type, directory=None, action_source=None):
+        # TODO: needs to happen else where if using remote object store staging
+        # but we don't have the action type yet.
+        if directory is None:
+            assert action_source is not None
+            action = self.__action_for_transfer(action_source, type, None)
+            if not action.staging_action_local and action.whole_directory_transfer_supported:
+                # If we're going to transfer the whole directory remotely, don't walk the files
+                # here.
+
+                # We could still rewrite paths and just not transfer the files.
+                assert not self.rewrite_paths
+                self.__add_remote_staging_input(self, action, None, type)
+                return
+
+            directory = action_source['path']
+        else:
+            assert action_source is None
+
+        for directory_file_name in directory_files(directory):
+            directory_file_path = join(directory, directory_file_name)
+            remote_name = self.path_helper.remote_name(relpath(directory_file_path, directory))
+            self.handle_transfer_path(directory_file_path, type, name=remote_name)
+
+    def handle_transfer_source(self, source, type, name=None, contents=None):
+        action = self.__action_for_transfer(source, type, contents)
 
         if action.staging_needed:
             local_action = action.staging_action_local
             if local_action:
+                path = source['path']
+                if not exists(path):
+                    message = "Pulsar: __upload_input_file called on empty or missing dataset." + \
+                              " No such file: [%s]" % path
+                    log.debug(message)
+                    return
+
                 response = self.client.put_file(path, type, name=name, contents=contents, action_type=action.action_type)
 
                 def get_path():
                     return response['path']
             else:
+                path = source['path']
                 job_directory = self.job_directory
                 assert job_directory, "job directory required for action %s" % action
                 if not name:
+                    # TODO: consider fetching this from source so an actual input path
+                    # isn't needed. At least it isn't used though.
                     name = basename(path)
                 self.__add_remote_staging_input(action, name, type)
 
@@ -434,11 +478,11 @@ class TransferTracker(object):
                     return job_directory.calculate_path(name, type)
             register = self.rewrite_paths or type == 'tool'  # Even if inputs not rewritten, tool must be.
             if register:
-                self.register_rewrite(path, get_path(), type, force=True)
+                self.register_rewrite_action(action, get_path(), force=True)
         elif self.rewrite_paths:
             path_rewrite = action.path_rewrite(self.path_helper)
             if path_rewrite:
-                self.register_rewrite(path, path_rewrite, type, force=True)
+                self.register_rewrite_action(action, path_rewrite, force=True)
 
         # else: # No action for this file
 
@@ -450,23 +494,29 @@ class TransferTracker(object):
         )
         self.remote_staging_actions.append(input_dict)
 
-    def __action_for_transfer(self, path, type, contents):
+    def __action_for_transfer(self, source, type, contents):
         if contents:
             # If contents loaded in memory, no need to write out file and copy,
             # just transfer.
             action = MessageAction(contents=contents, client=self.client)
         else:
-            if not exists(path):
-                message = "handle_transfer called on non-existent file - [%s]" % path
+            path = source.get("path")
+            if path is not None and not exists(path):
+                message = "__action_for_transfer called on non-existent file - [%s]" % path
                 log.warn(message)
                 raise Exception(message)
-            action = self.__action(path, type)
+            action = self.__action(source, type)
         return action
 
     def register_rewrite(self, local_path, remote_path, type, force=False):
-        action = self.__action(local_path, type)
+        action = self.__action({"path": local_path}, type)
+        self.register_rewrite_action(action, remote_path, force=force)
+
+    def register_rewrite_action(self, action, remote_path, force=False):
         if action.staging_needed or force:
-            self.file_renames[local_path] = remote_path
+            path = getattr(action, 'path', None)
+            if path:
+                self.file_renames[path] = remote_path
 
     def rewrite_input_paths(self):
         """
@@ -476,8 +526,8 @@ class TransferTracker(object):
         for local_path, remote_path in self.file_renames.items():
             self.job_inputs.rewrite_paths(local_path, remote_path)
 
-    def __action(self, path, type):
-        return self.action_mapper.action(path, type)
+    def __action(self, source, type):
+        return self.action_mapper.action(source, type)
 
 
 def _read(path):

@@ -7,7 +7,7 @@
             <!-- Message Queue Connection (should match message_queue_url in
                  Pulsar's app.yml). pyamqp may be necessary over amqp if SSL is used
             -->
-            <param id="url">pyamqp://rabbituser:rabb8pa8sw0d@mqserver:5671//?ssl=1</param>
+            <param id="amqp_url">pyamqp://rabbituser:rabb8pa8sw0d@mqserver:5671//?ssl=1</param>
         </plugin>
     </plugins>
     <handlers>

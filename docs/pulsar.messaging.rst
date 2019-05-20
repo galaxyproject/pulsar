@@ -1,11 +1,11 @@
-pulsar\.messaging package
-=========================
+pulsar.messaging package
+========================
 
 Submodules
 ----------
 
-pulsar\.messaging\.bind\_amqp module
-------------------------------------
+pulsar.messaging.bind\_amqp module
+----------------------------------
 
 .. automodule:: pulsar.messaging.bind_amqp
     :members:

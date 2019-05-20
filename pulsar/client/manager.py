@@ -20,6 +20,7 @@ from .client import InputCachingJobClient
 from .client import JobClient
 from .client import MessageJobClient
 from .client import MessageCLIJobClient
+from .client import MessageCoexecutionPodJobClient
 from .destination import url_to_destination_params
 from .interface import HttpPulsarInterface
 from .interface import LocalPulsarInterface
@@ -212,6 +213,8 @@ class MessageQueueClientManager(object):
         if 'shell_plugin' in destination_params:
             shell = cli_factory.get_shell(destination_params)
             return MessageCLIJobClient(destination_params, job_id, self, shell)
+        elif destination_params.get('k8s_enabled', False):
+            return MessageCoexecutionPodJobClient(destination_params, job_id, self)
         else:
             return MessageJobClient(destination_params, job_id, self)
 

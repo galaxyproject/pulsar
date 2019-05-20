@@ -9,7 +9,7 @@ def test_endpoint_validation():
     mapper = FileActionMapper(client)
     exception_found = False
     try:
-        mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
+        mapper.action({'path': '/opt/galaxy/tools/filters/catWrapper.py'}, 'input')
     except Exception as e:
         exception_found = True
         assert "files_endpoint" in str(e)
@@ -21,7 +21,7 @@ def test_ssh_key_validation():
     mapper = FileActionMapper(client)
     exception_found = False
     try:
-        mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
+        mapper.action({'path': '/opt/galaxy/tools/filters/catWrapper.py'}, 'input')
     except Exception as e:
         exception_found = True
         assert "ssh_key" in str(e)
@@ -31,7 +31,7 @@ def test_ssh_key_validation():
 def test_ssh_key_defaults():
     client = _client("remote_rsync_transfer")
     mapper = FileActionMapper(client)
-    action = mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
+    action = mapper.action({'path': '/opt/galaxy/tools/filters/catWrapper.py'}, 'input')
     action.to_dict()
 
 

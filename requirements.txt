@@ -4,7 +4,7 @@ PasteDeploy
 six
 pyyaml
 galaxy-lib
-
+paramiko
 
 # Problematic for Python 3.
 paste

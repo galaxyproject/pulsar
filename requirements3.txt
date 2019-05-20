@@ -5,6 +5,6 @@ psutil
 PasteDeploy
 six
 galaxy-lib
-
+paramiko
 
 chaussette

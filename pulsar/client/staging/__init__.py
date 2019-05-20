@@ -5,8 +5,11 @@ from os import sep
 from os.path import (
     basename,
     dirname,
+    exists,
     join,
 )
+
+from galaxy.util.bunch import Bunch
 
 from ..util import PathHelper
 
@@ -60,8 +63,9 @@ class ClientJobDescription(object):
         self,
         command_line,
         tool=None,
-        config_files=[],
-        input_files=[],
+        config_files=None,
+        input_files=None,
+        client_inputs=None,
         client_outputs=None,
         working_directory=None,
         metadata_directory=None,
@@ -70,11 +74,17 @@ class ClientJobDescription(object):
         arbitrary_files=None,
         rewrite_paths=True,
         touch_outputs=None,
+        container=None,
+        remote_pulsar_app_config=None,
     ):
         self.tool = tool
         self.command_line = command_line
-        self.config_files = config_files
-        self.input_files = input_files
+        self.config_files = config_files or []
+        if input_files is not None:
+            # Deprecated input but provided for backward compatibility.
+            assert client_inputs is None
+            client_inputs = ClientInputs.for_simple_input_paths(input_files)
+        self.client_inputs = client_inputs or ClientInputs([])
         self.client_outputs = client_outputs or ClientOutputs()
         self.working_directory = working_directory
         self.metadata_directory = metadata_directory
@@ -83,6 +93,17 @@ class ClientJobDescription(object):
         self.rewrite_paths = rewrite_paths
         self.arbitrary_files = arbitrary_files or {}
         self.touch_outputs = touch_outputs or []
+        self.container = container
+        self.remote_pulsar_app_config = remote_pulsar_app_config
+
+    @property
+    def input_files(self):
+        # Deprecated but provided for backward compatibility.
+        input_files = []
+        for client_input in self.client_inputs:
+            if client_input.input_type == CLIENT_INPUT_PATH_TYPES.INPUT_PATH:
+                input_files.append(client_input.path)
+        return input_files
 
     @property
     def output_files(self):
@@ -100,6 +121,47 @@ class ClientJobDescription(object):
             requirements=(self.tool.requirements or []),
             installed_tool_dependencies=(self.tool.installed_tool_dependencies or [])
         )
+
+
+class ClientInputs(object):
+    """Abstraction describing input datasets for a job."""
+
+    def __init__(self, client_inputs):
+        self.client_inputs = client_inputs
+
+    def __iter__(self):
+        return iter(self.client_inputs)
+
+    @staticmethod
+    def for_simple_input_paths(input_files):
+        # Legacy: just assume extra files path based on inputs, probably not
+        # the best behavior - ignores object store for instance.
+        client_inputs = []
+        for input_file in input_files:
+            client_inputs.append(ClientInput(input_file, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
+            files_path = "%s_files" % input_file[0:-len(".dat")]
+            if exists(files_path):
+                client_inputs.append(ClientInput(files_path, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH))
+
+        return ClientInputs(client_inputs)
+
+
+CLIENT_INPUT_PATH_TYPES = Bunch(
+    INPUT_PATH="input_path",
+    INPUT_EXTRA_FILES_PATH="input_extra_files_path",
+    INPUT_METADATA_PATH="input_metadata_path",
+)
+
+
+class ClientInput(object):
+
+    def __init__(self, path, input_type):
+        self.path = path
+        self.input_type = input_type
+
+    @property
+    def action_source(self):
+        return {"path": self.path}
 
 
 class ClientOutputs(object):

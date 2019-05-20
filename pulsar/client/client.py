@@ -3,6 +3,13 @@ import os
 
 from six import string_types
 
+from pulsar.managers.util.pykube_util import (
+    Job,
+    job_object_dict,
+    produce_unique_k8s_job_name,
+    pull_policy,
+    pykube_client_from_dict,
+)
 from .action_mapper import (
     actions,
     path_type,
@@ -21,6 +28,14 @@ from .util import to_base64_json
 log = logging.getLogger(__name__)
 
 CACHE_WAIT_SECONDS = 3
+TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE = """
+path='%s/command_line';
+while [ ! -e $path ];
+    do sleep 1; echo "waiting for job script $path";
+done;
+echo 'running script';
+sh $path;
+echo 'ran script'"""
 
 
 class OutputNotFoundException(Exception):
@@ -184,7 +199,7 @@ class JobClient(BaseJobClient):
         if action_type in ['transfer', 'message']:
             if isinstance(contents, string_types):
                 contents = contents.encode("utf-8")
-            message = "Uplodaing path [%s] (action_type: [%s])"
+            message = "Uploading path [%s] (action_type: [%s])"
             log.debug(message, path, action_type)
             return self._upload_file(args, contents, input_path)
         elif action_type == 'copy':
@@ -343,6 +358,87 @@ class MessageCLIJobClient(BaseMessageJobClient):
 
     def kill(self):
         # TODO
+        pass
+
+
+class MessageCoexecutionPodJobClient(BaseMessageJobClient):
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super(MessageCoexecutionPodJobClient, self).__init__(destination_params, job_id, client_manager)
+        self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.10.0")
+        self._default_pull_policy = pull_policy(destination_params)
+
+    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, container=None, pulsar_app_config=None):
+        """
+        """
+        launch_params = self._build_setup_message(
+            command_line,
+            dependencies_description=dependencies_description,
+            env=env,
+            remote_staging=remote_staging,
+            job_config=job_config,
+        )
+        base64_message = to_base64_json(launch_params)
+        base64_app_conf = to_base64_json(pulsar_app_config)
+
+        # TODO: instance_id for Pulsar...
+        job_name = produce_unique_k8s_job_name(app_prefix="pulsar")
+        params = self.destination_params
+
+        pulsar_container_image = self.pulsar_container_image
+
+        job_directory = self.job_directory
+
+        volumes = [
+            {"name": "staging-directory", "emptyDir": {}},
+        ]
+        volume_mounts = [
+            {"mountPath": "/pulsar_staging", "name": "staging-directory"},
+        ]
+        tool_container_image = container  # TODO: this isn't right at all...
+        if not container:
+            raise Exception("Must declare a container for kubernetes job execution.")
+        pulsar_container_dict = {
+            "name": "pulsar-container",
+            "image": pulsar_container_image,
+            "command": ["pulsar-submit"],
+            "args": ["--base64", base64_message, "--app_conf_base64", base64_app_conf],
+            "workingDir": "/",
+            "volumeMounts": volume_mounts,
+        }
+        command = TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE % job_directory.job_directory
+        tool_container_spec = {
+            "name": "tool-container",
+            "image": tool_container_image,
+            "command": ["sh"],
+            "args": ["-c", command],
+            "workingDir": "/",
+            "volumeMounts": volume_mounts,
+        }
+
+        container_dicts = [pulsar_container_dict, tool_container_spec]
+        for container_dict in container_dicts:
+            if self._default_pull_policy:
+                container_dict["imagePullPolicy"] = self._default_pull_policy
+
+        template = {
+            "metadata": {
+                "labels": {"app": job_name},
+            },
+            "spec": {
+                "volumes": volumes,
+                "restartPolicy": "Never",
+                "containers": container_dicts,
+            }
+        }
+        spec = {"template": template}
+        k8s_job_obj = job_object_dict(params, job_name, spec)
+        pykube_client = pykube_client_from_dict(self.destination_params)
+        job = Job(pykube_client, k8s_job_obj)
+        job.create()
+
+    def kill(self):
+        # TODO: kill pod...
         pass
 
 

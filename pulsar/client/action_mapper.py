@@ -2,7 +2,6 @@ import fnmatch
 import tempfile
 
 from contextlib import contextmanager
-from json import load
 from os import makedirs
 from os import unlink
 from os.path import (
@@ -49,7 +48,7 @@ path_type = Bunch(
     TOOL="tool",
     # Input work dir files - e.g.task-split input file
     WORKDIR="workdir",
-    # Input work dir files - e.g. metadata files, etc..
+    # Input metadata dir files - e.g. metadata files, etc..
     METADATA="metadata",
     # Galaxy output datasets in their final home.
     OUTPUT="output",
@@ -59,7 +58,7 @@ path_type = Bunch(
     # metric instrumentation files)
     OUTPUT_METADATA="output_metadata",
     # Other fixed tool parameter paths (likely coming from tool data, but not
-    # nessecarily). Not sure this is the best name...
+    # nessecarily).
     UNSTRUCTURED="unstructured",
 )
 
@@ -99,53 +98,62 @@ class FileActionMapper(object):
     ...     mock_client = Bunch(default_file_action=default_action, action_config_path=f.name, files_endpoint=None)
     ...     mapper = FileActionMapper(mock_client)
     ...     as_dict = config=mapper.to_dict()
-    ...     # print(as_dict["paths"])
     ...     mapper = FileActionMapper(config=as_dict) # Serialize and deserialize it to make sure still works
     ...     unlink(f.name)
     ...     return mapper
     >>> mapper = mapper_for(default_action='none', config_contents=json_string)
     >>> # Test first config line above, implicit path prefix mapper
-    >>> action = mapper.action('/opt/galaxy/tools/filters/catWrapper.py', 'input')
+    >>> action = mapper.action({'path': '/opt/galaxy/tools/filters/catWrapper.py'}, 'input')
     >>> action.action_type == u'none'
     True
     >>> action.staging_needed
     False
     >>> # Test another (2nd) mapper, this one with a different action
-    >>> action = mapper.action('/galaxy/data/files/000/dataset_1.dat', 'input')
+    >>> action = mapper.action({'path': '/galaxy/data/files/000/dataset_1.dat'}, 'input')
     >>> action.action_type == u'transfer'
     True
     >>> action.staging_needed
     True
     >>> # Always at least copy work_dir outputs.
-    >>> action = mapper.action('/opt/galaxy/database/working_directory/45.sh', 'workdir')
+    >>> action = mapper.action({'path': '/opt/galaxy/database/working_directory/45.sh'}, 'workdir')
     >>> action.action_type == u'copy'
     True
     >>> action.staging_needed
     True
     >>> # Test glob mapper (matching test)
-    >>> mapper.action('/cool/bamfiles/projectABC/study1/patient3.bam', 'input').action_type == u'copy'
+    >>> mapper.action({'path': '/cool/bamfiles/projectABC/study1/patient3.bam'}, 'input').action_type == u'copy'
     True
     >>> # Test glob mapper (non-matching test)
-    >>> mapper.action('/cool/bamfiles/projectABC/study1/patient3.bam.bai', 'input').action_type == u'none'
+    >>> mapper.action({'path': '/cool/bamfiles/projectABC/study1/patient3.bam.bai'}, 'input').action_type == u'none'
     True
     >>> # Regex mapper test.
-    >>> mapper.action('/old/galaxy/data/dataset_10245.dat', 'input').action_type == u'copy'
+    >>> mapper.action({'path': '/old/galaxy/data/dataset_10245.dat'}, 'input').action_type == u'copy'
     True
     >>> # Doesn't map unstructured paths by default
-    >>> mapper.action('/old/galaxy/data/dataset_10245.dat', 'unstructured').action_type == u'none'
+    >>> mapper.action({'path': '/old/galaxy/data/dataset_10245.dat'}, 'unstructured').action_type == u'none'
     True
     >>> input_only_mapper = mapper_for(default_action="none", config_contents=r'''{"paths": [ \
       {"path": "/", "action": "transfer", "path_types": "input"} \
     ] }''')
-    >>> input_only_mapper.action('/dataset_1.dat', 'input').action_type == u'transfer'
+    >>> input_only_mapper.action({'path': '/dataset_1.dat'}, 'input').action_type == u'transfer'
     True
-    >>> input_only_mapper.action('/dataset_1.dat', 'output').action_type == u'none'
+    >>> input_only_mapper.action({'path': '/dataset_1.dat'}, 'output').action_type == u'none'
     True
     >>> unstructured_mapper = mapper_for(default_action="none", config_contents=r'''{"paths": [ \
       {"path": "/", "action": "transfer", "path_types": "*any*"} \
     ] }''')
-    >>> unstructured_mapper.action('/old/galaxy/data/dataset_10245.dat', 'unstructured').action_type == u'transfer'
+    >>> unstructured_mapper.action({'path': '/old/galaxy/data/dataset_10245.dat'}, 'unstructured').action_type == u'transfer'
     True
+    >>> match_type_only_mapper = mapper_for(default_action="none", config_contents=r'''{"paths": [ \
+      {"action": "transfer", "path_types": "input"}, \
+      {"action": "remote_copy", "path_types": "output"} \
+    ] }''')
+    >>> input_action = match_type_only_mapper.action({}, 'input')
+    >>> input_action.action_type
+    'transfer'
+    >>> output_action = match_type_only_mapper.action({}, 'output')
+    >>> output_action.action_type
+    'remote_copy'
     """
 
     def __init__(self, client=None, config=None):
@@ -162,7 +170,8 @@ class FileActionMapper(object):
         self.mappers = mappers_from_dicts(config.get("paths", []))
         self.files_endpoint = config.get("files_endpoint", None)
 
-    def action(self, path, type, mapper=None):
+    def action(self, source, type, mapper=None):
+        path = source.get("path", None)
         mapper = self.__find_mapper(path, type, mapper)
         action_class = self.__action_class(path, type, mapper)
         file_lister = DEFAULT_FILE_LISTER
@@ -196,7 +205,7 @@ class FileActionMapper(object):
         if action_config_path:
             config = read_file(action_config_path)
         else:
-            config = dict()
+            config = getattr(client, "file_actions", {})
         config["default_action"] = client.default_file_action
         config["files_endpoint"] = client.files_endpoint
         for attr in ['ssh_key', 'ssh_user', 'ssh_port', 'ssh_host']:
@@ -204,13 +213,12 @@ class FileActionMapper(object):
                 config[attr] = getattr(client, attr)
         return config
 
-    def __load_action_config(self, path):
-        config = load(open(path, 'rb'))
-        self.mappers = mappers_from_dicts(config.get('paths', []))
-
     def __find_mapper(self, path, type, mapper=None):
         if not mapper:
-            normalized_path = abspath(path)
+            if path is not None:
+                normalized_path = abspath(path)
+            else:
+                normalized_path = None
             for query_mapper in self.mappers:
                 if query_mapper.matches(normalized_path, type):
                     mapper = query_mapper
@@ -267,6 +275,7 @@ UNSET_ACTION_KWD = "__UNSET__"
 
 
 class BaseAction(object):
+    whole_directory_transfer_supported = False
     action_spec = {}
 
     def __init__(self, path, file_lister=None):
@@ -613,6 +622,22 @@ class BasePathMapper(object):
         base_dict.update(**kwds)
         return base_dict
 
+    def to_pattern(self):
+        raise NotImplementedError()
+
+
+class PathTypeOnlyMapper(BasePathMapper):
+    match_type = 'path_type_only'
+
+    def __init__(self, config):
+        super(PathTypeOnlyMapper, self).__init__(config)
+
+    def _path_matches(self, path):
+        return True
+
+    def to_dict(self):
+        return self._extend_base_dict()
+
 
 class PrefixPathMapper(BasePathMapper):
     match_type = 'prefix'
@@ -622,10 +647,10 @@ class PrefixPathMapper(BasePathMapper):
         self.prefix_path = abspath(config['path'])
 
     def _path_matches(self, path):
-        return path.startswith(self.prefix_path)
+        return path is not None and path.startswith(self.prefix_path)
 
     def to_pattern(self):
-        pattern_str = "(%s%s[^\s,\"\']+)" % (escape(self.prefix_path), escape(sep))
+        pattern_str = r"(%s%s[^\s,\"\']+)" % (escape(self.prefix_path), escape(sep))
         return compile(pattern_str)
 
     def to_dict(self):
@@ -640,7 +665,7 @@ class GlobPathMapper(BasePathMapper):
         self.glob_path = config['path']
 
     def _path_matches(self, path):
-        return fnmatch.fnmatch(path, self.glob_path)
+        return path is not None and fnmatch.fnmatch(path, self.glob_path)
 
     def to_pattern(self):
         return compile(fnmatch.translate(self.glob_path))
@@ -658,7 +683,7 @@ class RegexPathMapper(BasePathMapper):
         self.pattern = compile(self.pattern_raw)
 
     def _path_matches(self, path):
-        return self.pattern.match(path) is not None
+        return path is not None and self.pattern.match(path) is not None
 
     def to_pattern(self):
         return self.pattern
@@ -667,7 +692,7 @@ class RegexPathMapper(BasePathMapper):
         return self._extend_base_dict(path=self.pattern_raw)
 
 
-MAPPER_CLASSES = [PrefixPathMapper, GlobPathMapper, RegexPathMapper]
+MAPPER_CLASSES = [PathTypeOnlyMapper, PrefixPathMapper, GlobPathMapper, RegexPathMapper]
 MAPPER_CLASS_DICT = dict(map(lambda c: (c.match_type, c), MAPPER_CLASSES))
 
 
@@ -676,7 +701,10 @@ def mappers_from_dicts(mapper_def_list):
 
 
 def _mappper_from_dict(mapper_dict):
-    map_type = mapper_dict.get('match_type', DEFAULT_PATH_MAPPER_TYPE)
+    if "path" in mapper_dict:
+        map_type = mapper_dict.get('match_type', DEFAULT_PATH_MAPPER_TYPE)
+    else:
+        map_type = 'path_type_only'
     return MAPPER_CLASS_DICT[map_type](mapper_dict)
 
 

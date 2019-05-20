@@ -135,7 +135,7 @@ class ResultsCollector(object):
         # path.
         collected = False
         with self.exception_tracker():
-            action = self.action_mapper.action(path, output_type)
+            action = self.action_mapper.action({"path": path}, output_type)
             if self._collect_output(output_type, action, name):
                 collected = True
 

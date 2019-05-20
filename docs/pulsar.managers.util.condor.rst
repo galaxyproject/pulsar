@@ -1,5 +1,5 @@
-pulsar\.managers\.util\.condor package
-======================================
+pulsar.managers.util.condor package
+===================================
 
 Module contents
 ---------------

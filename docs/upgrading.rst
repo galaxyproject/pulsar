@@ -7,7 +7,7 @@ Pulsar was born out of the poorly named `LWR
 <https://usegalaxyp.org/>`_ project. This section outlines broadly how
 to upgrade from an LWR server to a Pulsar one.
 
-The tenative plan is to allow Galaxy to support both targets for
+The tentative plan is to allow Galaxy to support both targets for
 sometime - but at some point LWR servers should be upgraded to the
 Pulsar servers.
 

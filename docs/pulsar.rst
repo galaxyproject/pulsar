@@ -19,40 +19,40 @@ Subpackages
 Submodules
 ----------
 
-pulsar\.core module
--------------------
+pulsar.core module
+------------------
 
 .. automodule:: pulsar.core
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.locks module
---------------------
+pulsar.locks module
+-------------------
 
 .. automodule:: pulsar.locks
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.main module
--------------------
+pulsar.main module
+------------------
 
 .. automodule:: pulsar.main
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.manager\_endpoint\_util module
---------------------------------------
+pulsar.manager\_endpoint\_util module
+-------------------------------------
 
 .. automodule:: pulsar.manager_endpoint_util
     :members:
     :undoc-members:
     :show-inheritance:
 
-pulsar\.manager\_factory module
--------------------------------
+pulsar.manager\_factory module
+------------------------------
 
 .. automodule:: pulsar.manager_factory
     :members:

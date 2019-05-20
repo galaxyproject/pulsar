@@ -165,17 +165,20 @@ class BaseManagerTestCase(TestCase):
         rmtree(self.staging_directory)
 
     @nottest
-    def _test_simple_execution(self, manager):
-        command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stderr.write(\'moo\')" """
+    def _test_simple_execution(self, manager, timeout=None):
+        command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stdout.flush(); sys.stderr.write(\'moo\'); sys.stderr.flush()" """
         job_id = manager.setup_job("123", "tool1", "1.0.0")
         manager.launch(job_id, command)
+
+        time_end = None if timeout is None else time.time() + timeout
         while manager.get_status(job_id) not in ['complete', 'cancelled']:
-            pass
-        self.assertEquals(manager.stderr_contents(job_id), b'moo')
-        self.assertEquals(manager.stdout_contents(job_id), b'Hello World!')
-        self.assertEquals(manager.return_code(job_id), 0)
+            if time_end and time.time() > time_end:
+                raise Exception("Timeout.")
+        self.assertEqual(manager.stderr_contents(job_id), b'moo')
+        self.assertEqual(manager.stdout_contents(job_id), b'Hello World!')
+        self.assertEqual(manager.return_code(job_id), 0)
         manager.clean(job_id)
-        self.assertEquals(len(listdir(self.staging_directory)), 0)
+        self.assertEqual(len(listdir(self.staging_directory)), 0)
 
     def _test_cancelling(self, manager):
         job_id = manager.setup_job("124", "tool1", "1.0.0")
@@ -229,11 +232,15 @@ def server_for_test_app(app):
     try:
         from paste.exceptions.errormiddleware import ErrorMiddleware
         error_app = ErrorMiddleware(app.app, debug=True, error_log="errors.log")
-        server = StopableWSGIServer.create(error_app)
     except ImportError:
         # paste.exceptions not available for Python 3.
         error_app = app.app
-        server = StopableWSGIServer.create(error_app)
+
+    create_kwds = {
+    }
+    if os.environ.get("PULSAR_TEST_FILE_SERVER_HOST"):
+        create_kwds["host"] = os.environ.get("PULSAR_TEST_FILE_SERVER_HOST")
+    server = StopableWSGIServer.create(error_app, **create_kwds)
     try:
         server.wait()
         yield server
@@ -429,8 +436,10 @@ class TestAuthorizer(object):
 
 class JobFilesApp(object):
 
-    def __init__(self, root_directory=None):
+    def __init__(self, root_directory=None, allow_multiple_downloads=False):
         self.root_directory = root_directory
+        self.served_files = []
+        self.allow_multiple_downloads = allow_multiple_downloads
 
     def __call__(self, environ, start_response):
         req = webob.Request(environ)
@@ -456,20 +465,23 @@ class JobFilesApp(object):
 
     def _get(self, request, params):
         path = params['path']
+        if path in self.served_files and not self.allow_multiple_downloads:  # emulate Galaxy not allowing the same request twice...
+            raise Exception("Same file copied multiple times...")
         if not galaxy.util.in_directory(path, self.root_directory):
             assert False, "%s not in %s" % (path, self.root_directory)
+        self.served_files.append(path)
         return file_response(path)
 
 
 @contextmanager
-def files_server(directory=None):
+def files_server(directory=None, allow_multiple_downloads=False):
     if not directory:
         with temp_directory() as directory:
-            app = TestApp(JobFilesApp(directory))
+            app = TestApp(JobFilesApp(directory, allow_multiple_downloads=allow_multiple_downloads))
             with server_for_test_app(app) as server:
                 yield server, directory
     else:
-        app = TestApp(JobFilesApp(directory))
+        app = TestApp(JobFilesApp(directory, allow_multiple_downloads=allow_multiple_downloads))
         with server_for_test_app(app) as server:
             yield server
 

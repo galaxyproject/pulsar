@@ -10,7 +10,7 @@ Configuring Galaxy
 
 Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. See ``job_conf.xml.sample_advanced``
 in your Galaxy code base or on
-`Bitbucket <https://bitbucket.org/galaxy/galaxy-dist/src/tip/config/job_conf.xml.sample_advanced?at=default>`_
+`Github <https://github.com/galaxyproject/galaxy/blob/dev/config/job_conf.xml.sample_advanced>`_
 for information on how to configure Galaxy to interact with the Pulsar.
 
 Galaxy also supports an older, less rich configuration of job runners directly
@@ -44,9 +44,14 @@ from .destination import url_to_destination_params
 from .exceptions import PulsarClientTransportError
 from .manager import build_client_manager
 from .path_mapper import PathMapper
-from .staging import ClientJobDescription
-from .staging import PulsarOutputs
-from .staging import ClientOutputs
+from .staging import (
+    ClientJobDescription,
+    ClientInputs,
+    ClientInput,
+    ClientOutputs,
+    CLIENT_INPUT_PATH_TYPES,
+    PulsarOutputs,
+)
 from .staging.down import finish_job
 from .staging.up import submit_job
 
@@ -58,6 +63,10 @@ __all__ = [
     'submit_job',
     'ClientJobDescription',
     'PulsarOutputs',
+    'ClientInput',
+    'ClientInputs',
+    'ClientOutputs',
+    'CLIENT_INPUT_PATH_TYPES',
     'ClientOutputs',
     'PathMapper',
     'PulsarClientTransportError',

@@ -19,7 +19,7 @@ paths:
     match_type: glob
     path_types: unstructured  # Set to *any* to apply to defaults & unstructured paths.
     action: transfer
-    depth: 1  # Stage whole directory with job and just file.
+    depth: 1  # Stage whole directory with job and not just file.
 
   # Following block demonstrates rewriting paths without staging. Useful for
   # instance if Galaxy's data indices are mounted on both servers but with
@@ -38,3 +38,16 @@ paths:
     ssh_user: galaxy
     ssh_host: f.q.d.n
     ssh_port: 22
+
+# See action_mapper.py for explaination of mapper types:
+# - input: Galaxy input datasets and extra files.
+# - config: Galaxy config and param files.
+# - tool: Files from tool's tool_dir (for now just wrapper if available).
+# - workdir: Input work dir files - e.g.task-split input file.
+# - metadata: Input metadata files.
+# - output: Galaxy output datasets in their final home.
+# - output_workdir:  Galaxy from_work_dir output paths and other files (e.g. galaxy.json)
+# - output_metadata: Meta job and data files (e.g. Galaxy metadata generation files and
+#                    metric instrumentation files)
+# - unstructured: Other fixed tool parameter paths (likely coming from tool data, but not
+#                 nessecarily). Not sure this is the best name...
