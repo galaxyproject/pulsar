@@ -15,14 +15,17 @@ RUN apt-get update \
     # Install packages
     && apt-get update \
     && apt-get install -y --no-install-recommends gcc python-setuptools \
-        python-dev python-pip cvmfs cvmfs-config-default \
+        python-dev python-pip \
+        cvmfs cvmfs-config-default \
+        slurm-llnl slurm-drmaa-dev \
     # Install Pulsar Python requirements
-    && pip install --no-cache-dir -r /pulsar/requirements.txt \
+    && pip install --no-cache-dir -r /pulsar/requirements.txt drmaa \
     # Remove build deps and cleanup
     && apt-get -y remove python-dev gcc wget lsb-release \
     && apt-get -y autoremove \
     && apt-get autoclean \
-    && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log
+    && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
+    && /usr/sbin/create-munge-key
 
 # Create pulsar user environment
 RUN adduser --disabled-password --gecos '' pulsar \
@@ -32,10 +35,13 @@ RUN adduser --disabled-password --gecos '' pulsar \
 WORKDIR /pulsar/
 
 # Add files to the image
-ADD . /pulsar
+ADD . /pulsar/
 # Change ownership to pulsar & configure CVMFS
 RUN python setup.py install \
     && pulsar-config --auto_conda --host 0.0.0.0 \
+    && echo "export DRMAA_LIBRARY_PATH=/usr/lib/slurm-drmaa/lib/libdrmaa.so" >> local_env.sh \
+    && cp docker/cvmfs/app.yml . \
+    && cp ./docker/testing/configure_slurm.py /usr/sbin/configure_slurm.py \
     && chown -R pulsar:pulsar /pulsar \
     && chmod +x /usr/local/bin/pulsar \
     && cp /pulsar/docker/cvmfs/default.local /etc/cvmfs/ \
@@ -47,5 +53,7 @@ RUN python setup.py install \
 EXPOSE 8913
 
 # Must run CVMFS setup otherwise autofs does not get configured nor automount
-# starts. Then switch to less-priviledged user for running Pulsar.
-CMD /usr/bin/cvmfs_config setup; su pulsar -c "/usr/local/bin/pulsar"
+# starts. Then start Slurm and switch to a less-priviledged user for Pulsar.
+CMD /usr/bin/cvmfs_config setup; service munge start; \
+    python /usr/sbin/configure_slurm.py; service slurmd start; \
+    service slurmctld start; su pulsar -c "/usr/local/bin/pulsar"
