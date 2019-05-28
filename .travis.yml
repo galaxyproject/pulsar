@@ -5,7 +5,7 @@ matrix:
   - python: 2.7
     env: TOX_ENV=py27-lint
   - python: 2.7
-    env: TOX_ENV=py27-lint-readme
+    env: TOX_ENV=py27-lint-dist
   - python: 2.7
     env: TOX_ENV=lint-docs
   - python: 2.7
