@@ -16,9 +16,6 @@ sphinx==1.2
 pyflakes
 flake8
 
-# Used to check readme.
-readme
-
 # For release
 wheel
 twine

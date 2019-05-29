@@ -27,7 +27,7 @@ help:
 	@echo "clean-test - remove test and coverage artifacts"
 	@echo "setup-venv - setup a development virutalenv in current directory."
 	@echo "lint - check style with flake8"
-	@echo "lint-readme - check README formatting for PyPI"
+	@echo "lint-dist - twine check dist results, including validating README content"
 	@echo "lint-docs - check sphinx docs for warnings"
 	@echo "tests - run tests quickly with the default Python"
 	@echo "coverage - check code coverage quickly with the default Python"
@@ -74,8 +74,8 @@ flake8:
 lint:
 	$(IN_VENV) tox -e py27-lint && tox -e py34-lint
 
-lint-readme:
-	$(IN_VENV) python setup.py check -r -s
+lint-dist: dist
+	$(IN_VENV) twine check dist/*
 
 tests:
 	$(IN_VENV) nosetests $(NOSE_TESTS)
@@ -122,7 +122,7 @@ open-rtd: docs
 open-project:
 	open $(PROJECT_URL) || xdg-open $(PROJECT_URL)
 
-dist: clean
+dist: clean-build clean-pyc
 	$(IN_VENV) python setup.py sdist bdist_wheel
 	ls -l dist
 
@@ -130,7 +130,7 @@ _release-test-artifacts:
 	$(IN_VENV) twine upload -r test dist/*
 	open https://testpypi.python.org/pypi/$(PROJECT_NAME) || xdg-open https://testpypi.python.org/pypi/$(PROJECT_NAME)
 
-dist-all: dist _dist-lib
+dist-all: lint-dist _dist-lib
 
 release-test-artifacts: dist-all _release-test-artifacts
 
