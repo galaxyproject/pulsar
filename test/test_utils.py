@@ -22,8 +22,8 @@ from webtest.http import StopableWSGIServer
 
 import galaxy.util
 import pulsar.util
+from galaxy.job_metrics import NULL_JOB_INSTRUMENTER
 from galaxy.util.bunch import Bunch
-from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 
 from pulsar.managers.util import drmaa
 from pulsar.tools import ToolBox

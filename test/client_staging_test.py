@@ -5,8 +5,8 @@ from .test_utils import TempDirectoryTestCase
 from pulsar.client.test.test_common import write_config
 from pulsar.client import submit_job, ClientJobDescription
 from pulsar.client import ClientOutputs
-from galaxy.tools.deps.dependencies import DependenciesDescription
-from galaxy.tools.deps.requirements import ToolRequirement
+from galaxy.tool_util.deps.dependencies import DependenciesDescription
+from galaxy.tool_util.deps.requirements import ToolRequirement
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
 TEST_REQUIREMENT_2 = ToolRequirement("test2", "1.0")

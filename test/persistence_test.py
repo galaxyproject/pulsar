@@ -9,8 +9,8 @@ from .test_utils import (
     temp_directory,
     TestDependencyManager
 )
+from galaxy.job_metrics import NULL_JOB_INSTRUMENTER
 from galaxy.util.bunch import Bunch
-from galaxy.jobs.metrics import NULL_JOB_INSTRUMENTER
 
 TEST_JOB_ID = "4"
 TEST_STAGED_FILE = "cow"
