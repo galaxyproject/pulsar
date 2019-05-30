@@ -74,8 +74,10 @@ flake8:
 lint:
 	$(IN_VENV) tox -e py27-lint && tox -e py34-lint
 
-lint-dist: dist
+_lint-dist:
 	$(IN_VENV) twine check dist/*
+
+lint-dist: dist _lint-dist
 
 tests:
 	$(IN_VENV) nosetests $(NOSE_TESTS)
@@ -130,7 +132,7 @@ _release-test-artifacts:
 	$(IN_VENV) twine upload -r test dist/*
 	open https://testpypi.python.org/pypi/$(PROJECT_NAME) || xdg-open https://testpypi.python.org/pypi/$(PROJECT_NAME)
 
-dist-all: lint-dist _dist-lib
+dist-all: dist _dist-lib _lint-dist
 
 release-test-artifacts: dist-all _release-test-artifacts
 
@@ -165,7 +167,7 @@ _dist-lib:
 	$(IN_VENV) PULSAR_GALAXY_LIB=1 python setup.py sdist bdist_wheel
 	ls -l dist
 
-dist-lib: clean _dist-lib
+dist-lib: clean-pyc clean-build _dist-lib
 
 build-coexecutor-container:
 	$(MAKE) -C docker/coexecutor all

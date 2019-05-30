@@ -23,15 +23,16 @@ PULSAR_GALAXY_LIB = os.environ.get("PULSAR_GALAXY_LIB", "%d" % DEFAULT_PULSAR_GA
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
-requirements = [
-    'six',
-    'webob',
-    'psutil',
-    'pyyaml',
-]
+if os.path.exists("requirements.txt"):
+    requirements = [r for r in open("requirements.txt").read().split("\n") if ";" not in r]
+    py27_requirements = [r.split(";", 1)[0].strip() for r in open("requirements.txt").read().split("\n") if ";" in r]
+else:
+    # In tox, it will cover them anyway.
+    requirements = []
+    py27_requirements = []
 
-if not PULSAR_GALAXY_LIB:
-    requirements.append("galaxy-lib")
+if PULSAR_GALAXY_LIB:
+    requirements = [r for r in requirements if not r.startswith("galaxy-")]
 
 # TODO: use extra_requires here to be more correct.
 if sys.version_info[0] == 2:
@@ -108,6 +109,9 @@ setup(
     package_dir={'pulsar': 'pulsar'},
     include_package_data=True,
     install_requires=requirements,
+    extras_require={
+        ':python_version=="2.7"': py27_requirements,
+    },
     license="Apache License 2.0",
     zip_safe=False,
     keywords='pulsar',

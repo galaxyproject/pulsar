@@ -3,12 +3,14 @@ psutil
 PasteDeploy
 six
 pyyaml
-galaxy-lib
+galaxy-job-metrics>=19.9.0.dev1
+galaxy-objectstore>=19.9.0.dev1
+galaxy-tool-util>=19.9.0.dev1
 paramiko
 
 # Problematic for Python 3.
-paste
-PasteScript
+paste ; python_version == '2.7'
+PasteScript ; python_version == '2.7'
 
 ## Uncomment if using DRMAA queue manager.
 #drmaa
