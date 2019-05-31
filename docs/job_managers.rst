@@ -86,7 +86,7 @@ Condor_ can also be used as a backend.
 
     managers:
       _default_:
-        type: queued_drmaa
+        type: queued_condor
         # Optional attributes...
         submit_universe: vanilla
         submit_request_memory: 32
