@@ -21,7 +21,7 @@ def main(argv=None):
     ensure_mesos_libs()
 
     config_builder = PulsarManagerConfigBuilder(args)
-    config_builder.setup_logging()
+    config_builder.setup_file_logging()
     config = config_builder.load()
 
     run(

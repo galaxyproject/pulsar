@@ -4,6 +4,7 @@ import os
 from six import string_types
 
 from pulsar.managers.util.pykube_util import (
+    ensure_pykube,
     Job,
     job_object_dict,
     produce_unique_k8s_job_name,
@@ -364,6 +365,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
 class MessageCoexecutionPodJobClient(BaseMessageJobClient):
 
     def __init__(self, destination_params, job_id, client_manager):
+        ensure_pykube()
         super(MessageCoexecutionPodJobClient, self).__init__(destination_params, job_id, client_manager)
         self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.10.0")
         self._default_pull_policy = pull_policy(destination_params)

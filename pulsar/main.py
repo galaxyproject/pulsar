@@ -64,6 +64,42 @@ HELP_DAEMONIZE = "Daemonzie process (requires daemonize library)."
 CONFIG_PREFIX = "PULSAR_CONFIG_"
 
 
+LOGGING_CONFIG_DEFAULT = {
+    'version': 1,
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'pulsar': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': 0,
+            'qualname': 'pulsar',
+        },
+        'galaxy': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': 0,
+            'qualname': 'pulsar',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'default',
+            'level': 'DEBUG',
+            'stream': 'ext://sys.stderr',
+        },
+    },
+    'formatters': {
+        'default': {
+            'format': '%(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s'
+        },
+    },
+}
+
+
 def load_pulsar_app(
     config_builder,
     config_env=False,
@@ -88,7 +124,7 @@ def load_pulsar_app(
             log.exception("Failed to add Pulsar to sys.path")
             raise
 
-    config_builder.setup_logging()
+    config_builder.setup_file_logging()
     config = config_builder.load()
 
     config.update(kwds)
@@ -240,6 +276,7 @@ class PulsarConfigBuilder(object):
         if self.app_conf_base64:
             from pulsar.client.util import from_base64_json
             local_conf = from_base64_json(self.app_conf_base64)
+            self.setup_dict_logging(local_conf)
             load_kwds["local_conf"] = local_conf
         else:
             load_kwds.update(dict(
@@ -249,19 +286,24 @@ class PulsarConfigBuilder(object):
             ))
         return load_app_configuration(**load_kwds)
 
-    def setup_logging(self):
-        if not self.ini_path:
-            # TODO: should be possible can configure using dict.
-            return
-        raw_config = configparser.ConfigParser()
-        raw_config.read([self.ini_path])
-        # https://github.com/mozilla-services/chaussette/pull/32/files
-        if raw_config.has_section('loggers'):
-            config_file = os.path.abspath(self.ini_path)
-            fileConfig(
-                config_file,
-                dict(__file__=config_file, here=os.path.dirname(config_file))
-            )
+    def setup_file_logging(self):
+        if self.ini_path:
+            raw_config = configparser.ConfigParser()
+            raw_config.read([self.ini_path])
+            # https://github.com/mozilla-services/chaussette/pull/32/files
+            if raw_config.has_section('loggers'):
+                config_file = os.path.abspath(self.ini_path)
+                fileConfig(
+                    config_file,
+                    dict(__file__=config_file, here=os.path.dirname(config_file))
+                )
+
+    def setup_dict_logging(self, config):
+        logging_conf = config.get('logging', None)
+        if logging_conf is None:
+            # if using the default logging config, honor the log_level setting
+            logging_conf = LOGGING_CONFIG_DEFAULT
+        logging.config.dictConfig(logging_conf)
 
     def to_dict(self):
         return dict(
