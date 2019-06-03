@@ -5,8 +5,15 @@ History
 
 .. to_doc
 
+
 ---------------------
-0.12.0.dev0
+0.12.1.dev0
+---------------------
+
+* Retry botched release that didn't include all relevant commits.
+
+---------------------
+0.12.0 (2019-06-03)
 ---------------------
 
 * Revise Python Galaxy dependencies to use newer style Galaxy decomposition.
