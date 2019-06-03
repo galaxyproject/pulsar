@@ -9,7 +9,18 @@ History
 0.12.0.dev0
 ---------------------
 
-    
+* Revise Python Galaxy dependencies to use newer style Galaxy decomposition.
+  galaxy-lib can no longer be installed in Pulsar's environment, so you will
+  likely need to rebuild your Pulsar virtualenv for this release.
+  `Pull Request 187`_
+* Add a ``Dockerfile`` for Pulsar with CVMFS (thanks to `@nuwang`_ and `@afgane`).
+  `Pull Request 166`_
+* Various small improvements to Kubernetes pod execution environment.
+  `Pull Request 190`_
+* Improve readme linting.
+  `Pull Request 186`_
+* Update example docs for Condor (thanks to `@bgruening`_).
+  `Pull Request 189`_
 
 ---------------------
 0.11.0 (2019-05-16)
@@ -242,6 +253,11 @@ History
 
 
 .. github_links
+.. _Pull Request 190: https://github.com/galaxyproject/pulsar/pull/190
+.. _Pull Request 166: https://github.com/galaxyproject/pulsar/pull/166
+.. _Pull Request 186: https://github.com/galaxyproject/pulsar/pull/186
+.. _Pull Request 187: https://github.com/galaxyproject/pulsar/pull/187
+.. _Pull Request 189: https://github.com/galaxyproject/pulsar/pull/189
 .. _Pull Request 185: https://github.com/galaxyproject/pulsar/pull/185
 .. _Pull Request 184: https://github.com/galaxyproject/pulsar/pull/184
 .. _Pull Request 181: https://github.com/galaxyproject/pulsar/pull/181
@@ -323,3 +339,6 @@ History
 .. _@dannon: https://github.com/dannon
 .. _@AndreasSko: https://github.com/AndreasSko
 .. _@VJalili: https://github.com/VJalili
+.. _@nuwang: https://github.com/nuwang
+.. _@afgane: https://github.com/afgane
+.. _@bgruening: https://github.com/bgruening
