@@ -7,7 +7,7 @@ History
 
 
 ---------------------
-0.12.1.dev0
+0.12.1 (2019-06-03)
 ---------------------
 
 * Retry botched release that didn't include all relevant commits.
