@@ -325,9 +325,14 @@ class BaseAction(object):
     def __str__(self):
         as_dict = self.to_dict()
         attribute_str = ""
+        first = True
         for key, value in as_dict.items():
             if key == "source":
                 continue
+            if first:
+                first = False
+            else:
+                attribute_str += ","
             attribute_str += "%s=%s" % (key, value)
         return "FileAction[%s]" % attribute_str
 
