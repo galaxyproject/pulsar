@@ -70,6 +70,7 @@ class BaseManager(ManagerInterface):
         self.__init_env_vars(**kwds)
         self.dependency_manager = app.dependency_manager
         self.job_metrics = app.job_metrics
+        self.object_store = app.object_store
 
     def clean(self, job_id):
         if self.debug:

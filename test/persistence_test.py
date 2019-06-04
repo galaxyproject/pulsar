@@ -127,6 +127,7 @@ def _app():
             authorizer=get_authorizer(None),
             dependency_manager=TestDependencyManager(),
             job_metrics=Bunch(default_job_instrumenter=NULL_JOB_INSTRUMENTER),
+            object_store=None,
         )
         yield app
 

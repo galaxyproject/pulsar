@@ -462,6 +462,33 @@ class RemoteTransferAction(BaseAction):
         post_file(self.url, pulsar_path)
 
 
+class RemoteObjectStoreCopyAction(BaseAction):
+    """
+    """
+    action_type = "remote_object_store_copy"
+    staging = STAGING_ACTION_REMOTE
+    inject_object_store = True
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return RemoteObjectStoreCopyAction(source=action_dict["source"])
+
+    def write_to_path(self, path):
+        assert self.object_store  # Make sure object_store attribute injected
+        assert "object_store_ref" in self.source
+        object_store_ref = self.source["object_store_ref"]
+        dataset_object = Bunch(
+            id=object_store_ref["dataset_id"],
+            uuid=object_store_ref["dataset_uuid"],
+            object_store_id=object_store_ref["object_store_id"],
+        )
+        filename = self.object_store.get_filename(dataset_object)
+        copy_to_path(open(filename, 'rb'), path)
+
+    def write_from_path(self, pulsar_path):
+        raise NotImplementedError("Writing raw files to object store not supported at this time.")
+
+
 class PubkeyAuthenticatedTransferAction(BaseAction):
     """Base class for file transfers requiring an SSH public/private key
     """
@@ -585,7 +612,14 @@ class MessageAction(object):
         open(path, "w").write(self.contents)
 
 
-DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, RemoteTransferAction, MessageAction, RsyncTransferAction, ScpTransferAction]
+DICTIFIABLE_ACTION_CLASSES = [
+    RemoteCopyAction,
+    RemoteTransferAction,
+    MessageAction,
+    RsyncTransferAction,
+    ScpTransferAction,
+    RemoteObjectStoreCopyAction
+]
 
 
 def from_dict(action_dict):
@@ -632,7 +666,8 @@ class BasePathMapper(object):
 
     def matches(self, path, path_type):
         path_type_matches = path_type in self.path_types
-        return path_type_matches and self._path_matches(path)
+        rval = path_type_matches and self._path_matches(path)
+        return rval
 
     def _extend_base_dict(self, **kwds):
         base_dict = dict(
@@ -761,6 +796,7 @@ ACTION_CLASSES = [
     CopyAction,
     RemoteCopyAction,
     RemoteTransferAction,
+    RemoteObjectStoreCopyAction,
     RsyncTransferAction,
     ScpTransferAction,
 ]

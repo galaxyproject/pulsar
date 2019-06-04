@@ -6,11 +6,13 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def preprocess(job_directory, setup_actions, action_executor):
+def preprocess(job_directory, setup_actions, action_executor, object_store=None):
     for setup_action in setup_actions:
         name = setup_action["name"]
         input_type = setup_action["type"]
         action = from_dict(setup_action["action"])
+        if getattr(action, "inject_object_store", False):
+            action.object_store = object_store
         path = job_directory.calculate_path(name, input_type)
         description = "Staging %s '%s' via %s to %s" % (input_type, name, action, path)
         log.debug(description)

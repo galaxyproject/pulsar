@@ -217,7 +217,8 @@ def minimal_app_for_managers():
     return Bunch(staging_directory=staging_directory,
                  authorizer=authorizer,
                  job_metrics=NullJobMetrics(),
-                 dependency_manager=TestDependencyManager())
+                 dependency_manager=TestDependencyManager(),
+                 object_store=object())
 
 
 class NullJobMetrics(object):

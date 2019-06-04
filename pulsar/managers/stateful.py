@@ -102,7 +102,8 @@ class StatefulManagerProxy(ManagerProxy):
                         'setup' in staging_config:
                     for action in staging_config['setup']:
                         action['action'].update(ssh_key=staging_config['action_mapper']['ssh_key'])
-                preprocess(job_directory, staging_config.get("setup", []), self.__preprocess_action_executor)
+                setup_config = staging_config.get("setup", [])
+                preprocess(job_directory, setup_config, self.__preprocess_action_executor, object_store=self.object_store)
                 self.active_jobs.deactivate_job(job_id, active_status=ACTIVE_STATUS_PREPROCESSING)
 
         new_thread_for_job(self, "preprocess", job_id, do_preprocess, daemon=False)
