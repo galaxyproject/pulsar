@@ -58,7 +58,7 @@ path_type = Bunch(
     # metric instrumentation files)
     OUTPUT_METADATA="output_metadata",
     # Other fixed tool parameter paths (likely coming from tool data, but not
-    # nessecarily).
+    # necessarily).
     UNSTRUCTURED="unstructured",
 )
 
