@@ -58,7 +58,7 @@ path_type = Bunch(
     # metric instrumentation files)
     OUTPUT_METADATA="output_metadata",
     # Other fixed tool parameter paths (likely coming from tool data, but not
-    # nessecarily).
+    # necessarily).
     UNSTRUCTURED="unstructured",
 )
 
@@ -179,7 +179,7 @@ class FileActionMapper(object):
         if mapper:
             file_lister = mapper.file_lister
             action_kwds = mapper.action_kwds
-        action = action_class(path, file_lister=file_lister, **action_kwds)
+        action = action_class(source, file_lister=file_lister, **action_kwds)
         self.__process_action(action, type)
         return action
 
@@ -278,9 +278,13 @@ class BaseAction(object):
     whole_directory_transfer_supported = False
     action_spec = {}
 
-    def __init__(self, path, file_lister=None):
-        self.path = path
+    def __init__(self, source, file_lister=None):
+        self.source = source
         self.file_lister = file_lister or DEFAULT_FILE_LISTER
+
+    @property
+    def path(self):
+        return self.source.get("path")
 
     def unstructured_map(self, path_helper):
         unstructured_map = self.file_lister.unstructured_map(self.path)
@@ -306,13 +310,29 @@ class BaseAction(object):
     def staging_action_local(self):
         return self.staging == STAGING_ACTION_LOCAL
 
+    def _extend_base_dict(self, **kwds):
+        base_dict = dict(
+            path=self.path,  # For older Pulsar servers (pre-0.13.0?)
+            source=self.source,
+            action_type=self.action_type,
+        )
+        base_dict.update(**kwds)
+        return base_dict
+
     def to_dict(self):
-        return dict(action_type=self.action_type)
+        return self._extend_base_dict()
 
     def __str__(self):
         as_dict = self.to_dict()
         attribute_str = ""
+        first = True
         for key, value in as_dict.items():
+            if key == "source":
+                continue
+            if first:
+                first = False
+            else:
+                attribute_str += ","
             attribute_str += "%s=%s" % (key, value)
         return "FileAction[%s]" % attribute_str
 
@@ -326,11 +346,11 @@ class NoneAction(BaseAction):
     staging = STAGING_ACTION_NONE
 
     def to_dict(self):
-        return dict(path=self.path, action_type=self.action_type)
+        return self._extend_base_dict()
 
     @classmethod
     def from_dict(cls, action_dict):
-        return NoneAction(path=action_dict["path"])
+        return NoneAction(source=action_dict["source"])
 
     def path_rewrite(self, path_helper, path=None):
         return None
@@ -347,16 +367,13 @@ class RewriteAction(BaseAction):
     action_type = "rewrite"
     staging = STAGING_ACTION_NONE
 
-    def __init__(self, path, file_lister=None, source_directory=None, destination_directory=None):
-        self.path = path
-        self.file_lister = file_lister or DEFAULT_FILE_LISTER
+    def __init__(self, source, file_lister=None, source_directory=None, destination_directory=None):
+        super(RewriteAction, self).__init__(source, file_lister=file_lister)
         self.source_directory = source_directory
         self.destination_directory = destination_directory
 
     def to_dict(self):
-        return dict(
-            path=self.path,
-            action_type=self.action_type,
+        return self._extend_base_dict(
             source_directory=self.source_directory,
             destination_directory=self.destination_directory,
         )
@@ -364,7 +381,7 @@ class RewriteAction(BaseAction):
     @classmethod
     def from_dict(cls, action_dict):
         return RewriteAction(
-            path=action_dict["path"],
+            source=action_dict["source"],
             source_directory=action_dict["source_directory"],
             destination_directory=action_dict["destination_directory"],
         )
@@ -401,12 +418,9 @@ class RemoteCopyAction(BaseAction):
     action_type = "remote_copy"
     staging = STAGING_ACTION_REMOTE
 
-    def to_dict(self):
-        return dict(path=self.path, action_type=self.action_type)
-
     @classmethod
     def from_dict(cls, action_dict):
-        return RemoteCopyAction(path=action_dict["path"])
+        return RemoteCopyAction(source=action_dict["source"])
 
     def write_to_path(self, path):
         copy_to_path(open(self.path, "rb"), path)
@@ -430,22 +444,49 @@ class RemoteTransferAction(BaseAction):
     action_type = "remote_transfer"
     staging = STAGING_ACTION_REMOTE
 
-    def __init__(self, path, file_lister=None, url=None):
-        super(RemoteTransferAction, self).__init__(path, file_lister=file_lister)
+    def __init__(self, source, file_lister=None, url=None):
+        super(RemoteTransferAction, self).__init__(source, file_lister=file_lister)
         self.url = url
 
     def to_dict(self):
-        return dict(path=self.path, action_type=self.action_type, url=self.url)
+        return self._extend_base_dict(url=self.url)
 
     @classmethod
     def from_dict(cls, action_dict):
-        return RemoteTransferAction(path=action_dict["path"], url=action_dict["url"])
+        return RemoteTransferAction(source=action_dict["source"], url=action_dict["url"])
 
     def write_to_path(self, path):
         get_file(self.url, path)
 
     def write_from_path(self, pulsar_path):
         post_file(self.url, pulsar_path)
+
+
+class RemoteObjectStoreCopyAction(BaseAction):
+    """
+    """
+    action_type = "remote_object_store_copy"
+    staging = STAGING_ACTION_REMOTE
+    inject_object_store = True
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return RemoteObjectStoreCopyAction(source=action_dict["source"])
+
+    def write_to_path(self, path):
+        assert self.object_store  # Make sure object_store attribute injected
+        assert "object_store_ref" in self.source
+        object_store_ref = self.source["object_store_ref"]
+        dataset_object = Bunch(
+            id=object_store_ref["dataset_id"],
+            uuid=object_store_ref["dataset_uuid"],
+            object_store_id=object_store_ref["object_store_id"],
+        )
+        filename = self.object_store.get_filename(dataset_object)
+        copy_to_path(open(filename, 'rb'), path)
+
+    def write_from_path(self, pulsar_path):
+        raise NotImplementedError("Writing raw files to object store not supported at this time.")
 
 
 class PubkeyAuthenticatedTransferAction(BaseAction):
@@ -460,18 +501,20 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
     )
     staging = STAGING_ACTION_REMOTE
 
-    def __init__(self, path, file_lister=None, ssh_user=UNSET_ACTION_KWD,
+    def __init__(self, source, file_lister=None, ssh_user=UNSET_ACTION_KWD,
                  ssh_host=UNSET_ACTION_KWD, ssh_port=UNSET_ACTION_KWD, ssh_key=UNSET_ACTION_KWD):
-        super(PubkeyAuthenticatedTransferAction, self).__init__(path, file_lister=file_lister)
+        super(PubkeyAuthenticatedTransferAction, self).__init__(source, file_lister=file_lister)
         self.ssh_user = ssh_user
         self.ssh_host = ssh_host
         self.ssh_port = ssh_port
         self.ssh_key = ssh_key
 
     def to_dict(self):
-        return dict(path=self.path, action_type=self.action_type,
-                    ssh_user=self.ssh_user, ssh_host=self.ssh_host,
-                    ssh_port=self.ssh_port)
+        return self._extend_base_dict(
+            ssh_user=self.ssh_user,
+            ssh_host=self.ssh_host,
+            ssh_port=self.ssh_port
+        )
 
     @contextmanager
     def _serialized_key(self):
@@ -497,7 +540,7 @@ class RsyncTransferAction(PubkeyAuthenticatedTransferAction):
 
     @classmethod
     def from_dict(cls, action_dict):
-        return RsyncTransferAction(path=action_dict["path"],
+        return RsyncTransferAction(source=action_dict["source"],
                                    ssh_user=action_dict["ssh_user"],
                                    ssh_host=action_dict["ssh_host"],
                                    ssh_port=action_dict["ssh_port"],
@@ -519,7 +562,7 @@ class ScpTransferAction(PubkeyAuthenticatedTransferAction):
 
     @classmethod
     def from_dict(cls, action_dict):
-        return ScpTransferAction(path=action_dict["path"],
+        return ScpTransferAction(source=action_dict["source"],
                                  ssh_user=action_dict["ssh_user"],
                                  ssh_host=action_dict["ssh_host"],
                                  ssh_port=action_dict["ssh_port"],
@@ -569,7 +612,14 @@ class MessageAction(object):
         open(path, "w").write(self.contents)
 
 
-DICTIFIABLE_ACTION_CLASSES = [RemoteCopyAction, RemoteTransferAction, MessageAction, RsyncTransferAction, ScpTransferAction]
+DICTIFIABLE_ACTION_CLASSES = [
+    RemoteCopyAction,
+    RemoteTransferAction,
+    MessageAction,
+    RsyncTransferAction,
+    ScpTransferAction,
+    RemoteObjectStoreCopyAction
+]
 
 
 def from_dict(action_dict):
@@ -581,6 +631,13 @@ def from_dict(action_dict):
     if not target_class:
         message = "Failed to recover action from dictionary - invalid action type specified %s." % action_type
         raise Exception(message)
+    if "source" in action_dict:
+        action_dict.pop("path")  # remove redundant information stored for backward compatibility.
+    elif "path" in action_dict:
+        # legacy message received from older Pulsar client, pop the path from the dict
+        # and convert it to a source.
+        source = {"path": action_dict.pop("path")}
+        action_dict["source"] = source
     return target_class.from_dict(action_dict)
 
 
@@ -609,7 +666,8 @@ class BasePathMapper(object):
 
     def matches(self, path, path_type):
         path_type_matches = path_type in self.path_types
-        return path_type_matches and self._path_matches(path)
+        rval = path_type_matches and self._path_matches(path)
+        return rval
 
     def _extend_base_dict(self, **kwds):
         base_dict = dict(
@@ -738,6 +796,7 @@ ACTION_CLASSES = [
     CopyAction,
     RemoteCopyAction,
     RemoteTransferAction,
+    RemoteObjectStoreCopyAction,
     RsyncTransferAction,
     ScpTransferAction,
 ]

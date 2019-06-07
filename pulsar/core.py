@@ -118,18 +118,26 @@ class PulsarApp(object):
         self.file_cache = Cache(file_cache_dir) if file_cache_dir else None
 
     def __setup_object_store(self, conf):
-        if "object_store_config_file" not in conf:
+        if "object_store_config_file" not in conf and "object_store_config" not in conf:
             self.object_store = None
             return
-        object_store_config = Bunch(
-            object_store_config_file=conf['object_store_config_file'],
+
+        config_obj_kwds = dict(
             file_path=conf.get("object_store_file_path", None),
             object_store_check_old_style=False,
             job_working_directory=conf.get("object_store_job_working_directory", None),
             new_file_path=conf.get("object_store_new_file_path", tempdir),
             umask=int(conf.get("object_store_umask", "0000")),
+            jobs_directory=None,
         )
-        self.object_store = build_object_store_from_config(object_store_config)
+        config_dict = None
+        if conf.get("object_store_config_file"):
+            config_obj_kwds["object_store_config_file"] = conf['object_store_config_file']
+        else:
+            config_dict = conf["object_store_config"]
+
+        object_store_config = Bunch(**config_obj_kwds)
+        self.object_store = build_object_store_from_config(object_store_config, config_dict=config_dict)
 
     def __setup_dependency_manager(self, conf):
         dependencies_dir = conf.get("tool_dependency_dir", "dependencies")
