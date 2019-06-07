@@ -19,4 +19,4 @@ RUN pip install -U pip && pip install wheel kombu pykube poster
 
 ADD pulsar_app-*.dev0-py2.py3-none-any.whl /pulsar_app-*.dev0-py2.py3-none-any.whl
 
-RUN pip install /pulsar_app-*.dev0-py2.py3-none-any.whl
+RUN pip install /pulsar_app-*.dev0-py2.py3-none-any.whl[galaxy_extended_metadata]

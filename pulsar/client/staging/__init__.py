@@ -14,7 +14,7 @@ from galaxy.util.bunch import Bunch
 from ..util import PathHelper
 
 COMMAND_VERSION_FILENAME = "COMMAND_VERSION"
-DEFAULT_DYNAMIC_COLLECTION_PATTERN = [r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|__instrument_.*|dataset_\d+_files.+"]
+DEFAULT_DYNAMIC_COLLECTION_PATTERN = [r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|__instrument_.*|dataset_\d+_files.+|outputs_populated/.*"]
 
 
 class ClientJobDescription(object):

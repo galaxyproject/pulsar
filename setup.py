@@ -111,6 +111,7 @@ setup(
     install_requires=requirements,
     extras_require={
         ':python_version=="2.7"': py27_requirements,
+        'galaxy_extended_metadata': ['galaxy-job-execution>=19.9.0.dev0'],
     },
     license="Apache License 2.0",
     zip_safe=False,
