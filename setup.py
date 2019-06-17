@@ -100,6 +100,7 @@ setup(
         pulsar-chown-working-directory=pulsar.scripts.chown_working_directory:main
         pulsar-submit=pulsar.scripts.submit:main
         pulsar-run=pulsar.scripts.run:main
+        _pulsar-conda-init=pulsar.scripts._conda_init:main
     ''',
     scripts=scripts,
     package_data={'pulsar': [

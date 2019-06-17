@@ -397,9 +397,6 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         volume_mounts = [
             {"mountPath": "/pulsar_staging", "name": "staging-directory"},
         ]
-        tool_container_image = container  # TODO: this isn't right at all...
-        if not container:
-            raise Exception("Must declare a container for kubernetes job execution.")
         pulsar_container_dict = {
             "name": "pulsar-container",
             "image": pulsar_container_image,
@@ -408,17 +405,19 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             "workingDir": "/",
             "volumeMounts": volume_mounts,
         }
-        command = TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE % job_directory.job_directory
-        tool_container_spec = {
-            "name": "tool-container",
-            "image": tool_container_image,
-            "command": ["sh"],
-            "args": ["-c", command],
-            "workingDir": "/",
-            "volumeMounts": volume_mounts,
-        }
-
-        container_dicts = [pulsar_container_dict, tool_container_spec]
+        tool_container_image = container
+        container_dicts = [pulsar_container_dict]
+        if container:
+            command = TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE % job_directory.job_directory
+            tool_container_spec = {
+                "name": "tool-container",
+                "image": tool_container_image,
+                "command": ["sh"],
+                "args": ["-c", command],
+                "workingDir": "/",
+                "volumeMounts": volume_mounts,
+            }
+            container_dicts.append(tool_container_spec)
         for container_dict in container_dicts:
             if self._default_pull_policy:
                 container_dict["imagePullPolicy"] = self._default_pull_policy
