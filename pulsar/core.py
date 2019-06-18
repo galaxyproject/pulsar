@@ -10,11 +10,13 @@ from pulsar.tools.authorization import get_authorizer
 from pulsar import messaging
 from galaxy.objectstore import build_object_store_from_config
 try:
-    # If galaxy-lib or Galaxy <19.05 present.
-    from galaxy.tools.deps import DependencyManager
-except ImportError:
     # If galaxy-tool-util or Galaxy >=19.09 present.
+    from galaxy.tools.deps import build_dependency_manager
+    DependencyManager = None
+except ImportError:
+    # If galaxy-lib or Galaxy <19.05 present.
     from galaxy.tool_util.deps import DependencyManager
+    build_dependency_manager = None
 try:
     # If galaxy-lib or Galaxy <19.05 present.
     from galaxy.jobs.metrics import JobMetrics
@@ -140,10 +142,13 @@ class PulsarApp(object):
         self.object_store = build_object_store_from_config(object_store_config, config_dict=config_dict)
 
     def __setup_dependency_manager(self, conf):
-        dependencies_dir = conf.get("tool_dependency_dir", "dependencies")
-        resolvers_config_file = conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml")
-        conda_config = {k: v for k, v in conf.items() if k.startswith("conda_")}
-        self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file, app_config=conda_config)
+        if build_dependency_manager is not None:
+            self.dependency_manager = build_dependency_manager(app_config_dict=conf)
+        else:
+            dependencies_dir = conf.get("tool_dependency_dir", "dependencies")
+            resolvers_config_file = conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml")
+            conda_config = {k: v for k, v in conf.items() if k.startswith("conda_")}
+            self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file, app_config=conda_config)
 
     def __setup_job_metrics(self, conf):
         job_metrics = conf.get("job_metrics", None)

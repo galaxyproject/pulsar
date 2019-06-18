@@ -100,6 +100,7 @@ setup(
         pulsar-chown-working-directory=pulsar.scripts.chown_working_directory:main
         pulsar-submit=pulsar.scripts.submit:main
         pulsar-run=pulsar.scripts.run:main
+        _pulsar-conda-init=pulsar.scripts._conda_init:main
     ''',
     scripts=scripts,
     package_data={'pulsar': [
@@ -111,6 +112,7 @@ setup(
     install_requires=requirements,
     extras_require={
         ':python_version=="2.7"': py27_requirements,
+        'galaxy_extended_metadata': ['galaxy-job-execution>=19.9.0.dev0'],
     },
     license="Apache License 2.0",
     zip_safe=False,
