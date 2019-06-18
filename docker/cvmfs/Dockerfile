@@ -41,12 +41,9 @@ RUN python setup.py install \
     && pulsar-config --auto_conda --host 0.0.0.0 \
     && echo "export DRMAA_LIBRARY_PATH=/usr/lib/slurm-drmaa/lib/libdrmaa.so" >> local_env.sh \
     && cp docker/cvmfs/app.yml . \
-    && cp ./docker/testing/configure_slurm.py /usr/sbin/configure_slurm.py \
     && chown -R pulsar:pulsar /pulsar \
     && chmod +x /usr/local/bin/pulsar \
-    && cp /pulsar/docker/cvmfs/default.local /etc/cvmfs/ \
-    && cp /pulsar/docker/cvmfs/galaxyproject.org.conf /etc/cvmfs/domain.d/ \
-    && cp /pulsar/docker/cvmfs/data.galaxyproject.org.pub /etc/cvmfs/keys/ \
+    && _pulsar-configure-galaxy-cvmfs \
     && chown pulsar -R /usr/local
 
 # Pulsar will listen on this port
@@ -55,5 +52,5 @@ EXPOSE 8913
 # Must run CVMFS setup otherwise autofs does not get configured nor automount
 # starts. Then start Slurm and switch to a less-priviledged user for Pulsar.
 CMD /usr/bin/cvmfs_config setup; service munge start; \
-    python /usr/sbin/configure_slurm.py; service slurmd start; \
+    _pulsar-configure-slurm; service slurmd start; \
     service slurmctld start; su pulsar -c "/usr/local/bin/pulsar"
