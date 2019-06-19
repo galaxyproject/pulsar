@@ -95,6 +95,9 @@ def submit_job(manager, job_config):
             jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
             command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
             command_line = command_line.replace(os.path.join(jobs_directory, _get_galaxy_job_id(job_id)), job_directory)
+            for action in remote_staging['setup']:
+                if 'action' in action.keys() and 'contents' in action['action']:
+                    action['action']['contents'] = action['action']['contents'].replace(os.path.join(jobs_directory, _get_galaxy_job_id(job_id)), job_directory)
 
         # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
         manager.touch_outputs(job_id, touch_outputs)
