@@ -38,7 +38,7 @@ DEFAULT_ID_ASSIGNER = "galaxy"
 ID_ASSIGNER = {
     # Generate a random id, needed if multiple
     # Galaxy instances submitting to same Pulsar.
-    'uuid': lambda galaxy_job_id: uuid4().hex,
+    'uuid': lambda galaxy_job_id: "{}-{}".format(galaxy_job_id, uuid4().hex),
     # Pass galaxy id through, default for single
     # Galaxy Pulsar instance.
     'galaxy': lambda galaxy_job_id: galaxy_job_id

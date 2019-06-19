@@ -13,12 +13,17 @@ from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 log = logging.getLogger(__name__)
 
 
+def _get_galaxy_job_id(job_id, sep='-'):
+    return job_id.split('-')[0] if sep in job_id else job_id
+
+
 def status_dict(manager, job_id):
     job_status = manager.get_status(job_id)
     return full_status(manager, job_status, job_id)
 
 
 def full_status(manager, job_status, job_id):
+    job_id = _get_galaxy_job_id(job_id)
     if status.is_job_done(job_status):
         full_status = __job_complete_dict(job_status, manager, job_id)
     else:
@@ -85,9 +90,11 @@ def submit_job(manager, job_config):
             )
 
         if job_config is not None:
+            job_id = job_config["job_id"]
             job_directory = job_config["job_directory"]
             jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
             command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
+            command_line = command_line.replace(os.path.join(jobs_directory, _get_galaxy_job_id(job_id)), job_directory)
 
         # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
         manager.touch_outputs(job_id, touch_outputs)
