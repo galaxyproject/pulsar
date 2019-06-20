@@ -11,11 +11,11 @@ from pulsar import messaging
 from galaxy.objectstore import build_object_store_from_config
 try:
     # If galaxy-tool-util or Galaxy >=19.09 present.
-    from galaxy.tools.deps import build_dependency_manager
+    from galaxy.tool_util.deps import build_dependency_manager
     DependencyManager = None
 except ImportError:
     # If galaxy-lib or Galaxy <19.05 present.
-    from galaxy.tool_util.deps import DependencyManager
+    from galaxy.tools.deps import DependencyManager
     build_dependency_manager = None
 try:
     # If galaxy-lib or Galaxy <19.05 present.
