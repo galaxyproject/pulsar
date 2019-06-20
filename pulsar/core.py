@@ -83,7 +83,7 @@ class PulsarApp(object):
         """
         tool_config_files = conf.get("tool_config_files", None)
         if not tool_config_files:
-            # For compatibity with Galaxy, allow tool_config_file
+            # For compatibility with Galaxy, allow tool_config_file
             # option name.
             tool_config_files = conf.get("tool_config_file", None)
         toolbox = None
