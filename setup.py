@@ -101,18 +101,21 @@ setup(
         pulsar-submit=pulsar.scripts.submit:main
         pulsar-run=pulsar.scripts.run:main
         _pulsar-conda-init=pulsar.scripts._conda_init:main
+        _pulsar-configure-slurm=pulsar.scripts._configure_slurm:main
+        _pulsar-configure-galaxy-cvmfs=pulsar.scripts._configure_galaxy_cvmfs:main
     ''',
     scripts=scripts,
     package_data={'pulsar': [
         'managers/util/job_script/DEFAULT_JOB_FILE_TEMPLATE.sh',
         'managers/util/job_script/CLUSTER_SLOTS_STATEMENT.sh',
+        'scripts/cvmfs_data/*',
     ]},
     package_dir={'pulsar': 'pulsar'},
     include_package_data=True,
     install_requires=requirements,
     extras_require={
         ':python_version=="2.7"': py27_requirements,
-        'galaxy_extended_metadata': ['galaxy-job-execution>=19.9.0.dev0'],
+        'galaxy_extended_metadata': ['galaxy-job-execution>=19.9.0.dev0', 'galaxy-util[template]'],
     },
     license="Apache License 2.0",
     zip_safe=False,

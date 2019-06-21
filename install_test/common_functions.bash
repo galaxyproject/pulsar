@@ -64,7 +64,13 @@ check_pulsar() {
     echo "Starting Pulsar in daemon mode."
     pulsar --daemon
     echo "Waiting for Pulsar to start."
+    while ! curl -s "http://localhost:$PULSAR_TARGET_POORT";
+    do
+        printf "."
+        sleep 1;
+    done
     sleep 2
+    cat paster.log
 
     cd ..    
 }

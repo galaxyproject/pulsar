@@ -11,7 +11,7 @@ init_pulsar
 
 cd pulsar
 echo "Running pulsar-config with default arguments"
-pulsar-config
+pulsar-config --auto_conda
 cd ..
 
 check_pulsar
