@@ -6,11 +6,10 @@ History
 .. to_doc
 
 ---------------------
-0.13.0.dev0
+0.13.0 (2019-06-25)
 ---------------------
 
-    
-
+* Various improvements and simplifications to Kubernetes job execution.
 
 ---------------------
 0.12.1 (2019-06-03)
