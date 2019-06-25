@@ -367,7 +367,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
     def __init__(self, destination_params, job_id, client_manager):
         ensure_pykube()
         super(MessageCoexecutionPodJobClient, self).__init__(destination_params, job_id, client_manager)
-        self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.10.0")
+        self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
         self._default_pull_policy = pull_policy(destination_params)
 
     def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, container=None, pulsar_app_config=None):
@@ -380,6 +380,34 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             remote_staging=remote_staging,
             job_config=job_config,
         )
+
+        manager_type = "coexecution" if container is not None else "unqueued"
+        if "manager" not in pulsar_app_config and "managers" not in pulsar_app_config:
+            pulsar_app_config["manager"] = {"type": manager_type}
+
+        using_dependencies = container is None and dependencies_description is not None
+        if using_dependencies and "dependency_resolution" not in pulsar_app_config:
+            # Setup default dependency resolution for container above...
+            dependency_resolution = {
+                "cache": False,
+                "use": True,
+                "default_base_path": "/pulsar_dependencies",
+                "cache_dir": "/pulsar_dependencies/_cache",
+                "resolvers": [{  # TODO: add CVMFS resolution...
+                    "type": "conda",
+                    "auto_init": True,
+                    "auto_install": True,
+                    "prefix": '/pulsar_dependencies/conda',
+                }, {
+                    "type": "conda",
+                    "auto_init": True,
+                    "auto_install": True,
+                    "prefix": '/pulsar_dependencies/conda',
+                    "versionless": True,
+                }]
+            }
+            pulsar_app_config["dependency_resolution"] = dependency_resolution
+
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
 
