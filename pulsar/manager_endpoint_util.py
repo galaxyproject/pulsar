@@ -45,9 +45,11 @@ def __job_complete_dict(complete_status, manager, job_id):
         stderr=stderr_contents,
         working_directory=job_directory.working_directory(),
         metadata_directory=job_directory.metadata_directory(),
+        job_directory=job_directory.job_directory,
         working_directory_contents=job_directory.working_directory_contents(),
         metadata_directory_contents=job_directory.metadata_directory_contents(),
         outputs_directory_contents=job_directory.outputs_directory_contents(),
+        job_directory_contents=job_directory.job_directory_contents(),
         system_properties=manager.system_properties(),
         pulsar_version=pulsar_version,
     )

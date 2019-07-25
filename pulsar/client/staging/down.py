@@ -59,6 +59,7 @@ class ResultsCollector(object):
         self.output_files = client_outputs.output_files
         self.working_directory_contents = pulsar_outputs.working_directory_contents or []
         self.metadata_directory_contents = pulsar_outputs.metadata_directory_contents or []
+        self.job_directory_contents = pulsar_outputs.job_directory_contents or []
 
     def collect(self):
         self.__collect_working_directory_outputs()
@@ -66,6 +67,7 @@ class ResultsCollector(object):
         self.__collect_version_file()
         self.__collect_other_working_directory_files()
         self.__collect_metadata_directory_files()
+        self.__collect_job_directory_files()
         return self.exception_tracker.collection_failure_exceptions
 
     def __collect_working_directory_outputs(self):
@@ -113,6 +115,13 @@ class ResultsCollector(object):
             self.client_outputs.metadata_directory,
             self.metadata_directory_contents,
             'output_metadata',
+        )
+
+    def __collect_job_directory_files(self):
+        self.__collect_directory_files(
+            self.client_outputs.job_directory,
+            self.job_directory_contents,
+            'output_jobdir',
         )
 
     def __collect_directory_files(self, directory, contents, output_type):

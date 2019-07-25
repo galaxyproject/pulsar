@@ -72,10 +72,12 @@ def __pulsar_outputs(job_directory):
     working_directory_contents = job_directory.working_directory_contents()
     output_directory_contents = job_directory.outputs_directory_contents()
     metadata_directory_contents = job_directory.metadata_directory_contents()
+    job_directory_contents = job_directory.job_directory_contents()
     return PulsarOutputs(
         working_directory_contents,
         output_directory_contents,
         metadata_directory_contents,
+        job_directory_contents,
     )
 
 
