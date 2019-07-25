@@ -33,6 +33,7 @@ class TestStager(TempDirectoryTestCase):
             rewrite_paths=False,
         )
         self.job_config = dict(
+            configs_directory="/pulsar/staging/1/configs",
             working_directory="/pulsar/staging/1/working",
             outputs_directory="/pulsar/staging/1/outputs",
             system_properties=dict(
