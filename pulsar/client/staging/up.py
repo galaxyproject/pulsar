@@ -134,9 +134,7 @@ class FileStager(object):
         self.new_working_directory = job_config['working_directory']
         self.new_outputs_directory = job_config['outputs_directory']
         self.new_tool_directory = job_config.get('tools_directory', None)
-        # Default configs_directory to match remote working_directory to mimic
-        # behavior of older Pulsar servers.
-        self.new_configs_directory = job_config.get('configs_directory', self.new_working_directory)
+        self.new_configs_directory = job_config['configs_directory']
         self.remote_separator = self.__parse_remote_separator(job_config)
         self.path_helper = PathHelper(self.remote_separator)
         # If remote Pulsar server assigned job id, use that otherwise
