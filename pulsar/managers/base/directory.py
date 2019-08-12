@@ -89,7 +89,7 @@ class DirectoryBaseManager(BaseManager):
         try:
             self._job_directory(job_id).store_metadata(JOB_FILE_CANCELLED, True)
         except Exception:
-            log.info("Failed to recod job with id %s was cancelled." % job_id)
+            log.info("Failed to record job with id %s was cancelled." % job_id)
 
     def _was_cancelled(self, job_id):
         try:
