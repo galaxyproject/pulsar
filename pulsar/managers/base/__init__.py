@@ -200,6 +200,13 @@ class BaseManager(ManagerInterface):
             command_line = "%s; %s" % ("; ".join(dependency_commands), command_line)
         return command_line
 
+    def setup_job(self, input_job_id, tool_id, tool_version):
+        job_id = self._get_job_id(input_job_id)
+        return self._setup_job_for_job_id(job_id, tool_id, tool_version)
+
+    def _get_job_id(self, input_job_id):
+        return str(self.id_assigner(input_job_id))
+
     def __str__(self):
         return "{0}[name={1}]".format(type(self).__name__, self.name)
 

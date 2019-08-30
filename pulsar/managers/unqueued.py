@@ -86,13 +86,6 @@ class Manager(BaseUnqueuedManager):
             pass
         return pid
 
-    def setup_job(self, input_job_id, tool_id, tool_version):
-        job_id = self._get_job_id(input_job_id)
-        return self._setup_job_for_job_id(job_id, tool_id, tool_version)
-
-    def _get_job_id(self, galaxy_job_id):
-        return str(self.id_assigner(galaxy_job_id))
-
     def _get_job_lock(self, job_id):
         return self._job_directory(job_id).lock()
 
