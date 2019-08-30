@@ -17,11 +17,13 @@ TYPES_TO_METHOD = dict(
     unstructured="unstructured_files_directory",
     config="configs_directory",
     tool="tool_files_directory",
+    jobdir="job_directory",
     workdir="working_directory",
     metadata="metadata_directory",
     output="outputs_directory",
     output_workdir="working_directory",
     output_metadata="metadata_directory",
+    output_jobdir="job_directory",
 )
 
 
@@ -82,10 +84,12 @@ class RemoteJobDirectory(object):
         # client module, but this code is reused on server which may
         # serve legacy clients.
         allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir', 'metadata', 'output_metadata']
-        directory_function = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
-        if not directory_function:
+        directory_source = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
+        if not directory_source:
             raise Exception("Unknown file_type specified %s" % file_type)
-        return directory_function(), allow_nested_files
+        if callable(directory_source):
+            directory_source = directory_source()
+        return directory_source, allow_nested_files
 
     def _sub_dir(self, name):
         return self.path_helper.remote_join(self.job_directory, name)
