@@ -9,7 +9,12 @@ History
 0.14.0.dev0
 ---------------------
 
-    
+* Improvements and fixes to container handling. `Pull Request 202`_
+* Fix a typo in exception logging thanks to @erasche.
+  `Pull Request 203`_
+* Cleanup config file handling a bit by removing branch for very
+  old Pulsar servers likely no longer supported.
+  `Pull Request 201`_
 
 ---------------------
 0.13.0 (2019-06-25)
@@ -271,6 +276,9 @@ History
 
 
 .. github_links
+.. _Pull Request 202: https://github.com/galaxyproject/pulsar/pull/202
+.. _Pull Request 203: https://github.com/galaxyproject/pulsar/pull/203
+.. _Pull Request 201: https://github.com/galaxyproject/pulsar/pull/201
 .. _Pull Request 190: https://github.com/galaxyproject/pulsar/pull/190
 .. _Pull Request 166: https://github.com/galaxyproject/pulsar/pull/166
 .. _Pull Request 186: https://github.com/galaxyproject/pulsar/pull/186

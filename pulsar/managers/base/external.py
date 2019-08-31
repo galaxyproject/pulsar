@@ -26,10 +26,6 @@ class ExternalBaseManager(DirectoryBaseManager):
     def clean(self, job_id):
         super(ExternalBaseManager, self).clean(job_id)
 
-    def setup_job(self, input_job_id, tool_id, tool_version):
-        job_id = self._get_job_id(input_job_id)
-        return self._setup_job_for_job_id(job_id, tool_id, tool_version)
-
     def kill(self, job_id):
         self._record_cancel(job_id)
         external_id = self._external_id(job_id)
@@ -46,9 +42,6 @@ class ExternalBaseManager(DirectoryBaseManager):
         if not external_id:
             raise KeyError("Failed to find external id for job_id %s" % job_id)
         return self._get_status_external(external_id)
-
-    def _get_job_id(self, input_job_id):
-        return str(self.id_assigner(input_job_id))
 
     def _register_external_id(self, job_id, external_id):
         if isinstance(external_id, binary_type):
