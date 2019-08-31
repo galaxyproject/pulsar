@@ -62,6 +62,7 @@ setup(
     version=version,
     description='Distributed job execution application built for Galaxy (http://galaxyproject.org/).',
     long_description=readme + '\n\n' + history,
+    long_description_content_type='text/x-rst',
     author='Galaxy Project',
     author_email='jmchilton@gmail.com',
     url='https://github.com/galaxyproject/pulsar',
