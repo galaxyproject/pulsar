@@ -1,6 +1,17 @@
 # TODO: test condor
 language: python
 dist: trusty
+
+deploy:
+  provider: pypi
+  user: jmchilton
+  skip_existing: true
+  password:
+    secure: fFcd6WYK1BMaVGA/XEgKO+8PGXPog80N7xKW6nFvW/tty9KwEvB9fBYKm7WXw1fk9hickP5UgiSdFK2vSQrs8iveODS+2EmBTs3r1rUbQg0DFR4mNpGEzxHl5QZVAREoIEpQgLFOdrbd769oA/NFiz9VhTt4VwJIBY1Ks7rMXB8=
+  on:
+    tags: true
+  distributions: sdist bdist_wheel
+
 matrix:
   include:
   - python: 2.7
@@ -12,7 +23,7 @@ matrix:
   - python: 2.7
     env: TOX_ENV=py27 SETUP=true
   - python: 2.7
-    env:  TOX_ENV=py27-install-wheel
+    env: TOX_ENV=py27-install-wheel
   - python: 3.5
     env: TOX_ENV=py35-lint
   - python: 3.5
