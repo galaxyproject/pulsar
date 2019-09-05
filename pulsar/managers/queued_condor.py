@@ -37,12 +37,14 @@ class CondorQueueManager(ExternalBaseManager):
         )
         log_path = self.__condor_user_log(job_id)
         open(log_path, 'w')  # Touch log file
+
+        submit_params.update(self.submission_params)
         build_submit_params = dict(
             executable=job_file_path,
             output=self._stdout_path(job_id),
             error=self._stderr_path(job_id),
             user_log=log_path,
-            query_params=self.submission_params,
+            query_params=submit_params,
         )
         submit_file_contents = build_submit_description(**build_submit_params)
         submit_file = self._write_job_file(job_id, "job.condor.submit", submit_file_contents)
