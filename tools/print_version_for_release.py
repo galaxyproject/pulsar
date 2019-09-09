@@ -4,6 +4,7 @@ import ast
 import re
 import sys
 
+DEV_RELEASE = os.environ.get("DEV_RELEASE", None) == "1"
 source_dir = sys.argv[1]
 
 _version_re = re.compile(r'__version__\s+=\s+(.*)')
@@ -14,4 +15,9 @@ with open('%s/__init__.py' % source_dir, 'rb') as f:
 
 # Strip .devN
 version_tuple = LooseVersion(version).version[0:3]
-print(".".join(map(str, version_tuple)))
+if not DEV_RELEASE:
+    # Strip .devN
+    version_tuple = LooseVersion(version).version[0:3]
+    print(".".join(map(str, version_tuple)))
+else:
+    print(version)
