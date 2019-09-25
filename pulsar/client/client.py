@@ -53,23 +53,12 @@ class BaseJobClient(object):
     def __init__(self, destination_params, job_id):
         destination_params = destination_params or {}
         self.destination_params = destination_params
-        self.job_id = job_id
-        if "jobs_directory" in destination_params:
-            staging_directory = destination_params["jobs_directory"]
-            sep = destination_params.get("remote_sep", os.sep)
-            job_directory = RemoteJobDirectory(
-                remote_staging_directory=staging_directory,
-                remote_id=job_id,
-                remote_sep=sep,
-            )
-        else:
-            job_directory = None
+        self.assign_job_id(job_id)
 
         for attr in ["ssh_key", "ssh_user", "ssh_host", "ssh_port"]:
             setattr(self, attr, destination_params.get(attr, None))
         self.env = destination_params.get("env", [])
         self.files_endpoint = destination_params.get("files_endpoint", None)
-        self.job_directory = job_directory
 
         default_file_action = self.destination_params.get("default_file_action", "transfer")
         if default_file_action not in actions:
@@ -78,6 +67,23 @@ class BaseJobClient(object):
         self.action_config_path = self.destination_params.get("file_action_config", None)
 
         self.setup_handler = build_setup_handler(self, destination_params)
+
+    def assign_job_id(self, job_id):
+        self.job_id = job_id
+        self._set_job_directory()
+
+    def _set_job_directory(self):
+        if "jobs_directory" in self.destination_params:
+            staging_directory = self.destination_params["jobs_directory"]
+            sep = self.destination_params.get("remote_sep", os.sep)
+            job_directory = RemoteJobDirectory(
+                remote_staging_directory=staging_directory,
+                remote_id=self.job_id,
+                remote_sep=sep,
+            )
+        else:
+            job_directory = None
+        self.job_directory = job_directory
 
     def setup(self, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
         """

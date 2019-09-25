@@ -147,7 +147,7 @@ class FileStager(object):
         if self.job_id != galaxy_job_id:
             # Remote Pulsar server assigned an id different than the
             # Galaxy job id, update client to reflect this.
-            self.client.job_id = self.job_id
+            self.client.assign_job_id(self.job_id)
         self.job_config = job_config
         self.job_directory = self.__setup_job_directory()
 
