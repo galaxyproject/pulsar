@@ -37,6 +37,7 @@ def get_exchange(connection_string, manager_name, conf):
 
 
 def bind_manager_to_queue(manager, queue_state, connection_string, conf):
+    log.info("bind_manager_to_queue called for %s" % mask_password_from_url(connection_string))
     pulsar_exchange = get_exchange(connection_string, manager.name, conf)
 
     process_setup_messages = functools.partial(__process_setup_message, manager)
