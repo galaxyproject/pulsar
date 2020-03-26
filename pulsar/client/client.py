@@ -418,7 +418,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         base64_app_conf = to_base64_json(pulsar_app_config)
 
         # TODO: instance_id for Pulsar...
-        job_name = produce_unique_k8s_job_name(app_prefix="pulsar")
+        job_id = self.job_id
+        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id)
         params = self.destination_params
 
         pulsar_container_image = self.pulsar_container_image
