@@ -373,6 +373,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
     def __init__(self, destination_params, job_id, client_manager):
         ensure_pykube()
         super(MessageCoexecutionPodJobClient, self).__init__(destination_params, job_id, client_manager)
+        self.instance_id = destination_params.get("k8s_galaxy_instance_id") or None
         self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
         self._default_pull_policy = pull_policy(destination_params)
 
@@ -413,13 +414,11 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
                 }]
             }
             pulsar_app_config["dependency_resolution"] = dependency_resolution
-
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
 
-        # TODO: instance_id for Pulsar...
         job_id = self.job_id
-        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id)
+        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
         params = self.destination_params
 
         pulsar_container_image = self.pulsar_container_image
