@@ -31,8 +31,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
     && /usr/sbin/create-munge-key
 
-ADD pulsar_app-*.dev0-py2.py3-none-any.whl /pulsar_app-*.dev0-py2.py3-none-any.whl
+ADD pulsar_app-*.dev*-py2.py3-none-any.whl /pulsar_app-*.dev*-py2.py3-none-any.whl
 
-RUN pip install --no-cache-dir /pulsar_app-*.dev0-py2.py3-none-any.whl[galaxy_extended_metadata]
+RUN pip install --no-cache-dir /pulsar_app-*.dev*-py2.py3-none-any.whl[galaxy_extended_metadata]
 RUN _pulsar-configure-galaxy-cvmfs
 RUN _pulsar-conda-init --conda_prefix=/pulsar_dependencies/conda
