@@ -190,12 +190,15 @@ class CoexecutionManager(BaseUnqueuedManager):
 
     def _monitor_execution(self, job_id):
         return_code_path = self._return_code_path(job_id)
+        # Write dummy JOB_FILE_PID so get_status thinks this job is running.
+        self._job_directory(job_id).store_metadata(JOB_FILE_PID, "1")
         try:
             while not os.path.exists(return_code_path):
                 time.sleep(0.1)
                 print("monitoring for %s" % return_code_path)
                 continue
             print("found return code path...")
+            self._job_directory(job_id).remove_metadata(JOB_FILE_PID)
             time.sleep(1)
         finally:
             self._finish_execution(job_id)
