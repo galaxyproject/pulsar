@@ -23,6 +23,9 @@ log = logging.getLogger(__name__)
 
 DEFAULT_JOB_API_VERSION = "batch/v1"
 DEFAULT_NAMESPACE = "default"
+INSTANCE_ID_INVALID_MESSAGE = ("Galaxy instance [%s] is either too long "
+                               "(>20 characters) or it includes non DNS "
+                               "acceptable characters, ignoring it.")
 
 
 def ensure_pykube():
@@ -94,11 +97,11 @@ def galaxy_instance_id(params):
     setup of a Job that is being recovered or restarted after a downtime/reboot.
     """
     if "k8s_galaxy_instance_id" in params:
-        if re.match(r"(?!-)[a-z\d-]{1,20}(?<!-)$", params['k8s_galaxy_instance_id']):
-            return params['k8s_galaxy_instance_id']
+        raw_value = params['k8s_galaxy_instance_id']
+        if re.match(r"(?!-)[a-z\d-]{1,20}(?<!-)$", raw_value):
+            return raw_value
         else:
-            log.error("Galaxy instance '" + params['k8s_galaxy_instance_id'] + "' is either too long "
-                        + '(>20 characters) or it includes non DNS acceptable characters, ignoring it.')
+            log.error(INSTANCE_ID_INVALID_MESSAGE % raw_value)
     return None
 
 
