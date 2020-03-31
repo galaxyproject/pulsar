@@ -5,12 +5,14 @@ from six import string_types
 
 from pulsar.managers.util.pykube_util import (
     ensure_pykube,
+    find_job_object_by_name,
     galaxy_instance_id,
     Job,
     job_object_dict,
     produce_unique_k8s_job_name,
     pull_policy,
     pykube_client_from_dict,
+    stop_job,
 )
 from .action_mapper import (
     actions,
@@ -418,8 +420,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
 
-        job_id = self.job_id
-        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
+        job_name = self._k8s_job_name
         params = self.destination_params
 
         pulsar_container_image = self.pulsar_container_image
@@ -469,13 +470,29 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         }
         spec = {"template": template}
         k8s_job_obj = job_object_dict(params, job_name, spec)
-        pykube_client = pykube_client_from_dict(self.destination_params)
+        pykube_client = self._pykube_client
         job = Job(pykube_client, k8s_job_obj)
         job.create()
 
     def kill(self):
-        # TODO: kill pod...
-        pass
+        job_name = self._k8s_job_name
+        pykube_client = self._pykube_client
+        job = find_job_object_by_name(pykube_client, job_name)
+        if job:
+            log.info("Kill k8s job with name %s" % job_name)
+            stop_job(job)
+        else:
+            log.info("Attempted to kill k8s job but it is unavailable.")
+
+    @property
+    def _pykube_client(self):
+        return pykube_client_from_dict(self.destination_params)
+
+    @property
+    def _k8s_job_name(self):
+        job_id = self.job_id
+        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
+        return job_name
 
 
 class InputCachingJobClient(JobClient):
