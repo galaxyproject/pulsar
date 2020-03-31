@@ -68,6 +68,34 @@ def pull_policy(params):
     return None
 
 
+def find_job_object_by_name(pykube_api, job_name, namespace=None):
+    filter_kwd = dict(selector="app=%s" % job_name)
+    if namespace is not None:
+        filter_kwd["namespace"] = namespace
+
+    jobs = Job.objects(pykube_api).filter(**filter_kwd)
+    job = None
+    if len(jobs.response['items']) > 0:
+        job = Job(pykube_api, jobs.response['items'][0])
+    return job
+
+
+def stop_job(job, cleanup="always"):
+    job_failed = (job.obj['status']['failed'] > 0
+                    if 'failed' in job.obj['status'] else False)
+    # Scale down the job just in case even if cleanup is never
+    job.scale(replicas=0)
+    if (cleanup == "always" or
+            (cleanup == "onsuccess" and not job_failed)):
+        delete_options = {
+            "apiVersion": "v1",
+            "kind": "DeleteOptions",
+            "propagationPolicy": "Background"
+        }
+        r = job.api.delete(json=delete_options, **job.api_kwargs())
+        job.api.raise_for_status(r)
+
+
 def job_object_dict(params, job_name, spec):
     k8s_job_obj = {
         "apiVersion": params.get('k8s_job_api_version', DEFAULT_JOB_API_VERSION),
