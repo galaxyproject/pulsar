@@ -55,6 +55,12 @@ class BaseUnqueuedManager(DirectoryBaseManager):
             )
         return command_line
 
+    def _start_monitor(self, *args, **kwd):
+        if kwd.get("background", True):
+            thread.start_new_thread(self._monitor_execution, args)
+        else:
+            self._monitor_execution(*args)
+
 
 # Job Locks (for status updates). Following methods are locked.
 #    _finish_execution(self, job_id)
@@ -151,10 +157,7 @@ class Manager(BaseUnqueuedManager):
         proc, stdout, stderr = self._proc_for_job_id(job_id, command_line)
         with self._get_job_lock(job_id):
             self._record_pid(job_id, proc.pid)
-        if background:
-            thread.start_new_thread(self._monitor_execution, (job_id, proc, stdout, stderr))
-        else:
-            self._monitor_execution(job_id, proc, stdout, stderr)
+        self._start_monitor(job_id, proc, stdout, stderr, background=background)
 
     def _proc_for_job_id(self, job_id, command_line):
         job_directory = self.job_directory(job_id)
@@ -213,7 +216,7 @@ class CoexecutionManager(BaseUnqueuedManager):
         )
         command_line = "cd '%s'; sh %s" % (working_directory, command_line)
         self._write_command_line(job_id, command_line)
-        self._monitor_execution(job_id)
+        self._start_monitor(job_id)
 
 
 def execute(command_line, working_directory, stdout, stderr):
