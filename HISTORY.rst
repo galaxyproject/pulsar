@@ -6,10 +6,16 @@ History
 .. to_doc
 
 ---------------------
-0.14.0.dev0
+0.14.0.dev2
 ---------------------
 
-* Improvements and fixes to container handling. `Pull Request 202`_
+* Debug connection string for AMQP.
+  `Pull Request 217`_
+* Implement killing k8s jobs. `Pull Request 221`_
+* Various small Kubernetes fixes and enhancements.
+  `Pull Request 218`_, `Pull Request 219`_
+* Improvements and fixes to container handling.
+  `Pull Request 202`_
 * Fix a typo in exception logging thanks to @erasche.
   `Pull Request 203`_
 * Cleanup config file handling a bit by removing branch for very
@@ -276,6 +282,10 @@ History
 
 
 .. github_links
+.. _Pull Request 217: https://github.com/galaxyproject/pulsar/pull/217
+.. _Pull Request 218: https://github.com/galaxyproject/pulsar/pull/218
+.. _Pull Request 219: https://github.com/galaxyproject/pulsar/pull/219
+.. _Pull Request 221: https://github.com/galaxyproject/pulsar/pull/221
 .. _Pull Request 202: https://github.com/galaxyproject/pulsar/pull/202
 .. _Pull Request 203: https://github.com/galaxyproject/pulsar/pull/203
 .. _Pull Request 201: https://github.com/galaxyproject/pulsar/pull/201
