@@ -32,8 +32,14 @@ def submit_job(client, client_job_description, job_config=None):
         dependencies_description=client_job_description.dependencies_description,
         env=client_job_description.env,
     )
+    container_info = None
     if client_job_description.container:
-        launch_kwds["container"] = client_job_description.container
+        container_info = {
+            "container_id": client_job_description.container,
+        }
+        container_info["guest_ports"] = client_job_description.guest_ports
+        launch_kwds["container_info"] = container_info
+
     if client_job_description.remote_pulsar_app_config:
         launch_kwds["pulsar_app_config"] = client_job_description.remote_pulsar_app_config
 

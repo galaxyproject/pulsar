@@ -380,7 +380,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
         self._default_pull_policy = pull_policy(destination_params)
 
-    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, container=None, pulsar_app_config=None):
+    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, container_info=None, pulsar_app_config=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -390,6 +390,11 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             remote_staging=remote_staging,
             job_config=job_config,
         )
+        container = None
+        guest_ports = None
+        if container_info is not None:
+            container = container_info.get("container_id")
+            guest_ports = container_info.get("guest_ports")
 
         manager_type = "coexecution" if container is not None else "unqueued"
         if "manager" not in pulsar_app_config and "managers" not in pulsar_app_config:
@@ -453,6 +458,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
                 "workingDir": "/",
                 "volumeMounts": volume_mounts,
             }
+            if guest_ports:
+                tool_container_spec["ports"] = [{"containerPort": int(p)} for p in guest_ports]
             container_dicts.append(tool_container_spec)
         for container_dict in container_dicts:
             if self._default_pull_policy:

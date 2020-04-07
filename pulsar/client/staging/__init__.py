@@ -91,6 +91,7 @@ class ClientJobDescription(object):
         touch_outputs=None,
         container=None,
         remote_pulsar_app_config=None,
+        guest_ports=None,
     ):
         self.tool = tool
         self.command_line = command_line
@@ -110,6 +111,7 @@ class ClientJobDescription(object):
         self.arbitrary_files = arbitrary_files or {}
         self.touch_outputs = touch_outputs or []
         self.container = container
+        self.guest_ports = guest_ports
         self.remote_pulsar_app_config = remote_pulsar_app_config
 
     @property

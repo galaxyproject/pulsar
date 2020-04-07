@@ -136,6 +136,7 @@ def galaxy_instance_id(params):
 __all__ = (
     "DEFAULT_JOB_API_VERSION",
     "ensure_pykube",
+    "find_job_object_by_name",
     "galaxy_instance_id",
     "Job",
     "job_object_dict",
@@ -143,4 +144,5 @@ __all__ = (
     "produce_unique_k8s_job_name",
     "pull_policy",
     "pykube_client_from_dict",
+    "stop_job",
 )
