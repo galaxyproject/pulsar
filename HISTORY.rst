@@ -14,6 +14,8 @@ History
 * Implement killing k8s jobs. `Pull Request 221`_
 * Various small Kubernetes fixes and enhancements.
   `Pull Request 218`_, `Pull Request 219`_
+* Request and register ports for Galaxy ITs when using Kubernetes.
+  `Pull Request 223`_
 * Improvements and fixes to container handling.
   `Pull Request 202`_
 * Fix a typo in exception logging thanks to @erasche.
@@ -282,6 +284,7 @@ History
 
 
 .. github_links
+.. _Pull Request 223: https://github.com/galaxyproject/pulsar/pull/223
 .. _Pull Request 217: https://github.com/galaxyproject/pulsar/pull/217
 .. _Pull Request 218: https://github.com/galaxyproject/pulsar/pull/218
 .. _Pull Request 219: https://github.com/galaxyproject/pulsar/pull/219
