@@ -39,7 +39,7 @@ class QueueState(object):
     def join(self, timeout=None):
         for t in self.threads:
             t.join(timeout)
-            if t.isAlive():
+            if t.is_alive():
                 log.warn("Failed to join thread [%s]." % t)
 
 

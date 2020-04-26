@@ -342,7 +342,7 @@ class ManagerMonitor(object):
     def shutdown(self, timeout=None):
         self.active = False
         self.thread.join(timeout)
-        if self.thread.isAlive():
+        if self.thread.is_alive():
             log.warn("Failed to join monitor thread [%s]" % self.thread)
 
     def _run(self):
