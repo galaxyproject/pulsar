@@ -12,6 +12,8 @@ pip install coveralls  # Required fro coveralls reporting.
 sudo apt install -y slurm-wlm slurm-wlm-torque munge slurm-drmaa1 slurm-drmaa-dev
 sudo apt install -y libswitch-perl libgnutls28-dev # A missing dependency of slurm-llnl-torque
 
+# DEBIAN_FRONTEND=noninteractive sudo apt install htcondor ## htcondor installation
+
 yes | sudo /usr/sbin/create-munge-key
 sudo service munge start
 sudo python scripts/configure_test_slurm.py
