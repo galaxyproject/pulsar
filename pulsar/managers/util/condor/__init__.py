@@ -80,7 +80,7 @@ def condor_submit(submit_file):
         if submit.returncode == 0:
             external_id = parse_external_id(message, type='condor')
         else:
-            message = PROBLEM_PARSING_EXTERNAL_ID
+            message = "%s: %s" % (PROBLEM_PARSING_EXTERNAL_ID, message)
     except Exception as e:
         message = str(e)
     return external_id, message
