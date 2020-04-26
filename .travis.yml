@@ -1,6 +1,6 @@
 # TODO: test condor
 language: python
-dist: xenial
+dist: bionic
 matrix:
   include:
   - python: 2.7
