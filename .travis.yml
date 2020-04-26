@@ -1,6 +1,6 @@
 # TODO: test condor
 language: python
-dist: trusty
+dist: xenial
 matrix:
   include:
   - python: 2.7
