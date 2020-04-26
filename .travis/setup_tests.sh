@@ -3,23 +3,14 @@
 set -e
 set -v
 
+sudo add-apt-repository ppa:natefoo/slurm-drmaa
 sudo apt update
 sudo apt install -y libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-server
 #pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
 #pip install -r dev-requirements.txt --use-mirrors || true
 pip install coveralls  # Required fro coveralls reporting.
-sudo apt install -y slurm-wlm slurm-wlm-torque  # slurm-drmaa1 slurm-drmaa-dev
-sudo apt install -y libswitch-perl libgnutls28-dev # A missing dependency of slurm-llnl-torque
-
-wget http://ftp.us.debian.org/debian/pool/main/s/slurm-llnl/libslurm33_18.08.5.2-1+deb10u1_amd64.deb
-wget http://ftp.us.debian.org/debian/pool/main/s/slurm-llnl/libslurmdb33_18.08.5.2-1+deb10u1_amd64.deb
-wget https://depot.galaxyproject.org/apt/pool/main/s/slurm-drmaa/slurm-drmaa1_1.1.1-1+deb10u1_amd64.deb
-wget https://depot.galaxyproject.org/apt/pool/main/s/slurm-drmaa/slurm-drmaa-dev_1.1.1-1+deb10u1_amd64.deb
-
-sudo dpkg -i libslurm33_18.08.5.2-1+deb10u1_amd64.deb
-sudo dpkg -i libslurmdb33_18.08.5.2-1+deb10u1_amd64.deb
-sudo dpkg -i slurm-drmaa1_1.1.1-1+deb10u1_amd64.deb
-sudo dpkg -i slurm-drmaa-dev_1.1.1-1+deb10u1_amd64.deb
+sudo apt install -y slurm-wlm slurm-wlm-torque slurm-drmaa munge # slurm-drmaa1 slurm-drmaa-dev
+sudo apt install -y libswitch-perl  # A missing dependency of slurm-llnl-torque
 
 yes | sudo /usr/sbin/create-munge-key
 sudo service munge start
