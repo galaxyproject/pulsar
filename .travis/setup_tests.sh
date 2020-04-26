@@ -8,8 +8,8 @@ sudo apt install -y libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-serv
 #pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
 #pip install -r dev-requirements.txt --use-mirrors || true
 pip install coveralls  # Required fro coveralls reporting.
-sudo apt install -y slurm-wlm slurm-wlm-torque # slurm-drmaa1 slurm-drmaa-dev
-sudo apt install -y libswitch-perl  # A missing dependency of slurm-llnl-torque
+sudo apt install -y slurm-wlm slurm-wlm-torque  # slurm-drmaa1 slurm-drmaa-dev
+sudo apt install -y libswitch-perl libgnutls28-dev # A missing dependency of slurm-llnl-torque
 
 wget http://ftp.us.debian.org/debian/pool/main/s/slurm-llnl/libslurm33_18.08.5.2-1+deb10u1_amd64.deb
 wget http://ftp.us.debian.org/debian/pool/main/s/slurm-llnl/libslurmdb33_18.08.5.2-1+deb10u1_amd64.deb
