@@ -21,7 +21,7 @@ sudo dpkg -i libslurmdb33_18.08.5.2-1+deb10u1_amd64.deb
 sudo dpkg -i slurm-drmaa1_1.1.1-1+deb10u1_amd64.deb
 sudo dpkg -i slurm-drmaa-dev_1.1.1-1+deb10u1_amd64.deb
 
-sudo /usr/sbin/create-munge-key
+yes | sudo /usr/sbin/create-munge-key
 sudo service munge start
 sudo python scripts/configure_test_slurm.py
 echo "export DRMAA_LIBRARY_PATH=/usr/lib/slurm-drmaa/lib/libdrmaa.so" >> local_env.sh
