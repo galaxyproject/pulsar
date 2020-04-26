@@ -27,8 +27,8 @@ matrix:
     env: TOX_ENV=py37 SETUP=true
   - python: 3.7
     env: TOX_ENV=py37-unit SETUP=true
-  allow_failures:
-    - env: TOX_ENV=py35 SETUP=true
+  - python: 3.7
+    env:  TOX_ENV=py37-install-wheel
 
 install:
   - pip install tox
