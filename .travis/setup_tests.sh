@@ -3,7 +3,7 @@
 set -e
 set -v
 
-sudo add-apt-repository ppa:natefoo/slurm-drmaa
+sudo add-apt-repository ppa:natefoo/slurm-drmaa | yes
 sudo apt update
 sudo apt install -y libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-server
 #pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
