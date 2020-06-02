@@ -14,7 +14,10 @@ from pulsar.manager_endpoint_util import (
     submit_job,
 )
 from pulsar.managers.stateful import ActiveJobs
-from pulsar.client.amqp_exchange_factory import get_exchange
+from pulsar.client.amqp_exchange_factory import (
+    ACK_FORCE_NOACK_KEY,
+    get_exchange,
+)
 from pulsar.managers.util.drmaa import DrmaaSessionFactory
 
 
@@ -119,6 +122,39 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
 
     @skip_unless_module("kombu")
     @integration_test
+    def test_async_request_of_mq_status(self):
+        test = "async_request_of_mq_status"
+        with self._setup_app_provider(test, manager_type="queued_python") as app_provider:
+            job_id = '12345'
+
+            consumer = self._status_update_consumer(test)
+            consumer.start()
+
+            with app_provider.new_app() as app:
+                manager = app.only_manager
+                job_info = {
+                    'job_id': job_id,
+                    'command_line': 'sleep 1000',
+                    'setup': True,
+                    # Invalid staging description...
+                    'remote_staging': {"setup": [{"moo": "cow"}]}
+                }
+                # TODO: redo this with submit_job coming through MQ for test consistency.
+                submit_job(manager, job_info)
+
+
+            import time
+            time.sleep(2)
+            consumer.wait_for_messages()
+            consumer.join()
+
+            assert len(consumer.messages) == 1, len(consumer.messages)
+            assert consumer.messages[0]["status"] == "failed"
+
+    def _setup_long_running_job(self, app_provider, job_id):
+
+    @skip_unless_module("kombu")
+    @integration_test
     def test_setup_failure_fires_failed_status(self):
         test = "stating_failure_fires_failed"
         with self._setup_app_provider(test, manager_type="queued_python") as app_provider:
@@ -165,6 +201,16 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
         manager = "manager_%s" % test
         consumer = SimpleConsumer(queue="status_update", url=mq_url, manager=manager)
         return consumer
+
+    def _request_status(self, test, job_id):
+        mq_url = "memory://test_%s" % test
+        manager = "manager_%s" % test
+        exchange = get_exchange(mq_url, manager, {})
+        update = {
+            "job_id": job_id,
+            ACK_FORCE_NOACK_KEY: True,
+        }
+        exchange.publish("status")
 
 
 class SimpleConsumer(object):
