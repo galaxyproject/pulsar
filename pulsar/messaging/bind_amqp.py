@@ -43,6 +43,7 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
 
     process_setup_messages = functools.partial(__process_setup_message, manager)
     process_kill_messages = functools.partial(__process_kill_message, manager)
+    process_status_messages = functools.partial(__process_status_message, manager)
 
     def drain(callback, name):
         __drain(name, queue_state, pulsar_exchange, callback)
@@ -51,8 +52,9 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
     if conf.get("message_queue_consume", True):
         setup_thread = start_setup_consumer(pulsar_exchange, functools.partial(drain, process_setup_messages, "setup"))
         kill_thread = start_kill_consumer(pulsar_exchange, functools.partial(drain, process_kill_messages, "kill"))
+        status_thread = start_status_consumer(pulsar_exchange, functools.partial(drain, process_status_messages, "status"))
         if hasattr(queue_state, "threads"):
-            queue_state.threads.extend([setup_thread, kill_thread])
+            queue_state.threads.extend([setup_thread, kill_thread, status_thread])
         if conf.get("amqp_acknowledge", False):
             status_update_ack_thread = start_status_update_ack_consumer(pulsar_exchange, functools.partial(drain, None, "status_update_ack"))
             getattr(queue_state, 'threads', []).append(status_update_ack_thread)
@@ -87,6 +89,7 @@ def __start_consumer(name, exchange, target):
 
 start_setup_consumer = functools.partial(__start_consumer, "setup")
 start_kill_consumer = functools.partial(__start_consumer, "kill")
+start_status_consumer = functools.partial(__start_consumer, "status")
 start_status_update_ack_consumer = functools.partial(__start_consumer, "status_update_ack")
 
 
@@ -94,43 +97,42 @@ def __drain(name, queue_state, pulsar_exchange, callback):
     pulsar_exchange.consume(name, callback=callback, check=queue_state)
 
 
-def __process_kill_message(manager, body, message):
-    if message.acknowledged:
-        log.info("Message is already acknowledged (by an upstream callback?), Pulsar will not handle this message")
-        return
-    try:
-        job_id = __client_job_id_from_body(body)
-        assert job_id, 'Could not parse job id from body: %s' % body
-        log.debug("Received message in kill queue for Pulsar job id: %s", job_id)
-        manager.kill(job_id)
-    except Exception:
-        log.exception("Failed to kill job.")
-    message.ack()
+def __processes_message(f):
+
+    @functools.wraps(f)
+    def process_message(manager, body, message):
+        if message.acknowledged:
+            log.info("Message is already acknowledged (by an upstream callback?), Pulsar will not handle this message")
+            return
+
+        job_id = None
+        try:
+            job_id = __client_job_id_from_body(body)
+            assert job_id, 'Could not parse job id from body: %s' % body
+            f(manager, body, job_id)
+        except Exception:
+            job_id = job_id or 'unknown'
+            log.exception("Failed to process message with function %s for job_id %s" % (f.__name__, job_id))
+        message.ack()
+
+    return process_message
 
 
-def __process_setup_message(manager, body, message):
-    if message.acknowledged:
-        log.info("Message is already acknowledged (by an upstream callback?), Pulsar will not handle this message")
-        return
-    try:
-        job_id = __client_job_id_from_body(body)
-        assert job_id, 'Could not parse job id from body: %s' % body
-        log.debug("Received message in setup queue for Pulsar job id: %s", job_id)
-        __process_setup_request_message(manager, body, job_id)
-    except Exception:
-        job_id = job_id or 'unknown'
-        log.exception("Failed to setup job %s obtained via message queue." % job_id)
-    message.ack()
+@__processes_message
+def __process_kill_message(manager, body, job_id):
+    manager.kill(job_id)
+
+
+@__processes_message
+def __process_setup_message(manager, body, job_id):
+    manager_endpoint_util.submit_job(manager, body)
+
+
+@__processes_message
+def __process_status_message(manager, body, job_id):
+    manager.trigger_state_change_callback(job_id)
 
 
 def __client_job_id_from_body(body):
     job_id = body.get("job_id", None)
     return job_id
-
-
-def __process_setup_request_message(manager, body, job_id):
-    request = body.get("request", None)
-    if request == "status":
-        manager.trigger_state_change_callback(job_id)
-    else:
-        manager_endpoint_util.submit_job(manager, body)
