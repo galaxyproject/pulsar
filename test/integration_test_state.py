@@ -149,7 +149,7 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
             messages = consumer.messages
             assert len(messages) == 2, len(messages)
             assert messages[0]["status"] == "failed"
-            assert messages[1]["status"] == "complete"  # ugh.. why is this complete and not failed?
+            assert messages[1]["status"] == "failed", messages[1]
 
     @skip_unless_module("kombu")
     @integration_test
@@ -162,7 +162,10 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
             consumer.start()
 
             with app_provider.new_app() as app:
-                manager = app.only_manager
+                app.only_manager
+                # do two messages to ensure generation of status message doesn't
+                # create a job directory we don't mean to or something like that
+                self._request_status(test, job_id)
                 self._request_status(test, job_id)
 
             import time
@@ -171,8 +174,9 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
             consumer.join()
 
             messages = consumer.messages
-            assert len(messages) == 1, len(messages)
-            assert messages[0]["status"] == "complete"  # ugh.. why is this not lost?
+            assert len(messages) == 2, len(messages)
+            assert messages[0]["status"] == "lost", messages[0]
+            assert messages[1]["status"] == "lost", messages[1]
 
     @skip_unless_module("kombu")
     @integration_test
