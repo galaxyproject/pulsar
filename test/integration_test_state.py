@@ -14,10 +14,8 @@ from pulsar.manager_endpoint_util import (
     submit_job,
 )
 from pulsar.managers.stateful import ActiveJobs
-from pulsar.client.amqp_exchange_factory import (
-    ACK_FORCE_NOACK_KEY,
-    get_exchange,
-)
+from pulsar.client.amqp_exchange import ACK_FORCE_NOACK_KEY
+from pulsar.client.amqp_exchange_factory import get_exchange
 from pulsar.managers.util.drmaa import DrmaaSessionFactory
 
 
@@ -141,17 +139,40 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
                 }
                 # TODO: redo this with submit_job coming through MQ for test consistency.
                 submit_job(manager, job_info)
-
+                self._request_status(test, job_id)
 
             import time
             time.sleep(2)
             consumer.wait_for_messages()
             consumer.join()
 
-            assert len(consumer.messages) == 1, len(consumer.messages)
-            assert consumer.messages[0]["status"] == "failed"
+            messages = consumer.messages
+            assert len(messages) == 2, len(messages)
+            assert messages[0]["status"] == "failed"
+            assert messages[1]["status"] == "complete"  # ugh.. why is this complete and not failed?
 
-    def _setup_long_running_job(self, app_provider, job_id):
+    @skip_unless_module("kombu")
+    @integration_test
+    def test_async_request_of_mq_status_lost(self):
+        test = "async_request_of_mq_status_lost"
+        with self._setup_app_provider(test, manager_type="queued_python") as app_provider:
+            job_id = '12347'  # should be lost? - never existed right?
+
+            consumer = self._status_update_consumer(test)
+            consumer.start()
+
+            with app_provider.new_app() as app:
+                manager = app.only_manager
+                self._request_status(test, job_id)
+
+            import time
+            time.sleep(2)
+            consumer.wait_for_messages()
+            consumer.join()
+
+            messages = consumer.messages
+            assert len(messages) == 1, len(messages)
+            assert messages[0]["status"] == "complete"  # ugh.. why is this not lost?
 
     @skip_unless_module("kombu")
     @integration_test
@@ -206,11 +227,11 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
         mq_url = "memory://test_%s" % test
         manager = "manager_%s" % test
         exchange = get_exchange(mq_url, manager, {})
-        update = {
+        params = {
             "job_id": job_id,
             ACK_FORCE_NOACK_KEY: True,
         }
-        exchange.publish("status")
+        exchange.publish("status", params)
 
 
 class SimpleConsumer(object):
