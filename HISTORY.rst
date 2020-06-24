@@ -116,7 +116,7 @@ History
 * Add support for overriding config through environment variables (thanks to
   @nuwang). `Pull Request 165`_
 * Minor docs updates (thanks to @afgane). `Pull Request 170`_
-* Python 3 fixes in Pulsar client (thanks to @mvdbeek). `Pull Request 172`_
+* Python 3 fixes in Pulsar client (thanks to `@mvdbeek`_). `Pull Request 172`_
 
 ---------------------
 0.8.3 (2018-02-08)
@@ -396,3 +396,5 @@ History
 .. _@afgane: https://github.com/afgane
 .. _@bgruening: https://github.com/bgruening
 .. _@gmauro: https://github.com/gmauro
+.. _@mvdbeek: https://github.com/mvdbeek
+.. _@tirkarthi: https://github.com/tirkarthi
