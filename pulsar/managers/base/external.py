@@ -40,7 +40,8 @@ class ExternalBaseManager(DirectoryBaseManager):
             return status.CANCELLED
         external_id = self._external_id(job_id)
         if not external_id:
-            raise KeyError("Failed to find external id for job_id %s" % job_id)
+            log.warning("Failed to find external id for job_id %s", job_id)
+            return status.LOST
         return self._get_status_external(external_id)
 
     def _register_external_id(self, job_id, external_id):

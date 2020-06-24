@@ -19,6 +19,7 @@ from .action_mapper import (
     actions,
     path_type,
 )
+from .amqp_exchange import ACK_FORCE_NOACK_KEY
 from .decorators import parseJson
 from .decorators import retry
 from .destination import submit_params
@@ -328,6 +329,15 @@ class BaseMessageJobClient(BaseJobClient):
             launch_params["setup_params"] = setup_params
         return launch_params
 
+    def _build_status_request_message(self):
+        # Because this is used to poll, status requests will not be resent if we do not receive an acknowledgement
+        update_params = {
+            'request': 'status',
+            'job_id': self.job_id,
+            ACK_FORCE_NOACK_KEY: True,
+        }
+        return update_params
+
 
 class MessageJobClient(BaseMessageJobClient):
 
@@ -342,7 +352,13 @@ class MessageJobClient(BaseMessageJobClient):
             job_config=job_config,
         )
         response = self.client_manager.exchange.publish("setup", launch_params)
-        log.info("Job published to setup message queue.")
+        log.info("Job published to setup message queue: %s", self.job_id)
+        return response
+
+    def get_status(self):
+        status_params = self._build_status_request_message()
+        response = self.client_manager.exchange.publish("setup", status_params)
+        log.info("Job status request published to setup message queue: %s", self.job_id)
         return response
 
     def kill(self):

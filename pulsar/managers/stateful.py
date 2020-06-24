@@ -63,6 +63,11 @@ class StatefulManagerProxy(ManagerProxy):
     def _default_status_change_callback(self, status, job_id):
         log.info("Status of job [%s] changed to [%s]. No callbacks enabled." % (job_id, status))
 
+    def trigger_state_change_callback(self, job_id):
+        proxy_status = self.get_status(job_id)
+        log.debug("Triggering state change callback with status %s by request for job_id %s", proxy_status, job_id)
+        self.__state_change_callback(proxy_status, job_id)
+
     @property
     def name(self):
         return self._proxied_manager.name
@@ -145,6 +150,9 @@ class StatefulManagerProxy(ManagerProxy):
         and track additional state information needed.
         """
         job_directory = self._proxied_manager.job_directory(job_id)
+        if not job_directory.exists():
+            return status.LOST
+
         with job_directory.lock("status"):
             proxy_status, state_change = self.__proxy_status(job_directory, job_id)
 
