@@ -74,16 +74,18 @@ def condor_submit(submit_file):
     the submission or return None and a reason for the failure.
     """
     external_id = None
+    failure_message = None
     try:
         submit = Popen(('condor_submit', submit_file), stdout=PIPE, stderr=STDOUT)
-        message, _ = submit.communicate()
+        outs, _ = submit.communicate()
+        condor_message = outs.decode()
         if submit.returncode == 0:
-            external_id = parse_external_id(message, type='condor')
+            external_id = parse_external_id(condor_message, type='condor')
         else:
-            message = "%s: %s" % (PROBLEM_PARSING_EXTERNAL_ID, message)
+            failure_message = "%s: %s" % (PROBLEM_PARSING_EXTERNAL_ID, condor_message)
     except Exception as e:
-        message = str(e)
-    return external_id, message
+        failure_message = str(e)
+    return external_id, failure_message
 
 
 def condor_stop(external_id):
