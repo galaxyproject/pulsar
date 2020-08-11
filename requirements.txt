@@ -8,10 +8,6 @@ galaxy-objectstore>=19.9.0.dev1
 galaxy-tool-util>=19.9.0.dev3
 paramiko
 
-# Problematic for Python 3.
-paste ; python_version == '2.7'
-PasteScript ; python_version == '2.7'
-
 ## Uncomment if using DRMAA queue manager.
 #drmaa
 

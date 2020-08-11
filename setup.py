@@ -115,6 +115,7 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     extras_require={
+        'web': ['Paste', 'PasteScript'],
         ':python_version=="2.7"': py27_requirements,
         'galaxy_extended_metadata': ['galaxy-job-execution>=19.9.0.dev0', 'galaxy-util[template]'],
     },

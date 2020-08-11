@@ -22,7 +22,7 @@ init_pulsar() {
     virtualenv venv
     . venv/bin/activate # .venv\Scripts\activate if Windows
     echo "Installing Pulsar using 'pip install $PULSAR_INSTALL_TARGET'"
-    pip install $PULSAR_INSTALL_TARGET
+    pip install "$PULSAR_INSTALL_TARGET"
 
     cd ..
 }
