@@ -20,7 +20,8 @@ class UrllibTransport(object):
         self.timeout = timeout
 
     def _url_open(self, request, data):
-        return urlopen(request, data, self.timeout)
+        # data is intentionally not used here (it is part of the request object), the parameter remains for tests
+        return urlopen(request, timeout=self.timeout)
 
     def execute(self, url, method=None, data=None, input_path=None, output_path=None):
         request = self.__request(url, data, method)
@@ -33,6 +34,9 @@ class UrllibTransport(object):
                     data = mmap.mmap(input.fileno(), 0, access=mmap.ACCESS_READ)
                 else:
                     data = b""
+                # setting the data property clears content-length, so the header must be set after (if content-length is
+                # unset, urllib sets transfer-encoding to chunked, which is not supported by webob on the server side).
+                request.data = data
                 request.add_header('Content-Length', str(size))
             try:
                 response = self._url_open(request, data)
