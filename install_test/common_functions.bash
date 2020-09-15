@@ -2,7 +2,7 @@ set -e
 
 shopt -s nullglob
 
-PULSAR_TARGET_POORT="${PULSAR_TARGET_POORT:-8913}"
+PULSAR_TARGET_PORT="${PULSAR_TARGET_PORT:-8913}"
 PULSAR_INSTALL_TARGET="${PULSAR_INSTALL_TARGET:-pulsar-app}"
 PLANEMO_INSTALL_TARGET="${PLANEMO_INSTALL_TARGET:-planemo==0.36.1}"
 
@@ -39,16 +39,16 @@ stop_pulsar() {
 check_pulsar() {
     cd pulsar
 
-    if curl -s "http://localhost:$PULSAR_TARGET_POORT"
+    if curl -s "http://localhost:$PULSAR_TARGET_PORT"
     then
-        echo "Port $PULSAR_TARGET_POORT already bound, Pulsar will fail to start."
+        echo "Port $PULSAR_TARGET_PORT already bound, Pulsar will fail to start."
         exit 1;
     fi
 
     echo "Starting Pulsar in daemon mode."
     pulsar --daemon
     echo "Waiting for Pulsar to start."
-    while ! curl -s "http://localhost:$PULSAR_TARGET_POORT";
+    while ! curl -s "http://localhost:$PULSAR_TARGET_PORT";
     do
         printf "."
         sleep 1;
@@ -64,7 +64,7 @@ check_pulsar() {
     echo "Starting Pulsar in daemon mode."
     pulsar --daemon
     echo "Waiting for Pulsar to start."
-    while ! curl -s "http://localhost:$PULSAR_TARGET_POORT";
+    while ! curl -s "http://localhost:$PULSAR_TARGET_PORT";
     do
         printf "."
         sleep 1;
