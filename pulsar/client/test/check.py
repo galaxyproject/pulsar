@@ -4,6 +4,7 @@
 Exercises various features both the Pulsar client and server.
 """
 
+import logging
 import optparse
 import os
 import re
@@ -118,6 +119,7 @@ HELP_DISABLE_CLEANUP = ("Specify to disable cleanup after the job, this "
                         "is useful to checking the files generated during "
                         "the job and stored on the Pulsar server.")
 HELP_JOB_ID = "Submit the Pulsar job with this 'external' id."
+HELP_DEBUG = "Enable debug log output from Pulsar client"
 
 EXPECTED_OUTPUT = b"hello world output"
 EXAMPLE_UNICODE_TEXT = u'єχαмρℓє συтρυт'
@@ -136,9 +138,10 @@ class MockTool(object):
 
 
 def run(options):
+    logging.basicConfig(level=logging.DEBUG)
     waiter = None
     try:
-        temp_directory = tempfile.mkdtemp()
+        temp_directory = tempfile.mkdtemp(prefix='pulsar-check-client.')
         temp_index_dir = os.path.join(temp_directory, "idx", "bwa")
         temp_index_dir_sibbling = os.path.join(temp_directory, "idx", "seq")
         temp_shared_dir = os.path.join(temp_directory, "shared", "test1")
@@ -284,7 +287,8 @@ def run(options):
     finally:
         if waiter is not None:
             waiter.shutdown()
-        shutil.rmtree(temp_directory)
+        if getattr(options, 'cleanup', True):
+            shutil.rmtree(temp_directory)
 
 
 class Waiter(object):
@@ -513,6 +517,7 @@ def main(argv=None):
     parser.add_option('--suppress_output', default=False, action="store_true", help=HELP_SUPPRESS_OUTPUT)
     parser.add_option('--disable_cleanup', dest="cleanup", default=True, action="store_false", help=HELP_DISABLE_CLEANUP)
     parser.add_option('--job_id', default="123456", help=HELP_JOB_ID)
+    parser.add_option('--debug', default=False, action="store_true", help=HELP_DEBUG)
     (options, args) = parser.parse_args(argv)
     run(options)
 

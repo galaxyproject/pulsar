@@ -2,18 +2,25 @@ set -e
 
 shopt -s nullglob
 
-PULSAR_TARGET_PORT="${PULSAR_TARGET_PORT:-8913}"
-PULSAR_INSTALL_TARGET="${PULSAR_INSTALL_TARGET:-pulsar-app}"
-PLANEMO_INSTALL_TARGET="${PLANEMO_INSTALL_TARGET:-planemo==0.36.1}"
+: ${PULSAR_TARGET_PORT:=8913}
+: ${PULSAR_INSTALL_TARGET:=pulsar-app}
+: ${PULSAR_TEST_DEBUG:=false}
+: ${PLANEMO_INSTALL_TARGET:=planemo==0.36.1}
 
 init_temp_dir() {
-    TEMP_DIR=`mktemp -d`
+    case $(uname -s) in
+        Darwin)
+            TEMP_DIR=`mktemp -d -t pulsar-check-server`
+            ;;
+        *)
+            TEMP_DIR=`mktemp -d -t pulsar-check-server.XXXXXXXX`
+            ;;
+    esac
     echo "Setting up test directory $TEMP_DIR"
     cd "$TEMP_DIR"
 }
 
 init_pulsar() {
-    PULSAR_INSTALL_TARGET="${PULSAR_INSTALL_TARGET:-pulsar-app}"
     PROJECT_DIR="$SCRIPT_DIR/.."
 
     mkdir pulsar
@@ -55,7 +62,11 @@ check_pulsar() {
     done
     sleep 2
     echo "Running a standalone Pulsar job."
-    pulsar-check # runs a test job
+    if ! $PULSAR_TEST_DEBUG; then
+        pulsar-check # runs a test job
+    else
+        pulsar-check --debug --disable_cleanup
+    fi
     echo "Stopping Pulsar daemon."
     pulsar --stop-daemon
     echo "End Pulsar Checks"
