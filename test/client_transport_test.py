@@ -1,7 +1,7 @@
 import os
 from tempfile import NamedTemporaryFile
 
-from pulsar.client.transport.standard import Urllib2Transport
+from pulsar.client.transport.standard import UrllibTransport
 from pulsar.client.transport.curl import PycurlTransport
 from pulsar.client.transport.curl import post_file
 from pulsar.client.transport.curl import get_file
@@ -12,7 +12,7 @@ from .test_utils import skip_unless_module
 
 
 def test_urllib_transports():
-    _test_transport(Urllib2Transport())
+    _test_transport(UrllibTransport())
 
 
 @skip_unless_module("pycurl")
@@ -96,8 +96,8 @@ def test_curl_problems():
 def test_get_transport():
     assert type(get_transport(None, FakeOsModule("1"))) == PycurlTransport
     assert type(get_transport(None, FakeOsModule("TRUE"))) == PycurlTransport
-    assert type(get_transport(None, FakeOsModule("0"))) == Urllib2Transport
-    assert type(get_transport('urllib', FakeOsModule("TRUE"))) == Urllib2Transport
+    assert type(get_transport(None, FakeOsModule("0"))) == UrllibTransport
+    assert type(get_transport('urllib', FakeOsModule("TRUE"))) == UrllibTransport
     assert type(get_transport('curl', FakeOsModule("TRUE"))) == PycurlTransport
 
 

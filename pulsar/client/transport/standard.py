@@ -1,5 +1,5 @@
 """
-Pulsar HTTP Client layer based on Python Standard Library (urllib2)
+Pulsar HTTP Client layer based on Python Standard Library (urllib)
 """
 
 from __future__ import with_statement
@@ -8,20 +8,13 @@ import mmap
 import socket
 
 from os.path import getsize
-try:
-    from urllib2 import urlopen, URLError
-except ImportError:
-    from urllib.request import urlopen
-    from urllib.error import URLError
-try:
-    from urllib2 import Request
-except ImportError:
-    from urllib.request import Request
+from urllib.request import Request, urlopen
+from urllib.error import URLError
 
 from ..exceptions import PulsarClientTransportError
 
 
-class Urllib2Transport(object):
+class UrllibTransport(object):
 
     def __init__(self, timeout=None, **kwrgs):
         self.timeout = timeout
