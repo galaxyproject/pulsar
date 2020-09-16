@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.13.1 (2020-09-16)
+---------------------
+
+* Pinned all listed requirements. This is the final version of Pulsar to support Python 2.
+
+---------------------
 0.13.0 (2019-06-25)
 ---------------------
 

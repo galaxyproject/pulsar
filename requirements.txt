@@ -1,16 +1,16 @@
-webob
-psutil
-PasteDeploy
+webob<=1.8.6
+psutil<=5.7.2
+PasteDeploy<=2.1.0
 six==1.11.0
-pyyaml
-galaxy-job-metrics>=19.9.0.dev1
-galaxy-objectstore>=19.9.0.dev1
-galaxy-tool-util>=19.9.0.dev3
-paramiko
+pyyaml<=5.3.1
+galaxy-job-metrics<20.5.0
+galaxy-objectstore<20.5.0
+galaxy-tool-util<20.5.0
+paramiko<=2.7.2
 
 # Problematic for Python 3.
-paste ; python_version == '2.7'
-PasteScript ; python_version == '2.7'
+paste<=3.4.4 ; python_version == '2.7'
+PasteScript<=3.2.0 ; python_version == '2.7'
 
 ## Uncomment if using DRMAA queue manager.
 #drmaa
