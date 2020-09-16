@@ -83,6 +83,7 @@ class BaseDrmaaManager(ExternalBaseManager):
             log.info("Submitting DRMAA job with nativeSpecification [%s]" % native_specification)
         else:
             log.debug("Not native specification supplied, DRMAA job will be submitted with default parameters.")
+
         return attributes
 
 
