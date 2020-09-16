@@ -177,7 +177,6 @@ def _find_default_app_config(*config_dirs):
         app_config_path = os.path.join(config_dir, DEFAULT_APP_YAML)
         if os.path.exists(app_config_path):
             return app_config_path
-
     return None
 
 
@@ -216,7 +215,7 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
             raise Exception("Cannot load configuration from file %s, pyyaml is not available." % app_conf_path)
 
         with open(app_conf_path, "r") as f:
-            app_conf = yaml.load(f) or {}
+            app_conf = yaml.safe_load(f) or {}
             local_conf.update(app_conf)
 
     return apply_env_overrides_and_defaults(local_conf)
