@@ -1,4 +1,4 @@
-.. _job-managers:
+.. _job_managers:
 
 -------------------------------
 Job Managers

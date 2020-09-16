@@ -2,22 +2,25 @@
 <job_conf>
     <plugins>
         <plugin id="drmaa" type="runner" load="galaxy.jobs.runners.drmaa:DRMAAJobRunner"/>
-        <plugin id="pulsar" type="runner" load="galaxy.jobs.runners.pulsar:PulsarMQJobRunner">
+        <plugin id="pulsar_default" type="runner" load="galaxy.jobs.runners.pulsar:PulsarMQJobRunner">
             <!-- Must tell Pulsar where to send files. -->
-            <param id="galaxy_url">https://galaxyserver</param>
+            <param id="galaxy_url">https://galaxy.example.org</param>
             <!-- Message Queue Connection (should match message_queue_url in Pulsar's app.yml)
             -->
-            <param id="amqp_url">amqp://rabbituser:rabb8pa8sw0d@mqserver:5672//</param>
+            <param id="amqp_url">amqp://rabbituser:rabb8pa8sw0d@mqserver.example.org:5672//</param>
+    	</plugin>
+        <plugin id="pulsar_hugenodes" type="runner" load="galaxy.jobs.runners.pulsar:PulsarMQJobRunner">
+            <param id="galaxy_url">https://galaxy.example.org</param>
+            <param id="amqp_url">amqp://rabbituser:rabb8pa8sw0d@mqserver.example.org:5672//</param>
+            <!-- Set the 'manager' param to reference a named Pulsar job manager -->
+            <param id="manager">hugenodes</param>
         </plugin>
     </plugins>
-    <handlers>
-        <handler id="main"/>
-    </handlers>
-    <destinations default="drmaa">
+    <destinations default="local_cluster">
         <destination id="local_cluster" runner="drmaa">
             <param id="native_specification">-P littlenodes -R y -pe threads 4</param>
         </destination>
-        <destination id="remote_cluster" runner="pulsar">
+        <destination id="bignodes_cluster" runner="pulsar_default">
             <!-- Tell Galaxy where files are being stored on remote system, so
                  the web server can simply ask for this information.
             -->
@@ -25,9 +28,13 @@
             <!-- Remaining parameters same as previous example -->
             <param id="submit_native_specification">-P bignodes -R y -pe threads 16</param>
         </destination>
+        <destination id="hugenodes_cluster" runner="pulsar_hugenodes">
+            <param id="jobs_directory">/path/to/remote/pulsar/files/staging/</param>
+            <param id="submit_native_specification">-P hugenodes -R y -pe threads 128</param>
+	<destination>
     </destinations>
     <tools>
-        <tool id="trinity" destination="remote_cluster" />
-        <tool id="abyss" destination="remote_cluster" />
-	</tools>
+        <tool id="trinity" destination="bignodes_cluster" />
+        <tool id="abyss" destination="hugenodes_cluster" />
+    </tools>
 </job_conf>

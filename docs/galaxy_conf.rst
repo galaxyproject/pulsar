@@ -1,4 +1,4 @@
-.. _galaxy-conf:
+.. _galaxy_conf:
 
 --------------------
 Galaxy Configuration
@@ -10,9 +10,8 @@ Examples
 The most complete and updated documentation for configuring Galaxy job
 destinations is Galaxy's ``job_conf.xml.sample_advanced`` file (check it out on
 `GitHub
-<https://github.com/galaxyproject/galaxy/blob/dev/config/job_conf.xml.sample_advanced>`_).
+<https://github.com/galaxyproject/galaxy/blob/dev/lib/galaxy/config/sample/job_conf.xml.sample_advanced>`_).
 These examples just provide a different Pulsar-centric perspective on some of the documentation in that file.
-
 
 Simple Windows Pulsar Web Server
 ````````````````````````````````
@@ -36,20 +35,15 @@ The following Galaxy ``job_conf.xml`` assumes you have a very typical Galaxy
 setup - there is a local, smaller cluster that mounts all of Galaxy's data (so
 no need for the Pulsar) and a bigger shared resource that cannot mount Galaxy's
 files requiring the use of the Pulsar. This variant routes some larger assembly
-jobs to the remote cluster - namely the `trinity` and `abyss` tools. Be sure
-the underlying applications required by the ``trinity`` and ``abyss`` tools
-are on the Pulsar path or set ``tool_dependency_dir`` in ``app.yml`` and setup
-Galaxy env.sh-style packages definitions for these applications.
+jobs to the remote cluster - namely the ``trinity`` and ``abyss`` tools.
 
 .. literalinclude:: files/job_conf_sample_remote_cluster.xml
    :language: xml
 
 For this configuration, on the Pulsar side be sure to also set a
 ``DRMAA_LIBRARY_PATH`` in ``local_env.sh``, install the Python ``drmaa``
-module, and configure a DRMAA job manager for Pulsar in ``job_managers.ini`` as
-follows:
-
-.. literalinclude:: files/job_managers_sample_remote_cluster.ini
+module, and configure a DRMAA job manager for Pulsar in ``app.yml`` as described
+in :ref:`job_managers`.
 
 Targeting a Linux Cluster (Pulsar over Message Queue)
 `````````````````````````````````````````````````````
@@ -65,11 +59,33 @@ a high-performance proxy while Pulsar will not.
 .. literalinclude:: files/job_conf_sample_mq.xml
    :language: xml
 
-For those interested in this deployment option and new to Message Queues, there
-is more documentation in :ref:`gx-pulsar-mq-setup`.
+The ``manager`` param to the ``PulsarMQJobRunner`` plugin allows for using the
+same AMQP server and vhost (in this example, the default ``/`` vhost) between
+multiple Pulsar servers, or submitting jobs to multiple managers (see:
+:ref:`job_managers`) on the same Pulsar server.
 
-Additionally, Pulsar now ships with an RSync and SCP transfer action rather
-than making use of the HTTP transport method.
+In this example, the ``_default_`` job manager will be used for ``trinity``
+jobs, and the ``hugenodes`` job manager will be used for ``abyss`` jobs.
+
+.. note::
+
+    If you only need to define different ``submit_native_specification`` params
+    on the same cluster for these tools/destinations, it is not necessary to use
+    a separate manager - multiple destinations can reference the same plugin.
+    This example is for documentation purposes.
+
+All of the ``amqp_*`` options documented in `app.yml.sample`_ can be specified
+as params to the ``PulsarMQJobRunner`` plugin. These configure Galaxy's
+connection to the AMQP server (rather than Pulsar's connection, which is
+configured in Pulsar's ``app.yml``). Additionally, specifying the
+``persistence_directory`` param controls where AMQP acknowledgement receipts
+will be stored on the Galaxy side.
+
+For those interested in this deployment option and new to Message Queues, there
+is more documentation in :ref:`galaxy_with_rabbitmq_conf`.
+
+Additionally, Pulsar ships with an RSync and SCP transfer action rather than
+making use of the HTTP transport method:
 
 .. literalinclude:: files/job_conf_sample_mq_rsync.xml
    :language: xml
@@ -79,22 +95,46 @@ Targeting Apache Mesos (Prototype)
 
 See `commit message <https://github.com/galaxyproject/pulsar/commit/5888810b47da5065f532534b9594704bdd241d03>`_ for initial work on this and `this post on galaxy-dev <http://dev.list.galaxyproject.org/Using-Mesos-to-Enable-distributed-computing-under-Galaxy-tp4662310p4664829.html>`_.
 
-Forcing Pulsar to Generate Galaxy Metadata
-``````````````````````````````````````````
+Generating Galaxy Metadata in Pulsar Jobs
+`````````````````````````````````````````
 
-Typically Galaxy will process Pulsar's outputs and generate metadata
-on the Galaxy server. One can force this to happen with Pulsar. (TODO:
-document how here).
+This option is often referred to as *remote metadata*.
 
-Etc...
-``````
+Typically Galaxy will process Pulsar job outputs and generate metadata on the
+Galaxy server. One can force this to happen inside Pulsar jobs (wherever the
+Pulsar job runs).  This is similar to the way that non-Pulsar Galaxy jobs work:
+job output metadata is generated at the end of a standard Galaxy job, not by the
+Galaxy server.
 
-There are many more options for configuring what paths get staged/unstaged,
-how Galaxy metadata is generated, running jobs as the real user, defining
-multiple job managers on the Pulsar side, etc.... If you ever have any questions
-please don't hesitate to ask John Chilton (jmchilton@gmail.com).
+This option comes with a downside that you should be aware of, explained in
+`Issue #234 <https://github.com/galaxyproject/pulsar/issues/234>`__. Unless you
+are seeing high load on your Galaxy server while finishing Pulsar jobs, it is
+safest to use the default (remote metadata disabled).
 
+In order to enable the remote metadata option:
 
+1. Set ``GALAXY_VIRTUAL_ENV`` to the path to Galaxy's virtualenv (or one
+   containing Galaxy's dependencies) when starting Pulsar. This can be done in
+   the ``local_env.sh`` file. Instructions on setting up a Galaxy virtualenv can
+   be found in the `Galaxy Docs <http://docs.galaxyproject.org/>`__.
+
+2. Instruct Pulsar with the path to a copy of Galaxy at the same version as your
+   Galaxy server. This can either be done by setting ``GALAXY_HOME`` in
+   ``local_env.sh``, or by setting ``galaxy_home`` in ``app.yml``.
+
+3. In the Galaxy ``job_conf.xml`` *destination(s)* you want to enable remote
+   metadata on, set the following params::
+
+        <param id="remote_metadata">true</param>
+        <param id="remote_property_galaxy_home">/path/to/galaxy</param>
+
+   and one of either::
+
+        <param id="use_metadata_binary">true</param>
+
+   or::
+
+        <param id="use_remote_datatypes">false</param>
 
 Data Staging
 ------------
@@ -123,3 +163,5 @@ supported JSON). The following captures available options:
 
 .. literalinclude:: files/file_actions_sample_1.yaml
    :language: yaml
+
+.. _app.yml.sample: https://github.com/galaxyproject/pulsar/blob/master/app.yml.sample
