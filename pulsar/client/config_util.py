@@ -56,7 +56,7 @@ def __read_yaml(path):
         raise ImportError("Attempting to read YAML configuration file - but PyYAML dependency unavailable.")
 
     with open(path, "rb") as f:
-        return yaml.load(f)
+        return yaml.load(f, Loader=yaml.FullLoader)
 
 
 def __read_ini(path):
