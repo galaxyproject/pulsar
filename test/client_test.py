@@ -6,7 +6,7 @@ from six import text_type, binary_type
 
 from pulsar.client.client import JobClient
 from pulsar.client.manager import HttpPulsarInterface
-from pulsar.client.transport import Urllib2Transport
+from pulsar.client.transport import UrllibTransport
 from pulsar.client.decorators import retry, MAX_RETRY_COUNT
 
 
@@ -43,7 +43,7 @@ class FakeResponse(object):
         return result
 
 
-class TestTransport(Urllib2Transport):
+class TestTransport(UrllibTransport):
     """ Implements mock of HTTP transport layer for TestClient tests."""
 
     def __init__(self, test_client):

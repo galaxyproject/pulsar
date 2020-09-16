@@ -2,18 +2,25 @@ set -e
 
 shopt -s nullglob
 
-PULSAR_TARGET_POORT="${PULSAR_TARGET_POORT:-8913}"
-PULSAR_INSTALL_TARGET="${PULSAR_INSTALL_TARGET:-pulsar-app}"
-PLANEMO_INSTALL_TARGET="${PLANEMO_INSTALL_TARGET:-planemo==0.36.1}"
+: ${PULSAR_TARGET_PORT:=8913}
+: ${PULSAR_INSTALL_TARGET:=pulsar-app}
+: ${PULSAR_TEST_DEBUG:=false}
+: ${PLANEMO_INSTALL_TARGET:=planemo==0.72.0}
 
 init_temp_dir() {
-    TEMP_DIR=`mktemp -d`
+    case $(uname -s) in
+        Darwin)
+            TEMP_DIR=`mktemp -d -t pulsar-check-server`
+            ;;
+        *)
+            TEMP_DIR=`mktemp -d -t pulsar-check-server.XXXXXXXX`
+            ;;
+    esac
     echo "Setting up test directory $TEMP_DIR"
     cd "$TEMP_DIR"
 }
 
 init_pulsar() {
-    PULSAR_INSTALL_TARGET="${PULSAR_INSTALL_TARGET:-pulsar-app}"
     PROJECT_DIR="$SCRIPT_DIR/.."
 
     mkdir pulsar
@@ -22,7 +29,7 @@ init_pulsar() {
     virtualenv venv
     . venv/bin/activate # .venv\Scripts\activate if Windows
     echo "Installing Pulsar using 'pip install $PULSAR_INSTALL_TARGET'"
-    pip install $PULSAR_INSTALL_TARGET
+    pip install "$PULSAR_INSTALL_TARGET"
 
     cd ..
 }
@@ -39,23 +46,27 @@ stop_pulsar() {
 check_pulsar() {
     cd pulsar
 
-    if curl -s "http://localhost:$PULSAR_TARGET_POORT"
+    if curl -s "http://localhost:$PULSAR_TARGET_PORT"
     then
-        echo "Port $PULSAR_TARGET_POORT already bound, Pulsar will fail to start."
+        echo "Port $PULSAR_TARGET_PORT already bound, Pulsar will fail to start."
         exit 1;
     fi
 
     echo "Starting Pulsar in daemon mode."
     pulsar --daemon
     echo "Waiting for Pulsar to start."
-    while ! curl -s "http://localhost:$PULSAR_TARGET_POORT";
+    while ! curl -s "http://localhost:$PULSAR_TARGET_PORT";
     do
         printf "."
         sleep 1;
     done
     sleep 2
     echo "Running a standalone Pulsar job."
-    pulsar-check # runs a test job
+    if ! $PULSAR_TEST_DEBUG; then
+        pulsar-check # runs a test job
+    else
+        pulsar-check --debug --disable_cleanup
+    fi
     echo "Stopping Pulsar daemon."
     pulsar --stop-daemon
     echo "End Pulsar Checks"
@@ -64,7 +75,7 @@ check_pulsar() {
     echo "Starting Pulsar in daemon mode."
     pulsar --daemon
     echo "Waiting for Pulsar to start."
-    while ! curl -s "http://localhost:$PULSAR_TARGET_POORT";
+    while ! curl -s "http://localhost:$PULSAR_TARGET_PORT";
     do
         printf "."
         sleep 1;

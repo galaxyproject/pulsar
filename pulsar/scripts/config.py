@@ -308,12 +308,11 @@ def _handle_app_yaml(args, directory):
         contents += 'private_token: %s\n' % args.private_token
     if args.mq:
         contents += 'message_queue_url: "amqp://guest:guest@localhost:5672//"\n'
-    if args.auto_conda:
-        contents += 'conda_auto_init: true\n'
-        contents += 'conda_auto_install: true\n'
-    else:
-        if not IS_WINDOWS and args.libdrmaa_path:
-            contents += 'manager:\n  type: queued_drmaa\n'
+    auto_conda = 'true' if args.auto_conda else 'false'
+    contents += 'conda_auto_init: {}\n'.format(auto_conda)
+    contents += 'conda_auto_install: {}\n'.format(auto_conda)
+    if not IS_WINDOWS and args.libdrmaa_path:
+        contents += 'manager:\n  type: queued_drmaa\n'
     open(yaml_file, "w").write(contents)
 
 
