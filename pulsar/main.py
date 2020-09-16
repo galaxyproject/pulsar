@@ -215,7 +215,7 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
             raise Exception("Cannot load configuration from file %s, pyyaml is not available." % app_conf_path)
 
         with open(app_conf_path, "r") as f:
-            app_conf = yaml.load(f, Loader=yaml.FullLoader) or {}
+            app_conf = yaml.safe_load(f) or {}
             local_conf.update(app_conf)
 
     return apply_env_overrides_and_defaults(local_conf)
