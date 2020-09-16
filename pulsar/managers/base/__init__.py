@@ -200,6 +200,13 @@ class BaseManager(ManagerInterface):
             command_line = "%s; %s" % ("; ".join(dependency_commands), command_line)
         return command_line
 
+    def setup_job(self, input_job_id, tool_id, tool_version):
+        job_id = self._get_job_id(input_job_id)
+        return self._setup_job_for_job_id(job_id, tool_id, tool_version)
+
+    def _get_job_id(self, input_job_id):
+        return str(self.id_assigner(input_job_id))
+
     def __str__(self):
         return "{0}[name={1}]".format(type(self).__name__, self.name)
 
@@ -307,22 +314,31 @@ class JobDirectory(RemoteJobDirectory):
         metadata_directory = self.metadata_directory()
         return self.__directory_contents(metadata_directory)
 
+    def job_directory_contents(self):
+        # Set recursive to False to just get the top-level artifacts
+        return self.__directory_contents(self.job_directory, recursive=False)
+
     def metadata_directory(self):
         if self.use_metadata_directory:
             return super(JobDirectory, self).metadata_directory()
         else:
             return self.working_directory()
 
-    def __directory_contents(self, directory):
+    def __directory_contents(self, directory, recursive=True):
         contents = []
-        for path, _, files in walk(directory):
-            relative_path = relpath(path, directory)
-            for name in files:
-                # Return file1.txt, dataset_1_files/image.png, etc... don't
-                # include . in path.
-                if relative_path != curdir:
-                    contents.append(join(relative_path, name))
-                else:
+        if recursive:
+            for path, _, files in walk(directory):
+                relative_path = relpath(path, directory)
+                for name in files:
+                    # Return file1.txt, dataset_1_files/image.png, etc... don't
+                    # include . in path.
+                    if relative_path != curdir:
+                        contents.append(join(relative_path, name))
+                    else:
+                        contents.append(name)
+        else:
+            if os.path.isdir(directory):
+                for name in os.listdir(directory):
                     contents.append(name)
         return contents
 

@@ -27,11 +27,12 @@ SUBMIT_PARAM_PREFIX = "submit_"
 
 def submission_params(prefix=SUBMIT_PARAM_PREFIX, **kwds):
     submission_params = {}
+    prefix_len = len(prefix)
     for key in kwds:
         value = kwds[key]
         key = key.lower()
         if key.startswith(prefix):
-            condor_key = key[len(prefix):]
+            condor_key = key[prefix_len:]
             submission_params[condor_key] = value
     return submission_params
 
@@ -74,16 +75,18 @@ def condor_submit(submit_file):
     the submission or return None and a reason for the failure.
     """
     external_id = None
+    failure_message = None
     try:
         submit = Popen(('condor_submit', submit_file), stdout=PIPE, stderr=STDOUT)
-        message, _ = submit.communicate()
+        outs, _ = submit.communicate()
+        condor_message = outs.decode()
         if submit.returncode == 0:
-            external_id = parse_external_id(message, type='condor')
+            external_id = parse_external_id(condor_message, type='condor')
         else:
-            message = PROBLEM_PARSING_EXTERNAL_ID
+            failure_message = "%s: %s" % (PROBLEM_PARSING_EXTERNAL_ID, condor_message)
     except Exception as e:
-        message = str(e)
-    return external_id, message
+        failure_message = str(e)
+    return external_id, failure_message
 
 
 def condor_stop(external_id):

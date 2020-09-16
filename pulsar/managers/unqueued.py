@@ -55,6 +55,12 @@ class BaseUnqueuedManager(DirectoryBaseManager):
             )
         return command_line
 
+    def _start_monitor(self, *args, **kwd):
+        if kwd.get("background", True):
+            thread.start_new_thread(self._monitor_execution, args)
+        else:
+            self._monitor_execution(*args)
+
 
 # Job Locks (for status updates). Following methods are locked.
 #    _finish_execution(self, job_id)
@@ -85,13 +91,6 @@ class Manager(BaseUnqueuedManager):
         except Exception:
             pass
         return pid
-
-    def setup_job(self, input_job_id, tool_id, tool_version):
-        job_id = self._get_job_id(input_job_id)
-        return self._setup_job_for_job_id(job_id, tool_id, tool_version)
-
-    def _get_job_id(self, galaxy_job_id):
-        return str(self.id_assigner(galaxy_job_id))
 
     def _get_job_lock(self, job_id):
         return self._job_directory(job_id).lock()
@@ -158,10 +157,7 @@ class Manager(BaseUnqueuedManager):
         proc, stdout, stderr = self._proc_for_job_id(job_id, command_line)
         with self._get_job_lock(job_id):
             self._record_pid(job_id, proc.pid)
-        if background:
-            thread.start_new_thread(self._monitor_execution, (job_id, proc, stdout, stderr))
-        else:
-            self._monitor_execution(job_id, proc, stdout, stderr)
+        self._start_monitor(job_id, proc, stdout, stderr, background=background)
 
     def _proc_for_job_id(self, job_id, command_line):
         job_directory = self.job_directory(job_id)
@@ -189,9 +185,6 @@ class CoexecutionManager(BaseUnqueuedManager):
     def __init__(self, name, app, **kwds):
         super(CoexecutionManager, self).__init__(name, app, **kwds)
 
-    def setup_job(self, input_job_id, tool_id, tool_version):
-        return self._setup_job_for_job_id(input_job_id, tool_id, tool_version)
-
     def get_status(self, job_id):
         return self._get_status(job_id)
 
@@ -200,12 +193,15 @@ class CoexecutionManager(BaseUnqueuedManager):
 
     def _monitor_execution(self, job_id):
         return_code_path = self._return_code_path(job_id)
+        # Write dummy JOB_FILE_PID so get_status thinks this job is running.
+        self._job_directory(job_id).store_metadata(JOB_FILE_PID, "1")
         try:
             while not os.path.exists(return_code_path):
                 time.sleep(0.1)
                 print("monitoring for %s" % return_code_path)
                 continue
             print("found return code path...")
+            self._job_directory(job_id).remove_metadata(JOB_FILE_PID)
             time.sleep(1)
         finally:
             self._finish_execution(job_id)
@@ -220,7 +216,7 @@ class CoexecutionManager(BaseUnqueuedManager):
         )
         command_line = "cd '%s'; sh %s" % (working_directory, command_line)
         self._write_command_line(job_id, command_line)
-        self._monitor_execution(job_id)
+        self._start_monitor(job_id)
 
 
 def execute(command_line, working_directory, stdout, stderr):

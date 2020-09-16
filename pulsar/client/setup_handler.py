@@ -1,4 +1,5 @@
 import os
+from uuid import uuid4
 
 from pulsar import __version__ as pulsar_version
 
@@ -38,8 +39,16 @@ class LocalSetupHandler(object):
         system_properties["separator"] = client.job_directory.separator
         self.system_properties = system_properties
         self.jobs_directory = destination_args["jobs_directory"]
+        self.assign_ids = destination_args.get("assign_ids", "galaxy")
 
     def setup(self, job_id, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
+        if self.assign_ids == "uuid":
+            job_id = uuid4().hex
+
+        # Following is a gross hack but same gross hack in pulsar.client.staging.up
+        if self.client.job_id != job_id:
+            self.client.assign_job_id(job_id)
+
         return build_job_config(
             job_id=job_id,
             job_directory=self.client.job_directory,

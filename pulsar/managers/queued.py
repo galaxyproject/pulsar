@@ -71,7 +71,7 @@ class QueueManager(Manager):
             self.work_queue.put((STOP_SIGNAL, None))
         for worker in self.work_threads:
             worker.join(timeout)
-            if worker.isAlive():
+            if worker.is_alive():
                 log.warn("Failed to stop worker thread [%s]" % worker)
 
     def run_next(self):

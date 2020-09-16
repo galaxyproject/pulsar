@@ -5,16 +5,21 @@ from six import string_types
 
 from pulsar.managers.util.pykube_util import (
     ensure_pykube,
+    find_job_object_by_name,
+    find_pod_object_by_name,
+    galaxy_instance_id,
     Job,
     job_object_dict,
     produce_unique_k8s_job_name,
     pull_policy,
     pykube_client_from_dict,
+    stop_job,
 )
 from .action_mapper import (
     actions,
     path_type,
 )
+from .amqp_exchange import ACK_FORCE_NOACK_KEY
 from .decorators import parseJson
 from .decorators import retry
 from .destination import submit_params
@@ -53,23 +58,12 @@ class BaseJobClient(object):
     def __init__(self, destination_params, job_id):
         destination_params = destination_params or {}
         self.destination_params = destination_params
-        self.job_id = job_id
-        if "jobs_directory" in destination_params:
-            staging_directory = destination_params["jobs_directory"]
-            sep = destination_params.get("remote_sep", os.sep)
-            job_directory = RemoteJobDirectory(
-                remote_staging_directory=staging_directory,
-                remote_id=job_id,
-                remote_sep=sep,
-            )
-        else:
-            job_directory = None
+        self.assign_job_id(job_id)
 
         for attr in ["ssh_key", "ssh_user", "ssh_host", "ssh_port"]:
             setattr(self, attr, destination_params.get(attr, None))
         self.env = destination_params.get("env", [])
         self.files_endpoint = destination_params.get("files_endpoint", None)
-        self.job_directory = job_directory
 
         default_file_action = self.destination_params.get("default_file_action", "transfer")
         if default_file_action not in actions:
@@ -78,6 +72,23 @@ class BaseJobClient(object):
         self.action_config_path = self.destination_params.get("file_action_config", None)
 
         self.setup_handler = build_setup_handler(self, destination_params)
+
+    def assign_job_id(self, job_id):
+        self.job_id = job_id
+        self._set_job_directory()
+
+    def _set_job_directory(self):
+        if "jobs_directory" in self.destination_params:
+            staging_directory = self.destination_params["jobs_directory"]
+            sep = self.destination_params.get("remote_sep", os.sep)
+            job_directory = RemoteJobDirectory(
+                remote_staging_directory=staging_directory,
+                remote_id=self.job_id,
+                remote_sep=sep,
+            )
+        else:
+            job_directory = None
+        self.job_directory = job_directory
 
     def setup(self, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
         """
@@ -273,6 +284,10 @@ class JobClient(BaseJobClient):
         }
         self._raw_execute("download_output", output_params, output_path=output_path)
 
+    def job_ip(self):
+        """Return a entry point ports dict (if applicable)."""
+        return None
+
 
 class BaseMessageJobClient(BaseJobClient):
 
@@ -314,6 +329,15 @@ class BaseMessageJobClient(BaseJobClient):
             launch_params["setup_params"] = setup_params
         return launch_params
 
+    def _build_status_request_message(self):
+        # Because this is used to poll, status requests will not be resent if we do not receive an acknowledgement
+        update_params = {
+            'request': 'status',
+            'job_id': self.job_id,
+            ACK_FORCE_NOACK_KEY: True,
+        }
+        return update_params
+
 
 class MessageJobClient(BaseMessageJobClient):
 
@@ -328,7 +352,13 @@ class MessageJobClient(BaseMessageJobClient):
             job_config=job_config,
         )
         response = self.client_manager.exchange.publish("setup", launch_params)
-        log.info("Job published to setup message queue.")
+        log.info("Job published to setup message queue: %s", self.job_id)
+        return response
+
+    def get_status(self):
+        status_params = self._build_status_request_message()
+        response = self.client_manager.exchange.publish("setup", status_params)
+        log.info("Job status request published to setup message queue: %s", self.job_id)
         return response
 
     def kill(self):
@@ -367,10 +397,20 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
     def __init__(self, destination_params, job_id, client_manager):
         ensure_pykube()
         super(MessageCoexecutionPodJobClient, self).__init__(destination_params, job_id, client_manager)
+        self.instance_id = galaxy_instance_id(destination_params)
         self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
         self._default_pull_policy = pull_policy(destination_params)
 
-    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, container=None, pulsar_app_config=None):
+    def launch(
+        self,
+        command_line,
+        dependencies_description=None,
+        env=[],
+        remote_staging=[],
+        job_config=None,
+        container_info=None,
+        pulsar_app_config=None
+    ):
         """
         """
         launch_params = self._build_setup_message(
@@ -380,6 +420,11 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             remote_staging=remote_staging,
             job_config=job_config,
         )
+        container = None
+        guest_ports = None
+        if container_info is not None:
+            container = container_info.get("container_id")
+            guest_ports = container_info.get("guest_ports")
 
         manager_type = "coexecution" if container is not None else "unqueued"
         if "manager" not in pulsar_app_config and "managers" not in pulsar_app_config:
@@ -407,12 +452,10 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
                 }]
             }
             pulsar_app_config["dependency_resolution"] = dependency_resolution
-
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
 
-        # TODO: instance_id for Pulsar...
-        job_name = produce_unique_k8s_job_name(app_prefix="pulsar")
+        job_name = self._k8s_job_name
         params = self.destination_params
 
         pulsar_container_image = self.pulsar_container_image
@@ -445,6 +488,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
                 "workingDir": "/",
                 "volumeMounts": volume_mounts,
             }
+            if guest_ports:
+                tool_container_spec["ports"] = [{"containerPort": int(p)} for p in guest_ports]
             container_dicts.append(tool_container_spec)
         for container_dict in container_dicts:
             if self._default_pull_policy:
@@ -462,13 +507,44 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         }
         spec = {"template": template}
         k8s_job_obj = job_object_dict(params, job_name, spec)
-        pykube_client = pykube_client_from_dict(self.destination_params)
+        pykube_client = self._pykube_client
         job = Job(pykube_client, k8s_job_obj)
         job.create()
 
     def kill(self):
-        # TODO: kill pod...
-        pass
+        job_name = self._k8s_job_name
+        pykube_client = self._pykube_client
+        job = find_job_object_by_name(pykube_client, job_name)
+        if job:
+            log.info("Kill k8s job with name %s" % job_name)
+            stop_job(job)
+        else:
+            log.info("Attempted to kill k8s job but it is unavailable.")
+
+    def job_ip(self):
+        job_name = self._k8s_job_name
+        pykube_client = self._pykube_client
+        pod = find_pod_object_by_name(pykube_client, job_name)
+        if pod:
+            status = pod.obj['status']
+        else:
+            status = {}
+
+        if 'podIP' in status:
+            pod_ip = status['podIP']
+            return pod_ip
+        else:
+            log.debug("Attempted to get ports dict but k8s pod unavailable")
+
+    @property
+    def _pykube_client(self):
+        return pykube_client_from_dict(self.destination_params)
+
+    @property
+    def _k8s_job_name(self):
+        job_id = self.job_id
+        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
+        return job_name
 
 
 class InputCachingJobClient(JobClient):

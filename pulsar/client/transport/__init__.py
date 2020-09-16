@@ -5,7 +5,7 @@ from .curl import PycurlTransport
 from .requests import requests_multipart_post_available
 from .ssh import rsync_get_file, scp_get_file
 from .ssh import rsync_post_file, scp_post_file
-from .standard import Urllib2Transport
+from .standard import UrllibTransport
 
 if curl_available:
     from .curl import get_file
@@ -23,7 +23,7 @@ def get_transport(transport_type=None, os_module=os, transport_params=None):
     if not transport_params:
         transport_params = {}
     if transport_type == 'urllib':
-        transport = Urllib2Transport(**transport_params)
+        transport = UrllibTransport(**transport_params)
     else:
         transport = PycurlTransport(**transport_params)
     return transport

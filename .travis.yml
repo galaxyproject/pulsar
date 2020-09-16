@@ -1,26 +1,28 @@
 # TODO: test condor
 language: python
-dist: trusty
+dist: bionic
 matrix:
   include:
-  - python: 2.7
-    env: TOX_ENV=py27-lint
-  - python: 2.7
-    env: TOX_ENV=py27-lint-dist
-  - python: 2.7
+  - python: 3.7
+    env: TOX_ENV=py37-lint-dist
+  - python: 3.7
     env: TOX_ENV=lint-docs
-  - python: 2.7
-    env: TOX_ENV=py27 SETUP=true
-  - python: 2.7
-    env:  TOX_ENV=py27-install-wheel
   - python: 3.5
     env: TOX_ENV=py35-lint
   - python: 3.5
     env: TOX_ENV=py35 SETUP=true
   - python: 3.5
     env: TOX_ENV=py35-unit SETUP=true
-  allow_failures:
-    - env: TOX_ENV=py35 SETUP=true
+  - python: 3.6
+    env: TOX_ENV=py36 SETUP=true
+  - python: 3.6
+    env: TOX_ENV=py36-unit SETUP=true
+  - python: 3.7
+    env: TOX_ENV=py37 SETUP=true
+  - python: 3.7
+    env: TOX_ENV=py37-unit SETUP=true
+  - python: 3.7
+    env:  TOX_ENV=py37-install-wheel
 
 install:
   - pip install tox

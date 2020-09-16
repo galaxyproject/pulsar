@@ -14,7 +14,21 @@ from galaxy.util.bunch import Bunch
 from ..util import PathHelper
 
 COMMAND_VERSION_FILENAME = "COMMAND_VERSION"
-DEFAULT_DYNAMIC_COLLECTION_PATTERN = [r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|__instrument_.*|dataset_\d+_files.+|outputs_populated/.*"]
+DEFAULT_DYNAMIC_COLLECTION_PATTERN = [
+    "|".join(
+        [
+            r"primary_.*",
+            r"galaxy.json",
+            r"metadata_.*",
+            r"dataset_\d+\.dat",
+            r"__instrument_.*",
+            r"dataset_\d+_files.+",
+            r"outputs_populated/.*",
+            r"tool_stdout",
+            r"tool_stderr",
+        ]
+    )
+]
 
 
 class ClientJobDescription(object):
@@ -72,10 +86,12 @@ class ClientJobDescription(object):
         dependencies_description=None,
         env=[],
         arbitrary_files=None,
+        job_directory_files=None,
         rewrite_paths=True,
         touch_outputs=None,
         container=None,
         remote_pulsar_app_config=None,
+        guest_ports=None,
     ):
         self.tool = tool
         self.command_line = command_line
@@ -90,10 +106,12 @@ class ClientJobDescription(object):
         self.metadata_directory = metadata_directory
         self.dependencies_description = dependencies_description
         self.env = env
+        self.job_directory_files = job_directory_files or []
         self.rewrite_paths = rewrite_paths
         self.arbitrary_files = arbitrary_files or {}
         self.touch_outputs = touch_outputs or []
         self.container = container
+        self.guest_ports = guest_ports
         self.remote_pulsar_app_config = remote_pulsar_app_config
 
     @property
@@ -178,6 +196,7 @@ class ClientOutputs(object):
         version_file=None,
         dynamic_outputs=None,
         metadata_directory=None,
+        job_directory=None,
     ):
         self.working_directory = working_directory
         self.metadata_directory = metadata_directory
@@ -185,12 +204,14 @@ class ClientOutputs(object):
         self.output_files = output_files or []
         self.version_file = version_file
         self.dynamic_outputs = dynamic_outputs or DEFAULT_DYNAMIC_COLLECTION_PATTERN
+        self.job_directory = job_directory
         self.__dynamic_patterns = list(map(re.compile, self.dynamic_outputs))
 
     def to_dict(self):
         return dict(
             working_directory=self.working_directory,
             metadata_directory=self.metadata_directory,
+            job_directory=self.job_directory,
             work_dir_outputs=self.work_dir_outputs,
             output_files=self.output_files,
             version_file=self.version_file,
@@ -206,6 +227,7 @@ class ClientOutputs(object):
             output_files=config_dict.get('output_files'),
             version_file=config_dict.get('version_file'),
             dynamic_outputs=config_dict.get('dynamic_outputs'),
+            job_directory=config_dict.get('job_directory'),
         )
 
     def dynamic_match(self, filename):
@@ -217,11 +239,12 @@ class PulsarOutputs(object):
     server. """
 
     def __init__(
-        self, working_directory_contents, output_directory_contents, metadata_directory_contents, remote_separator=sep
+        self, working_directory_contents, output_directory_contents, metadata_directory_contents, job_directory_contents, remote_separator=sep
     ):
         self.working_directory_contents = working_directory_contents
         self.output_directory_contents = output_directory_contents
         self.metadata_directory_contents = metadata_directory_contents
+        self.job_directory_contents = job_directory_contents
         self.path_helper = PathHelper(remote_separator)
 
     @staticmethod
@@ -231,6 +254,7 @@ class PulsarOutputs(object):
         working_directory_contents = complete_response.get("working_directory_contents")
         output_directory_contents = complete_response.get("outputs_directory_contents")
         metadata_directory_contents = complete_response.get("metadata_directory_contents")
+        job_directory_contents = complete_response.get("job_directory_contents")
         # Older (pre-2014) Pulsar servers will not include separator in response,
         # so this should only be used when reasoning about outputs in
         # subdirectories (which was not previously supported prior to that).
@@ -239,6 +263,7 @@ class PulsarOutputs(object):
             working_directory_contents,
             output_directory_contents,
             metadata_directory_contents,
+            job_directory_contents,
             remote_separator
         )
 

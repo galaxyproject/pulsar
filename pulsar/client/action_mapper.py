@@ -46,8 +46,10 @@ path_type = Bunch(
     CONFIG="config",
     # Files from tool's tool_dir (for now just wrapper if available).
     TOOL="tool",
-    # Input work dir files - e.g.task-split input file
+    # Input tool work dir files - e.g. task-split input file
     WORKDIR="workdir",
+    # Job directory files (e.g. tool standard input/output and containerized command).
+    JOBDIR="jobdir",
     # Input metadata dir files - e.g. metadata files, etc..
     METADATA="metadata",
     # Galaxy output datasets in their final home.
@@ -57,6 +59,8 @@ path_type = Bunch(
     # Meta job and data files (e.g. Galaxy metadata generation files and
     # metric instrumentation files)
     OUTPUT_METADATA="output_metadata",
+    # Job directory files output.
+    OUTPUT_JOBDIR="output_jobdir",
     # Other fixed tool parameter paths (likely coming from tool data, but not
     # necessarily).
     UNSTRUCTURED="unstructured",
@@ -68,10 +72,12 @@ ACTION_DEFAULT_PATH_TYPES = [
     path_type.CONFIG,
     path_type.TOOL,
     path_type.WORKDIR,
+    path_type.JOBDIR,
     path_type.METADATA,
     path_type.OUTPUT,
     path_type.OUTPUT_WORKDIR,
     path_type.OUTPUT_METADATA,
+    path_type.OUTPUT_JOBDIR,
 ]
 ALL_PATH_TYPES = ACTION_DEFAULT_PATH_TYPES + [path_type.UNSTRUCTURED]
 
@@ -229,8 +235,8 @@ class FileActionMapper(object):
         action_type = self.default_action if type in ACTION_DEFAULT_PATH_TYPES else "none"
         if mapper:
             action_type = mapper.action_type
-        if type in ["workdir", "output_workdir", "output_metadata"] and action_type == "none":
-            # We are changing the working_directory relative to what
+        if type in ["workdir", "jobdir", "output_workdir", "output_metadata", "output_jobdir"] and action_type == "none":
+            # We are changing the working_directory/job_directory relative to what
             # Galaxy would use, these need to be copied over.
             action_type = "copy"
         action_class = actions.get(action_type, None)

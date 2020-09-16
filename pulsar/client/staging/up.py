@@ -32,8 +32,14 @@ def submit_job(client, client_job_description, job_config=None):
         dependencies_description=client_job_description.dependencies_description,
         env=client_job_description.env,
     )
+    container_info = None
     if client_job_description.container:
-        launch_kwds["container"] = client_job_description.container
+        container_info = {
+            "container_id": client_job_description.container,
+        }
+        container_info["guest_ports"] = client_job_description.guest_ports
+        launch_kwds["container_info"] = container_info
+
     if client_job_description.remote_pulsar_app_config:
         launch_kwds["pulsar_app_config"] = client_job_description.remote_pulsar_app_config
 
@@ -88,6 +94,7 @@ class FileStager(object):
         self.version_file = client_job_description.version_file
         self.arbitrary_files = client_job_description.arbitrary_files
         self.rewrite_paths = client_job_description.rewrite_paths
+        self.job_directory_files = client_job_description.job_directory_files
 
         # Setup job inputs, these will need to be rewritten before
         # shipping off to remote Pulsar server.
@@ -112,6 +119,7 @@ class FileStager(object):
             self.__initialize_referenced_arbitrary_files()
 
         self.__upload_tool_files()
+        self.__upload_job_directory_files()
         self.__upload_input_files()
         self.__upload_working_directory_files()
         self.__upload_metadata_directory_files()
@@ -134,11 +142,10 @@ class FileStager(object):
         self.new_working_directory = job_config['working_directory']
         self.new_outputs_directory = job_config['outputs_directory']
         self.new_tool_directory = job_config.get('tools_directory', None)
-        # Default configs_directory to match remote working_directory to mimic
-        # behavior of older Pulsar servers.
-        self.new_configs_directory = job_config.get('configs_directory', self.new_working_directory)
+        self.new_configs_directory = job_config['configs_directory']
         self.remote_separator = self.__parse_remote_separator(job_config)
         self.path_helper = PathHelper(self.remote_separator)
+
         # If remote Pulsar server assigned job id, use that otherwise
         # just use local job_id assigned.
         galaxy_job_id = self.client.job_id
@@ -146,7 +153,7 @@ class FileStager(object):
         if self.job_id != galaxy_job_id:
             # Remote Pulsar server assigned an id different than the
             # Galaxy job id, update client to reflect this.
-            self.client.job_id = self.job_id
+            self.client.assign_job_id(self.job_id)
         self.job_config = job_config
         self.job_directory = self.__setup_job_directory()
 
@@ -202,6 +209,10 @@ class FileStager(object):
     def __upload_tool_files(self):
         for referenced_tool_file in self.referenced_tool_files:
             self.transfer_tracker.handle_transfer_path(referenced_tool_file, path_type.TOOL)
+
+    def __upload_job_directory_files(self):
+        for job_directory_file in self.job_directory_files:
+            self.transfer_tracker.handle_transfer_path(job_directory_file, path_type.JOBDIR)
 
     def __upload_arbitrary_files(self):
         for path, name in self.arbitrary_files.items():

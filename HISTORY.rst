@@ -6,6 +6,34 @@ History
 .. to_doc
 
 ---------------------
+0.14.0.dev4
+---------------------
+
+* Request and register ports for Galaxy ITs when using Kubernetes.
+  `Pull Request 223`_
+* Implement killing k8s jobs. `Pull Request 221`_
+* Respond to MQ messages requesting status updates.
+  `Pull Request 228`_
+* Drop python 2.6 and add 3.7 and update the testing infrastructure to a more
+  recent Ubuntu setup (thanks to `@bgruening`_). `Pull Request 226`_
+* Add a more descriptive message in case of error parsing an external id
+  (thanks to `@gmauro`_). `Pull Request 213`_
+* Use requests (thanks to `@mvdbeek`_). `Pull Request 216`_
+* Use is_alive in favour of isAlive for Python 3.9 compatibility (thanks to
+  `@tirkarthi`_). `Pull Request 225`_
+* Debug connection string for AMQP.
+  `Pull Request 217`_
+* Various small Kubernetes fixes and enhancements.
+  `Pull Request 218`_, `Pull Request 219`_
+* Improvements and fixes to container handling.
+  `Pull Request 202`_
+* Fix a typo in exception logging thanks to @erasche.
+  `Pull Request 203`_
+* Cleanup config file handling a bit by removing branch for very
+  old Pulsar servers likely no longer supported.
+  `Pull Request 201`_
+
+---------------------
 0.13.0 (2019-06-25)
 ---------------------
 
@@ -88,7 +116,7 @@ History
 * Add support for overriding config through environment variables (thanks to
   @nuwang). `Pull Request 165`_
 * Minor docs updates (thanks to @afgane). `Pull Request 170`_
-* Python 3 fixes in Pulsar client (thanks to @mvdbeek). `Pull Request 172`_
+* Python 3 fixes in Pulsar client (thanks to `@mvdbeek`_). `Pull Request 172`_
 
 ---------------------
 0.8.3 (2018-02-08)
@@ -265,6 +293,19 @@ History
 
 
 .. github_links
+.. _Pull Request 228: https://github.com/galaxyproject/pulsar/pull/228
+.. _Pull Request 226: https://github.com/galaxyproject/pulsar/pull/226
+.. _Pull Request 213: https://github.com/galaxyproject/pulsar/pull/213
+.. _Pull Request 216: https://github.com/galaxyproject/pulsar/pull/216
+.. _Pull Request 225: https://github.com/galaxyproject/pulsar/pull/225
+.. _Pull Request 223: https://github.com/galaxyproject/pulsar/pull/223
+.. _Pull Request 217: https://github.com/galaxyproject/pulsar/pull/217
+.. _Pull Request 218: https://github.com/galaxyproject/pulsar/pull/218
+.. _Pull Request 219: https://github.com/galaxyproject/pulsar/pull/219
+.. _Pull Request 221: https://github.com/galaxyproject/pulsar/pull/221
+.. _Pull Request 202: https://github.com/galaxyproject/pulsar/pull/202
+.. _Pull Request 203: https://github.com/galaxyproject/pulsar/pull/203
+.. _Pull Request 201: https://github.com/galaxyproject/pulsar/pull/201
 .. _Pull Request 190: https://github.com/galaxyproject/pulsar/pull/190
 .. _Pull Request 166: https://github.com/galaxyproject/pulsar/pull/166
 .. _Pull Request 186: https://github.com/galaxyproject/pulsar/pull/186
@@ -354,3 +395,6 @@ History
 .. _@nuwang: https://github.com/nuwang
 .. _@afgane: https://github.com/afgane
 .. _@bgruening: https://github.com/bgruening
+.. _@gmauro: https://github.com/gmauro
+.. _@mvdbeek: https://github.com/mvdbeek
+.. _@tirkarthi: https://github.com/tirkarthi

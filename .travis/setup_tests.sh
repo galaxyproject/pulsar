@@ -3,18 +3,18 @@
 set -e
 set -v
 
-sudo apt-get update
-sudo apt-get install libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-server
+sudo add-apt-repository ppa:natefoo/slurm-drmaa -y
+sudo apt update
+sudo apt install -y libxml2-dev libxslt1-dev libcurl3 python-pycurl openssh-server
 #pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
 #pip install -r dev-requirements.txt --use-mirrors || true
 pip install coveralls  # Required fro coveralls reporting.
-sudo apt-get install slurm-llnl slurm-llnl-torque # slurm-drmaa1 slurm-drmaa-dev
-sudo apt-get install libswitch-perl  # A missing dependency of slurm-llnl-torque
-wget https://depot.galaxyproject.org/deb/slurm-drmaa1_1.2.0-dev.57ebc0c_amd64.deb
-sudo dpkg -i slurm-drmaa1_1.2.0-dev.57ebc0c_amd64.deb
-wget https://depot.galaxyproject.org/deb/slurm-drmaa-dev_1.2.0-dev.57ebc0c_amd64.deb
-sudo dpkg -i slurm-drmaa-dev_1.2.0-dev.57ebc0c_amd64.deb
-sudo /usr/sbin/create-munge-key
+sudo apt install -y slurm-wlm slurm-wlm-torque munge slurm-drmaa1 slurm-drmaa-dev
+sudo apt install -y libswitch-perl libgnutls28-dev # A missing dependency of slurm-llnl-torque
+
+# DEBIAN_FRONTEND=noninteractive sudo apt install htcondor ## htcondor installation
+
+yes | sudo /usr/sbin/create-munge-key
 sudo service munge start
 sudo python scripts/configure_test_slurm.py
 echo "export DRMAA_LIBRARY_PATH=/usr/lib/slurm-drmaa/lib/libdrmaa.so" >> local_env.sh
