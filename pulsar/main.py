@@ -177,7 +177,6 @@ def _find_default_app_config(*config_dirs):
         app_config_path = os.path.join(config_dir, DEFAULT_APP_YAML)
         if os.path.exists(app_config_path):
             return app_config_path
-
     return None
 
 
