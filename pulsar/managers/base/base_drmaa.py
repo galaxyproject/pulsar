@@ -54,6 +54,7 @@ class BaseDrmaaManager(ExternalBaseManager):
     def _build_template_attributes(self, job_id, command_line, dependencies_description=None, env=[], submit_params={}, setup_params=None):
         stdout_path = self._stdout_path(job_id)
         stderr_path = self._stderr_path(job_id)
+        working_directory = self.job_directory(job_id).working_directory()
 
         attributes = {
             "remoteCommand": self._setup_job_file(
@@ -66,6 +67,7 @@ class BaseDrmaaManager(ExternalBaseManager):
             "jobName": self._job_name(job_id),
             "outputPath": ":%s" % stdout_path,
             "errorPath": ":%s" % stderr_path,
+            "workingDirectory": working_directory,
         }
         submit_native_specification = submit_params.get("native_specification", None)
         native_specification = None
