@@ -10,9 +10,6 @@
             <param id="amqp_url">pyamqp://rabbituser:rabb8pa8sw0d@mqserver:5671//?ssl=1</param>
         </plugin>
     </plugins>
-    <handlers>
-        <handler id="main"/>
-    </handlers>
     <destinations default="pulsar_mq">
         <destination id="remote_cluster" runner="pulsar_mq">
             <!-- This string is replaced by Pulsar, removing the requirement
@@ -48,5 +45,5 @@
     <tools>
         <tool id="trinity" destination="remote_cluster" />
         <tool id="abyss" destination="remote_cluster" />
-	</tools>
+    </tools>
 </job_conf>

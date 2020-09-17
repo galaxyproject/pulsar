@@ -18,7 +18,6 @@ Contents:
    job_managers
    galaxy_conf
    scripts
-   upgrading
    conduct
    contributing
    organization

@@ -4,9 +4,6 @@
         <plugin id="drmaa" type="runner" load="galaxy.jobs.runners.drmaa:DRMAAJobRunner"/>
         <plugin id="pulsar" type="runner" load="galaxy.jobs.runners.pulsar:PulsarRESTJobRunner"/>
     </plugins>
-    <handlers>
-        <handler id="main"/>
-    </handlers>
     <destinations default="local_cluster">
         <destination id="local_cluster" runner="drmaa">
             <param id="native_specification">-P littlenodes -R y -pe threads 4</param>
@@ -23,5 +20,5 @@
     <tools>
         <tool id="trinity" destination="remote_cluster" />
         <tool id="abyss" destination="remote_cluster" />
-	</tools>
+    </tools>
 </job_conf>

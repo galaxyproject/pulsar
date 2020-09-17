@@ -4,9 +4,6 @@
         <plugin id="local" type="runner" load="galaxy.jobs.runners.local:LocalJobRunner"/>
         <plugin id="pulsar" type="runner" load="galaxy.jobs.runners.pulsar:PulsarLegacyJobRunner"/>
     </plugins>
-    <handlers>
-        <handler id="main"/>
-    </handlers>
     <destinations default="local">
         <destination id="local" runner="local"/>
         <destination id="win_pulsar" runner="pulsar">
@@ -17,5 +14,5 @@
     <tools>
         <tool id="msconvert" destination="win_pulsar" />
         <tool id="proteinpilot" destination="win_pulsar" />
-	</tools>
+    </tools>
 </job_conf>

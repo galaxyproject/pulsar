@@ -9,7 +9,7 @@ use = egg:Paste#http
 
 ## The port on which to listen.
 port = 8913
-## The hostname or IP address of the server.
+## The interface(s) on which to listen. Use '0.0.0.0' for all interfaces.
 host = localhost
 
 ## pem file to use to enable SSL. Set to * to generate one

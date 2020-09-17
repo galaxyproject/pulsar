@@ -1,4 +1,4 @@
-.. _gx-pulsar-mq-setup:
+.. _galaxy_with_rabbitmq_conf:
 
 Message Queues with Galaxy and Pulsar
 =====================================
@@ -67,7 +67,7 @@ For Ubuntu,
 
 ::
 
-    sudo apt-get install rabbitmq-server
+    $ sudo apt-get install rabbitmq-server
 
 This will provide the command ``rabbitmqctl`` which can be run as root
 to handle configuration. If you're new to MQs in general, you may be
@@ -75,7 +75,7 @@ interested in enabling the web GUI with:
 
 ::
 
-    rabbitmq-plugins enable rabbitmq_management
+    $ rabbitmq-plugins enable rabbitmq_management
 
 This will listen on ``http://fqdn:15672`` and provide access to manage
 and view queue/exchange/vhost information. The default username and
@@ -113,9 +113,9 @@ Alternatively this can be done in the default virtual host:
 Configuring Galaxy
 ------------------
 
-The Galaxy configuration portion is covered in :ref:`galaxy-conf`. 
+The Galaxy configuration portion is covered in :ref:`galaxy_conf`.
 
 Configuring Pulsar
 ------------------
 
-The Pulsar configuration portion is covered in :ref:`job-managers`.
+The Pulsar configuration portion is covered in :ref:`job_managers`.

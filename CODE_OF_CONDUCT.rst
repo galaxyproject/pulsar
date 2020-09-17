@@ -1,5 +1,6 @@
+------------------------------
 Pulsar Project Code of Conduct
-===============================
+------------------------------
 
 This code of conduct outlines our expectations for participants within the
 Pulsar community, as well as steps to reporting unacceptable behavior. We are
@@ -52,7 +53,8 @@ Our open source community strives to:
   err and blaming each other doesn’t get us anywhere. Instead, focus on helping
   to resolve issues and learning from mistakes.
 
-### Diversity Statement
+Diversity Statement
+-------------------
 
 We encourage everyone to participate and are committed to building a community
 for all. Although we will fail at times, we seek to treat everyone both as
@@ -68,13 +70,22 @@ socioeconomic status, and technical ability. We will not tolerate
 discrimination based on any of the protected characteristics above, including
 participants with disabilities.
 
-### Reporting Issues
+Reporting Issues
+----------------
 
 If you experience or witness unacceptable behavior, or have any other concerns,
-please report it by contacting Dave Clements (clementsgalaxy@gmail.com). To
-report an issue involving Dave Clements please email James Taylor
-(james@taylorlab.org). All reports will be handled with discretion. In your
-report please include:
+please report it to any combination of the following people that makes you feel
+the most comfortable:
+
+- Dave Clements (clementsgalaxy@gmail.com). Dave is the Galaxy Project community
+  outreach manager and has experience handling Code of Conduct related issues.
+- Dr. Mike Schatz (mschatz@cs.jhu.edu). Mike is Dave Clements' direct manager
+  and issues related to Dave in some way should be reported to Mike.
+- Helena Rasche (helena.rasche@gmail.com). Helena is a well-known, trusted
+  community member, is LGBT+, and has completely separate funding and
+  institutional affiliation from Dave and Mike.
+
+All reports will be handled with discretion. In your report please include:
 
 - Your contact information.
 
@@ -94,6 +105,7 @@ originates from a member of the response team, it will be handled by a
 different member of the response team. We will respect confidentiality requests
 for the purpose of protecting victims of abuse.
 
-### Attribution & Acknowledgements
+Attribution & Acknowledgements
+------------------------------
 
 This code of conduct is based on the Open Code of Conduct from the TODOGroup.
