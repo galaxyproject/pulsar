@@ -6,9 +6,25 @@ History
 .. to_doc
 
 ---------------------
-0.14.0.dev4
+0.14.0.dev5
 ---------------------
 
+* fix the PyYAML "load() deprecation" warning (thanks to `@gmauro`_). `Pull
+  Request 232`_
+* Set the DRMAA workingDirectory to the job's working directory
+  `Pull Request 230`_
+* Fix a unicode issue and polish a bit of variables (thanks to `@gmauro`_).
+  `Pull Request 229`_
+* Respond to MQ messages requesting status updates. `Pull Request 228`_
+* Fix REST connections broken with Py3 using standard transport `Issue 227`_
+  `Pull Request 231`_
+* Drop Python 2.7 support in standard transport, drop Python 2.7 tests and fix
+  Python 3.7 wheel install test, general test debugging enhancements.
+  `Pull Request 231`_
+* drop python 2.6 and add 3.7 and update the testing infrastructure to a more
+  recent Ubuntu setup (thanks to `@bgruening`_). `Pull Request 226`_
+* Use is_alive in favour of isAlive for Python 3.9 compatibility (thanks to
+  `@tirkarthi`_). `Issue 224`_ `Pull Request 225`_
 * Request and register ports for Galaxy ITs when using Kubernetes.
   `Pull Request 223`_
 * Implement killing k8s jobs. `Pull Request 221`_
@@ -32,6 +48,12 @@ History
 * Cleanup config file handling a bit by removing branch for very
   old Pulsar servers likely no longer supported.
   `Pull Request 201`_
+
+---------------------
+0.13.1 (2020-09-16)
+---------------------
+
+* Pinned all listed requirements. This is the final version of Pulsar to support Python 2.
 
 ---------------------
 0.13.0 (2019-06-25)
@@ -293,6 +315,15 @@ History
 
 
 .. github_links
+.. _Pull Request 232: https://github.com/galaxyproject/pulsar/pull/232
+.. _Pull Request 230: https://github.com/galaxyproject/pulsar/pull/230
+.. _Pull Request 229: https://github.com/galaxyproject/pulsar/pull/229
+.. _Pull Request 228: https://github.com/galaxyproject/pulsar/pull/228
+.. _Pull Request 231: https://github.com/galaxyproject/pulsar/pull/231
+.. _Issue 227: https://github.com/galaxyproject/pulsar/issues/227
+.. _Pull Request 226: https://github.com/galaxyproject/pulsar/pull/226
+.. _Pull Request 225: https://github.com/galaxyproject/pulsar/pull/225
+.. _Issue 224: https://github.com/galaxyproject/pulsar/issues/224
 .. _Pull Request 228: https://github.com/galaxyproject/pulsar/pull/228
 .. _Pull Request 226: https://github.com/galaxyproject/pulsar/pull/226
 .. _Pull Request 213: https://github.com/galaxyproject/pulsar/pull/213
