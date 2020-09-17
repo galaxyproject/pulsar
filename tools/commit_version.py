@@ -20,14 +20,22 @@ def main(argv):
         history = open(history_path, "r").read()
         today = datetime.datetime.today()
         today_str = today.strftime('%Y-%m-%d')
-        history = history.replace(".dev0", " (%s)" % today_str)
+        history = re.sub(r"^[\d\.]+\.dev\d*",
+                         "{} ({})".format(version, today_str),
+                         history,
+                         flags=re.MULTILINE)
         open(history_path, "w").write(history)
 
         mod = open(mod_path, "r").read()
-        mod = re.sub("__version__ = '[\d\.]*\.dev0'",
-                     "__version__ = '%s'" % version,
-                     mod)
+        mod = re.sub(r"__version__ = '[\d\.]+\.dev\d*'",
+                     "__version__ = '{}'".format(version),
+                     mod,
+                     flags=re.MULTILINE)
         mod = open(mod_path, "w").write(mod)
+    for f in ("HISTORY.rst", os.path.join(source_dir, "__init__.py")):
+        if not shell(["git", "diff", "--quiet", "--", f]):
+            print("Expected changes to '{}' not found, refusing to commit".format(f))
+            sys.exit(1)
     shell(["git", "commit", "-m", "Version %s" % version,
            "HISTORY.rst", "%s/__init__.py" % source_dir])
     shell(["git", "tag", version])
