@@ -10,7 +10,7 @@ Installing Pulsar
     `Running Jobs on Remote Resources with Pulsar <https://training.galaxyproject.org/training-material/topics/admin/tutorials/pulsar/tutorial.html>`_
     in the `Galaxy Training Network <https://training.galaxyproject.org/>`_
     contains a step-by-step guide for installing Pulsar using `Ansible
-    <http://www.ansible.come/>`_.
+    <http://www.ansible.com/>`_.
 
 There are two primary ways to deploy Pulsar. The newer and preferred
 method is to install Pulsar from `PyPI <pypi.python.org/pypi/pulsar-app>`__
@@ -197,7 +197,7 @@ install <dependency_name>``.
 
 .. _Galaxy: http://galaxyproject.org/
 .. _GitHub: https://github.com/
-.. _venv_: https://docs.python.org/3/library/venv.html
+.. _venv: https://docs.python.org/3/library/venv.html
 .. _pip: https://pip.pypa.io/
 .. _Supervisord: http://supervisord.org/
 .. _Paste: https://pythonpaste.readthedocs.io/en/latest/
