@@ -1,6 +1,7 @@
 from typing import Dict
 
 RAW_VALUE_BY_DEFAULT = False
+VALID_ENV_OPTIONS = ("file", "execute", "name/value")
 
 
 def env_to_statement(env: Dict[str, str]) -> str:
@@ -29,9 +30,11 @@ def env_to_statement(env: Dict[str, str]) -> str:
     execute = env.get("execute", None)
     if execute:
         return execute
-    name = env["name"]
-    value = __escape(env["value"], env)
-    return f"{name}={value}; export {name}"
+    name = env.get("name", None)
+    if name:
+        value = __escape(str(env["value"]), env)
+        return f"{name}={value}; export {name}"
+    raise RuntimeError(f"Invalid env definition, must be one of {VALID_ENV_OPTIONS}: {env}")
 
 
 def __escape(value: str, env: Dict[str, str]) -> str:
