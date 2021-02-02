@@ -377,7 +377,8 @@ def skip_unless_module(module):
     available = True
     try:
         __import__(module)
-    except ImportError:
+    except (ImportError, RuntimeError):
+        # drmaa raises RuntimeError if DRMAA_LIBRARY_PATH is unset
         available = False
     if available:
         return lambda func: func

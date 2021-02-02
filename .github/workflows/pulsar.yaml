@@ -1,0 +1,69 @@
+name: pulsar
+on: [push, pull_request]
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tox-env: [py37-lint, py37-lint-dist, lint-docs]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Install tox
+      run: pip install tox
+    - name: Run lint
+      run: tox -e ${{ matrix.tox-env }}
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - tox-env: py36
+          python: 3.6
+        - tox-env: py36-unit
+          python: 3.6
+        - tox-env: py37
+          python: 3.7
+        - tox-env: py37-unit
+          python: 3.7
+        - tox-env: py38
+          python: 3.8
+        - tox-env: py38-unit
+          python: 3.8
+        - tox-env: py39
+          python: 3.9
+        - tox-env: py39-unit
+          python: 3.9
+        - tox-env: py37-install-wheel
+          python: 3.7
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install tox
+      run: pip install tox
+    - name: Run setup
+      run: .ci/setup_tests.sh
+    - name: Run tests
+      run: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; tox -e ${{ matrix.tox-env }}
+  # https://github.com/coverallsapp/github-action/issues/30
+  #  - name: Coveralls Parallel
+  #    uses: coverallsapp/github-action@master
+  #    with:
+  #      github-token: ${{ secrets.github_token }}
+  #      flag-name: run-${{ matrix.tox-env }}
+  #      parallel: true
+  #finish:
+  #  needs: test
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #  - name: Coveralls Finished
+  #    uses: coverallsapp/github-action@master
+  #    with:
+  #      github-token: ${{ secrets.github_token }}
+  #      parallel-finished: true

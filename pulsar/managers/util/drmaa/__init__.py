@@ -11,6 +11,9 @@ except ImportError as e:
     LOAD_ERROR_MESSAGE = "ImportError - problem importing library (`pip install drmaa` may fix this) [%s]." % e
     # Will not be able to use DRMAA
     Session = None
+except RuntimeError as e:
+    LOAD_ERROR_MESSAGE = "RuntimeError - problem importing library (setting DRMAA_LIBRARY_PATH may fix this) [%s]." % e
+    Session = None
 
 NO_DRMAA_MESSAGE = "Attempt to use DRMAA, but DRMAA Python library cannot be loaded. "
 
