@@ -1,0 +1,40 @@
+name: pulsar
+on: [push, pull_request]
+jobs:
+  lint:
+    name: Lint
+    run-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - tox-env: py37-lint-dist
+        - tox-env: lint-docs
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - name: Install tox
+      run: pip install tox
+    - name: Run lint
+      run: tox -e ${{ matrix.tox-env }}
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - tox-env: py37-lint-dist
+          python: 3.7
+        - tox-env: lint-docs
+          python: 3.7
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install tox
+      run: pip install tox
+    - name: Run setup
+      run: .travis/setup_tests.sh
+    - name: Run tests
+      run: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; tox -e ${{ matrix.tox-env }}
+    - name: Run coveralls
+      run: coveralls
