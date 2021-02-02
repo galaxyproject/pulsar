@@ -455,6 +455,11 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
 
+        manager_args = []
+        manager_name = self.client_manager.manager_name
+        if manager_name not in (None, "_default_"):
+            manager_args = ["--manager", manager_name]
+
         job_name = self._k8s_job_name
         params = self.destination_params
 
@@ -472,7 +477,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             "name": "pulsar-container",
             "image": pulsar_container_image,
             "command": ["pulsar-submit"],
-            "args": ["--base64", base64_message, "--app_conf_base64", base64_app_conf],
+            "args": ["--base64", base64_message, "--app_conf_base64", base64_app_conf] + manager_args,
             "workingDir": "/",
             "volumeMounts": volume_mounts,
         }
