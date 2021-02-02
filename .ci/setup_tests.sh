@@ -8,7 +8,7 @@ sudo apt update
 sudo apt install -y libxml2-dev libxslt1-dev libcurl4-openssl-dev python-pycurl openssh-server
 #pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
 #pip install -r dev-requirements.txt --use-mirrors || true
-pip install coveralls  # Required fro coveralls reporting.
+#pip install coveralls  # Required fro coveralls reporting.
 sudo apt install -y slurm-wlm slurm-wlm-torque munge slurm-drmaa1 slurm-drmaa-dev
 sudo apt install -y libswitch-perl libgnutls28-dev # A missing dependency of slurm-llnl-torque
 
