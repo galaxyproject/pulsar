@@ -426,9 +426,18 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             container = container_info.get("container_id")
             guest_ports = container_info.get("guest_ports")
 
+        manager_name = self.client_manager.manager_name
         manager_type = "coexecution" if container is not None else "unqueued"
         if "manager" not in pulsar_app_config and "managers" not in pulsar_app_config:
-            pulsar_app_config["manager"] = {"type": manager_type}
+            pulsar_app_config["managers"] = {manager_name: {"type": manager_type}}
+        elif "manager" in pulsar_app_config and manager_name != '_default_':
+            log.warning(
+                "'manager' set in app config but client has non-default manager '%s', this will cause communication"
+                " failures, remove `manager` from app or client config to fix", manager_name)
+
+        manager_args = []
+        if manager_name != "_default_":
+            manager_args = ["--manager", manager_name]
 
         using_dependencies = container is None and dependencies_description is not None
         if using_dependencies and "dependency_resolution" not in pulsar_app_config:
@@ -454,11 +463,6 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             pulsar_app_config["dependency_resolution"] = dependency_resolution
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
-
-        manager_args = []
-        manager_name = self.client_manager.manager_name
-        if manager_name not in (None, "_default_"):
-            manager_args = ["--manager", manager_name]
 
         job_name = self._k8s_job_name
         params = self.destination_params
