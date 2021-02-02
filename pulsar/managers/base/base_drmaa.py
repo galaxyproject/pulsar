@@ -3,7 +3,7 @@ import logging
 
 try:
     from drmaa import JobState
-except (OSError, ImportError):
+except (OSError, ImportError, RuntimeError):
     JobState = None
 
 from .external import ExternalBaseManager

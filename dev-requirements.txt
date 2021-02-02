@@ -4,7 +4,7 @@ kombu
 pykube
 
 # For testing
-nose
+pytest
 webtest
 coverage
 stopit
