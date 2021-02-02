@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.14.1 (2021-02-02)
+---------------------
+
+* Fix the use of named managers with coexecution pods. `Pull Request 242`_
+
+---------------------
 0.14.0 (2020-09-17)
 ---------------------
 
@@ -315,6 +321,7 @@ History
 
 
 .. github_links
+.. _Pull Request 242: https://github.com/galaxyproject/pulsar/pull/242
 .. _Pull Request 232: https://github.com/galaxyproject/pulsar/pull/232
 .. _Pull Request 230: https://github.com/galaxyproject/pulsar/pull/230
 .. _Pull Request 229: https://github.com/galaxyproject/pulsar/pull/229
