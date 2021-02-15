@@ -468,6 +468,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         params = self.destination_params
 
         pulsar_container_image = self.pulsar_container_image
+        pulsar_container_resources = self._pulsar_container_resources(params)
 
         job_directory = self.job_directory
 
@@ -485,7 +486,10 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             "workingDir": "/",
             "volumeMounts": volume_mounts,
         }
+        if pulsar_container_resources:
+            pulsar_container_dict["resources"] = pulsar_container_resources
         tool_container_image = container
+        tool_container_resources = self._tool_container_resources(params)
         container_dicts = [pulsar_container_dict]
         if container:
             command = TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE % job_directory.job_directory
@@ -497,6 +501,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
                 "workingDir": "/",
                 "volumeMounts": volume_mounts,
             }
+            if tool_container_resources:
+                tool_container_spec["resources"] = tool_container_resources
             if guest_ports:
                 tool_container_spec["ports"] = [{"containerPort": int(p)} for p in guest_ports]
             container_dicts.append(tool_container_spec)
@@ -515,6 +521,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             }
         }
         spec = {"template": template}
+        if "k8s_walltime_limit" in params:
+            spec["activeDeadlineSeconds"] = int(params["k8s_walltime_limit"])
         k8s_job_obj = job_object_dict(params, job_name, spec)
         pykube_client = self._pykube_client
         job = Job(pykube_client, k8s_job_obj)
@@ -554,6 +562,26 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         job_id = self.job_id
         job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
         return job_name
+
+    def _pulsar_container_resources(self, params):
+        return self._container_resources(params, container='pulsar')
+
+    def _tool_container_resources(self, params):
+        return self._container_resources(params, container='tool')
+
+    def _container_resources(self, params, container=None):
+        resources = {}
+        for resource_param in ('requests_cpu', 'requests_memory', 'limits_cpu', 'limits_memory'):
+            subkey, resource = resource_param.split('_', 1)
+            if resource_param in params:
+                if subkey not in resources:
+                    resources[subkey] = {}
+                resources[subkey][resource] = params[resource_param]
+            if container is not None and container + '_' + resource_param in params:
+                if subkey not in resources:
+                    resources[subkey] = {}
+                resources[subkey][resource] = params[container + '_' + resource_param]
+        return resources
 
 
 class InputCachingJobClient(JobClient):
