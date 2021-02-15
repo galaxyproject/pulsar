@@ -401,7 +401,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
         self._default_pull_policy = pull_policy(destination_params)
 
-    def launch(
+    # FIXME: pulsar/client/client.py:404:5: C901 'MessageCoexecutionPodJobClient.launch' is too complex (13)
+    def launch(  # noqa: C901
         self,
         command_line,
         dependencies_description=None,
