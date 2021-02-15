@@ -6,10 +6,10 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.2 (2021-02-15)
 ---------------------
 
-    
+* Fix the use of requests, limits, and walltime with coexecution pods. `Pull Request 246`_
 
 ---------------------
 0.14.1 (2021-02-02)
@@ -327,6 +327,7 @@ History
 
 
 .. github_links
+.. _Pull Request 246: https://github.com/galaxyproject/pulsar/pull/246
 .. _Pull Request 242: https://github.com/galaxyproject/pulsar/pull/242
 .. _Pull Request 232: https://github.com/galaxyproject/pulsar/pull/232
 .. _Pull Request 230: https://github.com/galaxyproject/pulsar/pull/230
