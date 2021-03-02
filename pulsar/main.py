@@ -196,7 +196,7 @@ def apply_env_overrides_and_defaults(conf):
 def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, local_conf=None, config_dir=PULSAR_CONFIG_DIR):
     """
     """
-    if ini_path and local_conf is None:
+    if os.path.exists(ini_path) and local_conf is None:
         from pulsar.util.pastescript.loadwsgi import ConfigLoader
         local_conf = ConfigLoader(ini_path).app_context(app_name).config()
     local_conf = local_conf or {}
