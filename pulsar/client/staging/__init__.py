@@ -29,6 +29,13 @@ DEFAULT_DYNAMIC_COLLECTION_PATTERN = [
         ]
     )
 ]
+EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN = [
+    "|".join(
+        [
+            r"outputs_populated/.*",
+        ]
+    )
+]
 
 
 class ClientJobDescription(object):

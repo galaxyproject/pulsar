@@ -50,6 +50,7 @@ from .staging import (
     ClientInput,
     ClientOutputs,
     CLIENT_INPUT_PATH_TYPES,
+    EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN,
     PulsarOutputs,
 )
 from .staging.down import finish_job
@@ -68,6 +69,7 @@ __all__ = [
     'ClientOutputs',
     'CLIENT_INPUT_PATH_TYPES',
     'ClientOutputs',
+    'EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN',
     'PathMapper',
     'PulsarClientTransportError',
 ]
