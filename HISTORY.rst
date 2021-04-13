@@ -6,10 +6,11 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.3.dev0
 ---------------------
 
-    
+* Allow transferring fewer files from Pulsar when using extended metadata with
+  Galaxy.
 
 ---------------------
 0.14.2 (2021-02-15)
