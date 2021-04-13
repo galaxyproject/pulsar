@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.3.dev0
+0.14.3 (2021-04-13)
 ---------------------
 
 * Allow transferring fewer files from Pulsar when using extended metadata with
