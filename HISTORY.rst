@@ -12,6 +12,13 @@ History
     
 
 ---------------------
+0.14.3 (2021-04-13)
+---------------------
+
+* Allow transferring fewer files from Pulsar when using extended metadata with
+  Galaxy.
+
+---------------------
 0.14.2 (2021-02-15)
 ---------------------
 
