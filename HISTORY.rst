@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.4.dev0
+0.14.4 (2021-04-14)
 ---------------------
 
 * Re-attempt release process - published wrong branch with 0.14.3.
