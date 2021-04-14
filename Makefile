@@ -73,7 +73,7 @@ flake8:
 	$(IN_VENV) flake8 --max-complexity 9 $(SOURCE_DIR) $(TEST_DIR)
 
 lint:
-	$(IN_VENV) tox -e py27-lint && tox -e py34-lint
+	$(IN_VENV) tox -e py37-lint
 
 _lint-dist:
 	$(IN_VENV) twine check dist/*
