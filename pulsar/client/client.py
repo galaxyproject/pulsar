@@ -70,6 +70,10 @@ class BaseJobClient(object):
             raise Exception("Unknown Pulsar default file action type %s" % default_file_action)
         self.default_file_action = default_file_action
         self.action_config_path = self.destination_params.get("file_action_config", None)
+        if self.action_config_path is None:
+            self.file_actions = self.destination_params.get("file_actions", {})
+        else:
+            self.file_actions = None
 
         self.setup_handler = build_setup_handler(self, destination_params)
 
