@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.5.dev0
+0.14.5 (2021-04-15)
 ---------------------
 
 * Potential fix for setting file actions via job destination parameters.
