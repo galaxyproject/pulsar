@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.6.dev0
+0.14.6 (2021-05-24)
 ---------------------
 
 * Fix for newer Galaxy tool profiles having isolated home directories.
