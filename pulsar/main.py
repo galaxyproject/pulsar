@@ -202,6 +202,7 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
         from pulsar.util.pastescript.loadwsgi import ConfigLoader
         local_conf = ConfigLoader(ini_path).app_context(app_name).config()
     local_conf = local_conf or {}
+    local_conf['config_dir'] = config_dir
     if app_conf_path is None and "app_config" in local_conf:
         app_conf_path = absolute_config_path(local_conf["app_config"], config_dir)
         if not os.path.exists(app_conf_path) and os.path.exists(app_conf_path + ".sample"):
@@ -242,7 +243,7 @@ class PulsarConfigBuilder(object):
     """
 
     def __init__(self, args=None, **kwds):
-        config_dir = kwds.get("config_dir", None) or PULSAR_CONFIG_DIR
+        config_dir = kwds.get("config_dir", None) or (args and args.config_dir) or PULSAR_CONFIG_DIR
         ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
         app_conf_path = kwds.get("app_conf_path", None) or (args and args.app_conf_path)
         app_conf_base64 = args and args.app_conf_base64
@@ -272,7 +273,8 @@ class PulsarConfigBuilder(object):
 
     def load(self):
         load_kwds = dict(
-            app_name=self.app_name
+            app_name=self.app_name,
+            config_dir=self.config_dir,
         )
         if self.app_conf_base64:
             from pulsar.client.util import from_base64_json
