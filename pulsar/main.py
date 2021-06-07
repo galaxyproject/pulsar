@@ -183,7 +183,9 @@ def _find_default_app_config(*config_dirs):
 def apply_env_overrides_and_defaults(conf):
     override_prefix = "%sOVERRIDE_" % CONFIG_PREFIX
     for key in os.environ:
-        if key.startswith(override_prefix):
+        if key == 'PULSAR_CONFIG_DIR':
+            conf['config_dir'] = os.environ[key]
+        elif key.startswith(override_prefix):
             config_key = key[len(override_prefix):].lower()
             conf[config_key] = os.environ[key]
         elif key.startswith(CONFIG_PREFIX):
