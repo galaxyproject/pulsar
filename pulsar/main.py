@@ -133,8 +133,8 @@ def load_pulsar_app(
     return pulsar_app
 
 
-def app_loop(args, log):
-    pulsar_app = _app(args, log)
+def app_loop(args, log, config_env):
+    pulsar_app = _app(args, log, config_env)
     sleep = True
     while sleep:
         try:
@@ -152,12 +152,12 @@ def app_loop(args, log):
         raise
 
 
-def _app(args, log):
+def _app(args, log, config_env):
     try:
         config_builder = PulsarConfigBuilder(args)
         pulsar_app = load_pulsar_app(
             config_builder,
-            config_env=True,
+            config_env=config_env,
             log=log,
         )
     except BaseException:
@@ -330,7 +330,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
         arg_parser.add_argument("--manager", default=DEFAULT_MANAGER)
 
 
-def main(argv=None):
+def main(argv=None, config_env=False):
     mod_docstring = sys.modules[__name__].__doc__
     arg_parser = ArgumentParser(
         description=mod_docstring,
@@ -362,15 +362,15 @@ def main(argv=None):
         daemon = Daemonize(
             app="pulsar",
             pid=pid_file,
-            action=functools.partial(app_loop, args, log),
+            action=functools.partial(app_loop, args, log, config_env),
             verbose=DEFAULT_VERBOSE,
             logger=log,
             keep_fds=keep_fds,
         )
         daemon.start()
     else:
-        app_loop(args, log)
+        app_loop(args, log, config_env)
 
 
 if __name__ == "__main__":
-    main()
+    main(config_env=True)
