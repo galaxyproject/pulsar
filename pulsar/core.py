@@ -44,6 +44,7 @@ class PulsarApp(object):
     def __init__(self, **conf):
         if conf is None:
             conf = {}
+        self.config_dir = conf.get('config_dir', os.getcwd())
         self.__setup_staging_directory(conf.get("staging_directory", DEFAULT_STAGING_DIRECTORY))
         self.__setup_private_token(conf.get("private_token", DEFAULT_PRIVATE_TOKEN))
         self.__setup_persistence_directory(conf.get("persistence_directory", None))
@@ -143,18 +144,25 @@ class PulsarApp(object):
 
     def __setup_dependency_manager(self, conf):
         default_tool_dependency_dir = "dependencies"
+        resolvers_config_file = os.path.join(self.config_dir, conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml"))
         if build_dependency_manager is not None:
-            self.dependency_manager = build_dependency_manager(app_config_dict=conf, default_tool_dependency_dir=default_tool_dependency_dir)
+            self.dependency_manager = build_dependency_manager(
+                app_config_dict=conf,
+                conf_file=resolvers_config_file,
+                default_tool_dependency_dir=default_tool_dependency_dir
+            )
         else:
             dependencies_dir = conf.get("tool_dependency_dir", default_tool_dependency_dir)
-            resolvers_config_file = conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml")
             conda_config = {k: v for k, v in conf.items() if k.startswith("conda_")}
             self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file, app_config=conda_config)
 
     def __setup_job_metrics(self, conf):
         job_metrics = conf.get("job_metrics", None)
         if job_metrics is None:
-            job_metrics_config_file = conf.get("job_metrics_config_file", "job_metrics_conf.xml")
+            job_metrics_config_file = os.path.join(
+                self.config_dir,
+                conf.get("job_metrics_config_file", "job_metrics_conf.xml")
+            )
             job_metrics = JobMetrics(job_metrics_config_file)
         self.job_metrics = job_metrics
 
