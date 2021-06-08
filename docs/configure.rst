@@ -145,6 +145,18 @@ configured to add the required Galaxy code a jobs ``PYTHON_PATH`` by setting
 ``GALAXY_HOME`` environment variable in the Pulsar's ``local_env.sh`` file
 (described above).
 
+Most Galaxy tools require external command-line tools, known as *Galaxy Tool
+Dependencies*, to execute correctly. In Galaxy, these are provided by its
+`Dependency Resolution`_ system. Pulsar uses this same system, which can be
+configured via the ``dependency_resolution`` option in ``app.yml``. See the
+example in `app.yml.sample`_ for additional information. In its default
+configuration, Pulsar will automatically install Conda but not automatically
+install missing tool dependencies. Administrators sending large numbers of tools
+to Pulsar most likely want to enable the ``auto_install`` option on the
+``conda`` dependency resolver or the ``conda_auto_install`` global option so
+that it is not necessary to manually install dependencies for tools sent to
+Pulsar. Both options are documented in the `app.yml.sample`_ file.
+
 Message Queue (AMQP)
 --------------------
 
@@ -194,6 +206,7 @@ greater throughput. On the Pulsar server side - the property
 More discussion on this can be found in `this galaxy-dev mailing list thread <http://dev.list.galaxyproject.org/Re-Missing-module-in-the-lwr-repository-tc4664474.html>`_
 and future plans and progress can be tracked on `this Trello card <https://trello.com/c/MPlt8DHJ>`_.
 
+.. _Dependency Resolution: https://docs.galaxyproject.org/en/master/admin/dependency_resolvers.html
 .. _Paste: https://pythonpaste.readthedocs.io/en/latest/
 .. _uWSGI: https://uwsgi-docs.readthedocs.io/
 .. _AMQP: http://en.wikipedia.org/wiki/AMQP

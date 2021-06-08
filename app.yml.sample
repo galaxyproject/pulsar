@@ -35,8 +35,37 @@
 ## if Galaxy configures remote dependency resolution.
 #tool_dependency_dir: dependencies
 
-## Pulsar-equivalent of Galaxy's tool_dependency_resolves_conf.
-# dependency_resolvers_config_file: dependency_resolvers_conf.xml
+## Set up tool dependency resolvers. See Galaxy dependency resolver
+## documentation:
+##   https://docs.galaxyproject.org/en/master/admin/dependency_resolvers.html
+## and `dependency_resolution` option documentation in the config schema:
+##   https://github.com/galaxyproject/galaxy/blob/release_21.05/lib/galaxy/webapps/galaxy/config_schema.yml
+## for more information on dependency resolvers, options, and exact syntax.
+#dependency_resolution:
+#  resolvers:
+#    - type: conda
+#      auto_init: true
+#      auto_install: false
+#      prefix: dependencies/_conda
+
+## Alternatively, you can specify dependency resolvers in a separate XML or YAML
+## file. See Galaxy documentation for the syntax. If
+## dependency_resolution.resolvers is set above, it overrides the configuration
+## in this file (if present). If dependency_resolution.resolvers is unset and
+## dependency_resolvers_conf.xml is present, it will be used unless the path is
+## overridden by this option.
+#dependency_resolvers_config_file: dependency_resolvers_conf.xml
+
+## These options configure the conda tool dependency resolver at the global
+## level and correspond to the non-`conda_*` parameters in the dependency
+## resolvers config.
+##
+## Automatically install Conda on startup if it is not already installed.
+#conda_auto_init: true
+## Automatically install missing tool dependencies at tool runtime.
+#conda_auto_install: false
+## Root of Conda installation.
+#conda_prefix: dependencies/_conda
 
 ## Comma separated list of paths to toolbox files. If this is set, Pulsar
 ## will use the information contained in the tools to lock down what
@@ -46,8 +75,8 @@
 #tool_config_files: toolbox/conf.xml
 
 ## Setup job metrics file. See Galaxy documentaiton for more
-## information on job metrics. (If job_metrics_conf.xml is present,
-## this will be used unless overridden by this option.
+## information on job metrics. If job_metrics_conf.xml is present,
+## it will be used unless overridden by this option.
 #job_metrics_config_file: job_metrics_conf.xml
 
 ## Bind the Pulsar to an AMQP endpoint. Ensure kombu
