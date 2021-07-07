@@ -2,7 +2,6 @@
 Base Classes and Infrastructure Supporting Concret Manager Implementations.
 
 """
-from collections import deque
 import errno
 import logging
 import os
@@ -16,7 +15,6 @@ from os import getenv
 from os import walk
 import json
 from uuid import uuid4
-import posixpath
 from shutil import rmtree
 
 import six
@@ -26,7 +24,6 @@ from pulsar.managers import ManagerInterface
 from pulsar.client.job_directory import (
     RemoteJobDirectory,
     get_mapped_file,
-    verify_is_in_directory,
 )
 
 JOB_DIRECTORY_INPUTS = "inputs"
