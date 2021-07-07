@@ -6,6 +6,7 @@ from collections import deque
 import errno
 import logging
 import os
+from glob import glob
 from os.path import exists, isdir, join, basename
 from os.path import relpath
 from os import curdir
@@ -240,8 +241,8 @@ class JobDirectory(RemoteJobDirectory):
         """ Verify remote_path is in directory for input_type inputs
         and create directory if needed.
         """
-        directory, allow_nested_files = self._directory_for_file_type(input_type)
-        path = get_mapped_file(directory, remote_path, allow_nested_files=allow_nested_files)
+        directory, allow_nested_files, allow_globs = self._directory_for_file_type(input_type)
+        path = get_mapped_file(directory, remote_path, allow_nested_files=allow_nested_files, allow_globs=allow_globs)
         return path
 
     def read_file(self, name, size=-1, default=None):
@@ -361,7 +362,7 @@ class JobDirectory(RemoteJobDirectory):
         self.remove_file(metadata_name)
 
 
-def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):
+def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True, allow_globs=False):
     """
 
     >>> import ntpath
@@ -384,6 +385,15 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
         if mkdir and not local_path_module.exists(local_directory):
             os.makedirs(local_directory)
         path = local_path
+    if allow_globs and ('*' in path or '?' in path):
+        matches = glob(path)
+        if len(matches) == 0:
+            raise RuntimeError(f"No files matching glob: {path}")
+        elif len(matches) > 1:
+            log.warning(f"Found multiple files matching {path}, using the first match: {matches}")
+        else:
+            log.info(f"Glob path {path} mapped to matched file: {matches[0]}")
+        path = matches[0]
     return path
 
 
