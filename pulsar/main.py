@@ -133,8 +133,8 @@ def load_pulsar_app(
     return pulsar_app
 
 
-def app_loop(args, log):
-    pulsar_app = _app(args, log)
+def app_loop(args, log, config_env):
+    pulsar_app = _app(args, log, config_env)
     sleep = True
     while sleep:
         try:
@@ -152,12 +152,12 @@ def app_loop(args, log):
         raise
 
 
-def _app(args, log):
+def _app(args, log, config_env):
     try:
         config_builder = PulsarConfigBuilder(args)
         pulsar_app = load_pulsar_app(
             config_builder,
-            config_env=True,
+            config_env=config_env,
             log=log,
         )
     except BaseException:
@@ -183,7 +183,9 @@ def _find_default_app_config(*config_dirs):
 def apply_env_overrides_and_defaults(conf):
     override_prefix = "%sOVERRIDE_" % CONFIG_PREFIX
     for key in os.environ:
-        if key.startswith(override_prefix):
+        if key == 'PULSAR_CONFIG_DIR':
+            conf['config_dir'] = os.environ[key]
+        elif key.startswith(override_prefix):
             config_key = key[len(override_prefix):].lower()
             conf[config_key] = os.environ[key]
         elif key.startswith(CONFIG_PREFIX):
@@ -200,6 +202,7 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
         from pulsar.util.pastescript.loadwsgi import ConfigLoader
         local_conf = ConfigLoader(ini_path).app_context(app_name).config()
     local_conf = local_conf or {}
+    local_conf['config_dir'] = config_dir
     if app_conf_path is None and "app_config" in local_conf:
         app_conf_path = absolute_config_path(local_conf["app_config"], config_dir)
         if not os.path.exists(app_conf_path) and os.path.exists(app_conf_path + ".sample"):
@@ -240,7 +243,7 @@ class PulsarConfigBuilder(object):
     """
 
     def __init__(self, args=None, **kwds):
-        config_dir = kwds.get("config_dir", None) or PULSAR_CONFIG_DIR
+        config_dir = kwds.get("config_dir", None) or (args and args.config_dir) or PULSAR_CONFIG_DIR
         ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
         app_conf_path = kwds.get("app_conf_path", None) or (args and args.app_conf_path)
         app_conf_base64 = args and args.app_conf_base64
@@ -270,7 +273,8 @@ class PulsarConfigBuilder(object):
 
     def load(self):
         load_kwds = dict(
-            app_name=self.app_name
+            app_name=self.app_name,
+            config_dir=self.config_dir,
         )
         if self.app_conf_base64:
             from pulsar.client.util import from_base64_json
@@ -330,7 +334,7 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
         arg_parser.add_argument("--manager", default=DEFAULT_MANAGER)
 
 
-def main(argv=None):
+def main(argv=None, config_env=False):
     mod_docstring = sys.modules[__name__].__doc__
     arg_parser = ArgumentParser(
         description=mod_docstring,
@@ -362,15 +366,15 @@ def main(argv=None):
         daemon = Daemonize(
             app="pulsar",
             pid=pid_file,
-            action=functools.partial(app_loop, args, log),
+            action=functools.partial(app_loop, args, log, config_env),
             verbose=DEFAULT_VERBOSE,
             logger=log,
             keep_fds=keep_fds,
         )
         daemon.start()
     else:
-        app_loop(args, log)
+        app_loop(args, log, config_env)
 
 
 if __name__ == "__main__":
-    main()
+    main(config_env=True)
