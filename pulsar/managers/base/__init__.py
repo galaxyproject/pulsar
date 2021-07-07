@@ -6,7 +6,6 @@ from collections import deque
 import errno
 import logging
 import os
-from glob import glob
 from os.path import exists, isdir, join, basename
 from os.path import relpath
 from os import curdir
@@ -24,8 +23,11 @@ import six
 
 from pulsar import locks
 from pulsar.managers import ManagerInterface
-from pulsar.client.job_directory import RemoteJobDirectory
-from pulsar.client.job_directory import verify_is_in_directory
+from pulsar.client.job_directory import (
+    RemoteJobDirectory,
+    get_mapped_file,
+    verify_is_in_directory,
+)
 
 JOB_DIRECTORY_INPUTS = "inputs"
 JOB_DIRECTORY_OUTPUTS = "outputs"
@@ -360,61 +362,6 @@ class JobDirectory(RemoteJobDirectory):
 
     def remove_metadata(self, metadata_name):
         self.remove_file(metadata_name)
-
-
-def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True, allow_globs=False):
-    """
-
-    >>> import ntpath
-    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
-    'C:\\\\pulsar\\\\staging\\\\101\\\\dataset_1_files\\\\moo\\\\cow'
-    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', 'dataset_1_files/moo/cow', allow_nested_files=False, local_path_module=ntpath)
-    'C:\\\\pulsar\\\\staging\\\\101\\\\cow'
-    >>> get_mapped_file(r'C:\\pulsar\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
-    Traceback (most recent call last):
-    Exception: Attempt to read or write file outside an authorized directory.
-    """
-    if not allow_nested_files:
-        name = local_path_module.basename(remote_path)
-        path = local_path_module.join(directory, name)
-    else:
-        local_rel_path = __posix_to_local_path(remote_path, local_path_module=local_path_module)
-        local_path = local_path_module.join(directory, local_rel_path)
-        verify_is_in_directory(local_path, directory, local_path_module=local_path_module)
-        local_directory = local_path_module.dirname(local_path)
-        if mkdir and not local_path_module.exists(local_directory):
-            os.makedirs(local_directory)
-        path = local_path
-    if allow_globs and ('*' in path or '?' in path):
-        matches = glob(path)
-        if len(matches) == 0:
-            raise RuntimeError(f"No files matching glob: {path}")
-        elif len(matches) > 1:
-            log.warning(f"Found multiple files matching {path}, using the first match: {matches}")
-        else:
-            log.info(f"Glob path {path} mapped to matched file: {matches[0]}")
-        path = matches[0]
-    return path
-
-
-def __posix_to_local_path(path, local_path_module=os.path):
-    """
-    Converts a posix path (coming from Galaxy), to a local path (be it posix or Windows).
-
-    >>> import ntpath
-    >>> __posix_to_local_path('dataset_1_files/moo/cow', local_path_module=ntpath)
-    'dataset_1_files\\\\moo\\\\cow'
-    >>> import posixpath
-    >>> __posix_to_local_path('dataset_1_files/moo/cow', local_path_module=posixpath)
-    'dataset_1_files/moo/cow'
-    """
-    partial_path = deque()
-    while True:
-        if not path or path == '/':
-            break
-        (path, base) = posixpath.split(path)
-        partial_path.appendleft(base)
-    return local_path_module.join(*partial_path)
 
 
 class DirectoryMaker(object):

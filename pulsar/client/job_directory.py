@@ -4,6 +4,7 @@ import os.path
 import posixpath
 
 from collections import deque
+from glob import glob
 from logging import getLogger
 
 from galaxy.util import in_directory
@@ -119,7 +120,15 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
         if mkdir and not local_path_module.exists(local_directory):
             os.makedirs(local_directory)
         path = local_path
-    # FIXME: Do we need to do anything with allow_globs in this case?
+    if allow_globs and ('*' in path or '?' in path):
+        matches = glob(path)
+        if len(matches) == 0:
+            raise RuntimeError(f"No files matching glob: {path}")
+        elif len(matches) > 1:
+            log.warning(f"Found multiple files matching {path}, using the first match: {matches}")
+        else:
+            log.info(f"Glob path {path} mapped to matched file: {matches[0]}")
+        path = matches[0]
     return path
 
 
