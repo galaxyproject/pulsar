@@ -167,7 +167,7 @@ class DownloadExceptionTracker(object):
         except Exception as e:
             if allow_failure:
                 log.warning(
-                     "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
+                    "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
                     f" failure: {e}")
             else:
                 self.collection_failure_exceptions.append(e)
