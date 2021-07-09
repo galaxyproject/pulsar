@@ -1,0 +1,54 @@
+name: Framework tests
+on: [push, pull_request]
+env:
+  GALAXY_TEST_DBURI: 'postgresql://postgres:postgres@localhost:5432/galaxy?client_encoding=utf8'
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.7']
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'pulsar'
+      - name: Checkout tools repo
+        uses: actions/checkout@v2
+        with:
+          repository: galaxyproject/galaxy
+          ref: master
+          path: 'galaxy root'
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build pulsar wheel
+        run: python -m pip install build && python -m build --wheel && cp dist/*.whl /tmp/pulsar.whl
+        working-directory: 'pulsar'
+      - name: Replace pulsar with pulsar from checked out pulsar repo
+        run: sed -i.bak 's|pulsar.*|/tmp/pulsar.whl|g' lib/galaxy/dependencies/pinned-requirements.txt
+        working-directory: 'galaxy root'
+      - name: Cache pip dir
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy root/requirements.txt') }}
+      - name: Run tests
+        run: ./run_tests.sh --framework
+        working-directory: 'galaxy root'
+        env:
+          GALAXY_TEST_JOB_CONFIG_FILE: test/integration/embedded_pulsar_job_conf.xml
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: Framework test results (${{ matrix.python-version }})
+          path: 'galaxy root/run_framework_tests.html'
