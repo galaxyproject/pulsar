@@ -10,6 +10,8 @@ from os.path import (
 )
 from re import escape, findall
 
+from galaxy.util.path import safe_walk
+
 from ..action_mapper import FileActionMapper
 from ..action_mapper import MessageAction
 from ..action_mapper import path_type
@@ -98,7 +100,7 @@ class FileStager(object):
 
         # Setup job inputs, these will need to be rewritten before
         # shipping off to remote Pulsar server.
-        self.job_inputs = JobInputs(self.command_line, self.config_files)
+        self.job_inputs = JobInputs(self.command_line, self.config_files, self.tool_dir)
 
         self.action_mapper = FileActionMapper(client)
 
@@ -114,7 +116,7 @@ class FileStager(object):
             self.job_directory,
         )
 
-        self.__initialize_referenced_tool_files()
+        self.__initialize_tool_directory()
         if self.rewrite_paths:
             self.__initialize_referenced_arbitrary_files()
 
@@ -178,18 +180,14 @@ class FileStager(object):
         else:
             return None
 
-    def __initialize_referenced_tool_files(self):
-        # Was this following line only for interpreter, should we disable it of 16.04+ tools
-        self.referenced_tool_files = self.job_inputs.find_referenced_subfiles(self.tool_dir)
-        # If the tool was created with a correct $__tool_directory__ find those files and transfer
+    def __initialize_tool_directory(self):
+        # Find and transfer all files and subdirs of $__tool_directory__
+        # TODO: What is this for? Was used in the previous "referenced" version of this method
         new_tool_directory = self.new_tool_directory
         if not new_tool_directory:
             return
 
-        for potential_tool_file in self.job_inputs.find_referenced_subfiles(new_tool_directory):
-            local_file = potential_tool_file.replace(new_tool_directory, self.tool_dir)
-            if exists(local_file):
-                self.referenced_tool_files.append(local_file)
+        self.tool_files = self.job_inputs.find_tool_files()
 
     def __initialize_referenced_arbitrary_files(self):
         referenced_arbitrary_path_mappers = dict()
@@ -207,8 +205,8 @@ class FileStager(object):
             self.arbitrary_files.update(unstructured_map)
 
     def __upload_tool_files(self):
-        for referenced_tool_file in self.referenced_tool_files:
-            self.transfer_tracker.handle_transfer_path(referenced_tool_file, path_type.TOOL)
+        for tool_file in self.tool_files:
+            self.transfer_tracker.handle_transfer_path(tool_file, path_type.TOOL)
 
     def __upload_job_directory_files(self):
         for job_directory_file in self.job_directory_files:
@@ -333,7 +331,7 @@ class JobInputs(object):
     >>> tf = tempfile.NamedTemporaryFile()
     >>> def setup_inputs(tf):
     ...     open(tf.name, "w").write(u'''world /path/to/input '/path/to/moo' "/path/to/cow" the rest''')
-    ...     inputs = JobInputs(u"hello /path/to/input", [tf.name])
+    ...     inputs = JobInputs(u"hello /path/to/input", [tf.name], None)
     ...     return inputs
     >>> inputs = setup_inputs(tf)
     >>> inputs.rewrite_paths(u"/path/to/input", u'C:\\input')
@@ -356,10 +354,16 @@ class JobInputs(object):
     False
     >>> tf.close()
     """
+    IGNORE_TOOL_FILES = set([
+        'tool-data',
+        'test-data',
+        '.hg',
+    ])
 
-    def __init__(self, command_line, config_files):
+    def __init__(self, command_line, config_files, tool_directory):
         self.command_line = command_line
         self.config_files = {}
+        self.tool_directory = tool_directory
         for config_file in config_files or []:
             config_contents = _read(config_file)
             self.config_files[config_file] = config_contents
@@ -387,6 +391,15 @@ class JobInputs(object):
 
         pattern = r'''[\'\"]?(%s%s[^\s\'\"]+)[\'\"]?''' % (escape(directory), escape(sep))
         return self.find_pattern_references(pattern)
+
+    def __ignore_tool_files(self, filename):
+        return filename in self.IGNORE_TOOL_FILES
+
+    def find_tool_files(self):
+        tool_files = []
+        for (dirpath, dirnames, filenames) in safe_walk(self.tool_directory):
+            tool_files.extend(join(dirpath, filename) for filename in filenames if not self.__ignore_tool_files(filename))
+        return tool_files
 
     def path_referenced(self, path):
         pattern = r"%s" % path
@@ -482,7 +495,10 @@ class TransferTracker(object):
                 if not name:
                     # TODO: consider fetching this from source so an actual input path
                     # isn't needed. At least it isn't used though.
-                    name = basename(path)
+                    if type == 'tool':
+                        name = path.replace(self.job_inputs.tool_directory + sep, '')
+                    else:
+                        name = basename(path)
                 self.__add_remote_staging_input(action, name, type)
 
                 def get_path():

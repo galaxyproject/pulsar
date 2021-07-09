@@ -170,8 +170,8 @@ class BaseManager(ManagerInterface):
         job_directory = self._job_directory(job_id)
         tool_files_dir = job_directory.tool_files_directory()
         for file in self._list_dir(tool_files_dir):
-            contents = open(join(tool_files_dir, file), 'r').read()
             log.debug("job_id: %s - checking tool file %s" % (job_id, file))
+            contents = open(join(tool_files_dir, file), 'rb').read()
             authorization.authorize_tool_file(basename(file), contents)
         config_files_dir = job_directory.configs_directory()
         for file in self._list_dir(config_files_dir):
@@ -183,7 +183,8 @@ class BaseManager(ManagerInterface):
         if directory_or_none is None or not exists(directory_or_none):
             return []
         else:
-            return listdir(directory_or_none)
+            for dirpath, dirnames, filenames in walk(directory_or_none):
+                return [join(dirpath, filename) for filename in filenames]
 
     def _expand_command_line(self, command_line, dependencies_description, job_directory=None):
         if dependencies_description is None:

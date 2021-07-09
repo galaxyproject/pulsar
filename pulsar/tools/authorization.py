@@ -43,7 +43,7 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
         tool = self.tool
         tool_dir = tool.get_tool_dir()
         tool_dir_file = join(tool_dir, name)
-        allowed_contents = open(tool_dir_file).read()
+        allowed_contents = open(tool_dir_file, 'rb').read()
         if contents != allowed_contents:
             self.__unauthorized("Attempt to write tool file with contents differing from Pulsar copy of tool file.")
 

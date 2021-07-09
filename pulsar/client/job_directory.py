@@ -84,6 +84,7 @@ class RemoteJobDirectory(object):
         # client module, but this code is reused on server which may
         # serve legacy clients.
         allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir', 'metadata', 'output_metadata']
+        allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir', 'metadata', 'output_metadata', 'tool']
         directory_source = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
         if not directory_source:
             raise Exception("Unknown file_type specified %s" % file_type)
