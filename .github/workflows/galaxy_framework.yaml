@@ -27,7 +27,7 @@ jobs:
         with:
           repository: galaxyproject/galaxy
           ref: master
-          path: 'galaxy root'
+          path: galaxy
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
@@ -36,15 +36,15 @@ jobs:
         working-directory: 'pulsar'
       - name: Replace pulsar with pulsar from checked out pulsar repo
         run: sed -i.bak 's|pulsar.*|/tmp/pulsar.whl|g' lib/galaxy/dependencies/pinned-requirements.txt
-        working-directory: 'galaxy root'
+        working-directory: galaxy
       - name: Cache pip dir
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy root/requirements.txt') }}
+          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy/requirements.txt') }}
       - name: Run tests
-        run: ./run_tests.sh --framework -- -s
-        working-directory: 'galaxy root'
+        run: ./run_tests.sh --framework
+        working-directory: 'galaxy'
         env:
           GALAXY_TEST_JOB_CONFIG_FILE: test/integration/embedded_pulsar_job_conf.xml
         continue-on-error: true
@@ -52,4 +52,4 @@ jobs:
         if: failure()
         with:
           name: Framework test results (${{ matrix.python-version }})
-          path: 'galaxy root/run_framework_tests.html'
+          path: 'galaxy/run_framework_tests.html'
