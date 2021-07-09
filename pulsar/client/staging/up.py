@@ -181,8 +181,9 @@ class FileStager(object):
             return None
 
     def __initialize_tool_directory(self):
+        # This following line is only for interpreter, we should disable it for 16.04+ tools
+        self.tool_files = self.job_inputs.find_referenced_subfiles(self.tool_dir)
         # Find and transfer all files and subdirs of $__tool_directory__
-        # TODO: What is this for? Was used in the previous "referenced" version of this method
         new_tool_directory = self.new_tool_directory
         if not new_tool_directory:
             return
