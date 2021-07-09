@@ -47,6 +47,7 @@ jobs:
         working-directory: 'galaxy root'
         env:
           GALAXY_TEST_JOB_CONFIG_FILE: test/integration/embedded_pulsar_job_conf.xml
+        continue-on-error: true
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
