@@ -471,7 +471,7 @@ class TransferTracker(object):
             remote_name = self.path_helper.remote_name(relpath(directory_file_path, directory))
             self.handle_transfer_path(directory_file_path, type, name=remote_name)
 
-    def handle_transfer_source(self, source, type, name=None, contents=None):
+    def handle_transfer_source(self, source, type, name=None, contents=None):  # noqa: C901
         action = self.__action_for_transfer(source, type, contents)
 
         if action.staging_needed:

@@ -9,7 +9,6 @@ import os
 from os.path import exists, isdir, join, basename
 from os.path import relpath
 from os import curdir
-from os import listdir
 from os import makedirs
 from os import sep
 from os import getenv
