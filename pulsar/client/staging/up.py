@@ -207,7 +207,8 @@ class FileStager(object):
 
     def __upload_tool_files(self):
         for tool_file in self.tool_files:
-            self.transfer_tracker.handle_transfer_path(tool_file, path_type.TOOL)
+            name = self.job_inputs.relative_file_name(self.tool_dir, tool_file)
+            self.transfer_tracker.handle_transfer_path(tool_file, path_type.TOOL, name=name)
 
     def __upload_job_directory_files(self):
         for job_directory_file in self.job_directory_files:
@@ -402,6 +403,9 @@ class JobInputs(object):
             tool_files.extend(join(dirpath, filename) for filename in filenames if not self.__ignore_tool_files(filename))
         return tool_files
 
+    def relative_file_name(self, local_path, path):
+        return path.replace(local_path.rstrip(sep) + sep, '')
+
     def path_referenced(self, path):
         pattern = r"%s" % path
         found = False
@@ -472,7 +476,7 @@ class TransferTracker(object):
             remote_name = self.path_helper.remote_name(relpath(directory_file_path, directory))
             self.handle_transfer_path(directory_file_path, type, name=remote_name)
 
-    def handle_transfer_source(self, source, type, name=None, contents=None):  # noqa: C901
+    def handle_transfer_source(self, source, type, name=None, contents=None):
         action = self.__action_for_transfer(source, type, contents)
 
         if action.staging_needed:
@@ -496,10 +500,7 @@ class TransferTracker(object):
                 if not name:
                     # TODO: consider fetching this from source so an actual input path
                     # isn't needed. At least it isn't used though.
-                    if type == 'tool':
-                        name = path.replace(self.job_inputs.tool_directory + sep, '')
-                    else:
-                        name = basename(path)
+                    name = basename(path)
                 self.__add_remote_staging_input(action, name, type)
 
                 def get_path():
