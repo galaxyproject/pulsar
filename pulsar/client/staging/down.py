@@ -143,7 +143,7 @@ class ResultsCollector(object):
         # name is the 'name' of the file on the Pulsar server (possible a relative)
         # path.
         collected = False
-        with self.exception_tracker(allow_failure=_allow_collect_failure(output_type)):
+        with self.exception_tracker():
             action = self.action_mapper.action({"path": path}, output_type)
             if self._collect_output(output_type, action, name):
                 collected = True
@@ -152,7 +152,15 @@ class ResultsCollector(object):
 
     def _collect_output(self, output_type, action, name):
         log.info("collecting output %s with action %s" % (name, action))
-        return self.output_collector.collect_output(self, output_type, action, name)
+        try:
+            return self.output_collector.collect_output(self, output_type, action, name)
+        except Exception as e:
+            if _allow_collect_failure(output_type):
+                log.warning(
+                    "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
+                    f" failure: {e}")
+            else:
+                raise
 
 
 class DownloadExceptionTracker(object):
@@ -161,16 +169,11 @@ class DownloadExceptionTracker(object):
         self.collection_failure_exceptions = []
 
     @contextmanager
-    def __call__(self, allow_failure=False):
+    def __call__(self):
         try:
             yield
         except Exception as e:
-            if allow_failure:
-                log.warning(
-                    "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
-                    f" failure: {e}")
-            else:
-                self.collection_failure_exceptions.append(e)
+            self.collection_failure_exceptions.append(e)
 
 
 def _clean(collection_failure_exceptions, cleanup_job, client):
