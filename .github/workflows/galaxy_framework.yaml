@@ -46,7 +46,7 @@ jobs:
         run: ./run_tests.sh --framework -- -s
         working-directory: 'galaxy'
         env:
-          GALAXY_TEST_JOB_CONFIG_FILE: test/integration/embedded_pulsar_job_conf.xml
+          GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml
         continue-on-error: true
       - uses: actions/upload-artifact@v2
         if: failure()
