@@ -94,6 +94,7 @@ class ClientJobDescription(object):
         env=[],
         arbitrary_files=None,
         job_directory_files=None,
+        tool_directory_required_files=None,
         rewrite_paths=True,
         touch_outputs=None,
         container=None,
@@ -114,6 +115,7 @@ class ClientJobDescription(object):
         self.dependencies_description = dependencies_description
         self.env = env
         self.job_directory_files = job_directory_files or []
+        self.tool_directory_required_files = tool_directory_required_files
         self.rewrite_paths = rewrite_paths
         self.arbitrary_files = arbitrary_files or {}
         self.touch_outputs = touch_outputs or []
