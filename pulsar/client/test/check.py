@@ -18,14 +18,9 @@ import traceback
 from collections import namedtuple
 from io import open
 
-try:
-    # If galaxy-lib or Galaxy 19.05 present.
-    from galaxy.tools.deps.dependencies import DependenciesDescription
-    from galaxy.tools.deps.requirements import ToolRequirement
-except ImportError:
-    # If galaxy-tool-util or Galaxy 19.09 present.
-    from galaxy.tool_util.deps.dependencies import DependenciesDescription
-    from galaxy.tool_util.deps.requirements import ToolRequirement
+# If galaxy-tool-util or Galaxy 19.09 present.
+from galaxy.tool_util.deps.dependencies import DependenciesDescription
+from galaxy.tool_util.deps.requirements import ToolRequirement
 from six import binary_type
 
 from pulsar.client import (
@@ -135,6 +130,14 @@ class MockTool(object):
         self.id = "client_test"
         self.version = "1.0"
         self.tool_dir = tool_dir
+
+
+class TestRequiredFilesObject:
+    # it would be nice to use a RequiredFiles but that hasn't been published to PyPI yet, so just
+    # stick to the interface here.
+
+    def find_required_files(self, tool_directory):
+        return ["script.py"]
 
 
 def run(options):
@@ -483,7 +486,10 @@ def __extra_job_description_kwargs(options):
         env.append(dict(name="TEST_ENV", value="TEST_ENV_VALUE"))
     container = getattr(options, "container", None)
     remote_pulsar_app_config = getattr(options, "remote_pulsar_app_config", None)
-    return dict(dependencies_description=dependencies_description, env=env, container=container, remote_pulsar_app_config=remote_pulsar_app_config)
+    rval = dict(dependencies_description=dependencies_description, env=env, container=container, remote_pulsar_app_config=remote_pulsar_app_config)
+    if getattr(options, "explicit_tool_declarations", False):
+        rval["tool_directory_required_files"] = TestRequiredFilesObject()
+    return rval
 
 
 def __finish(options, client, client_outputs, result_status):
@@ -517,6 +523,7 @@ def main(argv=None):
     parser.add_option('--suppress_output', default=False, action="store_true", help=HELP_SUPPRESS_OUTPUT)
     parser.add_option('--disable_cleanup', dest="cleanup", default=True, action="store_false", help=HELP_DISABLE_CLEANUP)
     parser.add_option('--job_id', default="123456", help=HELP_JOB_ID)
+    parser.add_option('--explicit_tool_declarations', default=False, action="store_true")
     parser.add_option('--debug', default=False, action="store_true", help=HELP_DEBUG)
     (options, args) = parser.parse_args(argv)
     run(options)
