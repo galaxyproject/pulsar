@@ -152,7 +152,15 @@ class ResultsCollector(object):
 
     def _collect_output(self, output_type, action, name):
         log.info("collecting output %s with action %s" % (name, action))
-        return self.output_collector.collect_output(self, output_type, action, name)
+        try:
+            return self.output_collector.collect_output(self, output_type, action, name)
+        except Exception as e:
+            if _allow_collect_failure(output_type):
+                log.warning(
+                    "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
+                    f" failure: {e}")
+            else:
+                raise
 
 
 class DownloadExceptionTracker(object):
@@ -181,6 +189,10 @@ def _clean(collection_failure_exceptions, cleanup_job, client):
             client.clean()
         except Exception:
             log.warn("Failed to cleanup remote Pulsar job")
+
+
+def _allow_collect_failure(output_type):
+    return output_type in ['output_workdir']
 
 
 __all__ = ('finish_job',)
