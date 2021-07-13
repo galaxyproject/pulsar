@@ -4,6 +4,7 @@ import os.path
 import posixpath
 
 from collections import deque
+from glob import glob
 from logging import getLogger
 
 from galaxy.util import in_directory
@@ -74,7 +75,7 @@ class RemoteJobDirectory(object):
         """ Only for used by Pulsar client, should override for managers to
         enforce security and make the directory if needed.
         """
-        directory, allow_nested_files = self._directory_for_file_type(input_type)
+        directory, allow_nested_files, allow_globs = self._directory_for_file_type(input_type)
         return self.path_helper.remote_join(directory, remote_relative_path)
 
     def _directory_for_file_type(self, file_type):
@@ -84,18 +85,19 @@ class RemoteJobDirectory(object):
         # client module, but this code is reused on server which may
         # serve legacy clients.
         allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir', 'metadata', 'output_metadata']
+        allow_globs = file_type in ['output_workdir']  # TODO: tool profile version where this is invalid
         directory_source = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
         if not directory_source:
             raise Exception("Unknown file_type specified %s" % file_type)
         if callable(directory_source):
             directory_source = directory_source()
-        return directory_source, allow_nested_files
+        return directory_source, allow_nested_files, allow_globs
 
     def _sub_dir(self, name):
         return self.path_helper.remote_join(self.job_directory, name)
 
 
-def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True):
+def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path_module=os.path, mkdir=True, allow_globs=False):
     """
 
     >>> import ntpath
@@ -118,6 +120,15 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
         if mkdir and not local_path_module.exists(local_directory):
             os.makedirs(local_directory)
         path = local_path
+    if allow_globs and ('*' in path or '?' in path):
+        matches = glob(path)
+        if len(matches) == 0:
+            raise RuntimeError(f"No files matching glob: {path}")
+        elif len(matches) > 1:
+            log.warning(f"Found multiple files matching {path}, using the first match: {matches}")
+        else:
+            log.info(f"Glob path {path} mapped to matched file: {matches[0]}")
+        path = matches[0]
     return path
 
 
