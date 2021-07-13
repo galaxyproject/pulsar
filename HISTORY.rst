@@ -9,10 +9,10 @@ History
 0.14.7.dev0
 ---------------------
 
-* Accept description of tool files to transfer from Galaxy. `Pull Request
-  261`_
-* Support globs in from_work_dir outputs (thanks to `@natefoo`_). `Pull
-  Request 257`_
+* Accept description of tool files to transfer from Galaxy.
+  `Pull Request 261`_
+* Support globs in from_work_dir outputs (thanks to `@natefoo`_).
+  `Pull Request 257`_
 * Fix loading the Galaxy dependency resolvers config, plus additional config
   directory fixes (thanks to `@natefoo`_). `Pull Request 256`_
 
@@ -482,3 +482,4 @@ History
 .. _@gmauro: https://github.com/gmauro
 .. _@mvdbeek: https://github.com/mvdbeek
 .. _@tirkarthi: https://github.com/tirkarthi
+.. _@natefoo: https://github.com/natefoo
