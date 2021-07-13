@@ -84,7 +84,7 @@ class RemoteJobDirectory(object):
         # Obviously this client won't be legacy because this is in the
         # client module, but this code is reused on server which may
         # serve legacy clients.
-        allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir', 'metadata', 'output_metadata']
+        allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir', 'metadata', 'output_metadata', 'tool']
         allow_globs = file_type in ['output_workdir']  # TODO: tool profile version where this is invalid
         directory_source = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
         if not directory_source:

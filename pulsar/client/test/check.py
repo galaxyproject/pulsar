@@ -18,14 +18,8 @@ import traceback
 from collections import namedtuple
 from io import open
 
-try:
-    # If galaxy-lib or Galaxy 19.05 present.
-    from galaxy.tools.deps.dependencies import DependenciesDescription
-    from galaxy.tools.deps.requirements import ToolRequirement
-except ImportError:
-    # If galaxy-tool-util or Galaxy 19.09 present.
-    from galaxy.tool_util.deps.dependencies import DependenciesDescription
-    from galaxy.tool_util.deps.requirements import ToolRequirement
+from galaxy.tool_util.deps.dependencies import DependenciesDescription
+from galaxy.tool_util.deps.requirements import ToolRequirement
 from six import binary_type
 
 from pulsar.client import (
@@ -50,10 +44,14 @@ import sys
 from os import getenv
 from os import listdir
 from os import makedirs
+from os.path import abspath
 from os.path import basename
 from os.path import dirname
 from os.path import exists
 from os.path import join
+
+SCRIPT_DIRECTORY = abspath(dirname(__file__))
+HELPER_DIRECTORY = join(SCRIPT_DIRECTORY, "subdir")
 
 print("stdout output")
 def assert_path_contents(path, expected_contents):
@@ -78,6 +76,7 @@ assert len(listdir(dirname(index_path))) == 2
 assert len(listdir(join(dirname(dirname(index_path)), "seq"))) == 1
 output4_index_path = open(sys.argv[11], 'w')
 metadata_dir = dirname(sys.argv[13])
+output5 = open(sys.argv[15], 'w')
 output_metadata_path = join(metadata_dir, "metadata_output")
 try:
     assert_path_contents(sys.argv[2], "Hello world input!!@!")
@@ -98,6 +97,7 @@ try:
     open(join(output1_extras_path, "extra"), "w").write("EXTRA_OUTPUT_CONTENTS")
     version_output.write("1.0.1")
     output4_index_path.write(index_path)
+    output5.write(str(exists(join(HELPER_DIRECTORY, "helper.R"))))
 finally:
     output.close()
     config_input.close()
@@ -137,6 +137,14 @@ class MockTool(object):
         self.tool_dir = tool_dir
 
 
+class TestRequiredFilesObject:
+    # it would be nice to use a RequiredFiles but that hasn't been published to PyPI yet, so just
+    # stick to the interface here.
+
+    def find_required_files(self, tool_directory):
+        return ["script.py", "subdir/helper.R"]
+
+
 def run(options):
     logging.basicConfig(level=logging.DEBUG)
     waiter = None
@@ -149,9 +157,11 @@ def run(options):
         temp_metadata_dir = os.path.join(temp_directory, "m")
         temp_false_working_dir = os.path.join(temp_metadata_dir, "working")
         temp_tool_dir = os.path.join(temp_directory, "t")
+        temp_tool_sub_dir = os.path.join(temp_tool_dir, "subdir")
 
         __makedirs([
             temp_tool_dir,
+            temp_tool_sub_dir,
             temp_work_dir,
             temp_index_dir,
             temp_index_dir_sibbling,
@@ -167,10 +177,12 @@ def run(options):
 
         temp_config_path = os.path.join(temp_work_dir, "config.txt")
         temp_tool_path = os.path.join(temp_directory, "t", "script.py")
+        temp_tool_helper_path = os.path.join(temp_directory, "t", "subdir", "helper.R")
         temp_output_path = os.path.join(temp_directory, "dataset_1.dat")
         temp_output2_path = os.path.join(temp_directory, "dataset_2.dat")
         temp_output3_path = os.path.join(temp_directory, "dataset_3.dat")
         temp_output4_path = os.path.join(temp_directory, "dataset_4.dat")
+        temp_output5_path = os.path.join(temp_directory, "dataset_5.dat")
         temp_version_output_path = os.path.join(temp_directory, "GALAXY_VERSION_1234")
         temp_output_workdir_destination = os.path.join(temp_directory, "dataset_77.dat")
         temp_output_workdir = os.path.join(temp_work_dir, "env_test")
@@ -185,6 +197,7 @@ def run(options):
         __write_to_file(temp_config_path, EXPECTED_OUTPUT)
         __write_to_file(temp_metadata_path, "meta input")
         __write_to_file(temp_tool_path, TEST_SCRIPT)
+        __write_to_file(temp_tool_helper_path, b"helper R file")
         __write_to_file(temp_index_path, b"AGTC")
         # Implicit files that should also get transferred since depth > 0
         __write_to_file("%s.fai" % temp_index_path, b"AGTC")
@@ -210,9 +223,10 @@ def run(options):
             temp_shared_dir,
             temp_metadata_path,
             temp_input_metadata_path,
+            temp_output5_path,
         )
         assert os.path.exists(temp_index_path)
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         client_inputs = []
         client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
@@ -228,8 +242,9 @@ def run(options):
             temp_output2_path,
             temp_output3_path,
             temp_output4_path,
+            temp_output5_path,
             temp_output_workdir_destination,
-            temp_output_workdir_destination2
+            temp_output_workdir_destination2,
         ]
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
@@ -278,6 +293,8 @@ def run(options):
         else:
             __assert_contents(temp_output3_path, "moo_default", result_status)
         __assert_has_rewritten_bwa_path(client, temp_output4_path)
+        if getattr(options, "explicit_tool_declarations", False):
+            __assert_contents(temp_output5_path, str(True), result_status)
         __exercise_errors(options, client, temp_output_path, temp_directory)
         client_manager.shutdown()
     except BaseException:
@@ -483,7 +500,10 @@ def __extra_job_description_kwargs(options):
         env.append(dict(name="TEST_ENV", value="TEST_ENV_VALUE"))
     container = getattr(options, "container", None)
     remote_pulsar_app_config = getattr(options, "remote_pulsar_app_config", None)
-    return dict(dependencies_description=dependencies_description, env=env, container=container, remote_pulsar_app_config=remote_pulsar_app_config)
+    rval = dict(dependencies_description=dependencies_description, env=env, container=container, remote_pulsar_app_config=remote_pulsar_app_config)
+    if getattr(options, "explicit_tool_declarations", False):
+        rval["tool_directory_required_files"] = TestRequiredFilesObject()
+    return rval
 
 
 def __finish(options, client, client_outputs, result_status):
@@ -517,6 +537,7 @@ def main(argv=None):
     parser.add_option('--suppress_output', default=False, action="store_true", help=HELP_SUPPRESS_OUTPUT)
     parser.add_option('--disable_cleanup', dest="cleanup", default=True, action="store_false", help=HELP_DISABLE_CLEANUP)
     parser.add_option('--job_id', default="123456", help=HELP_JOB_ID)
+    parser.add_option('--explicit_tool_declarations', default=False, action="store_true")
     parser.add_option('--debug', default=False, action="store_true", help=HELP_DEBUG)
     (options, args) = parser.parse_args(argv)
     run(options)

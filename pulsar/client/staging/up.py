@@ -95,6 +95,7 @@ class FileStager(object):
         self.arbitrary_files = client_job_description.arbitrary_files
         self.rewrite_paths = client_job_description.rewrite_paths
         self.job_directory_files = client_job_description.job_directory_files
+        self.tool_directory_required_files = client_job_description.tool_directory_required_files
 
         # Setup job inputs, these will need to be rewritten before
         # shipping off to remote Pulsar server.
@@ -179,17 +180,20 @@ class FileStager(object):
             return None
 
     def __initialize_referenced_tool_files(self):
-        # Was this following line only for interpreter, should we disable it of 16.04+ tools
-        self.referenced_tool_files = self.job_inputs.find_referenced_subfiles(self.tool_dir)
-        # If the tool was created with a correct $__tool_directory__ find those files and transfer
-        new_tool_directory = self.new_tool_directory
-        if not new_tool_directory:
-            return
+        if self.tool_directory_required_files:
+            self.referenced_tool_files = [(join(self.tool_dir, x), x) for x in self.tool_directory_required_files.find_required_files(self.tool_dir)]
+        else:
+            # Was this following line only for interpreter, should we disable it of 16.04+ tools
+            self.referenced_tool_files = [(x, None) for x in self.job_inputs.find_referenced_subfiles(self.tool_dir)]
+            # If the tool was created with a correct $__tool_directory__ find those files and transfer
+            new_tool_directory = self.new_tool_directory
+            if not new_tool_directory:
+                return
 
-        for potential_tool_file in self.job_inputs.find_referenced_subfiles(new_tool_directory):
-            local_file = potential_tool_file.replace(new_tool_directory, self.tool_dir)
-            if exists(local_file):
-                self.referenced_tool_files.append(local_file)
+            for potential_tool_file in self.job_inputs.find_referenced_subfiles(new_tool_directory):
+                local_file = potential_tool_file.replace(new_tool_directory, self.tool_dir)
+                if exists(local_file):
+                    self.referenced_tool_files.append((local_file, None))
 
     def __initialize_referenced_arbitrary_files(self):
         referenced_arbitrary_path_mappers = dict()
@@ -207,8 +211,8 @@ class FileStager(object):
             self.arbitrary_files.update(unstructured_map)
 
     def __upload_tool_files(self):
-        for referenced_tool_file in self.referenced_tool_files:
-            self.transfer_tracker.handle_transfer_path(referenced_tool_file, path_type.TOOL)
+        for (referenced_tool_file, name) in self.referenced_tool_files:
+            self.transfer_tracker.handle_transfer_path(referenced_tool_file, path_type.TOOL, name=name)
 
     def __upload_job_directory_files(self):
         for job_directory_file in self.job_directory_files:

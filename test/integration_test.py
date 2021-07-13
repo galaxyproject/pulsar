@@ -189,6 +189,10 @@ class IntegrationTests(BaseIntegrationTest):
         self._run(private_token=None, transport="curl", **self.default_kwargs)
 
     @integration_test
+    def test_integration_explicit_tool_directory_includes(self):
+        self._run(private_token=None, explicit_tool_declarations=True, **self.default_kwargs)
+
+    @integration_test
     def test_integration_token(self):
         self._run(app_conf={"private_token": "testtoken"}, private_token="testtoken", **self.default_kwargs)
 
