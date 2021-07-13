@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.7.dev0
+0.14.7 (2021-07-13)
 ---------------------
 
 * Accept description of tool files to transfer from Galaxy.
