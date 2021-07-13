@@ -181,7 +181,7 @@ class FileStager(object):
 
     def __initialize_referenced_tool_files(self):
         if self.tool_directory_required_files:
-            self.referenced_tool_files = self.tool_directory_required_files.find_required_files(self.tool_dir)
+            self.referenced_tool_files = [join(self.tool_dir, x) for x in self.tool_directory_required_files.find_required_files(self.tool_dir)]
         else:
             # Was this following line only for interpreter, should we disable it of 16.04+ tools
             self.referenced_tool_files = self.job_inputs.find_referenced_subfiles(self.tool_dir)
