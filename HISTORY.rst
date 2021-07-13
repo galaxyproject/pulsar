@@ -6,10 +6,15 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.7.dev0
 ---------------------
 
-    
+* Accept description of tool files to transfer from Galaxy. `Pull Request
+  261`_
+* Support globs in from_work_dir outputs (thanks to `@natefoo`_). `Pull
+  Request 257`_
+* Fix loading the Galaxy dependency resolvers config, plus additional config
+  directory fixes (thanks to `@natefoo`_). `Pull Request 256`_
 
 ---------------------
 0.14.6 (2021-05-24)
@@ -358,6 +363,9 @@ History
 
 
 .. github_links
+.. _Pull Request 261: https://github.com/galaxyproject/pulsar/pull/261
+.. _Pull Request 257: https://github.com/galaxyproject/pulsar/pull/257
+.. _Pull Request 256: https://github.com/galaxyproject/pulsar/pull/256
 .. _Pull Request 246: https://github.com/galaxyproject/pulsar/pull/246
 .. _Pull Request 242: https://github.com/galaxyproject/pulsar/pull/242
 .. _Pull Request 232: https://github.com/galaxyproject/pulsar/pull/232
