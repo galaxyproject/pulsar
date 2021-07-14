@@ -25,7 +25,7 @@ are fine.
     password:<password>
     
     [test]
-    repository:https://testpypi.python.org/pypi
+    repository:https://test.pypi.org/legacy/
     username:<username>
     password:<password>
 

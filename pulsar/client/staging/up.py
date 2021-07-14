@@ -1,9 +1,11 @@
+from enum import Enum
 from io import open
 from logging import getLogger
 from os import sep
 from os.path import (
     abspath,
     basename,
+    dirname,
     exists,
     join,
     relpath,
@@ -58,6 +60,11 @@ def submit_job(client, client_job_description, job_config=None):
 
     client.launch(**launch_kwds)
     return job_id
+
+
+class StageDirectoryType(Enum):
+    CONTENTS = 1  # transfer just the contents of the directory
+    WHOLE_DIRECTORY = 2  # transfer the whole directory into the target, preserve name
 
 
 class FileStager(object):
@@ -250,7 +257,11 @@ class FileStager(object):
         if self.__stage_input(input_action_source):
             # TODO: needs to happen else where if using remote object store staging
             # but we don't have the action type yet.
-            self.transfer_tracker.handle_transfer_directory(path_type.INPUT, action_source=input_action_source)
+            self.transfer_tracker.handle_transfer_directory(
+                path_type.INPUT,
+                action_source=input_action_source,
+                mode=StageDirectoryType.WHOLE_DIRECTORY
+            )
 
     def __upload_input_metadata_file(self, input_action_source):
         if self.__stage_input(input_action_source):
@@ -438,7 +449,7 @@ class TransferTracker(object):
         source = {"path": path}
         return self.handle_transfer_source(source, type, name=name, contents=contents)
 
-    def handle_transfer_directory(self, type, directory=None, action_source=None):
+    def handle_transfer_directory(self, type, directory=None, action_source=None, mode: StageDirectoryType = StageDirectoryType.CONTENTS):
         # TODO: needs to happen else where if using remote object store staging
         # but we don't have the action type yet.
         if directory is None:
@@ -459,7 +470,8 @@ class TransferTracker(object):
 
         for directory_file_name in directory_files(directory):
             directory_file_path = join(directory, directory_file_name)
-            remote_name = self.path_helper.remote_name(relpath(directory_file_path, directory))
+            rel_path_to = directory if mode == StageDirectoryType.CONTENTS else dirname(directory)
+            remote_name = self.path_helper.remote_name(relpath(directory_file_path, rel_path_to))
             self.handle_transfer_path(directory_file_path, type, name=remote_name)
 
     def handle_transfer_source(self, source, type, name=None, contents=None):
