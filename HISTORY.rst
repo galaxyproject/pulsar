@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.8.dev0
+0.14.8 (2021-07-14)
 ---------------------
 
 * Fix Galaxy composite input references. `Pull Request 262`_

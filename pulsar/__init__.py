@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '0.14.8.dev0'
+__version__ = '0.14.8'
 
 PROJECT_NAME = "pulsar"
 PROJECT_OWNER = PROJECT_USERAME = "galaxyproject"
