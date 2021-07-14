@@ -6,11 +6,13 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.8.dev0
 ---------------------
 
+* Fix Galaxy composite input references. `Pull Request 262`_
+* Run galaxy's tool framework tests against this repo's pulsar (thanks to
+  `@mvdbeek`_). `Pull Request 259`_
     
-
 ---------------------
 0.14.7 (2021-07-13)
 ---------------------
@@ -369,6 +371,8 @@ History
 
 
 .. github_links
+.. _Pull Request 262: https://github.com/galaxyproject/pulsar/pull/262
+.. _Pull Request 259: https://github.com/galaxyproject/pulsar/pull/259
 .. _Pull Request 261: https://github.com/galaxyproject/pulsar/pull/261
 .. _Pull Request 257: https://github.com/galaxyproject/pulsar/pull/257
 .. _Pull Request 256: https://github.com/galaxyproject/pulsar/pull/256
