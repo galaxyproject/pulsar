@@ -9,6 +9,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.7']
+        galaxy-branch: ['dev', 'master']
     services:
       postgres:
         image: postgres:13
@@ -43,13 +44,12 @@ jobs:
           path: ~/.cache/pip
           key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy/requirements.txt') }}
       - name: Run tests
-        run: ./run_tests.sh --framework -- -s
+        run: ./run_tests.sh --framework
         working-directory: 'galaxy'
         env:
           GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml
         continue-on-error: true
       - uses: actions/upload-artifact@v2
-        if: failure()
         with:
           name: Framework test results (${{ matrix.python-version }})
           path: 'galaxy/run_framework_tests.html'
