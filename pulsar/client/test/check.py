@@ -77,6 +77,7 @@ assert len(listdir(join(dirname(dirname(index_path)), "seq"))) == 1
 output4_index_path = open(sys.argv[11], 'w')
 metadata_dir = dirname(sys.argv[13])
 output5 = open(sys.argv[15], 'w')
+legacy_galaxy_json = int(sys.argv[16])
 output_metadata_path = join(metadata_dir, "metadata_output")
 try:
     assert_path_contents(sys.argv[2], "Hello world input!!@!")
@@ -89,7 +90,13 @@ try:
     open("env_test", "w").write(getenv("TEST_ENV", "DEFAULT"))
     open("rewrite_action_test", "w").write(sys.argv[12])
     output2.write(output2_contents)
-    with open("galaxy.json", "w") as f: f.write("GALAXY_JSON")
+    if legacy_galaxy_json:
+        with open("galaxy.json", "w") as f: f.write('''{"filename": "gjson_refer"}\n{"filename": "gjson_refer2"}''')
+    else:
+        with open("galaxy.json", "w") as f: f.write('''[{"filename": "gjson_refer"}, {"filename": "gjson_refer2"}]''')
+
+    with open("gjson_refer", "w") as f: f.write('''gjson_refer_contents''')
+    with open("gjson_refer2", "w") as f: f.write('''gjson_refer_contents2''')
     with open(output_metadata_path, "w") as f: f.write("meta output")
     output3.write(getenv("MOO", "moo_default"))
     output1_extras_path = "%s_files" % sys.argv[3][0:-len(".dat")]
@@ -206,6 +213,7 @@ def run(options):
         empty_input = u"/foo/bar/x"
 
         test_unicode = getattr(options, "test_unicode", False)  # TODO Switch this in integration tests
+        legacy_galaxy_json = getattr(options, "legacy_galaxy_json", False)
         cmd_text = EXAMPLE_UNICODE_TEXT if test_unicode else "Hello World"
         command_line_params = (
             temp_tool_path,
@@ -224,9 +232,10 @@ def run(options):
             temp_metadata_path,
             temp_input_metadata_path,
             temp_output5_path,
+            "1" if legacy_galaxy_json else "0",
         )
         assert os.path.exists(temp_index_path)
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         client_inputs = []
         client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
@@ -248,6 +257,7 @@ def run(options):
         ]
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
+        galaxy_json_type = "legacy_galaxy" if legacy_galaxy_json else "galaxy"
         client_outputs = ClientOutputs(
             working_directory=temp_work_dir,
             metadata_directory=temp_metadata_dir,
@@ -257,8 +267,8 @@ def run(options):
             ],
             output_files=output_files,
             version_file=temp_version_output_path,
+            dynamic_file_sources=[{"type": galaxy_json_type, "path": "galaxy.json"}],
         )
-
         job_description = ClientJobDescription(
             command_line=command_line,
             tool=MockTool(temp_tool_dir),
@@ -280,7 +290,11 @@ def run(options):
         __finish(options, client, client_outputs, result_status)
         __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)
         __assert_contents(temp_output2_path, cmd_text, result_status)
-        __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), b"GALAXY_JSON", result_status)
+        if not legacy_galaxy_json:
+            expected_contents = b'''[{"filename": "gjson_refer"}, {"filename": "gjson_refer2"}]'''
+            __assert_contents(os.path.join(temp_work_dir, "galaxy.json"), expected_contents, result_status)
+        __assert_contents(os.path.join(temp_work_dir, "gjson_refer"), b"gjson_refer_contents", result_status)
+        __assert_contents(os.path.join(temp_work_dir, "gjson_refer2"), b"gjson_refer_contents2", result_status)
         __assert_contents(os.path.join(temp_directory, "dataset_1_files", "extra"), b"EXTRA_OUTPUT_CONTENTS", result_status)
         __assert_contents(os.path.join(temp_metadata_dir, "metadata_output"), b"meta output", result_status)
         if getattr(options, "test_rewrite_action", False):
@@ -538,6 +552,7 @@ def main(argv=None):
     parser.add_option('--disable_cleanup', dest="cleanup", default=True, action="store_false", help=HELP_DISABLE_CLEANUP)
     parser.add_option('--job_id', default="123456", help=HELP_JOB_ID)
     parser.add_option('--explicit_tool_declarations', default=False, action="store_true")
+    parser.add_option('--legacy_galaxy_json', default=False, action="store_true")
     parser.add_option('--debug', default=False, action="store_true", help=HELP_DEBUG)
     (options, args) = parser.parse_args(argv)
     run(options)

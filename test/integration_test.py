@@ -180,6 +180,10 @@ class IntegrationTests(BaseIntegrationTest):
         self._run(private_token=None, cache=True, **self.default_kwargs)
 
     @integration_test
+    def test_integration_legacy_galaxy_json(self):
+        self._run(private_token=None, legacy_galaxy_json=True, **self.default_kwargs)
+
+    @integration_test
     def test_integration_default(self):
         self._run(private_token=None, **self.default_kwargs)
 

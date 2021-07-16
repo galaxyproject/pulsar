@@ -54,9 +54,12 @@ def submit_job(client, client_job_description, job_config=None):
     # Somehow make the following optional.
     remote_staging["action_mapper"] = file_stager.action_mapper.to_dict()
     remote_staging["client_outputs"] = client_job_description.client_outputs.to_dict()
-
     if remote_staging:
         launch_kwds["remote_staging"] = remote_staging
+
+    # potentially duplicated but we don't want to count on remote staging to include this
+    # it needs to be in the response to Pulsar even Pulsar is inititing staging actions
+    launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
 
     client.launch(**launch_kwds)
     return job_id

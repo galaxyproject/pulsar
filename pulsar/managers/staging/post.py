@@ -16,12 +16,6 @@ def postprocess(job_directory, action_executor):
     try:
         if job_directory.has_metadata("launch_config"):
             staging_config = job_directory.load_metadata("launch_config").get("remote_staging", None)
-        elif job_directory.has_metadata("staging_config"):
-            # This branch of the if is for Pulsar servers that have created jobs prior to
-            # #164 but are postprocessing after the inclusion of #164 (upgraded in the middle).
-            # This can be eliminated sometime - say in 2019 or whenever there is a breaking
-            # change in some other way.
-            staging_config = job_directory.load_metadata("staging_config", None)
         else:
             staging_config = None
         collected = __collect_outputs(job_directory, staging_config, action_executor)
@@ -44,6 +38,19 @@ def __collect_outputs(job_directory, staging_config, action_executor):
             log.warn("Failures collecting results %s" % collection_failure_exceptions)
             collected = False
     return collected
+
+
+def realized_dynamic_file_sources(job_directory):
+    launch_config = job_directory.load_metadata("launch_config")
+    dynamic_file_sources = launch_config.get("dynamic_file_sources")
+    realized_dynamic_file_sources = []
+    for dynamic_file_source in (dynamic_file_sources or []):
+        dynamic_file_source_path = dynamic_file_source["path"]
+        realized_dynamic_file_source = dynamic_file_source.copy()
+        dynamic_file_source_contents = job_directory.working_directory_file_contents(dynamic_file_source_path).decode("utf-8")
+        realized_dynamic_file_source["contents"] = dynamic_file_source_contents
+        realized_dynamic_file_sources.append(realized_dynamic_file_source)
+    return realized_dynamic_file_sources
 
 
 class PulsarServerOutputCollector(object):
@@ -78,7 +85,8 @@ def __pulsar_outputs(job_directory):
         output_directory_contents,
         metadata_directory_contents,
         job_directory_contents,
+        realized_dynamic_file_sources=realized_dynamic_file_sources(job_directory),
     )
 
 
-__all__ = ('postprocess',)
+__all__ = ('postprocess', 'realized_dynamic_file_sources')

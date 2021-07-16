@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 from logging import getLogger
 from os.path import join, relpath
+from json import loads
 
 from ..action_mapper import FileActionMapper
 from ..staging import COMMAND_VERSION_FILENAME
@@ -124,15 +125,58 @@ class ResultsCollector(object):
             'output_jobdir',
         )
 
+    def __realized_dynamic_file_source_references(self):
+        references = []
+
+        def record_references(from_dict):
+            if isinstance(from_dict, list):
+                for v in from_dict:
+                    record_references(v)
+            elif isinstance(from_dict, dict):
+                for k, v in from_dict.items():
+                    if k == "filename":
+                        references.append(v)
+                    if isinstance(v, (list, dict)):
+                        record_references(v)
+
+        def parse_and_record_references(json_content):
+            try:
+                as_dict = loads(json_content)
+                record_references(as_dict)
+            except Exception as e:
+                log.warning("problem parsing galaxy.json %s" % e)
+                pass
+
+        realized_dynamic_file_sources = (self.pulsar_outputs.realized_dynamic_file_sources or [])
+        for realized_dynamic_file_source in realized_dynamic_file_sources:
+            contents = realized_dynamic_file_source["contents"]
+            source_type = realized_dynamic_file_source["type"]
+            assert source_type in ["galaxy", "legacy_galaxy"], source_type
+            if source_type == "galaxy":
+                parse_and_record_references(contents)
+            else:
+                for line in contents.splitlines():
+                    parse_and_record_references(line)
+
+        return references
+
     def __collect_directory_files(self, directory, contents, output_type):
         if directory is None:  # e.g. output_metadata_directory
             return
 
+        dynamic_file_source_references = self.__realized_dynamic_file_source_references()
+
         # Fetch remaining working directory outputs of interest.
         for name in contents:
+            collect = False
             if name in self.downloaded_working_directory_files:
                 continue
             if self.client_outputs.dynamic_match(name):
+                collect = True
+            elif name in dynamic_file_source_references:
+                collect = True
+
+            if collect:
                 log.debug("collecting dynamic %s file %s" % (output_type, name))
                 output_file = join(directory, self.pulsar_outputs.path_helper.local_name(name))
                 if self._attempt_collect_output(output_type=output_type, path=output_file, name=name):

@@ -304,6 +304,15 @@ class JobDirectory(RemoteJobDirectory):
         assert self.lock_manager, "Can only use job directory locks if lock manager defined."
         return self.lock_manager.get_lock(self._job_file(name))
 
+    def working_directory_file_contents(self, name):
+        working_directory = self.working_directory()
+        working_directory_path = join(working_directory, name)
+        if exists(working_directory_path):
+            with open(working_directory_path, "rb") as f:
+                return f.read()
+        else:
+            return None
+
     def working_directory_contents(self):
         working_directory = self.working_directory()
         return self.__directory_contents(working_directory)

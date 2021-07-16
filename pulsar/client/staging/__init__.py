@@ -1,5 +1,5 @@
-
 import re
+from enum import Enum
 
 from os import sep
 from os.path import (
@@ -36,6 +36,12 @@ EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN = [
         ]
     )
 ]
+
+
+class DynamicFileSourceType(str, Enum):
+    legacy_galaxy = "legacy_galaxy"  # older stlye galaxy.json - line per entry
+    galaxy = "galaxy"  # modern galaxy.json - single json
+    # TODO: cwl outputs file, etc...
 
 
 class ClientJobDescription(object):
@@ -206,6 +212,7 @@ class ClientOutputs(object):
         dynamic_outputs=None,
         metadata_directory=None,
         job_directory=None,
+        dynamic_file_sources=None,
     ):
         self.working_directory = working_directory
         self.metadata_directory = metadata_directory
@@ -214,6 +221,7 @@ class ClientOutputs(object):
         self.version_file = version_file
         self.dynamic_outputs = dynamic_outputs or DEFAULT_DYNAMIC_COLLECTION_PATTERN
         self.job_directory = job_directory
+        self.dynamic_file_sources = dynamic_file_sources
         self.__dynamic_patterns = list(map(re.compile, self.dynamic_outputs))
 
     def to_dict(self):
@@ -225,6 +233,7 @@ class ClientOutputs(object):
             output_files=self.output_files,
             version_file=self.version_file,
             dynamic_outputs=self.dynamic_outputs,
+            dynamic_file_sources=self.dynamic_file_sources,
         )
 
     @staticmethod
@@ -236,6 +245,7 @@ class ClientOutputs(object):
             output_files=config_dict.get('output_files'),
             version_file=config_dict.get('version_file'),
             dynamic_outputs=config_dict.get('dynamic_outputs'),
+            dynamic_file_sources=config_dict.get('dynamic_file_sources'),
             job_directory=config_dict.get('job_directory'),
         )
 
@@ -248,12 +258,19 @@ class PulsarOutputs(object):
     server. """
 
     def __init__(
-        self, working_directory_contents, output_directory_contents, metadata_directory_contents, job_directory_contents, remote_separator=sep
+        self,
+        working_directory_contents,
+        output_directory_contents,
+        metadata_directory_contents,
+        job_directory_contents,
+        remote_separator=sep,
+        realized_dynamic_file_sources=None,  # list of dicts with keys - name, path, contents. (client def + realized contents)
     ):
         self.working_directory_contents = working_directory_contents
         self.output_directory_contents = output_directory_contents
         self.metadata_directory_contents = metadata_directory_contents
         self.job_directory_contents = job_directory_contents
+        self.realized_dynamic_file_sources = realized_dynamic_file_sources
         self.path_helper = PathHelper(remote_separator)
 
     @staticmethod
@@ -268,12 +285,14 @@ class PulsarOutputs(object):
         # so this should only be used when reasoning about outputs in
         # subdirectories (which was not previously supported prior to that).
         remote_separator = complete_response.get("system_properties", {}).get("separator", sep)
+        realized_dynamic_file_sources = complete_response.get("realized_dynamic_file_sources", None)
         return PulsarOutputs(
             working_directory_contents,
             output_directory_contents,
             metadata_directory_contents,
             job_directory_contents,
-            remote_separator
+            remote_separator,
+            realized_dynamic_file_sources=realized_dynamic_file_sources,
         )
 
     def has_output_file(self, output_file):

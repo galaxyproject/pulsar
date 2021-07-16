@@ -130,7 +130,7 @@ class JobClient(BaseJobClient):
         super(JobClient, self).__init__(destination_params, job_id)
         self.job_manager_interface = job_manager_interface
 
-    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None):
+    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, dynamic_file_sources=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -161,6 +161,8 @@ class JobClient(BaseJobClient):
             # before queueing.
             setup_params = _setup_params_from_job_config(job_config)
             launch_params['setup_params'] = json_dumps(setup_params)
+        if dynamic_file_sources is not None:
+            launch_params["dynamic_file_sources"] = json_dumps(dynamic_file_sources)
         return self._raw_execute("submit", launch_params)
 
     def full_status(self):
@@ -311,7 +313,7 @@ class BaseMessageJobClient(BaseJobClient):
             raise Exception("full_status() called before a final status was properly cached with cilent manager.")
         return full_status
 
-    def _build_setup_message(self, command_line, dependencies_description, env, remote_staging, job_config):
+    def _build_setup_message(self, command_line, dependencies_description, env, remote_staging, job_config, dynamic_file_sources):
         """
         """
         launch_params = dict(command_line=command_line, job_id=self.job_id)
@@ -325,6 +327,7 @@ class BaseMessageJobClient(BaseJobClient):
         if remote_staging:
             launch_params['remote_staging'] = remote_staging
             launch_params['remote_staging']['ssh_key'] = self.ssh_key
+        launch_params['dynamic_file_sources'] = dynamic_file_sources
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
             # destination arguments. Hence, must have Pulsar setup job
@@ -345,7 +348,7 @@ class BaseMessageJobClient(BaseJobClient):
 
 class MessageJobClient(BaseMessageJobClient):
 
-    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None):
+    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, dynamic_file_sources=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -354,6 +357,7 @@ class MessageJobClient(BaseMessageJobClient):
             env=env,
             remote_staging=remote_staging,
             job_config=job_config,
+            dynamic_file_sources=dynamic_file_sources,
         )
         response = self.client_manager.exchange.publish("setup", launch_params)
         log.info("Job published to setup message queue: %s", self.job_id)
@@ -376,7 +380,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
         self.remote_pulsar_path = destination_params["remote_pulsar_path"]
         self.shell = shell
 
-    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None):
+    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, dynamic_file_sources=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -385,6 +389,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
             env=env,
             remote_staging=remote_staging,
             job_config=job_config,
+            dynamic_file_sources=dynamic_file_sources,
         )
         base64_message = to_base64_json(launch_params)
         submit_command = os.path.join(self.remote_pulsar_path, "scripts", "submit.bash")
@@ -405,14 +410,14 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
         self._default_pull_policy = pull_policy(destination_params)
 
-    # FIXME: pulsar/client/client.py:404:5: C901 'MessageCoexecutionPodJobClient.launch' is too complex (13)
-    def launch(  # noqa: C901
+    def launch(
         self,
         command_line,
         dependencies_description=None,
         env=[],
         remote_staging=[],
         job_config=None,
+        dynamic_file_sources=None,
         container_info=None,
         pulsar_app_config=None
     ):
@@ -424,6 +429,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             env=env,
             remote_staging=remote_staging,
             job_config=job_config,
+            dynamic_file_sources=dynamic_file_sources,
         )
         container = None
         guest_ports = None
