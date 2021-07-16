@@ -71,8 +71,10 @@ class DirectoryBaseManager(BaseManager):
     def _write_job_file(self, job_id, name, contents):
         return self._job_directory(job_id).write_file(name, contents)
 
-    def _write_return_code(self, job_id, return_code):
-        self._write_job_file(job_id, JOB_FILE_RETURN_CODE, str(return_code))
+    def _write_return_code_if_unset(self, job_id, return_code):
+        return_code_str = self._read_job_file(job_id, JOB_FILE_RETURN_CODE, default=PULSAR_UNKNOWN_RETURN_CODE)
+        if return_code_str == PULSAR_UNKNOWN_RETURN_CODE:
+            self._write_job_file(job_id, JOB_FILE_RETURN_CODE, str(return_code))
 
     def _write_tool_info(self, job_id, tool_id, tool_version):
         job_directory = self._job_directory(job_id)
