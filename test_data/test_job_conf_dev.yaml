@@ -1,0 +1,20 @@
+runners:
+  local:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+    workers: 1
+  pulsar:
+    load: galaxy.jobs.runners.pulsar:PulsarEmbeddedJobRunner
+    pulsar_app_config:
+      conda_auto_init: true
+      conda_auto_install: true
+execution:
+  default: pulsar
+  environments:
+    pulsar:
+      runner: pulsar
+      dependency_resolution: remote
+    local_environment:
+      runner: local
+tools:
+  - class: local
+    environment: local_environment

@@ -47,7 +47,7 @@ jobs:
         run: ./run_tests.sh --framework
         working-directory: 'galaxy'
         env:
-          GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml
+          GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf_${{ matrix.galaxy-branch }}.yaml
         continue-on-error: true
       - uses: actions/upload-artifact@v2
         with:
