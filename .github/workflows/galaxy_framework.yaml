@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: galaxyproject/galaxy
-          ref: master
+          ref: ${{ matrix.galaxy-branch }}
           path: galaxy
       - uses: actions/setup-python@v2
         with:
