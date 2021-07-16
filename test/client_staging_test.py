@@ -176,8 +176,7 @@ class MockClient(object):
         assert tool_version == self.expected_tool.version
         return {}
 
-    def launch(self, command_line, dependencies_description, job_config={}, remote_staging={}, env=[]):
-        # TODO: test env
+    def launch(self, command_line, dependencies_description, job_config={}, remote_staging={}, env=[], dynamic_file_sources=None):
         if self.expected_command_line is not None:
             message = "Excepected command line %s, got %s" % (self.expected_command_line, command_line)
             assert self.expected_command_line == command_line, message

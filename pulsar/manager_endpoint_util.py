@@ -9,6 +9,7 @@ from pulsar import __version__ as pulsar_version
 from pulsar.client.setup_handler import build_job_config
 from pulsar.managers import status
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
+from pulsar.managers.staging import realized_dynamic_file_sources
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ def __job_complete_dict(complete_status, manager, job_id):
         job_directory_contents=job_directory.job_directory_contents(),
         system_properties=manager.system_properties(),
         pulsar_version=pulsar_version,
+        realized_dynamic_file_sources=realized_dynamic_file_sources(job_directory)
     )
     return as_dict
 
@@ -72,6 +74,7 @@ def submit_job(manager, job_config):
         env = job_config.get('env', [])
         submit_params = job_config.get('submit_params', {})
         touch_outputs = job_config.get('touch_outputs', [])
+        dynamic_file_sources = job_config.get("dynamic_file_sources", None)
         job_config = None
         if setup_params or force_setup:
             input_job_id = setup_params.get("job_id", job_id)
@@ -100,6 +103,7 @@ def submit_job(manager, job_config):
             "submit_params": submit_params,
             "env": env,
             "setup_params": setup_params,
+            "dynamic_file_sources": dynamic_file_sources,
         }
         manager.preprocess_and_launch(job_id, launch_config)
     except Exception:
