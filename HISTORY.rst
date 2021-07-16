@@ -6,10 +6,14 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.9.dev0
 ---------------------
 
-    
+* Implement dynamic file sources abstraction for parsing files to transfer
+  from ``galaxy.json`` files. `Pull Request 269`_
+* Use tool classes to only test remote Galaxy tools. `Pull Request 266`_
+* Run Galaxy framework tests against dev and master branches of Galaxy (thanks
+  to `@mvdbeek`_). `Pull Request 264`_
 
 ---------------------
 0.14.8 (2021-07-14)
@@ -377,6 +381,9 @@ History
 
 
 .. github_links
+.. _Pull Request 269: https://github.com/galaxyproject/pulsar/pull/269
+.. _Pull Request 266: https://github.com/galaxyproject/pulsar/pull/266
+.. _Pull Request 264: https://github.com/galaxyproject/pulsar/pull/264
 .. _Pull Request 262: https://github.com/galaxyproject/pulsar/pull/262
 .. _Pull Request 259: https://github.com/galaxyproject/pulsar/pull/259
 .. _Pull Request 261: https://github.com/galaxyproject/pulsar/pull/261
