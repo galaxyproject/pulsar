@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.9.dev0
+0.14.9 (2021-07-16)
 ---------------------
 
 * Implement dynamic file sources abstraction for parsing files to transfer
