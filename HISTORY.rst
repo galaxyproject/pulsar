@@ -6,10 +6,10 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.10.dev0
 ---------------------
 
-    
+* Don't error out if annotated galaxy.json is absent. `Pull Request 270`_
 
 ---------------------
 0.14.9 (2021-07-16)
@@ -387,6 +387,7 @@ History
 
 
 .. github_links
+.. _Pull Request 270: https://github.com/galaxyproject/pulsar/pull/270
 .. _Pull Request 269: https://github.com/galaxyproject/pulsar/pull/269
 .. _Pull Request 266: https://github.com/galaxyproject/pulsar/pull/266
 .. _Pull Request 264: https://github.com/galaxyproject/pulsar/pull/264
