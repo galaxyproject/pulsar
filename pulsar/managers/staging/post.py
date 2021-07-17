@@ -47,9 +47,11 @@ def realized_dynamic_file_sources(job_directory):
     for dynamic_file_source in (dynamic_file_sources or []):
         dynamic_file_source_path = dynamic_file_source["path"]
         realized_dynamic_file_source = dynamic_file_source.copy()
-        dynamic_file_source_contents = job_directory.working_directory_file_contents(dynamic_file_source_path).decode("utf-8")
-        realized_dynamic_file_source["contents"] = dynamic_file_source_contents
-        realized_dynamic_file_sources.append(realized_dynamic_file_source)
+        dynamic_file_source_bytes = job_directory.working_directory_file_contents(dynamic_file_source_path)
+        if dynamic_file_source_bytes is not None:
+            dynamic_file_source_contents = dynamic_file_source_bytes.decode("utf-8")
+            realized_dynamic_file_source["contents"] = dynamic_file_source_contents
+            realized_dynamic_file_sources.append(realized_dynamic_file_source)
     return realized_dynamic_file_sources
 
 
