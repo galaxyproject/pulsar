@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.10.dev0
+0.14.10 (2021-07-17)
 ---------------------
 
 * Don't error out if annotated galaxy.json is absent. `Pull Request 270`_
