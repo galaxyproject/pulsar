@@ -258,6 +258,10 @@ def run(options):
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
         galaxy_json_type = "legacy_galaxy" if legacy_galaxy_json else "galaxy"
+        dynamic_file_sources = [
+            {"type": galaxy_json_type, "path": "galaxy.json"},
+            {"type": galaxy_json_type, "path": "absent_galaxy.json"},
+        ]
         client_outputs = ClientOutputs(
             working_directory=temp_work_dir,
             metadata_directory=temp_metadata_dir,
@@ -267,7 +271,7 @@ def run(options):
             ],
             output_files=output_files,
             version_file=temp_version_output_path,
-            dynamic_file_sources=[{"type": galaxy_json_type, "path": "galaxy.json"}],
+            dynamic_file_sources=dynamic_file_sources,
         )
         job_description = ClientJobDescription(
             command_line=command_line,
