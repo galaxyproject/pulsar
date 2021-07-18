@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tox-env: [py37-lint, py37-dist, py37-docs]
+        tox-env: [py37-lint, py37-dist, py37-docs, py37-mypy]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
