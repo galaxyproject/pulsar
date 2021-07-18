@@ -5,14 +5,14 @@ import logging
 try:
     import requests
 except ImportError:
-    requests = None
+    requests = None  # type: ignore
 
 try:
     import requests_toolbelt
     requests_multipart_post_available = True
 except ImportError:
     requests_multipart_post_available = False
-    requests_toolbelt = None
+    requests_toolbelt = None  # type: ignore
 
 
 REQUESTS_UNAVAILABLE_MESSAGE = "Pulsar configured to use requests module - but it is unavailable. Please install requests."

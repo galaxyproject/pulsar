@@ -10,10 +10,7 @@ import threading
 
 from logging import getLogger
 from os import getenv
-try:
-    from Queue import Queue
-except ImportError:
-    from queue import Queue
+from queue import Queue
 
 from .amqp_exchange_factory import get_exchange
 from .client import InputCachingJobClient

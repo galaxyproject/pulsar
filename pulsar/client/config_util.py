@@ -6,11 +6,8 @@ import codecs
 try:
     import yaml
 except ImportError:
-    yaml = None
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
+    yaml = None  # type: ignore
+from configparser import ConfigParser
 import json
 
 

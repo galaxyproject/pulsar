@@ -14,7 +14,7 @@ from pulsar.main import (
 try:
     import pip
 except ImportError:
-    pip = None
+    pip = None  # type: ignore
 
 try:
     import virtualenv

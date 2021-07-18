@@ -24,12 +24,12 @@ import os
 import functools
 import time
 import sys
-from six.moves import configparser
+import configparser
 
 try:
     import yaml
 except ImportError:
-    yaml = None
+    yaml = None  # type: ignore
 
 try:
     from daemonize import Daemonize

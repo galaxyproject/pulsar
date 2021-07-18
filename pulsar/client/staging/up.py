@@ -464,7 +464,7 @@ class TransferTracker(object):
 
                 # We could still rewrite paths and just not transfer the files.
                 assert not self.rewrite_paths
-                self.__add_remote_staging_input(self, action, None, type)
+                self.__add_remote_staging_input(action, None, type)
                 return
 
             directory = action_source['path']

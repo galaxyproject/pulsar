@@ -5,12 +5,10 @@ from abc import abstractmethod
 from string import Template
 
 from six import BytesIO
-try:
-    from six import text_type
-except ImportError:
-    from galaxy.util import unicodify as text_type
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.parse import urljoin
+
+from galaxy.util import unicodify
 
 from .util import copy_to_path
 
@@ -110,7 +108,7 @@ class HttpPulsarInterface(PulsarInterface):
         path = COMMAND_TO_PATH.get(command, Template(command)).safe_substitute(args)
         if self.private_token:
             args["private_token"] = self.private_token
-        arg_bytes = dict([(k, text_type(args[k]).encode('utf-8')) for k in args])
+        arg_bytes = dict([(k, unicodify(args[k]).encode('utf-8')) for k in args])
         data = urlencode(arg_bytes)
         url = self.remote_host + path + "?" + data
         return url

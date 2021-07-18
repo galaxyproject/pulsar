@@ -7,8 +7,8 @@ try:
     from psutil import NoSuchProcess, Process
 except ImportError:
     """ Don't make psutil a strict requirement, but use if available. """
-    Process = None
-
+    Process = None  # type: ignore
+    NoSuchProcess = Exception  # type: ignore
 
 def kill_pid(pid, use_psutil=True):
     if use_psutil and Process:
