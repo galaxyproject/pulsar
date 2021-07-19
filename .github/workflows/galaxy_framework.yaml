@@ -38,6 +38,9 @@ jobs:
       - name: Replace pulsar with pulsar from checked out pulsar repo
         run: sed -i.bak 's|pulsar.*|/tmp/pulsar.whl|g' lib/galaxy/dependencies/pinned-requirements.txt
         working-directory: galaxy
+      - name: Replace pulsar with pulsar from checked out pulsar repo (dev requirements)
+        run: sed -i.bak 's|pulsar.*|/tmp/pulsar.whl|g' lib/galaxy/dependencies/dev-requirements.txt
+        working-directory: galaxy
       - name: Cache pip dir
         uses: actions/cache@v2
         with:
