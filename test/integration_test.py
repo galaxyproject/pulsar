@@ -128,7 +128,6 @@ class IntegrationTests(BaseIntegrationTest):
     def test_integration_local_setup(self):
         self._run(private_token=None, default_file_action="remote_copy", local_setup=True, **self.default_kwargs)
 
-    @skip_unless_module("pycurl")
     @skip_unless_module("kombu")
     @integration_test
     def test_message_queue(self):
