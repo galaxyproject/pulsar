@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.11.dev0
+0.14.11 (2021-07-19)
 ---------------------
 
 * Fix and test for returncode handling in certain cases. `Pull Request 274`_
