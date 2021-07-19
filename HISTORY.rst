@@ -6,10 +6,11 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.11.dev0
 ---------------------
 
-    
+* Fix and test for returncode handling in certain cases. `Pull Request 274`_
+* Modernize tox. `Pull Request 271`_
 
 ---------------------
 0.14.10 (2021-07-17)
@@ -393,6 +394,8 @@ History
 
 
 .. github_links
+.. _Pull Request 271: https://github.com/galaxyproject/pulsar/pull/271
+.. _Pull Request 274: https://github.com/galaxyproject/pulsar/pull/274
 .. _Pull Request 270: https://github.com/galaxyproject/pulsar/pull/270
 .. _Pull Request 269: https://github.com/galaxyproject/pulsar/pull/269
 .. _Pull Request 266: https://github.com/galaxyproject/pulsar/pull/266
