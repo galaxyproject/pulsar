@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tox-env: [py37-lint, py37-dist, py37-docs, py37-mypy]
+        tox-env: [py37-lint, py37-dist, py37-docs]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
@@ -15,6 +15,29 @@ jobs:
     - name: Install tox
       run: pip install tox
     - name: Run lint
+      run: tox -e ${{ matrix.tox-env }}
+  mypy:
+    name: MyPy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - tox-env: py36-mypy
+          python: 3.6
+        - tox-env: py37-mypy
+          python: 3.7
+        - tox-env: py38-mypy
+          python: 3.8
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install tox
+      run: pip install tox
+    - name: Setup pycurl
+      run: sudo apt update; sudo apt install -y libxml2-dev libxslt1-dev libcurl4-openssl-dev python-pycurl openssh-server
+    - name: Run tox
       run: tox -e ${{ matrix.tox-env }}
   test:
     name: Run Tests
