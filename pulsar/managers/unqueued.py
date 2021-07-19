@@ -114,8 +114,9 @@ class Manager(BaseUnqueuedManager):
             stdout.close()
             stderr.close()
             return_code = proc.returncode
-            # TODO: This is invalid if we have written a job script.
-            self._write_return_code(job_id, str(return_code))
+            # job_script might have set return code so use that if set, otherwise use this one.
+            # Should there be someway to signal failure if this is non-0 in that case?
+            self._write_return_code_if_unset(job_id, str(return_code))
         finally:
             with self._get_job_lock(job_id):
                 self._finish_execution(job_id)

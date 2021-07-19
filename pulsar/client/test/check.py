@@ -112,6 +112,7 @@ finally:
     output3.close()
     version_output.close()
     output4_index_path.close()
+sys.exit(4)
 """
 
 HELP_URL = "URL of the Pulsar web server to target."
@@ -291,6 +292,8 @@ def run(options):
         if hasattr(options, "maximum_stream_size"):
             assert len(stdout) == options.maximum_stream_size
 
+        assert result_status["complete"] == "true"
+        assert result_status["returncode"] == 4, f"Expected exit code of 4, got {result_status['returncode']}"
         __finish(options, client, client_outputs, result_status)
         __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)
         __assert_contents(temp_output2_path, cmd_text, result_status)
