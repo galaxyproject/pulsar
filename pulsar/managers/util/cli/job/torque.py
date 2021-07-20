@@ -2,7 +2,7 @@ from logging import getLogger
 try:
     import xml.etree.cElementTree as et
 except ImportError:
-    import xml.etree.ElementTree as et
+    import xml.etree.ElementTree as et  # type: ignore
 
 try:
     from galaxy.model import Job

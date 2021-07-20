@@ -13,6 +13,7 @@ from os.path import (
     sep,
 )
 from re import compile, escape
+from typing import Any, Dict, List, Type
 
 from galaxy.util.bunch import Bunch
 
@@ -282,7 +283,8 @@ UNSET_ACTION_KWD = "__UNSET__"
 
 class BaseAction(object):
     whole_directory_transfer_supported = False
-    action_spec = {}
+    action_spec: Dict[str, Any] = {}
+    action_type: str
 
     def __init__(self, source, file_lister=None):
         self.source = source
@@ -648,6 +650,7 @@ def from_dict(action_dict):
 
 
 class BasePathMapper(object):
+    match_type: str
 
     def __init__(self, config):
         action_type = config.get('action', DEFAULT_MAPPED_ACTION)
@@ -795,7 +798,7 @@ class FileLister(object):
 
 DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
 
-ACTION_CLASSES = [
+ACTION_CLASSES: List[Type[BaseAction]] = [
     NoneAction,
     RewriteAction,
     TransferAction,

@@ -3,20 +3,25 @@
 
 # Mostly taken from PasteDeploy and stripped down for Galaxy
 
-from __future__ import with_statement
-
 import inspect
 import os
-import sys
 import re
+import sys
+from typing import Callable, Dict, List, Optional, Union
+from urllib.parse import unquote
 
 import pkg_resources
 
-__all__ = ['loadapp', 'loadserver', 'loadfilter', 'appconfig']
+from galaxy.util.getargspec import getfullargspec
+from galaxy.util.properties import NicerConfigParser
+
+
+__all__ = ('loadapp', 'loadserver', 'loadfilter', 'appconfig')
 
 # ---- from paste.deploy.compat --------------------------------------
 
 """Python 2<->3 compatibility module"""
+
 
 def print_(template, *args, **kwargs):
     template = str(template)
@@ -26,26 +31,12 @@ def print_(template, *args, **kwargs):
         template = template % kwargs
     sys.stdout.writelines(template)
 
-if sys.version_info < (3, 0):
-    basestring = basestring
-    from ConfigParser import ConfigParser
-    from urllib import unquote
-    iteritems = lambda d: d.iteritems()
-    dictkeys = lambda d: d.keys()
 
-    def reraise(t, e, tb):
-        exec('raise t, e, tb', dict(t=t, e=e, tb=tb))
-else:
-    basestring = str
-    from configparser import ConfigParser
-    from urllib.parse import unquote
-    iteritems = lambda d: d.items()
-    dictkeys = lambda d: list(d.keys())
-
-    def reraise(t, e, tb):
-        exec('raise e from tb', dict(e=e, tb=tb))
+def reraise(t, e, tb):
+    exec('raise e from tb', dict(e=e, tb=tb))
 
 # ---- from paste.deploy.util ----------------------------------------
+
 
 def fix_type_error(exc_info, callable, varargs, kwargs):
     """
@@ -64,20 +55,19 @@ def fix_type_error(exc_info, callable, varargs, kwargs):
     if exc_info is None:
         exc_info = sys.exc_info()
     if (exc_info[0] != TypeError
-        or str(exc_info[1]).find('arguments') == -1
-        or getattr(exc_info[1], '_type_error_fixed', False)):
+            or str(exc_info[1]).find('argument') == -1
+            or getattr(exc_info[1], '_type_error_fixed', False)):
         return exc_info
     exc_info[1]._type_error_fixed = True
-    argspec = inspect.formatargspec(*inspect.getargspec(callable))
+    argspec = inspect.formatargspec(*getfullargspec(callable))
     args = ', '.join(map(_short_repr, varargs))
     if kwargs and args:
         args += ', '
     if kwargs:
-        kwargs = kwargs.items()
-        kwargs.sort()
-        args += ', '.join(['%s=...' % n for n, v in kwargs])
+        kwargs = sorted(kwargs.keys())
+        args += ', '.join('%s=...' % n for n in kwargs)
     gotspec = '(%s)' % args
-    msg = '%s; got %s, wanted %s' % (exc_info[1], gotspec, argspec)
+    msg = '{}; got {}, wanted {}'.format(exc_info[1], gotspec, argspec)
     exc_info[1].args = (msg,)
     return exc_info
 
@@ -117,7 +107,7 @@ def lookup_object(spec):
 # ---- from paste.deploy.loadwsgi ------------------------------------
 
 ############################################################
-## Utility functions
+# Utility functions
 ############################################################
 
 
@@ -150,71 +140,16 @@ def _flatten(lst):
     return result
 
 
-class NicerConfigParser(ConfigParser):
-
-    def __init__(self, filename, *args, **kw):
-        ConfigParser.__init__(self, *args, **kw)
-        self.filename = filename
-        if hasattr(self, '_interpolation'):
-            self._interpolation = self.InterpolateWrapper(self._interpolation)
-
-    read_file = getattr(ConfigParser, 'read_file', ConfigParser.readfp)
-
-    def defaults(self):
-        """Return the defaults, with their values interpolated (with the
-        defaults dict itself)
-
-        Mainly to support defaults using values such as %(here)s
-        """
-        defaults = ConfigParser.defaults(self).copy()
-        for key, val in iteritems(defaults):
-            defaults[key] = self.get('DEFAULT', key) or val
-        return defaults
-
-    def _interpolate(self, section, option, rawval, vars):
-        # Python < 3.2
-        try:
-            return ConfigParser._interpolate(
-                self, section, option, rawval, vars)
-        except Exception:
-            e = sys.exc_info()[1]
-            args = list(e.args)
-            args[0] = 'Error in file %s: %s' % (self.filename, e)
-            e.args = tuple(args)
-            e.message = args[0]
-            raise
-
-    class InterpolateWrapper(object):
-        # Python >= 3.2
-        def __init__(self, original):
-            self._original = original
-
-        def __getattr__(self, name):
-            return getattr(self._original, name)
-
-        def before_get(self, parser, section, option, value, defaults):
-            try:
-                return self._original.before_get(parser, section, option,
-                                                 value, defaults)
-            except Exception:
-                e = sys.exc_info()[1]
-                args = list(e.args)
-                args[0] = 'Error in file %s: %s' % (parser.filename, e)
-                e.args = tuple(args)
-                e.message = args[0]
-                raise
-
-
 ############################################################
-## Object types
+# Object types
 ############################################################
 
 
-class _ObjectType(object):
+class _ObjectType:
 
-    name = None
-    egg_protocols = None
-    config_prefixes = None
+    name: Optional[str] = None
+    egg_protocols: Optional[List[Union[str, List[str]]]] = None
+    config_prefixes: Optional[List[Union[List[str], str]]] = None
 
     def __init__(self):
         # Normalize these variables:
@@ -222,7 +157,7 @@ class _ObjectType(object):
         self.config_prefixes = [_aslist(p) for p in _aslist(self.config_prefixes)]
 
     def __repr__(self):
-        return '<%s protocols=%r prefixes=%r>' % (
+        return '<{} protocols={!r} prefixes={!r}>'.format(
             self.name, self.egg_protocols, self.config_prefixes)
 
     def invoke(self, context):
@@ -250,6 +185,7 @@ class _App(_ObjectType):
         else:
             assert 0, "Protocol %r unknown" % context.protocol
 
+
 APP = _App()
 
 
@@ -271,6 +207,7 @@ class _Filter(_ObjectType):
             return filter_wrapper
         else:
             assert 0, "Protocol %r unknown" % context.protocol
+
 
 FILTER = _Filter()
 
@@ -294,6 +231,7 @@ class _Server(_ObjectType):
         else:
             assert 0, "Protocol %r unknown" % context.protocol
 
+
 SERVER = _Server()
 
 
@@ -306,9 +244,10 @@ class _PipeLine(_ObjectType):
         app = context.app_context.create()
         filters = [c.create() for c in context.filter_contexts]
         filters.reverse()
-        for filter in filters:
-            app = filter(app)
+        for filter_ in filters:
+            app = filter_(app)
         return app
+
 
 PIPELINE = _PipeLine()
 
@@ -318,8 +257,9 @@ class _FilterApp(_ObjectType):
 
     def invoke(self, context):
         next_app = context.next_context.create()
-        filter = context.filter_context.create()
-        return filter(next_app)
+        filter_ = context.filter_context.create()
+        return filter_(next_app)
+
 
 FILTER_APP = _FilterApp()
 
@@ -328,21 +268,21 @@ class _FilterWith(_App):
     name = 'filtered_with'
 
     def invoke(self, context):
-        filter = context.filter_context.create()
+        filter_ = context.filter_context.create()
         filtered = context.next_context.create()
         if context.next_context.object_type is APP:
-            return filter(filtered)
+            return filter_(filtered)
         else:
             # filtering a filter
             def composed(app):
-                return filter(filtered(app))
+                return filter_(filtered(app))
             return composed
+
 
 FILTER_WITH = _FilterWith()
 
-
 ############################################################
-## Loaders
+# Loaders
 ############################################################
 
 
@@ -364,7 +304,8 @@ def appconfig(uri, name=None, relative_to=None, global_conf=None):
                           global_conf=global_conf)
     return context.config()
 
-_loaders = {}
+
+_loaders: Dict[str, Callable] = {}
 
 
 def loadobj(object_type, uri, name=None, relative_to=None,
@@ -422,6 +363,7 @@ def _loadconfig(object_type, uri, path, name, relative_to,
         loader.update_defaults(global_conf, overwrite=False)
     return loader.get_context(object_type, name, global_conf)
 
+
 _loaders['config'] = _loadconfig
 
 
@@ -430,23 +372,25 @@ def _loadegg(object_type, uri, spec, name, relative_to,
     loader = EggLoader(spec)
     return loader.get_context(object_type, name, global_conf)
 
+
 _loaders['egg'] = _loadegg
 
 
 def _loadfunc(object_type, uri, spec, name, relative_to,
-             global_conf):
+              global_conf):
 
     loader = FuncLoader(spec)
     return loader.get_context(object_type, name, global_conf)
 
+
 _loaders['call'] = _loadfunc
 
 ############################################################
-## Loaders
+# Loaders
 ############################################################
 
 
-class _Loader(object):
+class _Loader:
 
     def get_app(self, name=None, global_conf=None):
         return self.app_context(
@@ -490,14 +434,14 @@ class ConfigLoader(_Loader):
         defaults = {
             'here': os.path.dirname(os.path.abspath(filename)),
             '__file__': os.path.abspath(filename)
-            }
+        }
         self.parser = NicerConfigParser(filename, defaults=defaults)
         self.parser.optionxform = str  # Don't lower-case keys
         with open(filename) as f:
             self.parser.read_file(f)
 
     def update_defaults(self, new_defaults, overwrite=True):
-        for key, value in iteritems(new_defaults):
+        for key, value in new_defaults.items():
             if not overwrite and key in self.parser._defaults:
                 continue
             self.parser._defaults[key] = value
@@ -661,8 +605,8 @@ class ConfigLoader(_Loader):
         context.app_context = self.get_context(
             APP, pipeline[-1], global_conf)
         context.filter_contexts = [
-            self.get_context(FILTER, name, global_conf)
-            for name in pipeline[:-1]]
+            self.get_context(FILTER, pname, global_conf)
+            for pname in pipeline[:-1]]
         return context
 
     def find_config_section(self, object_type, name=None):
@@ -755,11 +699,11 @@ class EggLoader(_Loader):
                 "Entry point %r not found in egg %r (dir: %s; protocols: %s; "
                 "entry_points: %s)"
                 % (name, self.spec,
-                   dist.location,
-                   ', '.join(_flatten(object_type.egg_protocols)),
-                   ', '.join(_flatten([
-                dictkeys(pkg_resources.get_entry_info(self.spec, prot, name) or {})
-                for prot in protocol_options] or '(no entry points)'))))
+                    dist.location,
+                    ', '.join(_flatten(object_type.egg_protocols)),
+                    ', '.join(_flatten([
+                        list((pkg_resources.get_entry_info(self.spec, prot, name) or {}).keys())
+                        for prot in protocol_options] or '(no entry points)'))))
         if len(possible) > 1:
             raise LookupError(
                 "Ambiguous entry points for %r in egg %r (protocols: %s)"
@@ -775,9 +719,10 @@ class FuncLoader(_Loader):
     Dot notation is supported in both the module and function name, e.g.:
         use = call:my.module.path:object.method
     """
+
     def __init__(self, spec):
         self.spec = spec
-        if not ':' in spec:
+        if ':' not in spec:
             raise LookupError("Configuration not in format module:function")
 
     def get_context(self, object_type, name=None, global_conf=None):
@@ -785,14 +730,14 @@ class FuncLoader(_Loader):
         return LoaderContext(
             obj,
             object_type,
-            None, # determine protocol from section type
+            None,  # determine protocol from section type
             global_conf or {},
             {},
             self,
-            )
+        )
 
 
-class LoaderContext(object):
+class LoaderContext:
 
     def __init__(self, obj, object_type, protocol,
                  global_conf, local_conf, loader,
@@ -800,7 +745,7 @@ class LoaderContext(object):
         self.object = obj
         self.object_type = object_type
         self.protocol = protocol
-        #assert protocol in _flatten(object_type.egg_protocols), (
+        # assert protocol in _flatten(object_type.egg_protocols), (
         #    "Bad protocol %r; should be one of %s"
         #    % (protocol, ', '.join(map(repr, _flatten(object_type.egg_protocols)))))
         self.global_conf = global_conf
@@ -825,4 +770,3 @@ class AttrDict(dict):
     """
     A dictionary that can be assigned to.
     """
-    pass

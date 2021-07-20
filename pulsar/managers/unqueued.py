@@ -1,9 +1,6 @@
 import os
 import platform
-try:
-    import thread
-except ImportError:
-    import _thread as thread  # Py3K changed it.
+import _thread as thread
 import time
 from subprocess import Popen
 

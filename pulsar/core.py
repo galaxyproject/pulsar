@@ -9,20 +9,8 @@ from pulsar.tools import ToolBox
 from pulsar.tools.authorization import get_authorizer
 from pulsar import messaging
 from galaxy.objectstore import build_object_store_from_config
-try:
-    # If galaxy-tool-util or Galaxy >=19.09 present.
-    from galaxy.tool_util.deps import build_dependency_manager
-    DependencyManager = None
-except ImportError:
-    # If galaxy-lib or Galaxy <19.05 present.
-    from galaxy.tools.deps import DependencyManager
-    build_dependency_manager = None
-try:
-    # If galaxy-lib or Galaxy <19.05 present.
-    from galaxy.jobs.metrics import JobMetrics
-except ImportError:
-    # If galaxy-job-metrics or Galaxy >=19.09 present.
-    from galaxy.job_metrics import JobMetrics
+from galaxy.tool_util.deps import build_dependency_manager
+from galaxy.job_metrics import JobMetrics
 from galaxy.util.bunch import Bunch
 
 from logging import getLogger
@@ -145,16 +133,11 @@ class PulsarApp(object):
     def __setup_dependency_manager(self, conf):
         default_tool_dependency_dir = "dependencies"
         resolvers_config_file = os.path.join(self.config_dir, conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml"))
-        if build_dependency_manager is not None:
-            self.dependency_manager = build_dependency_manager(
-                app_config_dict=conf,
-                conf_file=resolvers_config_file,
-                default_tool_dependency_dir=default_tool_dependency_dir
-            )
-        else:
-            dependencies_dir = conf.get("tool_dependency_dir", default_tool_dependency_dir)
-            conda_config = {k: v for k, v in conf.items() if k.startswith("conda_")}
-            self.dependency_manager = DependencyManager(dependencies_dir, resolvers_config_file, app_config=conda_config)
+        self.dependency_manager = build_dependency_manager(
+            app_config_dict=conf,
+            conf_file=resolvers_config_file,
+            default_tool_dependency_dir=default_tool_dependency_dir
+        )
 
     def __setup_job_metrics(self, conf):
         job_metrics = conf.get("job_metrics", None)

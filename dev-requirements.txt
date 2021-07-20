@@ -16,6 +16,15 @@ sphinx==1.2
 pyflakes
 flake8
 
+mypy
+types-paramiko
+types-pkg-resources
+types-six
+types-PyYAML
+types-pycurl
+types-requests
+types-psutil
+
 # For release
 wheel
 twine

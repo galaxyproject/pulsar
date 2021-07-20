@@ -7,23 +7,27 @@ specific actions.
 
 import functools
 import threading
+from typing import Any, Dict, Type
 
 from logging import getLogger
 from os import getenv
-try:
-    from Queue import Queue
-except ImportError:
-    from queue import Queue
+from queue import Queue
 
 from .amqp_exchange_factory import get_exchange
-from .client import InputCachingJobClient
-from .client import JobClient
-from .client import MessageJobClient
-from .client import MessageCLIJobClient
-from .client import MessageCoexecutionPodJobClient
+from .client import (
+    BaseJobClient,
+    InputCachingJobClient,
+    JobClient,
+    MessageJobClient,
+    MessageCLIJobClient,
+    MessageCoexecutionPodJobClient,
+)
 from .destination import url_to_destination_params
-from .interface import HttpPulsarInterface
-from .interface import LocalPulsarInterface
+from .server_interface import (
+    HttpPulsarInterface,
+    LocalPulsarInterface,
+    PulsarInterface,
+)
 from .object_client import ObjectStoreClient
 from .transport import get_transport
 from .util import TransferEventManager
@@ -34,23 +38,22 @@ log = getLogger(__name__)
 DEFAULT_TRANSFER_THREADS = 2
 
 
-def build_client_manager(**kwargs):
-    if 'job_manager' in kwargs:
-        return ClientManager(**kwargs)  # TODO: Consider more separation here.
-    elif kwargs.get('amqp_url', None):
-        return MessageQueueClientManager(**kwargs)
-    else:
-        return ClientManager(**kwargs)
+class ClientManagerInterface:
+
+    def get_client(self, destination_params: Dict[str, Any], job_id: str, **kwargs: Dict[str, Any]) -> BaseJobClient:
+        """Get client instance for specified job description."""
 
 
-class ClientManager(object):
+class ClientManager(ClientManagerInterface):
     """Factory class to create Pulsar clients.
 
     This class was introduced for classes of clients that need to potential
     share state between multiple client connections.
     """
+    job_manager_interface_class: Type[PulsarInterface]
+    client_class: Type[BaseJobClient]
 
-    def __init__(self, **kwds):
+    def __init__(self, **kwds: Dict[str, Any]):
         """Build a HTTP client or a local client that talks directly to a job manger."""
         if 'pulsar_app' in kwds or 'job_manager' in kwds:
             self.job_manager_interface_class = LocalPulsarInterface
@@ -101,9 +104,11 @@ except ImportError:
     from pulsar.managers.util.cli import factory as cli_factory
 
 
-class MessageQueueClientManager(object):
+class MessageQueueClientManager(ClientManagerInterface):
+    status_cache: Dict[str, Any]
+    ack_consumer_threads: Dict[str, threading.Thread]
 
-    def __init__(self, **kwds):
+    def __init__(self, **kwds: Dict[str, Any]):
         self.url = kwds.get('amqp_url')
         self.manager_name = kwds.get("manager", None) or "_default_"
         self.exchange = get_exchange(self.url, self.manager_name, kwds)
@@ -166,7 +171,7 @@ class MessageQueueClientManager(object):
             thread.start()
             self.callback_thread = thread
 
-    def ack_consumer(self, queue_name):
+    def ack_consumer(self, queue_name: str):
         try:
             self.exchange.consume(queue_name + '_ack', None, check=self)
         except Exception:
@@ -193,10 +198,11 @@ class MessageQueueClientManager(object):
                 thread.start()
                 self.ack_consumer_threads[name] = thread
 
-    def shutdown(self, ensure_cleanup=False):
+    def shutdown(self, ensure_cleanup: bool = False):
         self.active = False
         if ensure_cleanup:
-            self.callback_thread.join()
+            if self.callback_thread is not None:
+                self.callback_thread.join()
             for v in self.ack_consumer_threads.values():
                 v.join()
 
@@ -217,6 +223,15 @@ class MessageQueueClientManager(object):
             return MessageCoexecutionPodJobClient(destination_params, job_id, self)
         else:
             return MessageJobClient(destination_params, job_id, self)
+
+
+def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
+    if 'job_manager' in kwargs:
+        return ClientManager(**kwargs)  # TODO: Consider more separation here.
+    elif kwargs.get('amqp_url', None):
+        return MessageQueueClientManager(**kwargs)
+    else:
+        return ClientManager(**kwargs)
 
 
 class ObjectStoreClientManager(object):
