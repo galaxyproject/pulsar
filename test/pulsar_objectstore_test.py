@@ -25,7 +25,7 @@ class PulsarObjectStoreTest(TempDirectoryTestCase):
         open(path, "wb").write(contents)
         return path
 
-    @skip
+    @skip("No longer testing defunct objectstore")
     def test_pulsar_objectstore(self):
         # Define real object store used by Pulsar server.
         object_store_config_file = join(self.temp_directory, "object_store_conf.xml")
