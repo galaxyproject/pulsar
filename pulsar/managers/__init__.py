@@ -107,9 +107,6 @@ class ManagerProxy(object):
     def kill(self, *args, **kwargs):
         return self._proxied_manager.kill(*args, **kwargs)
 
-    def enable_metadata_directory(self, *args, **kwargs):
-        return self._proxied_manager.enable_metadata_directory(*args, **kwargs)
-
     def shutdown(self, timeout=None):
         """ Optional. """
         try:

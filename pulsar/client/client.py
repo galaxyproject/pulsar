@@ -649,6 +649,8 @@ def _setup_params_from_job_config(job_config):
     tool_id = job_config.get("tool_id", None)
     tool_version = job_config.get("tool_version", None)
     preserve_galaxy_python_environment = job_config.get("preserve_galaxy_python_environment", None)
+    # use_metadata ignored post Pulsar 0.14.12+ but keep setting it for older Pulsar's that
+    # had hacks for pre-2017 Galaxies.
     return dict(
         job_id=job_id,
         tool_id=tool_id,

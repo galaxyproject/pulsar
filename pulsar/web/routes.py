@@ -45,13 +45,12 @@ class PulsarController(Controller):
 
 
 @PulsarController(path="/jobs", method="POST", response_type='json')
-def setup(manager, job_id, tool_id=None, tool_version=None, use_metadata='false'):
-    return __setup(manager, job_id, tool_id=tool_id, tool_version=tool_version, use_metadata=use_metadata)
+def setup(manager, job_id, tool_id=None, tool_version=None, use_metadata='true'):
+    return __setup(manager, job_id, tool_id=tool_id, tool_version=tool_version)
 
 
-def __setup(manager, job_id, tool_id, tool_version, use_metadata):
-    use_metadata = loads(use_metadata)
-    response = setup_job(manager, job_id, tool_id, tool_version, use_metadata)
+def __setup(manager, job_id, tool_id, tool_version):
+    response = setup_job(manager, job_id, tool_id, tool_version)
     log.debug("Setup job with configuration: %s" % response)
     return response
 
