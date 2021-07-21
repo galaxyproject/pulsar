@@ -4,7 +4,8 @@ $headers
 
 _galaxy_setup_environment() {
     local _use_framework_galaxy="$1"
-    _GALAXY_JOB_HOME_DIR="$working_directory/../home"
+    _GALAXY_JOB_DIR="$working_directory"
+    _GALAXY_JOB_HOME_DIR="$working_directory/home"
     _GALAXY_JOB_TMP_DIR=$tmp_dir_creation_statement
     $env_setup_commands
     if [ "$GALAXY_LIB" != "None" -a "$_use_framework_galaxy" = "True" ]; then
@@ -26,12 +27,14 @@ _galaxy_setup_environment() {
 
 $integrity_injection
 $slots_statement
-export GALAXY_SLOTS
+export PYTHONWARNINGS="ignore"
 GALAXY_VIRTUAL_ENV="$galaxy_virtual_env"
 _GALAXY_VIRTUAL_ENV="$galaxy_virtual_env"
 PRESERVE_GALAXY_ENVIRONMENT="$preserve_python_environment"
 GALAXY_LIB="$galaxy_lib"
 _galaxy_setup_environment "$PRESERVE_GALAXY_ENVIRONMENT"
+export _GALAXY_JOB_HOME_DIR
+export _GALAXY_JOB_TMP_DIR
 GALAXY_PYTHON=`command -v python`
 cd $working_directory
 $memory_statement
