@@ -228,13 +228,6 @@ class JobDirectory(RemoteJobDirectory):
         # Assert this job id isn't hacking path somehow.
         assert job_id == basename(job_id)
 
-    def enable_metadata_directory(self):
-        self.store_metadata("use_metadata_directory", True)
-
-    @property
-    def use_metadata_directory(self):
-        return self.has_metadata("use_metadata_directory")
-
     def _job_file(self, name):
         return os.path.join(self.job_directory, name)
 
@@ -328,12 +321,6 @@ class JobDirectory(RemoteJobDirectory):
     def job_directory_contents(self):
         # Set recursive to False to just get the top-level artifacts
         return self.__directory_contents(self.job_directory, recursive=False)
-
-    def metadata_directory(self):
-        if self.use_metadata_directory:
-            return super(JobDirectory, self).metadata_directory()
-        else:
-            return self.working_directory()
 
     def __directory_contents(self, directory, recursive=True):
         contents = []

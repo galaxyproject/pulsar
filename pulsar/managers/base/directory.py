@@ -84,9 +84,6 @@ class DirectoryBaseManager(BaseManager):
     def _write_command_line(self, job_id, command_line):
         self._write_job_file(job_id, JOB_FILE_COMMAND_LINE, command_line)
 
-    def enable_metadata_directory(self, job_id):
-        self._job_directory(job_id).enable_metadata_directory()
-
     def _record_cancel(self, job_id):
         try:
             self._job_directory(job_id).store_metadata(JOB_FILE_CANCELLED, True)

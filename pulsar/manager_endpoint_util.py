@@ -80,13 +80,11 @@ def submit_job(manager, job_config):
             input_job_id = setup_params.get("job_id", job_id)
             tool_id = setup_params.get("tool_id", None)
             tool_version = setup_params.get("tool_version", None)
-            use_metadata = setup_params.get("use_metadata", False)
             job_config = setup_job(
                 manager,
                 input_job_id,
                 tool_id,
                 tool_version,
-                use_metadata,
             )
 
         if job_config is not None:
@@ -111,13 +109,11 @@ def submit_job(manager, job_config):
         raise
 
 
-def setup_job(manager, job_id, tool_id, tool_version, use_metadata=False):
+def setup_job(manager, job_id, tool_id, tool_version):
     """ Setup new job from these inputs and return dict summarizing state
     (used to configure command line).
     """
     job_id = manager.setup_job(job_id, tool_id, tool_version)
-    if use_metadata:
-        manager.enable_metadata_directory(job_id)
     return build_job_config(
         job_id=job_id,
         job_directory=manager.job_directory(job_id),
