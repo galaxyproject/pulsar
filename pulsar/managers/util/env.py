@@ -1,5 +1,6 @@
 
 RAW_VALUE_BY_DEFAULT = False
+VALID_ENV_OPTIONS = ('file', 'execute', 'name/value')
 
 
 def env_to_statement(env):
@@ -28,9 +29,11 @@ def env_to_statement(env):
     execute = env.get('execute', None)
     if execute:
         return execute
-    name = env['name']
-    value = __escape(env['value'], env)
-    return '%s=%s; export %s' % (name, value, name)
+    name = env.get('name', None)
+    if name:
+        value = __escape(str(env['value']), env)
+        return '%s=%s; export %s' % (name, value, name)
+    raise RuntimeError("Invalid env definition, must be one of %s: %s" % (str(VALID_ENV_OPTIONS), str(env)))
 
 
 def __escape(value, env):
