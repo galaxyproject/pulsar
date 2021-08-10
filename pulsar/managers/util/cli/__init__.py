@@ -24,7 +24,7 @@ class CliInterface(object):
         """
         """
         def __load(module_path, d):
-            module_pattern = join(join(getcwd(), code_dir, *module_path.split('.')), '*.py')
+            module_pattern = join(join(dirname(__file__), module_path.split('.')[-1]), '*.py')
             for file in glob(module_pattern):
                 if basename(file).startswith('_'):
                     continue
