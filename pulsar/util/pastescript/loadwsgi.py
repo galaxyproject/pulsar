@@ -11,8 +11,6 @@ from typing import Callable, Dict, List, Optional, Union
 from urllib.parse import unquote
 
 import pkg_resources
-
-from galaxy.util.getargspec import getfullargspec
 from galaxy.util.properties import NicerConfigParser
 
 
@@ -59,7 +57,7 @@ def fix_type_error(exc_info, callable, varargs, kwargs):
             or getattr(exc_info[1], '_type_error_fixed', False)):
         return exc_info
     exc_info[1]._type_error_fixed = True
-    argspec = inspect.formatargspec(*getfullargspec(callable))
+    argspec = inspect.formatargspec(*inspect.getfullargspec(callable))
     args = ', '.join(map(_short_repr, varargs))
     if kwargs and args:
         args += ', '
