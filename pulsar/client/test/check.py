@@ -454,13 +454,13 @@ def extract_client_options(options):
     if default_file_action:
         client_options["default_file_action"] = default_file_action
     if hasattr(options, "jobs_directory"):
-        client_options["jobs_directory"] = getattr(options, "jobs_directory")
+        client_options["jobs_directory"] = options.jobs_directory
     if hasattr(options, "files_endpoint"):
-        client_options["files_endpoint"] = getattr(options, "files_endpoint")
+        client_options["files_endpoint"] = options.files_endpoint
     if hasattr(options, "k8s_enabled"):
-        client_options["k8s_enabled"] = getattr(options, "k8s_enabled")
+        client_options["k8s_enabled"] = options.k8s_enabled
     if hasattr(options, "container"):
-        client_options["container"] = getattr(options, "container")
+        client_options["container"] = options.container
     return client_options
 
 
@@ -538,7 +538,7 @@ def __finish(options, client, client_outputs, result_status):
     if failed:
         failed_message_template = "Failed to complete job correctly, final status %s, finish exceptions %s."
         failed_message = failed_message_template % (result_status, failed)
-        assert False, failed_message
+        raise AssertionError(failed_message)
 
 
 def main(argv=None):

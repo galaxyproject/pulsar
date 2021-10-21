@@ -128,7 +128,7 @@ class JobClient(BaseJobClient):
         super().__init__(destination_params, job_id)
         self.job_manager_interface = job_manager_interface
 
-    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, dynamic_file_sources=None):
+    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None, dynamic_file_sources=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -250,7 +250,9 @@ class JobClient(BaseJobClient):
         else:
             raise Exception("Unknown output_type %s" % output_type)
 
-    def _raw_execute(self, command, args={}, data=None, input_path=None, output_path=None):
+    def _raw_execute(self, command, args=None, data=None, input_path=None, output_path=None):
+        if args is None:
+            args = {}
         return self.job_manager_interface.execute(command, args, data, input_path, output_path)
 
     def _fetch_output(self, path, name=None, check_exists_remotely=False, action_type='transfer'):
@@ -346,7 +348,7 @@ class BaseMessageJobClient(BaseJobClient):
 
 class MessageJobClient(BaseMessageJobClient):
 
-    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, dynamic_file_sources=None):
+    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None, dynamic_file_sources=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -378,7 +380,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
         self.remote_pulsar_path = destination_params["remote_pulsar_path"]
         self.shell = shell
 
-    def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, dynamic_file_sources=None):
+    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None, dynamic_file_sources=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -412,8 +414,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         self,
         command_line,
         dependencies_description=None,
-        env=[],
-        remote_staging=[],
+        env=None,
+        remote_staging=None,
         job_config=None,
         dynamic_file_sources=None,
         container_info=None,

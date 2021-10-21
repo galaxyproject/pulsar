@@ -43,7 +43,7 @@ def test_standard_requests():
 
         try:
             app.get("/jobs/%s/files?name=test_output2&type=output" % job_id)
-            assert False  # Should throw exception
+            raise AssertionError()  # Should throw exception
         except Exception:
             pass
 

@@ -39,13 +39,13 @@ class QueueManager(Manager):
     def _init_worker_threads(self, num_concurrent_jobs):
         self.work_queue = queue.Queue()
         self.work_threads = []
-        for i in range(num_concurrent_jobs):
+        for _ in range(num_concurrent_jobs):
             worker = threading.Thread(target=self.run_next)
             worker.daemon = True
             worker.start()
             self.work_threads.append(worker)
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
+    def launch(self, job_id, command_line, submit_params=None, dependencies_description=None, env=[], setup_params=None):
         command_line = self._prepare_run(
             job_id,
             command_line,
@@ -67,7 +67,7 @@ class QueueManager(Manager):
             raise Exception("Cannot recover job with id %s" % job_id)
 
     def shutdown(self, timeout=None):
-        for i in range(len(self.work_threads)):
+        for _ in range(len(self.work_threads)):
             self.work_queue.put((STOP_SIGNAL, None))
         for worker in self.work_threads:
             worker.join(timeout)

@@ -68,7 +68,9 @@ class TestClient(JobClient):
 class RequestChecker:
     """ Class that tests request objects produced by the Client class.
     """
-    def __init__(self, action, args={}, data=None):
+    def __init__(self, action, args=None, data=None):
+        if args is None:
+            args = {}
         args['job_id'] = "543"
         self.action = action
         self.expected_args = args

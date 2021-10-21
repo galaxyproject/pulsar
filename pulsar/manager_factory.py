@@ -131,7 +131,7 @@ def _get_managers_dict():
     for manager_module in _load_manager_modules():
         for _, obj in inspect.getmembers(manager_module):
             if inspect.isclass(obj) and hasattr(obj, 'manager_type'):
-                managers[getattr(obj, 'manager_type')] = obj
+                managers[obj.manager_type] = obj
 
     return managers
 
