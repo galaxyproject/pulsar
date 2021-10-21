@@ -5,7 +5,7 @@ from xml.etree.ElementTree import fromstring
 from galaxy.util import in_directory
 
 
-class ExpressionValidator(object):
+class ExpressionValidator:
 
     def __init__(self, xml_el):
         if type(xml_el) == str:
@@ -51,9 +51,9 @@ class ExpressionValidator(object):
         assert max_count > 0
         if min_count != 1 or max_count != 1:
             single_regex = r"(?:%s)" % regex
-            first = "%s%s" % (single_regex, "?" if min_count == 0 else "")
+            first = "{}{}".format(single_regex, "?" if min_count == 0 else "")
             rest = r"(?:%s%s){%d,%d}" % (join_on, regex, max(min_count - 1, 0), max_count - 1)
-            regex = "%s%s" % (first, rest)
+            regex = "{}{}".format(first, rest)
         return regex
 
     def __is_true(self, str):
@@ -68,7 +68,7 @@ class ExpressionValidator(object):
     def _parameter_to_regex(self, element, job_directory):
         parameter_name = element.get('name')
         value_regex = self._expression_to_regex(job_directory, element)
-        return r"%s(?:=|\s+)%s" % (parameter_name, value_regex)
+        return r"{}(?:=|\s+){}".format(parameter_name, value_regex)
 
     def _integer_to_regex(self, element, job_directory):
         return r"\d+"

@@ -66,7 +66,7 @@ class PathMapperTestCase(TempDirectoryTestCase):
         )
 
 
-class TestActionMapper(object):
+class TestActionMapper:
 
     def __init__(self, expected_path, expected_type, staging_needed):
         self.expected_path = expected_path

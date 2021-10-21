@@ -1,12 +1,9 @@
 import logging
-
 from abc import ABCMeta
 from abc import abstractmethod
+from io import BytesIO
 from string import Template
-
-from six import BytesIO
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 from galaxy.util import unicodify
 
@@ -15,14 +12,13 @@ from .util import copy_to_path
 log = logging.getLogger(__name__)
 
 
-class PulsarInterface(object):
+class PulsarInterface(metaclass=ABCMeta):
     """
     Abstract base class describes how synchronous client communicates with
     (potentially remote) Pulsar procedures. Obvious implementation is HTTP based
     but Pulsar objects wrapped in routes can also be directly communicated with
     if in memory.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def execute(self, command, args={}, data=None, input_path=None, output_path=None):
@@ -108,7 +104,7 @@ class HttpPulsarInterface(PulsarInterface):
         path = COMMAND_TO_PATH.get(command, Template(command)).safe_substitute(args)
         if self.private_token:
             args["private_token"] = self.private_token
-        arg_bytes = dict([(k, unicodify(args[k]).encode('utf-8')) for k in args])
+        arg_bytes = {k: unicodify(args[k]).encode('utf-8') for k in args}
         data = urlencode(arg_bytes)
         url = self.remote_host + path + "?" + data
         return url

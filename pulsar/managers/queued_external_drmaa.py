@@ -1,4 +1,3 @@
-from __future__ import print_function
 from json import dumps
 from getpass import getuser
 
@@ -26,7 +25,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
     manager_type = "queued_external_drmaa"
 
     def __init__(self, name, app, **kwds):
-        super(ExternalDrmaaQueueManager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
         self.chown_working_directory_script = _handle_default(kwds.get('chown_working_directory_script', None), "chown_working_directory")
         self.drmaa_kill_script = _handle_default(kwds.get('drmaa_kill_script', None), "drmaa_kill")
         self.drmaa_launch_script = _handle_default(kwds.get('drmaa_launch_script', None), "drmaa_launch")
@@ -44,7 +43,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
             submit_params=submit_params,
             setup_params=setup_params,
         )
-        print(open(attributes['remoteCommand'], 'r').read())
+        print(open(attributes['remoteCommand']).read())
         job_attributes_file = self._write_job_file(job_id, 'jt.json', dumps(attributes))
         user = submit_params.get('user', None)
         log.info("Submit as user %s" % user)
@@ -63,7 +62,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         external_id = self._external_id(job_id)
         if not external_id:
             raise KeyError("Failed to find external id for job_id %s" % job_id)
-        external_status = super(ExternalDrmaaQueueManager, self)._get_status_external(external_id)
+        external_status = super()._get_status_external(external_id)
         if external_status == status.COMPLETE and job_id not in self.reclaimed:
             self.reclaimed[job_id] = True
             self.__change_ownership(job_id, getuser())
@@ -87,7 +86,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
     def __sudo(self, *cmds, **kwargs):
         p = sudo_popen(*cmds, **kwargs)
         stdout, stderr = p.communicate()
-        assert p.returncode == 0, "%s, %s" % (stdout, stderr)
+        assert p.returncode == 0, "{}, {}".format(stdout, stderr)
         return stdout
 
 

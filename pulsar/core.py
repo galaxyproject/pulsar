@@ -27,7 +27,7 @@ NOT_WHITELIST_WARNING = "Starting the Pulsar without a toolbox to white-list." +
 MULTIPLE_MANAGERS_MESSAGE = "app.only_manager accessed with multiple managers configured"
 
 
-class PulsarApp(object):
+class PulsarApp:
 
     def __init__(self, **conf):
         if conf is None:

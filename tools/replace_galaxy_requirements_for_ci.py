@@ -16,7 +16,7 @@ print(f"Replacing Galaxy pulsar-galaxy-lib requirements in {GALAXY_DIR} with {li
 
 for req in ["lib/galaxy/dependencies/pinned-requirements.txt", "lib/galaxy/dependencies/dev-requirements.txt"]:
     req_abs_path = os.path.join(GALAXY_DIR, req)
-    with open(req_abs_path, "r") as f:
+    with open(req_abs_path) as f:
         lines = f.read()
     new_lines = []
     for line in lines.splitlines():

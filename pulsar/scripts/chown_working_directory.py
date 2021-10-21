@@ -29,7 +29,7 @@ def main(argv=None):
     else:
         job_directory = abspath(args.job_directory)
         assert job_directory
-    command = "chown -Rh '%s' '%s'" % (user, job_directory)
+    command = "chown -Rh '{}' '{}'".format(user, job_directory)
     system(command)
 
 

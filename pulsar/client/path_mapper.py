@@ -8,7 +8,7 @@ from .staging import CLIENT_INPUT_PATH_TYPES
 from .util import PathHelper
 
 
-class PathMapper(object):
+class PathMapper:
     """ Ties together a FileActionMapper and remote job configuration returned
     by the Pulsar setup method to pre-determine the location of files for staging
     on the remote Pulsar server.

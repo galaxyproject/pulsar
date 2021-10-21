@@ -8,7 +8,7 @@ from .test_utils import (
 from pulsar.managers.unqueued import CoexecutionManager
 
 
-class Coexecutor(object):
+class Coexecutor:
     """Mimic shell script in other container of coexecutor pod-like environment."""
 
     def __init__(self, manager):
@@ -20,7 +20,7 @@ class Coexecutor(object):
         while not self.has_command_line:
             try:
                 command_line = self.manager.read_command_line("123")
-            except (IOError, ValueError):
+            except (OSError, ValueError):
                 continue
             if not command_line:
                 # might be partially written... need to be make this atomic I think.
@@ -36,11 +36,11 @@ class Coexecutor(object):
 class CoexecutionManagerTest(BaseManagerTestCase):
 
     def setUp(self):
-        super(CoexecutionManagerTest, self).setUp()
+        super().setUp()
         self._set_manager()
 
     def tearDown(self):
-        super(CoexecutionManagerTest, self).setUp()
+        super().setUp()
 
     def _set_manager(self, **kwds):
         self.manager = CoexecutionManager('_default_', self.app, **kwds)

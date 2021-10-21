@@ -3,28 +3,33 @@ Base Classes and Infrastructure Supporting Concret Manager Implementations.
 
 """
 import errno
+import json
 import logging
 import os
-from os.path import exists, isdir, join, basename
-from os.path import relpath
-from os import curdir
-from os import listdir
-from os import makedirs
-from os import sep
-from os import getenv
-from os import walk
-import json
-from uuid import uuid4
+from os import (
+    curdir,
+    getenv,
+    listdir,
+    makedirs,
+    sep,
+    walk,
+)
+from os.path import (
+    basename,
+    exists,
+    isdir,
+    join,
+    relpath,
+)
 from shutil import rmtree
-
-import six
+from uuid import uuid4
 
 from pulsar import locks
-from pulsar.managers import ManagerInterface
 from pulsar.client.job_directory import (
     RemoteJobDirectory,
     get_mapped_file,
 )
+from pulsar.managers import ManagerInterface
 
 JOB_DIRECTORY_INPUTS = "inputs"
 JOB_DIRECTORY_OUTPUTS = "outputs"
@@ -113,7 +118,7 @@ class BaseManager(ManagerInterface):
 
     def __init_env_vars(self, **kwds):
         env_vars = []
-        for key, value in six.iteritems(kwds):
+        for key, value in kwds.items():
             if key.lower().startswith("env_"):
                 name = key[len("env_"):]
                 env_vars.append(dict(name=name, value=value, raw=False))
@@ -165,15 +170,15 @@ class BaseManager(ManagerInterface):
         return self.authorizer.get_authorization(tool_id)
 
     def _check_execution(self, job_id, tool_id, command_line):
-        log.debug("job_id: %s - Checking authorization of command_line [%s]" % (job_id, command_line))
+        log.debug("job_id: {} - Checking authorization of command_line [{}]".format(job_id, command_line))
         authorization = self._get_authorization(job_id, tool_id)
         job_directory = self._job_directory(job_id)
         tool_files_dir = job_directory.tool_files_directory()
         for file in self._list_dir(tool_files_dir):
             if os.path.isdir(join(tool_files_dir, file)):
                 continue
-            contents = open(join(tool_files_dir, file), 'r').read()
-            log.debug("job_id: %s - checking tool file %s" % (job_id, file))
+            contents = open(join(tool_files_dir, file)).read()
+            log.debug("job_id: {} - checking tool file {}".format(job_id, file))
             authorization.authorize_tool_file(basename(file), contents)
         config_files_dir = job_directory.configs_directory()
         for file in self._list_dir(config_files_dir):
@@ -199,7 +204,7 @@ class BaseManager(ManagerInterface):
             job_directory=job_directory,
         )
         if dependency_commands:
-            command_line = "%s; %s" % ("; ".join(dependency_commands), command_line)
+            command_line = "{}; {}".format("; ".join(dependency_commands), command_line)
         return command_line
 
     def setup_job(self, input_job_id, tool_id, tool_version):
@@ -210,7 +215,7 @@ class BaseManager(ManagerInterface):
         return str(self.id_assigner(input_job_id))
 
     def __str__(self):
-        return "{0}[name={1}]".format(type(self).__name__, self.name)
+        return "{}[name={}]".format(type(self).__name__, self.name)
 
 
 class JobDirectory(RemoteJobDirectory):
@@ -222,7 +227,7 @@ class JobDirectory(RemoteJobDirectory):
         lock_manager=None,
         directory_maker=None
     ):
-        super(JobDirectory, self).__init__(staging_directory, remote_id=job_id, remote_sep=sep)
+        super().__init__(staging_directory, remote_id=job_id, remote_sep=sep)
         self._directory_maker = directory_maker or DirectoryMaker()
         self.lock_manager = lock_manager
         # Assert this job id isn't hacking path somehow.
@@ -258,7 +263,7 @@ class JobDirectory(RemoteJobDirectory):
         path = self._job_file(name)
         job_file = open(path, 'wb')
         try:
-            if isinstance(contents, six.text_type):
+            if isinstance(contents, str):
                 contents = contents.encode("UTF-8")
             job_file.write(contents)
         finally:
@@ -359,7 +364,7 @@ class JobDirectory(RemoteJobDirectory):
         self.remove_file(metadata_name)
 
 
-class DirectoryMaker(object):
+class DirectoryMaker:
 
     def __init__(self, mode=None):
         self.mode = mode
@@ -373,6 +378,6 @@ class DirectoryMaker(object):
                 makedirs(*makedir_args)
             else:
                 os.mkdir(*makedir_args)
-        except (OSError, IOError) as exc:
+        except OSError as exc:
             if exc.errno != errno.EEXIST:
                 raise

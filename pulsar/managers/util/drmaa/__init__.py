@@ -20,7 +20,7 @@ NO_DRMAA_MESSAGE = "Attempt to use DRMAA, but DRMAA Python library cannot be loa
 log = logging.getLogger(__name__)
 
 
-class DrmaaSessionFactory(object):
+class DrmaaSessionFactory:
     """
     Abstraction used to production DrmaaSession wrappers.
     """
@@ -34,7 +34,7 @@ class DrmaaSessionFactory(object):
         return DrmaaSession(session_constructor, **kwds)
 
 
-class DrmaaSession(object):
+class DrmaaSession:
     """
     Abstraction around `drmaa` module `Session` objects.
     """

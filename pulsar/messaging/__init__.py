@@ -5,8 +5,6 @@ submodules of ``pulsar.client``.
 
 import logging
 
-from six import itervalues
-
 from ..messaging import bind_amqp
 
 log = logging.getLogger(__name__)
@@ -15,12 +13,12 @@ log = logging.getLogger(__name__)
 def bind_app(app, queue_id, connect_ssl=None):
     connection_string = __id_to_connection_string(app, queue_id)
     queue_state = QueueState()
-    for manager in itervalues(app.managers):
+    for manager in app.managers.values():
         bind_amqp.bind_manager_to_queue(manager, queue_state, connection_string, connect_ssl)
     return queue_state
 
 
-class QueueState(object):
+class QueueState:
     """ Passed through to event loops, should be "non-zero" while queues should
     be active.
     """

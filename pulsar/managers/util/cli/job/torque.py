@@ -1,8 +1,5 @@
+import xml.etree.ElementTree as et
 from logging import getLogger
-try:
-    import xml.etree.cElementTree as et
-except ImportError:
-    import xml.etree.ElementTree as et  # type: ignore
 
 try:
     from galaxy.model import Job
@@ -62,7 +59,7 @@ class Torque(BaseJobExec):
                 log.warning(ERROR_MESSAGE_UNRECOGNIZED_ARG % k)
         template_pbsargs = ''
         for k, v in pbsargs.items():
-            template_pbsargs += '#PBS %s %s\n' % (k, v)
+            template_pbsargs += '#PBS {} {}\n'.format(k, v)
         return dict(headers=template_pbsargs)
 
     def submit(self, script_file):

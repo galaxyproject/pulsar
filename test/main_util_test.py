@@ -78,7 +78,7 @@ def test_pulsar_manager_config_builder_overrides():
         assert as_dict["app"] == "cool1"
 
 
-class MockArgs(object):
+class MockArgs:
 
     def __init__(self, ini_path, app):
         self.ini_path = ini_path
@@ -94,8 +94,8 @@ def __write_mock_ini(path, **kwds):
 
 def __mock_ini_contents(app="main", extra=""):
     return """
-[app:%s]
+[app:{}]
 paste.app_factory = pulsar.web.wsgi:app_factory
 foo=bar1
-%s
-""" % (app, extra)
+{}
+""".format(app, extra)

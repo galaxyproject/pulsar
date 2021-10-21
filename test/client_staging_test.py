@@ -16,7 +16,7 @@ TEST_ENV_1 = dict(name="x", value="y")
 class TestStager(TempDirectoryTestCase):
 
     def setUp(self):
-        super(TestStager, self).setUp()
+        super().setUp()
         from .test_utils import get_test_tool
         self.tool = get_test_tool()
         self.client = MockClient(self.temp_directory, self.tool)
@@ -145,7 +145,7 @@ class TestStager(TempDirectoryTestCase):
         return submit_job(self.client, self.client_job_description, self.job_config)
 
 
-class MockClient(object):
+class MockClient:
 
     def __init__(self, temp_directory, tool):
         self.temp_directory = temp_directory
@@ -178,7 +178,7 @@ class MockClient(object):
 
     def launch(self, command_line, dependencies_description, job_config={}, remote_staging={}, env=[], dynamic_file_sources=None):
         if self.expected_command_line is not None:
-            message = "Excepected command line %s, got %s" % (self.expected_command_line, command_line)
+            message = "Excepected command line {}, got {}".format(self.expected_command_line, command_line)
             assert self.expected_command_line == command_line, message
         assert dependencies_description.requirements == [TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]
         assert env == [TEST_ENV_1]

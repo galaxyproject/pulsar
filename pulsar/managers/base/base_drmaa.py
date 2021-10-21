@@ -22,7 +22,7 @@ class BaseDrmaaManager(ExternalBaseManager):
 
     def __init__(self, name, app, **kwds):
         """Setup native specification and drmaa session factory."""
-        super(BaseDrmaaManager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
         self.native_specification = kwds.get('native_specification', None)
         drmaa_session_factory_class = kwds.get('drmaa_session_factory_class', DrmaaSessionFactory)
         drmaa_session_factory = drmaa_session_factory_class()
@@ -31,7 +31,7 @@ class BaseDrmaaManager(ExternalBaseManager):
     def shutdown(self, timeout=None):
         """Cleanup DRMAA session and call shutdown of parent."""
         try:
-            super(BaseDrmaaManager, self).shutdown(timeout)
+            super().shutdown(timeout)
         except Exception:
             pass
         self.drmaa_session.close()

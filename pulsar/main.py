@@ -217,7 +217,7 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
         if yaml is None:
             raise Exception("Cannot load configuration from file %s, pyyaml is not available." % app_conf_path)
 
-        with open(app_conf_path, "r") as f:
+        with open(app_conf_path) as f:
             app_conf = yaml.safe_load(f) or {}
             local_conf.update(app_conf)
 
@@ -238,7 +238,7 @@ def find_ini(supplied_ini, config_dir):
     return guess
 
 
-class PulsarConfigBuilder(object):
+class PulsarConfigBuilder:
     """ Generate paste-like configuration from supplied command-line arguments.
     """
 
@@ -320,11 +320,11 @@ class PulsarConfigBuilder(object):
 class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
     def __init__(self, args=None, **kwds):
-        super(PulsarManagerConfigBuilder, self).__init__(args=args, **kwds)
+        super().__init__(args=args, **kwds)
         self.manager = kwds.get("manager", None) or (args and args.manager) or DEFAULT_MANAGER
 
     def to_dict(self):
-        as_dict = super(PulsarManagerConfigBuilder, self).to_dict()
+        as_dict = super().to_dict()
         as_dict["manager"] = self.manager
         return as_dict
 

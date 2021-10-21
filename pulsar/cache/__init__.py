@@ -1,4 +1,3 @@
-
 from hashlib import sha256
 from os.path import exists, join
 
@@ -7,7 +6,7 @@ from .util import atomicish_move
 from .util import Time
 
 
-class CacheFileMapper(object):
+class CacheFileMapper:
 
     def __init__(self, directory):
         self.directory = directory
@@ -22,7 +21,7 @@ class Cache(PersistenceStore):
     """
 
     def __init__(self, cache_directory="file_cache"):
-        super(Cache, self).__init__(join(cache_directory, "cache_shelf"))
+        super().__init__(join(cache_directory, "cache_shelf"))
         self.file_mapper = CacheFileMapper(cache_directory)
         self.time = Time
 
@@ -58,7 +57,7 @@ class Cache(PersistenceStore):
         return self.destination(token)
 
     def __token(self, ip, path):
-        for_hash = "IP:%s:%s" % (ip, path)
+        for_hash = "IP:{}:{}".format(ip, path)
         return sha256(for_hash.encode('UTF-8')).hexdigest()
 
 

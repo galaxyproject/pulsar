@@ -1,5 +1,3 @@
-from __future__ import division
-
 import contextlib
 import datetime
 import os
@@ -45,7 +43,7 @@ class StatefulManagerProxy(ManagerProxy):
     """
 
     def __init__(self, manager, **manager_options):
-        super(StatefulManagerProxy, self).__init__(manager)
+        super().__init__(manager)
         min_polling_interval = float(manager_options.get("min_polling_interval", DEFAULT_MIN_POLLING_INTERVAL))
         preprocess_retry_action_kwds = filter_destination_params(manager_options, "preprocess_action_")
         postprocess_retry_action_kwds = filter_destination_params(manager_options, "postprocess_action_")
@@ -61,7 +59,7 @@ class StatefulManagerProxy(ManagerProxy):
         self.__monitor = ManagerMonitor(self)
 
     def _default_status_change_callback(self, status, job_id):
-        log.info("Status of job [%s] changed to [%s]. No callbacks enabled." % (job_id, status))
+        log.info("Status of job [{}] changed to [{}]. No callbacks enabled.".format(job_id, status))
 
     def trigger_state_change_callback(self, job_id):
         proxy_status = self.get_status(job_id)
@@ -232,7 +230,7 @@ class StatefulManagerProxy(ManagerProxy):
                 self.__monitor.shutdown(timeout)
             except Exception:
                 log.exception("Failed to shutdown job monitor for manager %s" % self.name)
-        super(StatefulManagerProxy, self).shutdown(timeout)
+        super().shutdown(timeout)
 
     def recover_active_jobs(self):
         unqueue_preprocessing_ids = []
@@ -271,7 +269,7 @@ class StatefulManagerProxy(ManagerProxy):
         self.__state_change_callback(status.LOST, job_id)
 
 
-class ActiveJobs(object):
+class ActiveJobs:
     """ Keeps track of active jobs (those that are not yet "complete").
     Current implementation is file based, but could easily be made
     database-based instead.
@@ -337,7 +335,7 @@ class ActiveJobs(object):
         return os.path.join(self._active_job_directory(active_status), job_id)
 
 
-class ManagerMonitor(object):
+class ManagerMonitor:
     """ Monitors active jobs of a StatefulManagerProxy.
     """
 
@@ -385,12 +383,12 @@ class ManagerMonitor(object):
 
 
 def new_thread_for_job(manager, action, job_id, target, daemon):
-    name = "[action=%s]-[job=%s]" % (action, job_id)
+    name = "[action={}]-[job={}]".format(action, job_id)
     return new_thread_for_manager(manager, name, target, daemon)
 
 
 def new_thread_for_manager(manager, name, target, daemon):
-    thread_name = "[manager=%s]-%s" % (manager.name, name)
+    thread_name = "[manager={}]-{}".format(manager.name, name)
     thread = threading.Thread(name=thread_name, target=target)
     thread.daemon = daemon
     thread.start()

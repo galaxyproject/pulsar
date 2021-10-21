@@ -13,7 +13,7 @@ DEFAULT_CATCH = (Exception,)
 DEFAULT_DESCRIPTION = "action"
 
 
-class RetryActionExecutor(object):
+class RetryActionExecutor:
 
     def __init__(self, **kwds):
         # Use variables that match kombu to keep things consistent across

@@ -2,8 +2,7 @@ import hashlib
 import json
 import os.path
 import shutil
-import sys
-
+from base64 import b64decode as _b64decode, b64encode as _b64encode
 from errno import EEXIST, ENOENT
 from functools import wraps
 from os import (
@@ -21,8 +20,6 @@ from os.path import (
 )
 from threading import Event, Lock
 from weakref import WeakValueDictionary
-
-from six import binary_type
 
 # TODO: move to galaxy.util so it doesn't have to be duplicated
 # twice in pulsar.
@@ -50,21 +47,17 @@ def _copy_and_close(object, output):
 
 # Variant of base64 compat layer inspired by BSD code from Bcfg2
 # https://github.com/Bcfg2/bcfg2/blob/maint/src/lib/Bcfg2/Compat.py
-if sys.version_info >= (3, 0):
-    from base64 import b64encode as _b64encode, b64decode as _b64decode
+@wraps(_b64encode)
+def b64encode(val, **kwargs):
+    try:
+        return _b64encode(val, **kwargs)
+    except TypeError:
+        return _b64encode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
 
-    @wraps(_b64encode)
-    def b64encode(val, **kwargs):
-        try:
-            return _b64encode(val, **kwargs)
-        except TypeError:
-            return _b64encode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
 
-    @wraps(_b64decode)
-    def b64decode(val, **kwargs):
-        return _b64decode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
-else:
-    from base64 import b64encode, b64decode
+@wraps(_b64decode)
+def b64decode(val, **kwargs):
+    return _b64decode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
 
 
 def unique_path_prefix(path):
@@ -125,9 +118,10 @@ def directory_files(directory):
 
 def filter_destination_params(destination_params, prefix):
     destination_params = destination_params or {}
-    return dict([(key[len(prefix):], destination_params[key])
-                 for key in destination_params
-                 if key.startswith(prefix)])
+    return {
+        key[len(prefix):]: destination_params[key]
+        for key in destination_params if key.startswith(prefix)
+    }
 
 
 def to_base64_json(data):
@@ -146,7 +140,7 @@ def from_base64_json(data):
     return json.loads(b64decode(data))
 
 
-class PathHelper(object):
+class PathHelper:
     '''
 
     >>> import posixpath
@@ -204,7 +198,7 @@ class PathHelper(object):
         return self.remote_join(new_base, *path_parts)
 
 
-class TransferEventManager(object):
+class TransferEventManager:
 
     def __init__(self):
         self.events = WeakValueDictionary(dict())
@@ -222,7 +216,7 @@ class TransferEventManager(object):
         return event_holder
 
 
-class EventHolder(object):
+class EventHolder:
 
     def __init__(self, event, path, condition_manager):
         self.event = event
@@ -238,13 +232,13 @@ class EventHolder(object):
 
 
 def json_loads(obj):
-    if isinstance(obj, binary_type):
+    if isinstance(obj, bytes):
         obj = obj.decode("utf-8")
     return json.loads(obj)
 
 
 def json_dumps(obj):
-    if isinstance(obj, binary_type):
+    if isinstance(obj, bytes):
         obj = obj.decode("utf-8")
     return json.dumps(obj, cls=ClientJsonEncoder)
 
@@ -252,12 +246,12 @@ def json_dumps(obj):
 class ClientJsonEncoder(json.JSONEncoder):
 
     def default(self, obj):
-        if isinstance(obj, binary_type):
+        if isinstance(obj, bytes):
             return obj.decode("utf-8")
         return json.JSONEncoder.default(self, obj)
 
 
-class MessageQueueUUIDStore(object):
+class MessageQueueUUIDStore:
     """Persistent dict-like object for persisting message queue UUIDs that are
     awaiting acknowledgement or that have been operated on.
     """
@@ -268,7 +262,7 @@ class MessageQueueUUIDStore(object):
         self.__store = abspath(join(persistence_directory, *subdirs))
         try:
             makedirs(self.__store)
-        except (OSError, IOError) as exc:
+        except OSError as exc:
             if exc.errno != EEXIST:
                 raise
 
@@ -287,7 +281,7 @@ class MessageQueueUUIDStore(object):
     def __delitem__(self, key):
         try:
             unlink(self.__path(key))
-        except (OSError, IOError) as exc:
+        except OSError as exc:
             if exc.errno == ENOENT:
                 raise KeyError(key)
             raise
@@ -298,7 +292,7 @@ class MessageQueueUUIDStore(object):
     def get_time(self, key):
         try:
             return os.stat(self.__path(key)).st_mtime
-        except (OSError, IOError) as exc:
+        except OSError as exc:
             if exc.errno == ENOENT:
                 raise KeyError(key)
             raise
@@ -306,7 +300,7 @@ class MessageQueueUUIDStore(object):
     def set_time(self, key):
         try:
             os.utime(self.__path(key), None)
-        except (OSError, IOError) as exc:
+        except OSError as exc:
             if exc.errno == ENOENT:
                 raise KeyError(key)
             raise

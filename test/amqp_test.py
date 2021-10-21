@@ -26,19 +26,19 @@ def test_amqp():
     thread2.start()
     thread3.start()
     time.sleep(0.5)
-    manager1_exchange.publish("manager_test", u"cow1")
-    manager2_exchange.publish("manager2_test", u"cow2")
-    manager3_exchange.publish("manager3_test", u"cow3")
+    manager1_exchange.publish("manager_test", "cow1")
+    manager2_exchange.publish("manager2_test", "cow2")
+    manager3_exchange.publish("manager3_test", "cow3")
     time.sleep(0.1)
-    thread1.wait_for_message(u"cow1")
-    thread2.wait_for_message(u"cow2")
-    thread3.wait_for_message(u"cow3")
+    thread1.wait_for_message("cow1")
+    thread2.wait_for_message("cow2")
+    thread3.wait_for_message("cow3")
 
 
 class TestThread(threading.Thread):
 
     def __init__(self, queue_name, exchange):
-        super(TestThread, self).__init__(target=self.run)
+        super().__init__(target=self.run)
         self.queue_name = queue_name
         self.daemon = True
         self.exchange = exchange
@@ -60,7 +60,7 @@ class TestThread(threading.Thread):
         while self:
             time.sleep(.05)
         if self.message != expected_message:
-            msg = "Expected [%s], got [%s]." % (expected_message, self.message)
+            msg = "Expected [{}], got [{}].".format(expected_message, self.message)
             raise AssertionError(msg)
 
         self.join(2)

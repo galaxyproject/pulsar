@@ -1,5 +1,4 @@
 from enum import Enum
-from io import open
 from logging import getLogger
 from os import sep
 from os.path import (
@@ -70,7 +69,7 @@ class StageDirectoryType(Enum):
     WHOLE_DIRECTORY = 2  # transfer the whole directory into the target, preserve name
 
 
-class FileStager(object):
+class FileStager:
     """
     Objects of the FileStager class interact with an Pulsar client object to
     stage the files required to run jobs on a remote Pulsar server.
@@ -334,7 +333,7 @@ class FileStager(object):
         return self.job_inputs.path_referenced(source['path'])
 
 
-class JobInputs(object):
+class JobInputs:
     """
     Abstractions over dynamic inputs created for a given job (namely the command to
     execute and created configfiles).
@@ -403,7 +402,7 @@ class JobInputs(object):
         if directory is None:
             return []
 
-        pattern = r'''[\'\"]?(%s%s[^\s\'\"]+)[\'\"]?''' % (escape(directory), escape(sep))
+        pattern = r'''[\'\"]?({}{}[^\s\'\"]+)[\'\"]?'''.format(escape(directory), escape(sep))
         return self.find_pattern_references(pattern)
 
     def path_referenced(self, path):
@@ -435,7 +434,7 @@ class JobInputs(object):
         return items
 
 
-class TransferTracker(object):
+class TransferTracker:
 
     def __init__(self, client, path_helper, action_mapper, job_inputs, rewrite_paths, job_directory):
         self.client = client
@@ -565,7 +564,7 @@ def _read(path):
     Utility method to quickly read small files (config files and tool
     wrappers) into memory as bytes.
     """
-    input = open(path, "r", encoding="utf-8")
+    input = open(path, encoding="utf-8")
     try:
         return input.read()
     finally:

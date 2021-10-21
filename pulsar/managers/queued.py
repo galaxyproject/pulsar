@@ -1,12 +1,12 @@
-import os
 import multiprocessing
-from six.moves import queue
+import os
+import queue
 import threading
 import traceback
+from logging import getLogger
 
 from pulsar.managers.unqueued import Manager
 
-from logging import getLogger
 log = getLogger(__name__)
 
 STOP_SIGNAL = object()
@@ -26,7 +26,7 @@ class QueueManager(Manager):
     manager_type = "queued_python"
 
     def __init__(self, name, app, **kwds):
-        super(QueueManager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
 
         num_concurrent_jobs = kwds.get('num_concurrent_jobs', DEFAULT_NUM_CONCURRENT_JOBS)
         if num_concurrent_jobs == '*':

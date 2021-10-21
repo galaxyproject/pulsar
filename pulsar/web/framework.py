@@ -2,19 +2,18 @@
 Tiny framework used to power Pulsar application, nothing in here is specific to running
 or staging jobs. Mostly deals with routing web traffic and parsing parameters.
 """
+import inspect
+import re
+from os.path import exists
+
 from webob import Request
 from webob import Response
 from webob import exc
 
-import inspect
-from os.path import exists
-import re
-
 from pulsar.client.util import json_dumps
-from six import Iterator
 
 
-class RoutingApp(object):
+class RoutingApp:
     """
     Abstract definition for a python web application.
     """
@@ -52,7 +51,7 @@ class RoutingApp(object):
             regex += re.escape(template[last_pos:match.start()])
             var_name = match.group(1)
             expr = match.group(2) or '[^/]+'
-            expr = '(?P<%s>%s)' % (var_name, expr)
+            expr = '(?P<{}>{})'.format(var_name, expr)
             regex += expr
             last_pos = match.end()
         regex += re.escape(template[last_pos:])
@@ -75,7 +74,7 @@ def build_func_args(func, *arg_dicts):
     return args
 
 
-class Controller(object):
+class Controller:
     """
     Wraps python functions into controller methods.
     """
@@ -174,7 +173,7 @@ def file_response(path):
     return resp
 
 
-class FileIterator(Iterator):
+class FileIterator:
 
     def __init__(self, path):
         self.input = open(path, 'rb')

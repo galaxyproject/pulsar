@@ -1,4 +1,3 @@
-
 from re import match
 
 from .util import filter_destination_params

@@ -1,4 +1,3 @@
-from io import open
 from logging import getLogger
 from os.path import abspath, dirname, join
 from xml.etree import ElementTree
@@ -9,7 +8,7 @@ from pulsar.tools.validator import ExpressionValidator
 log = getLogger(__name__)
 
 
-class ToolBox(object):
+class ToolBox:
     """
     Abstraction over a tool config file largely modelled after
     Galaxy's shed_tool_conf.xml. Hopefully over time this toolbox
@@ -53,7 +52,7 @@ class ToolBox(object):
         return [tool for tool in self.tool_configs if tool.id == id]
 
 
-class InputsValidator(object):
+class InputsValidator:
 
     def __init__(self, command_validator, config_validators):
         self.command_validator = command_validator
@@ -66,18 +65,18 @@ class InputsValidator(object):
         config_validator = self.config_validators.get(name, None)
         valid = True
         if config_validator:
-            contents = open(path, "r", encoding="UTF-8").read()
+            contents = open(path, encoding="UTF-8").read()
             valid = config_validator.validate(job_directory, contents)
         return valid
 
 
-class ToolConfig(object):
+class ToolConfig:
     """
     Abstract description of a Galaxy tool.
     """
 
     def __init__(self):
-        super(ToolConfig, self).__init__()
+        super().__init__()
 
     def get_tool_dir(self):
         return abspath(dirname(self.path))
@@ -109,7 +108,7 @@ class SimpleToolConfig(ToolConfig):
     """
 
     def __init__(self, tool_el, tool_path):
-        super(SimpleToolConfig, self).__init__()
+        super().__init__()
         rel_path = tool_el.get('file')
         assert tool_path, "tool_path not set, toolbox XML files must be configured with a tool_path directory."
         assert rel_path, "file not set on tool, each tool element must define a file attribute pointing to a valid tool XML file."
@@ -141,7 +140,7 @@ class ToolShedToolConfig(SimpleToolConfig):
     """
 
     def __init__(self, tool_el, tool_path):
-        super(ToolShedToolConfig, self).__init__(tool_el, tool_path)
+        super().__init__(tool_el, tool_path)
         self.guid = tool_el.get("guid")
         # Override id in file for tool shed tools. Use GUID instead.
         self.id = self.guid

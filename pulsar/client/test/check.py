@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Script used to run an example job against a running Pulsar server.
 
 Exercises various features both the Pulsar client and server.
@@ -14,26 +13,22 @@ import tempfile
 import threading
 import time
 import traceback
-
 from collections import namedtuple
-from io import open
 
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
-from six import binary_type
 
 from pulsar.client import (
     build_client_manager,
-    ClientJobDescription,
-    ClientInputs,
-    ClientInput,
-    ClientOutputs,
     CLIENT_INPUT_PATH_TYPES,
+    ClientInput,
+    ClientInputs,
+    ClientJobDescription,
+    ClientOutputs,
     finish_job,
     PulsarOutputs,
     submit_job,
 )
-
 from .test_common import write_config
 
 TEST_SCRIPT = b"""# -*- coding: utf-8 -*-
@@ -130,14 +125,14 @@ HELP_JOB_ID = "Submit the Pulsar job with this 'external' id."
 HELP_DEBUG = "Enable debug log output from Pulsar client"
 
 EXPECTED_OUTPUT = b"hello world output"
-EXAMPLE_UNICODE_TEXT = u'єχαмρℓє συтρυт'
+EXAMPLE_UNICODE_TEXT = 'єχαмρℓє συтρυт'
 TEST_REQUIREMENT = ToolRequirement(name="dep1", version="1.1", type="package")
 TEST_DEPENDENCIES = DependenciesDescription(requirements=[TEST_REQUIREMENT])
 
 ClientInfo = namedtuple("ClientInfo", ["client", "client_manager"])
 
 
-class MockTool(object):
+class MockTool:
 
     def __init__(self, tool_dir):
         self.id = "client_test"
@@ -211,7 +206,7 @@ def run(options):
         __write_to_file("%s.fai" % temp_index_path, b"AGTC")
         __write_to_file(os.path.join(temp_index_dir_sibbling, "human_full_seqs"), b"AGTC")
 
-        empty_input = u"/foo/bar/x"
+        empty_input = "/foo/bar/x"
 
         test_unicode = getattr(options, "test_unicode", False)  # TODO Switch this in integration tests
         legacy_galaxy_json = getattr(options, "legacy_galaxy_json", False)
@@ -236,7 +231,7 @@ def run(options):
             "1" if legacy_galaxy_json else "0",
         )
         assert os.path.exists(temp_index_path)
-        command_line = u'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        command_line = 'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
         config_files = [temp_config_path]
         client_inputs = []
         client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))
@@ -329,7 +324,7 @@ def run(options):
             shutil.rmtree(temp_directory)
 
 
-class Waiter(object):
+class Waiter:
 
     def __init__(self, client, client_manager):
         self.client = client
@@ -376,16 +371,16 @@ class Waiter(object):
 
 def __assert_contents(path, expected_contents, pulsar_state):
     if not os.path.exists(path):
-        raise AssertionError("File %s not created. Final Pulsar response state [%s]" % (path, pulsar_state))
-    if isinstance(expected_contents, binary_type):
+        raise AssertionError("File {} not created. Final Pulsar response state [{}]".format(path, pulsar_state))
+    if isinstance(expected_contents, bytes):
         file = open(path, 'rb')
     else:
-        file = open(path, 'r', encoding="utf-8")
+        file = open(path, encoding="utf-8")
     try:
         contents = file.read()
         if contents != expected_contents:
-            message = "File (%s) contained invalid contents [%s]." % (path, contents)
-            message = "%s Expected contents [%s]. Final Pulsar response state [%s]" % (message, expected_contents, pulsar_state)
+            message = "File ({}) contained invalid contents [{}].".format(path, contents)
+            message = "{} Expected contents [{}]. Final Pulsar response state [{}]".format(message, expected_contents, pulsar_state)
             raise AssertionError(message)
     finally:
         file.close()
@@ -393,7 +388,7 @@ def __assert_contents(path, expected_contents, pulsar_state):
 
 def __assert_has_rewritten_bwa_path(client, temp_output4_path):
     if client.default_file_action != "none":
-        rewritten_index_path = open(temp_output4_path, 'r', encoding='utf-8').read()
+        rewritten_index_path = open(temp_output4_path, encoding='utf-8').read()
         # Path written to this file will differ between Windows and Linux.
         if re.search(r"%s[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa" % client.job_id, rewritten_index_path) is None:
             raise AssertionError("[%s] does not contain rewritten path." % rewritten_index_path)
@@ -433,7 +428,7 @@ def __client(temp_directory, options):
     if default_file_action in ["remote_scp_transfer", "remote_rsync_transfer"]:
         test_key = os.environ["PULSAR_TEST_KEY"]
         if not test_key.startswith("----"):
-            test_key = open(test_key, "r").read()
+            test_key = open(test_key).read()
         client_options["ssh_key"] = test_key
         client_options["ssh_user"] = os.environ.get("USER")
         client_options["ssh_port"] = 22
@@ -499,8 +494,8 @@ def __write_to_file(path, contents):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     with open(path, "wb") as f:
-        if not isinstance(contents, binary_type):
-            contents = binary_type(contents, "UTF-8")
+        if not isinstance(contents, bytes):
+            contents = bytes(contents, "UTF-8")
         f.write(contents)
 
 

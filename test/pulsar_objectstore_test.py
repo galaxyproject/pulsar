@@ -8,7 +8,7 @@ from .test_utils import TempDirectoryTestCase
 from .test_utils import skip
 
 
-class MockDataset(object):
+class MockDataset:
 
     def __init__(self, id):
         self.id = id

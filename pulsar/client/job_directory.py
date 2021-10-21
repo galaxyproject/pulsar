@@ -28,7 +28,7 @@ TYPES_TO_METHOD = dict(
 )
 
 
-class RemoteJobDirectory(object):
+class RemoteJobDirectory:
     """ Representation of a (potentially) remote Pulsar-style staging directory.
     """
 
@@ -155,5 +155,5 @@ def __posix_to_local_path(path, local_path_module=os.path):
 def verify_is_in_directory(path, directory, local_path_module=os.path):
     if not in_directory(path, directory, local_path_module):
         msg = "Attempt to read or write file outside an authorized directory."
-        log.warn("%s Attempted path: %s, valid directory: %s" % (msg, path, directory))
+        log.warn("{} Attempted path: {}, valid directory: {}".format(msg, path, directory))
         raise Exception(msg)

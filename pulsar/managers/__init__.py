@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 PULSAR_UNKNOWN_RETURN_CODE = '__unknown__'
 
 
-class ManagerInterface(object):
+class ManagerInterface:
     """
     Defines the interface to various job managers.
     """
@@ -74,7 +74,7 @@ class ManagerInterface(object):
         """
 
 
-class ManagerProxy(object):
+class ManagerProxy:
     """
     Subclass to build override proxy a manager and override specific
     functionality.

@@ -19,7 +19,6 @@ flake8
 mypy
 types-paramiko
 types-pkg-resources
-types-six
 types-PyYAML
 types-pycurl
 types-requests

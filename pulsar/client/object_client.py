@@ -1,7 +1,7 @@
 from .decorators import parseJson
 
 
-class ObjectStoreClient(object):
+class ObjectStoreClient:
 
     def __init__(self, pulsar_interface):
         self.pulsar_interface = pulsar_interface

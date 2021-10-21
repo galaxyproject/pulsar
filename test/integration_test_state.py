@@ -238,7 +238,7 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
         exchange.publish("status", params)
 
 
-class SimpleConsumer(object):
+class SimpleConsumer:
 
     def __init__(self, queue, url, manager="_default_"):
         self.queue = queue

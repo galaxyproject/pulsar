@@ -1,7 +1,7 @@
 from os.path import join
 
 
-class AllowAnyAuthorization(object):
+class AllowAnyAuthorization:
 
     def authorize_setup(self):
         pass
@@ -16,7 +16,7 @@ class AllowAnyAuthorization(object):
         pass
 
 
-class AllowAnyAuthorizer(object):
+class AllowAnyAuthorizer:
     """
     Allow any, by default Pulsar is assumed to be secured
     using a firewall or private_token.
@@ -60,7 +60,7 @@ class ToolBasedAuthorization(AllowAnyAuthorization):
         return self.tool.inputs_validator
 
 
-class ToolBasedAuthorizer(object):
+class ToolBasedAuthorizer:
     """
     Work In Progress: Implement tool based white-listing
     of what jobs can run and what those jobs can do.

@@ -1,8 +1,6 @@
 import logging
 import os
 
-from six import string_types
-
 from pulsar.managers.util.pykube_util import (
     ensure_pykube,
     find_job_object_by_name,
@@ -53,7 +51,7 @@ class OutputNotFoundException(Exception):
         return "No remote output found for path %s" % self.path
 
 
-class BaseJobClient(object):
+class BaseJobClient:
 
     def __init__(self, destination_params, job_id):
         destination_params = destination_params or {}
@@ -127,7 +125,7 @@ class JobClient(BaseJobClient):
     """
 
     def __init__(self, destination_params, job_id, job_manager_interface):
-        super(JobClient, self).__init__(destination_params, job_id)
+        super().__init__(destination_params, job_id)
         self.job_manager_interface = job_manager_interface
 
     def launch(self, command_line, dependencies_description=None, env=[], remote_staging=[], job_config=None, dynamic_file_sources=None):
@@ -215,7 +213,7 @@ class JobClient(BaseJobClient):
         # action type == 'message' should either copy or transfer
         # depending on default not just fallback to transfer.
         if action_type in ['transfer', 'message']:
-            if isinstance(contents, string_types):
+            if isinstance(contents, str):
                 contents = contents.encode("utf-8")
             message = "Uploading path [%s] (action_type: [%s])"
             log.debug(message, path, action_type)
@@ -298,7 +296,7 @@ class JobClient(BaseJobClient):
 class BaseMessageJobClient(BaseJobClient):
 
     def __init__(self, destination_params, job_id, client_manager):
-        super(BaseMessageJobClient, self).__init__(destination_params, job_id)
+        super().__init__(destination_params, job_id)
         if not self.job_directory:
             error_message = "Message-queue based Pulsar client requires destination define a remote job_directory to stage files into."
             raise Exception(error_message)
@@ -376,7 +374,7 @@ class MessageJobClient(BaseMessageJobClient):
 class MessageCLIJobClient(BaseMessageJobClient):
 
     def __init__(self, destination_params, job_id, client_manager, shell):
-        super(MessageCLIJobClient, self).__init__(destination_params, job_id, client_manager)
+        super().__init__(destination_params, job_id, client_manager)
         self.remote_pulsar_path = destination_params["remote_pulsar_path"]
         self.shell = shell
 
@@ -394,7 +392,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
         base64_message = to_base64_json(launch_params)
         submit_command = os.path.join(self.remote_pulsar_path, "scripts", "submit.bash")
         # TODO: Allow configuration of manager, app, and ini path...
-        self.shell.execute("nohup %s --base64 %s &" % (submit_command, base64_message))
+        self.shell.execute("nohup {} --base64 {} &".format(submit_command, base64_message))
 
     def kill(self):
         # TODO
@@ -405,7 +403,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
 
     def __init__(self, destination_params, job_id, client_manager):
         ensure_pykube()
-        super(MessageCoexecutionPodJobClient, self).__init__(destination_params, job_id, client_manager)
+        super().__init__(destination_params, job_id, client_manager)
         self.instance_id = galaxy_instance_id(destination_params)
         self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
         self._default_pull_policy = pull_policy(destination_params)
@@ -601,7 +599,7 @@ class InputCachingJobClient(JobClient):
     """
 
     def __init__(self, destination_params, job_id, job_manager_interface, client_cacher):
-        super(InputCachingJobClient, self).__init__(destination_params, job_id, job_manager_interface)
+        super().__init__(destination_params, job_id, job_manager_interface)
         self.client_cacher = client_cacher
 
     @parseJson()

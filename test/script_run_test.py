@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 from .test_utils import (
     TempDirectoryTestCase,
@@ -10,7 +9,7 @@ from pulsar.scripts import run
 class ScriptRunTestCase(TempDirectoryTestCase):
 
     def setUp(self):
-        super(ScriptRunTestCase, self).setUp()
+        super().setUp()
         input1 = os.path.join(self._working_directory, "input1")
         open(input1, "w").write("Hello World!")
         self.input1 = input1
@@ -36,7 +35,7 @@ class ScriptRunTestCase(TempDirectoryTestCase):
         ])
         exit_code = run.main(run_args)
         if os.path.exists(self._result):
-            print(open(self._result, "r").read())
+            print(open(self._result).read())
         else:
             assert False, "No result json file found"
         assert exit_code == 0
@@ -45,8 +44,8 @@ class ScriptRunTestCase(TempDirectoryTestCase):
         output1 = os.path.join(self._working_directory, "output1")
         output_test2 = os.path.join(self._working_directory, "output_test2")
         # Prove it went somewhere else :)
-        assert open(output1, "r").read() != self._working_directory
-        assert open(output_test2, "r").read() == "Hello World!"
+        assert open(output1).read() != self._working_directory
+        assert open(output_test2).read() == "Hello World!"
 
     @property
     def _result(self):

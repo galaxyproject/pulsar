@@ -27,7 +27,7 @@ def finish_job(client, cleanup_job, job_completed_normally, client_outputs, puls
     return collection_failure_exceptions
 
 
-class ClientOutputCollector(object):
+class ClientOutputCollector:
 
     def __init__(self, client):
         self.client = client
@@ -48,7 +48,7 @@ class ClientOutputCollector(object):
         return True
 
 
-class ResultsCollector(object):
+class ResultsCollector:
 
     def __init__(self, output_collector, action_mapper, client_outputs, pulsar_outputs):
         self.output_collector = output_collector
@@ -83,7 +83,7 @@ class ResultsCollector(object):
             try:
                 self.output_files.remove(output_file)
             except ValueError:
-                raise Exception("Failed to remove %s from %s" % (output_file, self.output_files))
+                raise Exception("Failed to remove {} from {}".format(output_file, self.output_files))
 
     def __collect_outputs(self):
         # Legacy Pulsar not returning list of files, iterate over the list of
@@ -177,7 +177,7 @@ class ResultsCollector(object):
                 collect = True
 
             if collect:
-                log.debug("collecting dynamic %s file %s" % (output_type, name))
+                log.debug("collecting dynamic {} file {}".format(output_type, name))
                 output_file = join(directory, self.pulsar_outputs.path_helper.local_name(name))
                 if self._attempt_collect_output(output_type=output_type, path=output_file, name=name):
                     self.downloaded_working_directory_files.append(name)
@@ -195,7 +195,7 @@ class ResultsCollector(object):
         return collected
 
     def _collect_output(self, output_type, action, name):
-        log.info("collecting output %s with action %s" % (name, action))
+        log.info("collecting output {} with action {}".format(name, action))
         try:
             return self.output_collector.collect_output(self, output_type, action, name)
         except Exception as e:
@@ -207,7 +207,7 @@ class ResultsCollector(object):
                 raise
 
 
-class DownloadExceptionTracker(object):
+class DownloadExceptionTracker:
 
     def __init__(self):
         self.collection_failure_exceptions = []
