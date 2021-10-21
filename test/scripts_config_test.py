@@ -119,7 +119,7 @@ def _check_project_directory(project_dir):
     app_config = None
     app_config_path = path_if_exists("app.yml")
     if app_config_path:
-        app_config = yaml.load(open(app_config_path))
+        app_config = yaml.safe_load(open(app_config_path))
         assert isinstance(app_config, dict) or (app_config is None)
 
     ini_config = None
