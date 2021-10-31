@@ -86,7 +86,7 @@ MISSING_FILES_ENDPOINT_ERROR = "Attempted to use remote_transfer action without 
 MISSING_SSH_KEY_ERROR = "Attempt to use file transfer action requiring an SSH key without specifying a ssh_key."
 
 
-class FileActionMapper(object):
+class FileActionMapper:
     """
     Objects of this class define how paths are mapped to actions.
 
@@ -263,7 +263,7 @@ class FileActionMapper(object):
         if "?" not in url_base:
             url_base = "%s?" % url_base
         # TODO: URL encode path.
-        url = "%s&path=%s&file_type=%s" % (url_base, action.path, file_type)
+        url = "{}&path={}&file_type={}".format(url_base, action.path, file_type)
         action.url = url
 
     def __inject_ssh_properties(self, action):
@@ -281,7 +281,7 @@ REQUIRED_ACTION_KWD = object()
 UNSET_ACTION_KWD = "__UNSET__"
 
 
-class BaseAction(object):
+class BaseAction:
     whole_directory_transfer_supported = False
     action_spec: Dict[str, Any] = {}
     action_type: str
@@ -341,7 +341,7 @@ class BaseAction(object):
                 first = False
             else:
                 attribute_str += ","
-            attribute_str += "%s=%s" % (key, value)
+            attribute_str += "{}={}".format(key, value)
         return "FileAction[%s]" % attribute_str
 
 
@@ -376,7 +376,7 @@ class RewriteAction(BaseAction):
     staging = STAGING_ACTION_NONE
 
     def __init__(self, source, file_lister=None, source_directory=None, destination_directory=None):
-        super(RewriteAction, self).__init__(source, file_lister=file_lister)
+        super().__init__(source, file_lister=file_lister)
         self.source_directory = source_directory
         self.destination_directory = destination_directory
 
@@ -453,7 +453,7 @@ class RemoteTransferAction(BaseAction):
     staging = STAGING_ACTION_REMOTE
 
     def __init__(self, source, file_lister=None, url=None):
-        super(RemoteTransferAction, self).__init__(source, file_lister=file_lister)
+        super().__init__(source, file_lister=file_lister)
         self.url = url
 
     def to_dict(self):
@@ -511,7 +511,7 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
 
     def __init__(self, source, file_lister=None, ssh_user=UNSET_ACTION_KWD,
                  ssh_host=UNSET_ACTION_KWD, ssh_port=UNSET_ACTION_KWD, ssh_key=UNSET_ACTION_KWD):
-        super(PubkeyAuthenticatedTransferAction, self).__init__(source, file_lister=file_lister)
+        super().__init__(source, file_lister=file_lister)
         self.ssh_user = ssh_user
         self.ssh_host = ssh_host
         self.ssh_port = ssh_port
@@ -587,7 +587,7 @@ class ScpTransferAction(PubkeyAuthenticatedTransferAction):
                           self.ssh_port, key_file)
 
 
-class MessageAction(object):
+class MessageAction:
     """ Sort of pseudo action describing "files" store in memory and
     transferred via message (HTTP, Python-call, MQ, etc...)
     """
@@ -649,7 +649,7 @@ def from_dict(action_dict):
     return target_class.from_dict(action_dict)
 
 
-class BasePathMapper(object):
+class BasePathMapper:
     match_type: str
 
     def __init__(self, config):
@@ -697,7 +697,7 @@ class PathTypeOnlyMapper(BasePathMapper):
     match_type = 'path_type_only'
 
     def __init__(self, config):
-        super(PathTypeOnlyMapper, self).__init__(config)
+        super().__init__(config)
 
     def _path_matches(self, path):
         return True
@@ -710,14 +710,14 @@ class PrefixPathMapper(BasePathMapper):
     match_type = 'prefix'
 
     def __init__(self, config):
-        super(PrefixPathMapper, self).__init__(config)
+        super().__init__(config)
         self.prefix_path = abspath(config['path'])
 
     def _path_matches(self, path):
         return path is not None and path.startswith(self.prefix_path)
 
     def to_pattern(self):
-        pattern_str = r"(%s%s[^\s,\"\']+)" % (escape(self.prefix_path), escape(sep))
+        pattern_str = r"({}{}[^\s,\"\']+)".format(escape(self.prefix_path), escape(sep))
         return compile(pattern_str)
 
     def to_dict(self):
@@ -728,7 +728,7 @@ class GlobPathMapper(BasePathMapper):
     match_type = 'glob'
 
     def __init__(self, config):
-        super(GlobPathMapper, self).__init__(config)
+        super().__init__(config)
         self.glob_path = config['path']
 
     def _path_matches(self, path):
@@ -745,7 +745,7 @@ class RegexPathMapper(BasePathMapper):
     match_type = 'regex'
 
     def __init__(self, config):
-        super(RegexPathMapper, self).__init__(config)
+        super().__init__(config)
         self.pattern_raw = config['path']
         self.pattern = compile(self.pattern_raw)
 
@@ -775,7 +775,7 @@ def _mappper_from_dict(mapper_dict):
     return MAPPER_CLASS_DICT[map_type](mapper_dict)
 
 
-class FileLister(object):
+class FileLister:
 
     def __init__(self, config):
         self.depth = int(config.get("depth", "0"))
@@ -793,7 +793,7 @@ class FileLister(object):
             while depth > 0:
                 path = dirname(path)
                 depth -= 1
-            return dict([(join(path, f), f) for f in directory_files(path)])
+            return {join(path, f): f for f in directory_files(path)}
 
 
 DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
@@ -809,7 +809,7 @@ ACTION_CLASSES: List[Type[BaseAction]] = [
     RsyncTransferAction,
     ScpTransferAction,
 ]
-actions = dict([(clazz.action_type, clazz) for clazz in ACTION_CLASSES])
+actions = {clazz.action_type: clazz for clazz in ACTION_CLASSES}
 
 
 __all__ = (

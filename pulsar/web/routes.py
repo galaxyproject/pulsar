@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 class PulsarController(Controller):
 
     def __init__(self, **kwargs):
-        super(PulsarController, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _check_access(self, req, environ, start_response):
         if req.app.private_token:
@@ -225,7 +225,7 @@ def object_store_get_store_usage_percent(object_store):
     return object_store.get_store_usage_percent()
 
 
-class PulsarDataset(object):
+class PulsarDataset:
     """Intermediary between Pulsar and objectstore."""
 
     def __init__(self, id):
@@ -238,6 +238,6 @@ def _handle_upload(file_cache, path, body, cache_token=None):
     if cache_token:
         cached_file = file_cache.destination(cache_token)
         source = open(cached_file, 'rb')
-        log.info("Copying cached file %s to %s" % (cached_file, path))
+        log.info("Copying cached file {} to {}".format(cached_file, path))
     copy_to_path(source, path)
     return {"path": path}

@@ -1,24 +1,22 @@
-from __future__ import print_function
-from os.path import join
+import configparser
 from os import environ, makedirs, system
-from six import next, itervalues
-from six.moves import configparser
-from .test_utils import (
-    TempDirectoryTestCase,
-    skip_unless_executable,
-    skip_unless_module,
-    skip_unless_any_module,
-    skip_unless_environ,
-    skip_without_drmaa,
-)
-
-from .test_utils import integration_test
-from .test_utils import test_pulsar_app
-from .test_utils import test_pulsar_server
-from .test_utils import files_server
+from os.path import join
 
 from galaxy.util.bunch import Bunch
+
 from pulsar.client.test.check import run
+from .test_utils import (
+    files_server,
+    integration_test,
+    skip_unless_any_module,
+    skip_unless_environ,
+    skip_unless_executable,
+    skip_unless_module,
+    skip_without_drmaa,
+    TempDirectoryTestCase,
+    test_pulsar_app,
+    test_pulsar_server,
+)
 
 
 class BaseIntegrationTest(TempDirectoryTestCase):
@@ -64,7 +62,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
 
     def _run_direct(self, app_conf, **kwds):
         with test_pulsar_app({}, app_conf, {}) as app:
-            options = Bunch(job_manager=next(itervalues(app.app.managers)), file_cache=app.app.file_cache, **kwds)
+            options = Bunch(job_manager=next(iter(app.app.managers.values())), file_cache=app.app.file_cache, **kwds)
             self._update_options_for_app(options, app.app, **kwds)
             run(options)
 

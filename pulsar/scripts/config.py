@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 import os
 import string
@@ -260,7 +259,7 @@ def _print_pulsar_check(args, mode):
         return
 
     print("Run a test job against your Pulsar server using the command:")
-    command = "pulsar-check --url http://%s:%s" % (args.host, args.port)
+    command = "pulsar-check --url http://{}:{}".format(args.host, args.port)
     if args.private_token:
         command += '--private_token %s' % args.private_token
     print("  %s" % command)

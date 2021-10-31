@@ -38,7 +38,7 @@ def get_exchange(connection_string, manager_name, conf):
 
 def bind_manager_to_queue(manager, queue_state, connection_string, conf):
     manager_name = manager.name
-    log.info("bind_manager_to_queue called for [%s] and manager [%s]" % (mask_password_from_url(connection_string), manager_name))
+    log.info("bind_manager_to_queue called for [{}] and manager [{}]".format(mask_password_from_url(connection_string), manager_name))
     pulsar_exchange = get_exchange(connection_string, manager_name, conf)
 
     process_setup_messages = functools.partial(__process_setup_message, manager)
@@ -64,7 +64,7 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
     def bind_on_status_change(new_status, job_id):
         job_id = job_id or 'unknown'
         try:
-            message = "Publishing Pulsar state change with status %s for job_id %s" % (new_status, job_id)
+            message = "Publishing Pulsar state change with status {} for job_id {}".format(new_status, job_id)
             log.debug(message)
             payload = manager_endpoint_util.full_status(manager, new_status, job_id)
             pulsar_exchange.publish("status_update", payload)
@@ -78,7 +78,7 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
 
 def __start_consumer(name, exchange, target):
     exchange_url = mask_password_from_url(exchange.url)
-    thread_name = "consume-%s-%s" % (name, exchange_url)
+    thread_name = "consume-{}-{}".format(name, exchange_url)
     thread = threading.Thread(name=thread_name, target=target)
     # TODO: If the shutdown code is actually called make this
     # not a daemon.
@@ -112,7 +112,7 @@ def __processes_message(f):
             f(manager, body, job_id)
         except Exception:
             job_id = job_id or 'unknown'
-            log.exception("Failed to process message with function %s for job_id %s" % (f.__name__, job_id))
+            log.exception("Failed to process message with function {} for job_id {}".format(f.__name__, job_id))
         message.ack()
 
     return process_message

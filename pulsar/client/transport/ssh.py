@@ -8,8 +8,8 @@ def rsync_get_file(uri_from, uri_to, user, host, port, key):
     cmd = [
         'rsync',
         '-e',
-        'ssh -i %s -p %s %s' % (key, port, ' '.join(SSH_OPTIONS)),
-        '%s@%s:%s' % (user, host, uri_from),
+        'ssh -i {} -p {} {}'.format(key, port, ' '.join(SSH_OPTIONS)),
+        '{}@{}:{}'.format(user, host, uri_from),
         uri_to,
     ]
     _call(cmd)
@@ -20,9 +20,9 @@ def rsync_post_file(uri_from, uri_to, user, host, port, key):
     cmd = [
         'rsync',
         '-e',
-        'ssh -i %s -p %s %s' % (key, port, ' '.join(SSH_OPTIONS)),
+        'ssh -i {} -p {} {}'.format(key, port, ' '.join(SSH_OPTIONS)),
         uri_from,
-        '%s@%s:%s' % (user, host, uri_to),
+        '{}@{}:{}'.format(user, host, uri_to),
     ]
     _call(cmd)
 
@@ -33,7 +33,7 @@ def scp_get_file(uri_from, uri_to, user, host, port, key):
         '-P', str(port),
         '-i', key
     ] + SSH_OPTIONS + [
-        '%s@%s:%s' % (user, host, uri_from),
+        '{}@{}:{}'.format(user, host, uri_from),
         uri_to,
     ]
     _call(cmd)
@@ -47,7 +47,7 @@ def scp_post_file(uri_from, uri_to, user, host, port, key):
         '-i', key,
     ] + SSH_OPTIONS + [
         uri_from,
-        '%s@%s:%s' % (user, host, uri_to),
+        '{}@{}:{}'.format(user, host, uri_to),
     ]
     _call(cmd)
 
@@ -59,7 +59,7 @@ def _ensure_dir(uri_to, key, port, user, host):
         '-i', key,
         '-p', str(port),
     ] + SSH_OPTIONS + [
-        '%s@%s' % (user, host),
+        '{}@{}'.format(user, host),
         'mkdir', '-p', directory,
     ]
     _call(cmd)
@@ -68,7 +68,7 @@ def _ensure_dir(uri_to, key, port, user, host):
 def _call(cmd):
     exit_code = subprocess.check_call(cmd)
     if exit_code != 0:
-        raise Exception("%s exited with code %s" % (cmd[0], exit_code))
+        raise Exception("{} exited with code {}".format(cmd[0], exit_code))
 
 
 ___all__ = [

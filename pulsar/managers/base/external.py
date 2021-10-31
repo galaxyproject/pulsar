@@ -1,10 +1,9 @@
 import logging
-
 from string import Template
 
 from pulsar.managers import status
+
 from .directory import DirectoryBaseManager
-from six import binary_type
 
 DEFAULT_JOB_NAME_TEMPLATE = "pulsar_$job_id"
 JOB_FILE_EXTERNAL_ID = "external_id"
@@ -19,12 +18,12 @@ class ExternalBaseManager(DirectoryBaseManager):
     """
 
     def __init__(self, name, app, **kwds):
-        super(ExternalBaseManager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
         self._external_ids = {}
         self.job_name_template = kwds.get('job_name_template', DEFAULT_JOB_NAME_TEMPLATE)
 
     def clean(self, job_id):
-        super(ExternalBaseManager, self).clean(job_id)
+        super().clean(job_id)
 
     def kill(self, job_id):
         self._record_cancel(job_id)
@@ -45,7 +44,7 @@ class ExternalBaseManager(DirectoryBaseManager):
         return self._get_status_external(external_id)
 
     def _register_external_id(self, job_id, external_id):
-        if isinstance(external_id, binary_type):
+        if isinstance(external_id, bytes):
             external_id = external_id.decode("utf-8")
         self._job_directory(job_id).store_metadata(JOB_FILE_EXTERNAL_ID, external_id)
         self._external_ids[job_id] = external_id

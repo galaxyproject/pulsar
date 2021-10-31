@@ -2,7 +2,6 @@
 Pulsar HTTP Client layer based on Python Standard Library (urllib)
 """
 
-from __future__ import with_statement
 
 import mmap
 import socket
@@ -14,7 +13,7 @@ from urllib.error import URLError
 from ..exceptions import PulsarClientTransportError
 
 
-class UrllibTransport(object):
+class UrllibTransport:
 
     def __init__(self, timeout=None, **kwrgs):
         self.timeout = timeout

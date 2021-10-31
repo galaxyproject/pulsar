@@ -19,7 +19,7 @@ def build(client, destination_args):
     return handler
 
 
-class LocalSetupHandler(object):
+class LocalSetupHandler:
     """ Parse destination params to infer job setup parameters (input/output
     directories, etc...). Default is to get this configuration data from the
     remote Pulsar server.
@@ -68,7 +68,7 @@ class LocalSetupHandler(object):
         return filter_destination_params(destination_params, REMOTE_SYSTEM_PROPERTY_PREFIX)
 
 
-class RemoteSetupHandler(object):
+class RemoteSetupHandler:
     """ Default behavior. Fetch setup information from remote Pulsar server.
     """
     def __init__(self, client):

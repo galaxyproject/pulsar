@@ -37,7 +37,7 @@ DEFAULT_ACK_MANAGER_SLEEP = 15
 DEFAULT_REPUBLISH_TIME = 30
 
 
-class PulsarExchange(object):
+class PulsarExchange:
     """ Utility for publishing and consuming structured Pulsar queues using kombu.
     This is shared between the server and client - an exchange should be setup
     for each manager (or in the case of the client, each manager one wished to
@@ -115,7 +115,7 @@ class PulsarExchange(object):
                                 connection.drain_events(timeout=self.__timeout)
                             except socket.timeout:
                                 pass
-            except (IOError, socket.error) as exc:
+            except OSError as exc:
                 self.__handle_io_error(exc, heartbeat_thread)
             except BaseException:
                 log.exception("Problem consuming queue, consumer quitting in problematic fashion!")
@@ -287,7 +287,7 @@ class PulsarExchange(object):
 
     def __queue_name(self, name):
         key_prefix = self.__key_prefix()
-        queue_name = '%s_%s' % (key_prefix, name)
+        queue_name = '{}_{}'.format(key_prefix, name)
         return queue_name
 
     def __key_prefix(self):

@@ -1,7 +1,6 @@
 webob
 psutil
 PasteDeploy
-six
 pyyaml
 galaxy-job-metrics>=19.9.0.dev1
 galaxy-objectstore>=19.9.0.dev1

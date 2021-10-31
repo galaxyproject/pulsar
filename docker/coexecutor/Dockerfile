@@ -24,7 +24,7 @@ RUN apt-get update \
     # Install Pulsar Python requirements
     && pip install --no-cache-dir -U pip \
     && pip install --no-cache-dir drmaa wheel kombu pykube pycurl \
-            webob psutil PasteDeploy six pyyaml paramiko \
+            webob psutil PasteDeploy pyyaml paramiko \
     # Remove build deps and cleanup
     && apt-get -y remove gcc wget lsb-release \
     && apt-get -y autoremove \

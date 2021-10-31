@@ -1,11 +1,10 @@
-
 import shelve
 import traceback
 
 from threading import Lock
 
 
-class PersistenceStore(object):
+class PersistenceStore:
 
     def __init__(self, filename, require_sync=True):
         self.shelf_filename = filename

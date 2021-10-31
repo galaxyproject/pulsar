@@ -68,7 +68,7 @@ class ClientManager(ClientManagerInterface):
         else:
             self.job_manager_interface_class = HttpPulsarInterface
             transport_type = kwds.get('transport', None)
-            transport_params = dict([(p.replace('transport_', '', 1), v) for p, v in kwds.items() if p.startswith('transport_')])
+            transport_params = {p.replace('transport_', '', 1): v for p, v in kwds.items() if p.startswith('transport_')}
             transport = get_transport(transport_type, transport_params=transport_params)
             self.job_manager_interface_args = dict(transport=transport)
         cache = kwds.get('cache', None)
@@ -191,7 +191,7 @@ class MessageQueueClientManager(ClientManagerInterface):
 
                 run = functools.partial(self.ack_consumer, name)
                 thread = threading.Thread(
-                    name="pulsar_client_%s_%s_ack" % (self.manager_name, name),
+                    name="pulsar_client_{}_{}_ack".format(self.manager_name, name),
                     target=run
                 )
                 thread.daemon = False  # Lets not interrupt processing of this.
@@ -234,7 +234,7 @@ def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
         return ClientManager(**kwargs)
 
 
-class ObjectStoreClientManager(object):
+class ObjectStoreClientManager:
 
     def __init__(self, **kwds):
         if 'object_store' in kwds:
@@ -254,7 +254,7 @@ class ObjectStoreClientManager(object):
         return ObjectStoreClient(interface)
 
 
-class ClientCacher(object):
+class ClientCacher:
 
     def __init__(self, **kwds):
         self.event_manager = TransferEventManager()

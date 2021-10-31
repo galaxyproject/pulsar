@@ -55,7 +55,7 @@ def realized_dynamic_file_sources(job_directory):
     return realized_dynamic_file_sources
 
 
-class PulsarServerOutputCollector(object):
+class PulsarServerOutputCollector:
 
     def __init__(self, job_directory, action_executor):
         self.job_directory = job_directory
@@ -73,7 +73,7 @@ class PulsarServerOutputCollector(object):
             name = os.path.basename(action.path)
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
-        description = "staging out file %s via %s" % (pulsar_path, action)
+        description = "staging out file {} via {}".format(pulsar_path, action)
         self.action_executor.execute(lambda: action.write_from_path(pulsar_path), description)
 
 

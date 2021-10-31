@@ -1,4 +1,3 @@
-
 from pulsar.managers.base import BaseManager
 
 # try:
@@ -16,5 +15,5 @@ class PbsQueueManager(BaseManager):
     manager_type = "queued_pbs"
 
     def __init__(self, name, app, **kwds):
-        super(PbsQueueManager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
         raise NotImplementedError()

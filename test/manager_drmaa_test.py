@@ -9,11 +9,11 @@ from pulsar.managers.queued_drmaa import DrmaaQueueManager
 class DrmaaManagerTest(BaseManagerTestCase):
 
     def setUp(self):
-        super(DrmaaManagerTest, self).setUp()
+        super().setUp()
         self._set_manager()
 
     def tearDown(self):
-        super(DrmaaManagerTest, self).setUp()
+        super().setUp()
         self.manager.shutdown()
 
     def _set_manager(self, **kwds):

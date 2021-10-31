@@ -17,7 +17,7 @@ def main(argv):
     mod_path = os.path.join(PROJECT_DIRECTORY, source_dir, "__init__.py")
     if not DEV_RELEASE:
         history_path = os.path.join(PROJECT_DIRECTORY, "HISTORY.rst")
-        history = open(history_path, "r").read()
+        history = open(history_path).read()
         today = datetime.datetime.today()
         today_str = today.strftime('%Y-%m-%d')
         history = re.sub(r"^[\d\.]+\.dev\d*",
@@ -26,7 +26,7 @@ def main(argv):
                          flags=re.MULTILINE)
         open(history_path, "w").write(history)
 
-        mod = open(mod_path, "r").read()
+        mod = open(mod_path).read()
         mod = re.sub(r"__version__ = '[\d\.]+\.dev\d*'",
                      "__version__ = '{}'".format(version),
                      mod,

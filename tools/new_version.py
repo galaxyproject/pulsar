@@ -29,11 +29,11 @@ def main(argv):
 
     history_path = os.path.join(PROJECT_DIRECTORY, "HISTORY.rst")
     if not DEV_RELEASE:
-        history = open(history_path, "r").read()
+        history = open(history_path).read()
 
         def extend(from_str, line):
             from_str += "\n"
-            return history.replace(from_str, from_str + line + "\n" )
+            return history.replace(from_str, from_str + line + "\n")
 
         history = extend(".. to_doc", """
 ---------------------
@@ -44,15 +44,21 @@ def main(argv):
         open(history_path, "w").write(history)
 
     mod_path = os.path.join(PROJECT_DIRECTORY, source_dir, "__init__.py")
-    mod = open(mod_path, "r").read()
+    mod = open(mod_path).read()
     if not DEV_RELEASE:
-        mod = re.sub("__version__ = '[\d\.]+'",
-                    "__version__ = '%s.dev0'" % new_version,
-                    mod, 1)
+        mod = re.sub(
+            r"__version__ = '[\d\.]+'",
+            "__version__ = '%s.dev0'" % new_version,
+            mod,
+            1
+        )
     else:
-        mod = re.sub("dev%s" % dev_version,
-                    "dev%s" % new_dev_version,
-                    mod, 1)
+        mod = re.sub(
+            "dev%s" % dev_version,
+            "dev%s" % new_dev_version,
+            mod,
+            1
+        )
     mod = open(mod_path, "w").write(mod)
     shell(["git", "commit", "-m", "Starting work on %s" % new_version,
            "HISTORY.rst", "%s/__init__.py" % source_dir])

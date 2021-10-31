@@ -21,7 +21,7 @@ class CondorQueueManager(ExternalBaseManager):
     manager_type = "queued_condor"
 
     def __init__(self, name, app, **kwds):
-        super(CondorQueueManager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
         self.submission_params = submission_params(**kwds)
         self.user_log_sizes = {}
         self.state_cache = {}
@@ -59,7 +59,7 @@ class CondorQueueManager(ExternalBaseManager):
     def _kill_external(self, external_id):
         failure_message = condor_stop(external_id)
         if failure_message:
-            log.warn("Failed to stop condor job with id %s - %s" % (external_id, failure_message))
+            log.warn("Failed to stop condor job with id {} - {}".format(external_id, failure_message))
 
     def get_status(self, job_id):
         external_id = self._external_id(job_id)

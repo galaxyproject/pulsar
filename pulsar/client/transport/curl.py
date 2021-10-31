@@ -1,3 +1,4 @@
+import io
 import logging
 import os.path
 
@@ -7,8 +8,6 @@ try:
     curl_available = True
 except ImportError:
     curl_available = False
-from six import string_types
-from six import BytesIO
 
 from ..exceptions import PulsarClientTransportError
 
@@ -23,7 +22,7 @@ GET_FAILED_MESSAGE = "Failed to get_file properly for url %s, remote server retu
 log = logging.getLogger(__name__)
 
 
-class PycurlTransport(object):
+class PycurlTransport:
 
     def __init__(self, timeout=None, **kwrgs):
         self.timeout = timeout
@@ -42,7 +41,7 @@ class PycurlTransport(object):
                 c.setopt(c.INFILESIZE, filesize)
             if data:
                 c.setopt(c.POST, 1)
-                if isinstance(data, string_types):
+                if isinstance(data, str):
                     data = data.encode('UTF-8')
                 c.setopt(c.POSTFIELDS, data)
             if self.timeout:
@@ -100,7 +99,7 @@ def get_file(url, path):
 
 
 def _open_output(output_path, mode='wb'):
-    return open(output_path, mode) if output_path else BytesIO()
+    return open(output_path, mode) if output_path else io.BytesIO()
 
 
 def _new_curl_object_for_url(url):

@@ -44,7 +44,7 @@ class DynamicFileSourceType(str, Enum):
     # TODO: cwl outputs file, etc...
 
 
-class ClientJobDescription(object):
+class ClientJobDescription:
     """ A description of how client views job - command_line, inputs, etc..
 
     **Parameters**
@@ -156,7 +156,7 @@ class ClientJobDescription(object):
         )
 
 
-class ClientInputs(object):
+class ClientInputs:
     """Abstraction describing input datasets for a job."""
 
     def __init__(self, client_inputs):
@@ -186,7 +186,7 @@ CLIENT_INPUT_PATH_TYPES = Bunch(
 )
 
 
-class ClientInput(object):
+class ClientInput:
 
     def __init__(self, path, input_type, object_store_ref=None):
         self.path = path
@@ -198,7 +198,7 @@ class ClientInput(object):
         return {"path": self.path, "object_store_ref": self.object_store_ref}
 
 
-class ClientOutputs(object):
+class ClientOutputs:
     """ Abstraction describing the output datasets EXPECTED by the Galaxy job
     runner client.
     """
@@ -253,7 +253,7 @@ class ClientOutputs(object):
         return any(map(lambda pattern: pattern.match(filename), self.__dynamic_patterns))
 
 
-class PulsarOutputs(object):
+class PulsarOutputs:
     """ Abstraction describing the output files PRODUCED by the remote Pulsar
     server. """
 
@@ -307,6 +307,6 @@ class PulsarOutputs(object):
         def local_path(name):
             return join(output_directory, self.path_helper.local_name(name))
 
-        files_directory = "%s_files%s" % (basename(output_file)[0:-len(".dat")], self.path_helper.separator)
+        files_directory = "{}_files{}".format(basename(output_file)[0:-len(".dat")], self.path_helper.separator)
         names = filter(lambda o: o.startswith(files_directory), self.output_directory_contents)
         return dict(map(lambda name: (local_path(name), name), names))

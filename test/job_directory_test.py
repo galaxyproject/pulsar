@@ -8,7 +8,7 @@ TEST_JOB_ID = "1234"
 class JobDirectoryTestCase(TempDirectoryTestCase):
 
     def setUp(self):
-        super(JobDirectoryTestCase, self).setUp()
+        super().setUp()
         self.job_directory = JobDirectory(self.temp_directory, TEST_JOB_ID)
 
     def test_setup(self):

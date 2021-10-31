@@ -1,13 +1,11 @@
-from collections import deque
-import tempfile
 import os
-
-from six import text_type, binary_type
+import tempfile
+from collections import deque
 
 from pulsar.client.client import JobClient
+from pulsar.client.decorators import MAX_RETRY_COUNT, retry
 from pulsar.client.manager import HttpPulsarInterface
 from pulsar.client.transport import UrllibTransport
-from pulsar.client.decorators import retry, MAX_RETRY_COUNT
 
 
 def test_with_retry():
@@ -26,7 +24,7 @@ def test_with_retry():
     assert len(i) == MAX_RETRY_COUNT, len(i)
 
 
-class FakeResponse(object):
+class FakeResponse:
     """ Object meant to simulate a Response object as returned by
     urllib.open """
 
@@ -67,10 +65,12 @@ class TestClient(JobClient):
         self.expects.appendleft((checker, response))
 
 
-class RequestChecker(object):
+class RequestChecker:
     """ Class that tests request objects produced by the Client class.
     """
-    def __init__(self, action, args={}, data=None):
+    def __init__(self, action, args=None, data=None):
+        if args is None:
+            args = {}
         args['job_id'] = "543"
         self.action = action
         self.expected_args = args
@@ -82,17 +82,17 @@ class RequestChecker(object):
         assert opened_url.startswith(expected_url_prefix)
         url_suffix = opened_url[len(expected_url_prefix):]
         actual_args = dict([key_val_combo.split("=") for key_val_combo in url_suffix.split("&")])
-        statement = "Expected args %s, obtained %s" % (self.expected_args, actual_args)
+        statement = "Expected args {}, obtained {}".format(self.expected_args, actual_args)
         assert self.expected_args == actual_args, statement
 
     def check_data(self, data):
         if data is None:
             assert self.data is None
-        elif type(data) in (binary_type, text_type):
+        elif type(data) in (bytes, str):
             assert self.data == data
         else:
             data_read = data.read(1024)
-            assert data_read == self.data, "data_read %s is not expected data %s" % (data_read, self.data)
+            assert data_read == self.data, "data_read {} is not expected data {}".format(data_read, self.data)
 
     def __call__(self, request, data=None):
         self.called = True
@@ -178,7 +178,7 @@ def test_download_output():
     client.expect_open(request_checker, b"test output contents")
     client._fetch_output(temp_file.name)
 
-    with open(temp_file.name, "r") as f:
+    with open(temp_file.name) as f:
         contents = f.read(1024)
         assert contents == "test output contents", "Unxpected contents %s" % contents
 

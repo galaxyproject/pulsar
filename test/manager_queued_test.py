@@ -16,11 +16,11 @@ time.sleep(10000)
 class PythonQueuedManagerTest(BaseManagerTestCase):
 
     def setUp(self):
-        super(PythonQueuedManagerTest, self).setUp()
+        super().setUp()
         self._set_manager(num_concurrent_jobs=1)
 
     def tearDown(self):
-        super(PythonQueuedManagerTest, self).setUp()
+        super().setUp()
         self.manager.shutdown()
 
     def _set_manager(self, **kwds):

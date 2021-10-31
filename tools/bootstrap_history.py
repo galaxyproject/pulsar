@@ -19,14 +19,14 @@ import pulsar as project
 
 PROJECT_OWNER = project.PROJECT_OWNER
 PROJECT_NAME = project.PROJECT_NAME
-PROJECT_URL = "https://github.com/%s/%s" % (PROJECT_OWNER, PROJECT_NAME)
-PROJECT_API = "https://api.github.com/repos/%s/%s/" % (PROJECT_OWNER, PROJECT_NAME)
+PROJECT_URL = "https://github.com/{}/{}".format(PROJECT_OWNER, PROJECT_NAME)
+PROJECT_API = "https://api.github.com/repos/{}/{}/".format(PROJECT_OWNER, PROJECT_NAME)
 AUTHORS_SKIP_CREDIT = ["jmchilton"]
 
 
 def main(argv):
     history_path = os.path.join(PROJECT_DIRECTORY, "HISTORY.rst")
-    history = open(history_path, "r", encoding="utf-8").read()
+    history = open(history_path, encoding="utf-8").read()
 
     def extend(from_str, line):
         from_str += "\n"
@@ -66,17 +66,17 @@ def main(argv):
         pull_request = ident[len("pr"):]
         text = ".. _Pull Request {0}: {1}/pull/{0}".format(pull_request, PROJECT_URL)
         history = extend(".. github_links", text)
-        to_doc += "`Pull Request {0}`_".format(pull_request)
+        to_doc += "`Pull Request {}`_".format(pull_request)
     elif ident.startswith("issue"):
         issue = ident[len("issue"):]
         text = ".. _Issue {0}: {1}/issues/{0}".format(issue, PROJECT_URL)
         history = extend(".. github_links", text)
-        to_doc += "`Issue {0}`_".format(issue)
+        to_doc += "`Issue {}`_".format(issue)
     else:
         short_rev = ident[:7]
         text = ".. _{0}: {1}/commit/{0}".format(short_rev, PROJECT_URL)
         history = extend(".. github_links", text)
-        to_doc += "{0}_".format(short_rev)
+        to_doc += "{}_".format(short_rev)
 
     to_doc = wrap(to_doc)
     history = extend(".. to_doc", to_doc)

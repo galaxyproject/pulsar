@@ -1,12 +1,9 @@
 import logging
-
 from abc import ABCMeta
 from abc import abstractmethod
+from io import BytesIO
 from string import Template
-
-from six import BytesIO
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 from galaxy.util import unicodify
 
@@ -15,17 +12,16 @@ from .util import copy_to_path
 log = logging.getLogger(__name__)
 
 
-class PulsarInterface(object):
+class PulsarInterface(metaclass=ABCMeta):
     """
     Abstract base class describes how synchronous client communicates with
     (potentially remote) Pulsar procedures. Obvious implementation is HTTP based
     but Pulsar objects wrapped in routes can also be directly communicated with
     if in memory.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
-    def execute(self, command, args={}, data=None, input_path=None, output_path=None):
+    def execute(self, command, args=None, data=None, input_path=None, output_path=None):
         """
         Execute the correspond command against configured Pulsar job manager. Arguments are
         method parameters and data or input_path describe essentially POST bodies. If command
@@ -98,17 +94,19 @@ class HttpPulsarInterface(PulsarInterface):
         self.remote_host = remote_host
         self.private_token = destination_params.get("private_token", None)
 
-    def execute(self, command, args={}, data=None, input_path=None, output_path=None):
+    def execute(self, command, args=None, data=None, input_path=None, output_path=None):
         url = self.__build_url(command, args)
         method = COMMAND_TO_METHOD.get(command, None)  # Default to GET is no data, POST otherwise
         response = self.transport.execute(url, method=method, data=data, input_path=input_path, output_path=output_path)
         return response
 
     def __build_url(self, command, args):
+        if args is None:
+            args = {}
         path = COMMAND_TO_PATH.get(command, Template(command)).safe_substitute(args)
         if self.private_token:
             args["private_token"] = self.private_token
-        arg_bytes = dict([(k, unicodify(args[k]).encode('utf-8')) for k in args])
+        arg_bytes = {k: unicodify(args[k]).encode('utf-8') for k in args}
         data = urlencode(arg_bytes)
         url = self.remote_host + path + "?" + data
         return url
@@ -137,7 +135,9 @@ class LocalPulsarInterface(PulsarInterface):
             'ip': None
         }
 
-    def execute(self, command, args={}, data=None, input_path=None, output_path=None):
+    def execute(self, command, args=None, data=None, input_path=None, output_path=None):
+        if args is None:
+            args = {}
         # If data set, should be unicode (on Python 2) or str (on Python 3).
         from pulsar.web import routes
         from pulsar.web.framework import build_func_args

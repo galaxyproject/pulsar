@@ -1,9 +1,8 @@
-from .test_utils import TempDirectoryTestCase
+from os.path import join
 
 from pulsar.managers.base import JobDirectory
 from pulsar.tools.validator import ExpressionValidator
-
-from os.path import join
+from .test_utils import TempDirectoryTestCase
 
 
 class ValidatorTest(TempDirectoryTestCase):
@@ -104,11 +103,15 @@ class ValidatorTest(TempDirectoryTestCase):
             <input />
         </command_validator>
         """
-        self.__assertValid(xml, "tophat2 %s %s" % (self.__job_file("inputs", "dataset_23412.dat"),
-                                                   self.__job_file("inputs", "dataset_1.dat")))
+        self.__assertValid(xml, "tophat2 {} {}".format(
+            self.__job_file("inputs", "dataset_23412.dat"),
+            self.__job_file("inputs", "dataset_1.dat")
+        ))
 
-        self.__assertInvalid(xml, "tophat2 %s ../%s" % (self.__job_file("inputs", "dataset_23412.dat"),
-                                                        self.__job_file("inputs", "dataset_1.dat")))
+        self.__assertInvalid(xml, "tophat2 {} ../{}".format(
+            self.__job_file("inputs", "dataset_23412.dat"),
+            self.__job_file("inputs", "dataset_1.dat")
+        ))
 
     def test_outputs_file(self):
         xml = """
@@ -118,11 +121,15 @@ class ValidatorTest(TempDirectoryTestCase):
             <output />
         </command_validator>
         """
-        self.__assertValid(xml, "tophat2 %s %s" % (self.__job_file("outputs", "dataset_23412.dat"),
-                                                   self.__job_file("outputs", "dataset_1.dat")))
+        self.__assertValid(xml, "tophat2 {} {}".format(
+            self.__job_file("outputs", "dataset_23412.dat"),
+            self.__job_file("outputs", "dataset_1.dat")
+        ))
 
-        self.__assertInvalid(xml, "tophat2 %s ../%s" % (self.__job_file("outputs", "dataset_23412.dat"),
-                                                        self.__job_file("outputs", "dataset_1.dat")))
+        self.__assertInvalid(xml, "tophat2 {} ../{}".format(
+            self.__job_file("outputs", "dataset_23412.dat"),
+            self.__job_file("outputs", "dataset_1.dat")
+        ))
 
     def test_outputs_from_work_dir(self):
         xml = """
@@ -132,11 +139,15 @@ class ValidatorTest(TempDirectoryTestCase):
             <output from_work_dir="junctions.bed" />
         </command_validator>
         """
-        self.__assertValid(xml, "tophat2 %s %s" % (self.__job_file("outputs", "dataset_23412.dat"),
-                                                   self.__job_file("working", "junctions.bed")))
+        self.__assertValid(xml, "tophat2 {} {}".format(
+            self.__job_file("outputs", "dataset_23412.dat"),
+            self.__job_file("working", "junctions.bed")
+        ))
 
-        self.__assertInvalid(xml, "tophat2 %s ../%s" % (self.__job_file("outputs", "dataset_23412.dat"),
-                                                        self.__job_file("working", "..", "junctions.bed")))
+        self.__assertInvalid(xml, "tophat2 {} ../{}".format(
+            self.__job_file("outputs", "dataset_23412.dat"),
+            self.__job_file("working", "..", "junctions.bed")
+        ))
 
     def test_single_quotes(self):
         xml = """
@@ -230,7 +241,7 @@ class ValidatorTest(TempDirectoryTestCase):
         return self.__validator(xml).validate(self.job_directory, contents)
 
     def __assertValid(self, xml, contents):
-        self.assertTrue(self.__is_valid(xml, contents), "%s did not validate against %s" % (contents, xml))
+        self.assertTrue(self.__is_valid(xml, contents), "{} did not validate against {}".format(contents, xml))
 
     def __assertInvalid(self, xml, contents):
-        self.assertFalse(self.__is_valid(xml, contents), "%s falsely validated against %s" % (contents, xml))
+        self.assertFalse(self.__is_valid(xml, contents), "{} falsely validated against {}".format(contents, xml))

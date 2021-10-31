@@ -1,8 +1,7 @@
-import os
 import json
+import os
 import time
-
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 
 def test_standard_requests():
@@ -22,11 +21,11 @@ def test_standard_requests():
         job_id = setup_config["job_id"]
 
         def test_upload(upload_type):
-            url = "/jobs/%s/files?name=input1&type=%s" % (job_id, upload_type)
+            url = "/jobs/{}/files?name=input1&type={}".format(job_id, upload_type)
             upload_input_response = app.post(url, "Test Contents")
             upload_input_config = json.loads(upload_input_response.body.decode("utf-8"))
             staged_input_path = upload_input_config["path"]
-            staged_input = open(staged_input_path, "r")
+            staged_input = open(staged_input_path)
             try:
                 assert staged_input.read() == "Test Contents"
             finally:
@@ -44,12 +43,12 @@ def test_standard_requests():
 
         try:
             app.get("/jobs/%s/files?name=test_output2&type=output" % job_id)
-            assert False  # Should throw exception
+            raise AssertionError()  # Should throw exception
         except Exception:
             pass
 
         command_line = quote("""python -c "import sys; sys.stdout.write('test_out')" """)
-        launch_response = app.post("/jobs/%s/submit?command_line=%s" % (job_id, command_line))
+        launch_response = app.post("/jobs/{}/submit?command_line={}".format(job_id, command_line))
         assert launch_response.body.decode("utf-8") == 'OK'
 
         # Hack: Call twice to ensure postprocessing occurs and has time to

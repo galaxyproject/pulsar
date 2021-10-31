@@ -1,7 +1,6 @@
+import ast
 import os
 import re
-import ast
-import sys
 
 try:
     from distutils.util import get_platform
@@ -25,19 +24,12 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 if os.path.exists("requirements.txt"):
     requirements = [r for r in open("requirements.txt").read().split("\n") if ";" not in r]
-    py27_requirements = [r.split(";", 1)[0].strip() for r in open("requirements.txt").read().split("\n") if ";" in r]
 else:
     # In tox, it will cover them anyway.
     requirements = []
-    py27_requirements = []
 
 if PULSAR_GALAXY_LIB:
     requirements = [r for r in requirements if not r.startswith("galaxy-")]
-
-# TODO: use extra_requires here to be more correct.
-if sys.version_info[0] == 2:
-    requirements.append('PasteScript')
-    requirements.append('paste')
 
 test_requirements = [
     # TODO: put package test requirements here
@@ -116,7 +108,6 @@ setup(
     install_requires=requirements,
     extras_require={
         'web': ['Paste', 'PasteScript'],
-        ':python_version=="2.7"': py27_requirements,
         'galaxy_extended_metadata': ['galaxy-job-execution>=19.9.0.dev0', 'galaxy-util[template]'],
     },
     license="Apache License 2.0",

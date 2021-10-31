@@ -29,7 +29,7 @@ def test_third_execution_fine():
     assert not exception_raised
 
 
-class ActionTracker(object):
+class ActionTracker:
 
     def __init__(self, fail_count=0, fail_how=Exception):
         self.fail_count = fail_count

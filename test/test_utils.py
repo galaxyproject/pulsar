@@ -1,5 +1,4 @@
 """Utilities allowing for high-level testing throughout Pulsar."""
-from __future__ import print_function
 
 import traceback
 import sys
@@ -83,7 +82,7 @@ def get_test_tool():
     return get_test_toolbox().get_tool("tool1")
 
 
-class TestManager(object):
+class TestManager:
 
     def setup_temp_directory(self):
         self.temp_directory = temp_directory_persist(prefix='test_manager_')
@@ -123,7 +122,7 @@ def test_manager():
     manager.cleanup_temp_directory()
 
 
-class TestAuthorization(object):
+class TestAuthorization:
 
     def __init__(self):
         self.allow_setup = True
@@ -148,7 +147,7 @@ class TestAuthorization(object):
             raise Exception
 
 
-class TestDependencyManager(object):
+class TestDependencyManager:
 
     def dependency_shell_commands(self, requirements, **kwds):
         return []
@@ -221,7 +220,7 @@ def minimal_app_for_managers():
                  object_store=object())
 
 
-class NullJobMetrics(object):
+class NullJobMetrics:
 
     def __init__(self):
         self.default_job_instrumenter = NULL_JOB_INSTRUMENTER
@@ -262,7 +261,7 @@ def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
             yield test_pulsar_server
 
 
-class RestartablePulsarAppProvider(object):
+class RestartablePulsarAppProvider:
 
     def __init__(self, global_conf={}, app_conf={}, test_conf={}, web=True):
         self.staging_directory = temp_directory_persist(prefix='staging_')
@@ -427,7 +426,7 @@ def _which(program):
     return None
 
 
-class TestAuthorizer(object):
+class TestAuthorizer:
 
     def __init__(self):
         self.authorization = TestAuthorization()
@@ -436,7 +435,7 @@ class TestAuthorizer(object):
         return self.authorization
 
 
-class JobFilesApp(object):
+class JobFilesApp:
 
     def __init__(self, root_directory=None, allow_multiple_downloads=False):
         self.root_directory = root_directory
@@ -458,7 +457,7 @@ class JobFilesApp(object):
     def _post(self, request, params):
         path = params['path']
         if not galaxy.util.in_directory(path, self.root_directory):
-            assert False, "%s not in %s" % (path, self.root_directory)
+            assert False, "{} not in {}".format(path, self.root_directory)
         parent_directory = dirname(path)
         if not exists(parent_directory):
             makedirs(parent_directory)
@@ -470,7 +469,7 @@ class JobFilesApp(object):
         if path in self.served_files and not self.allow_multiple_downloads:  # emulate Galaxy not allowing the same request twice...
             raise Exception("Same file copied multiple times...")
         if not galaxy.util.in_directory(path, self.root_directory):
-            assert False, "%s not in %s" % (path, self.root_directory)
+            assert False, "{} not in {}".format(path, self.root_directory)
         self.served_files.append(path)
         return file_response(path)
 
@@ -502,7 +501,7 @@ def dump_other_threads():
 
 # Extracted from: https://github.com/python/cpython/blob/
 # 937ee9e745d7ff3c2010b927903c0e2a83623324/Lib/test/support/__init__.py
-class EnvironmentVarGuard(object):
+class EnvironmentVarGuard:
 
     """Class to help protect the environment variable properly.  Can be used as
     a context manager."""

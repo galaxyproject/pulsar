@@ -16,7 +16,7 @@ class CliQueueManager(ExternalBaseManager):
     manager_type = "queued_cli"
 
     def __init__(self, name, app, **kwds):
-        super(CliQueueManager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
         self.cli_interface = CliInterface(code_dir='.')
         self.shell_params, self.job_params = split_params(kwds)
 

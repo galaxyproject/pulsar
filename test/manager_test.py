@@ -8,7 +8,7 @@ from .test_utils import BaseManagerTestCase
 class ManagerTest(BaseManagerTestCase):
 
     def setUp(self):
-        super(ManagerTest, self).setUp()
+        super().setUp()
         self._set_manager()
 
     def _set_manager(self, **kwds):

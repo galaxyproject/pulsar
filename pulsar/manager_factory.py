@@ -1,10 +1,10 @@
+import configparser
 import inspect
 import logging
 import os
 
 import pulsar.managers
 from pulsar.managers import stateful
-from six.moves import configparser
 
 log = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ def _load_manager_modules():
             modules.append(module)
         except BaseException as exception:
             exception_str = str(exception)
-            message = "%s manager module could not be loaded: %s" % (manager_module_name, exception_str)
+            message = "{} manager module could not be loaded: {}".format(manager_module_name, exception_str)
             log.warn(message)
             continue
 
@@ -131,12 +131,12 @@ def _get_managers_dict():
     for manager_module in _load_manager_modules():
         for _, obj in inspect.getmembers(manager_module):
             if inspect.isclass(obj) and hasattr(obj, 'manager_type'):
-                managers[getattr(obj, 'manager_type')] = obj
+                managers[obj.manager_type] = obj
 
     return managers
 
 
-class ManagerDescriptions(object):
+class ManagerDescriptions:
 
     def __init__(self):
         self.descriptions = {}
@@ -148,7 +148,7 @@ class ManagerDescriptions(object):
         self.descriptions[manager_name] = manager_description
 
 
-class ManagerDescription(object):
+class ManagerDescription:
 
     def __init__(self, manager_type=DEFAULT_MANAGER_TYPE, manager_name=DEFAULT_MANAGER_NAME, manager_options={}):
         self.manager_type = manager_type
@@ -157,7 +157,7 @@ class ManagerDescription(object):
 
     @staticmethod
     def from_ini_config(config, manager_name):
-        section_name = '%s%s' % (MANAGER_PREFIX, manager_name)
+        section_name = '{}{}'.format(MANAGER_PREFIX, manager_name)
         try:
             manager_type = config.get(section_name, 'type')
         except ValueError:

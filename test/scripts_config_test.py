@@ -1,19 +1,18 @@
 import collections
+import configparser
 import os
 import subprocess
-import yaml
 import sys
+from io import StringIO
 
-from six.moves import configparser
-from six import StringIO
+import yaml
 
-from pulsar.scripts.config import main
+
 from pulsar.scripts import config
-
-
+from pulsar.scripts.config import main
 from .test_utils import (
-    temp_directory,
     skip_unless_environ,
+    temp_directory,
 )
 
 
@@ -120,7 +119,7 @@ def _check_project_directory(project_dir):
     app_config = None
     app_config_path = path_if_exists("app.yml")
     if app_config_path:
-        app_config = yaml.load(open(app_config_path, "r"))
+        app_config = yaml.safe_load(open(app_config_path))
         assert isinstance(app_config, dict) or (app_config is None)
 
     ini_config = None
@@ -135,7 +134,7 @@ def _check_project_directory(project_dir):
 Project = collections.namedtuple('Project', ['ini_config', 'app_config'])
 
 
-class MockPip(object):
+class MockPip:
 
     def __init__(self):
         self.main_calls = []

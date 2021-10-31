@@ -77,7 +77,7 @@ class Manager(BaseUnqueuedManager):
     manager_type = "unqueued"
 
     def __init__(self, name, app, **kwds):
-        super(Manager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
 
     def __get_pid(self, job_id):
         pid = None
@@ -120,16 +120,16 @@ class Manager(BaseUnqueuedManager):
 
     # with job lock
     def _finish_execution(self, job_id):
-        super(Manager, self)._finish_execution(job_id)
+        super()._finish_execution(job_id)
         self._job_directory(job_id).remove_metadata(JOB_FILE_PID)
 
     # with job lock
     def _get_status(self, job_id):
-        return super(Manager, self)._get_status(job_id)
+        return super()._get_status(job_id)
 
     # with job lock
     def _was_cancelled(self, job_id):
-        return super(Manager, self)._was_cancelled(job_id)
+        return super()._was_cancelled(job_id)
 
     # with job lock
     def _record_pid(self, job_id, pid):
@@ -181,7 +181,7 @@ class CoexecutionManager(BaseUnqueuedManager):
     manager_type = "coexecution"
 
     def __init__(self, name, app, **kwds):
-        super(CoexecutionManager, self).__init__(name, app, **kwds)
+        super().__init__(name, app, **kwds)
 
     def get_status(self, job_id):
         return self._get_status(job_id)
@@ -208,11 +208,11 @@ class CoexecutionManager(BaseUnqueuedManager):
         command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env, setup_params=setup_params)
         job_directory = self.job_directory(job_id)
         working_directory = job_directory.working_directory()
-        command_line += " > '%s' 2> '%s'" % (
+        command_line += " > '{}' 2> '{}'".format(
             self._stdout_path(job_id),
             self._stderr_path(job_id),
         )
-        command_line = "cd '%s'; sh %s" % (working_directory, command_line)
+        command_line = "cd '{}'; sh {}".format(working_directory, command_line)
         self._write_command_line(job_id, command_line)
         self._start_monitor(job_id)
 

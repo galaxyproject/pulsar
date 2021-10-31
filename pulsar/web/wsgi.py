@@ -34,7 +34,7 @@ class PulsarWebApp(RoutingApp):
     """
 
     def __init__(self, pulsar_app):
-        super(PulsarWebApp, self).__init__()
+        super().__init__()
         self.pulsar_app = pulsar_app
         self.__setup_routes()
 

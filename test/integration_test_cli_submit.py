@@ -31,7 +31,7 @@ class BaseCliTestCase(TempDirectoryTestCase):
                 output_files=[os.path.join(galaxy_working, output_name)],
             )
             launch_params = dict(
-                command_line="cat '%s' > '%s'" % (pulsar_input, pulsar_output),
+                command_line="cat '{}' > '{}'".format(pulsar_input, pulsar_output),
                 job_id=job_id,
                 setup_params=dict(
                     job_id=job_id,
@@ -50,7 +50,7 @@ class BaseCliTestCase(TempDirectoryTestCase):
             assert not os.path.exists(galaxy_output)
             submit.main(["--base64", base64] + self._encode_application())
             assert os.path.exists(galaxy_output)
-            out_contents = open(galaxy_output, "r").read()
+            out_contents = open(galaxy_output).read()
             assert out_contents == "cow file contents\n", out_contents
 
     @property

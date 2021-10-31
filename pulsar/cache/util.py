@@ -1,4 +1,3 @@
-
 import os
 import shutil
 
@@ -22,7 +21,7 @@ def atomicish_move(source, destination, tmp_suffix="_TMP"):
     """
     destination_dir = os.path.dirname(destination)
     destination_name = os.path.basename(destination)
-    temp_destination = os.path.join(destination_dir, "%s%s" % (destination_name, tmp_suffix))
+    temp_destination = os.path.join(destination_dir, "{}{}".format(destination_name, tmp_suffix))
     shutil.move(source, temp_destination)
     os.rename(temp_destination, destination)
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Pulsar documentation build configuration file, created by
 # sphinx-quickstart on Sun Dec 16 23:16:23 2012.
@@ -42,8 +41,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Pulsar'
-copyright = u'2014, Galaxy Project'
+project = 'Pulsar'
+copyright = '2014, Galaxy Project'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -185,8 +184,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Pulsar.tex', u'Pulsar Documentation',
-   u'The Galaxy Project', 'manual'),
+  ('index', 'Pulsar.tex', 'Pulsar Documentation',
+   'The Galaxy Project', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -215,8 +214,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'pulsar', u'Pulsar Documentation',
-     [u'Galaxy Project'], 1)
+    ('index', 'pulsar', 'Pulsar Documentation',
+     ['Galaxy Project'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -229,8 +228,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Pulsar', u'Pulsar Documentation',
-   u'Galaxy Project', 'Pulsar', 'One line description of project.',
+  ('index', 'Pulsar', 'Pulsar Documentation',
+   'Galaxy Project', 'Pulsar', 'One line description of project.',
    'Miscellaneous'),
 ]
 
