@@ -63,6 +63,9 @@ class RemoteJobDirectory:
     def unstructured_files_directory(self):
         return self._sub_dir('unstructured')
 
+    def default_tmp_directory(self):
+        return self._sub_dir('tmp')
+
     @property
     def path(self):
         return self.job_directory
