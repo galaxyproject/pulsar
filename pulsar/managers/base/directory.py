@@ -149,6 +149,7 @@ class DirectoryBaseManager(BaseManager):
             'preserve_python_environment': setup_params.get('preserve_galaxy_python_environment', False),
             'env_setup_commands': env_setup_commands,
             'exit_code_path': return_code_path,
+            'job_directory': self.job_directory(job_id).job_directory,
             'working_directory': self.job_directory(job_id).working_directory(),
             'metadata_directory': self.job_directory(job_id).metadata_directory(),
             'job_id': job_id,
