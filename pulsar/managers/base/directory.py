@@ -137,6 +137,7 @@ class DirectoryBaseManager(BaseManager):
             'working_directory': self.job_directory(job_id).working_directory(),
             'metadata_directory': self.job_directory(job_id).metadata_directory(),
             'job_id': job_id,
+            'tmp_dir_creation_statement': self.tmp_dir,
         }
         if command_line:
             job_template_env['command'] = command_line
