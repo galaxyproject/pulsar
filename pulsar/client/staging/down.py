@@ -1,4 +1,5 @@
 """Code run on the client side for unstaging complete Pulsar jobs."""
+import fnmatch
 from contextlib import contextmanager
 from logging import getLogger
 from os.path import join, relpath
@@ -76,6 +77,12 @@ class ResultsCollector:
         # Fetch explicit working directory outputs.
         for source_file, output_file in self.client_outputs.work_dir_outputs:
             name = relpath(source_file, working_directory)
+            if name not in self.working_directory_contents:
+                # Could be a glob
+                matching = fnmatch.filter(self.working_directory_contents, name)
+                if matching:
+                    name = matching[0]
+                    source_file = join(working_directory, name)
             pulsar = self.pulsar_outputs.path_helper.remote_name(name)
             if self._attempt_collect_output('output_workdir', path=output_file, name=pulsar):
                 self.downloaded_working_directory_files.append(pulsar)
