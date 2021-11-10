@@ -2,6 +2,7 @@ import logging
 import os
 import stat
 
+from galaxy.util import asbool
 from pulsar.managers.base import BaseManager
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from ..util.job_script import job_script
@@ -19,6 +20,7 @@ JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
 JOB_FILE_COMMAND_LINE = "command_line"
+CREATE_TMP_PATTERN = '''$([ ! -e '{0}/tmp' ] || mv '{0}/tmp' '{0}'/tmp.$(date +%Y%m%d-%H%M%S) ; mkdir '{0}/tmp'; echo '{0}/tmp')'''
 
 
 class DirectoryBaseManager(BaseManager):
@@ -121,6 +123,19 @@ class DirectoryBaseManager(BaseManager):
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
 
+    def _tmp_dir(self, job_id: str):
+        # Code stolen from Galaxy's job wrapper.
+        tmp_dir = self.tmp_dir
+        try:
+            if not tmp_dir or asbool(tmp_dir):
+                working_directory = self.job_directory(job_id).job_directory
+                return CREATE_TMP_PATTERN.format(working_directory)
+            else:
+                return tmp_dir
+        except ValueError:
+            # Catch case where tmp_dir is a complex expression and not a boolean value
+            return tmp_dir
+
     def _job_template_env(self, job_id, command_line=None, env=[], setup_params=None):
         return_code_path = self._return_code_path(job_id)
         # TODO: Add option to ignore remote env.
@@ -134,13 +149,14 @@ class DirectoryBaseManager(BaseManager):
             'preserve_python_environment': setup_params.get('preserve_galaxy_python_environment', False),
             'env_setup_commands': env_setup_commands,
             'exit_code_path': return_code_path,
+            'job_directory': self.job_directory(job_id).job_directory,
             'working_directory': self.job_directory(job_id).working_directory(),
             'metadata_directory': self.job_directory(job_id).metadata_directory(),
             'job_id': job_id,
+            'tmp_dir_creation_statement': self._tmp_dir(job_id),
         }
         if command_line:
             job_template_env['command'] = command_line
-
         return job_template_env
 
     def _write_job_script(self, job_id, contents):

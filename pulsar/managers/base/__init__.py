@@ -69,6 +69,7 @@ class BaseManager(ManagerInterface):
         self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
         self.maximum_stream_size = kwds.get("maximum_stream_size", -1)
         self.__init_galaxy_system_properties(kwds)
+        self.tmp_dir = kwds.get("tmp_dir", None)
         self.debug = str(kwds.get("debug", False)).lower() == "true"
         self.authorizer = app.authorizer
         self.__init_system_properties()

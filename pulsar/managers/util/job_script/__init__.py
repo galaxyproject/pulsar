@@ -39,7 +39,7 @@ INTEGRITY_SYNC_COMMAND = "/bin/sync"
 DEFAULT_INTEGRITY_CHECK = True
 DEFAULT_INTEGRITY_COUNT = 35
 DEFAULT_INTEGRITY_SLEEP = .25
-REQUIRED_TEMPLATE_PARAMS = ['working_directory', 'command', 'exit_code_path']
+REQUIRED_TEMPLATE_PARAMS = ['working_directory', 'job_directory', 'command', 'exit_code_path']
 OPTIONAL_TEMPLATE_PARAMS: Dict[str, Any] = {
     'galaxy_lib': None,
     'galaxy_virtual_env': None,
@@ -85,6 +85,8 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     if any([param not in kwds for param in REQUIRED_TEMPLATE_PARAMS]):
         raise Exception("Failed to create job_script, a required parameter is missing.")
     job_instrumenter = kwds.get("job_instrumenter", None)
+    if "job_directory" not in kwds:
+        kwds["job_directory"] = kwds["working_directory"]
     metadata_directory = kwds.get("metadata_directory", kwds["working_directory"])
     if job_instrumenter:
         del kwds["job_instrumenter"]

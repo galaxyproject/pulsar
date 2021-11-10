@@ -74,6 +74,8 @@ metadata_dir = dirname(sys.argv[13])
 output5 = open(sys.argv[15], 'w')
 legacy_galaxy_json = int(sys.argv[16])
 output_metadata_path = join(metadata_dir, "metadata_output")
+tmp_dir_exists_path = join(".", "tmp_dir_test")
+home_dir_exists_path = join(".", "home_dir_test")
 try:
     assert_path_contents(sys.argv[2], "Hello world input!!@!")
     assert_path_contents(sys.argv[8], "INPUT_EXTRA_CONTENTS")
@@ -93,6 +95,13 @@ try:
     with open("gjson_refer", "w") as f: f.write('''gjson_refer_contents''')
     with open("gjson_refer2", "w") as f: f.write('''gjson_refer_contents2''')
     with open(output_metadata_path, "w") as f: f.write("meta output")
+    tmp_dir = getenv("_GALAXY_JOB_TMP_DIR", "fakepathnotreal")
+    tmp_dir_exists = str(exists(tmp_dir))
+    with open(tmp_dir_exists_path, "w") as f: f.write(f"tmp-{tmp_dir_exists}")
+    home_dir = getenv("_GALAXY_JOB_HOME_DIR", "fakepathnotreal")
+    home_dir_exists = str(exists(home_dir))
+    with open(home_dir_exists_path, "w") as f: f.write(f"home-{home_dir_exists}")
+
     output3.write(getenv("MOO", "moo_default"))
     output1_extras_path = "%s_files" % sys.argv[3][0:-len(".dat")]
     makedirs(output1_extras_path)
@@ -194,6 +203,11 @@ def run(options):
         temp_output_workdir_destination2 = os.path.join(temp_directory, "dataset_78.dat")
         temp_output_workdir2 = os.path.join(temp_work_dir, "rewrite_action_test")
 
+        temp_output_workdir_destination3 = os.path.join(temp_directory, "dataset_79.dat")
+        temp_output_workdir3 = os.path.join(temp_work_dir, "tmp_dir_test")
+        temp_output_workdir_destination4 = os.path.join(temp_directory, "dataset_80.dat")
+        temp_output_workdir4 = os.path.join(temp_work_dir, "home_dir_test")
+
         __write_to_file(temp_input_path, b"Hello world input!!@!")
         __write_to_file(temp_input_extra_path, b"INPUT_EXTRA_CONTENTS")
         __write_to_file(temp_input_metadata_path, b"INPUT METADATA CONTENTS...")
@@ -250,6 +264,8 @@ def run(options):
             temp_output5_path,
             temp_output_workdir_destination,
             temp_output_workdir_destination2,
+            temp_output_workdir_destination3,
+            temp_output_workdir_destination4,
         ]
         client, client_manager = __client(temp_directory, options)
         waiter = Waiter(client, client_manager)
@@ -264,6 +280,8 @@ def run(options):
             work_dir_outputs=[
                 (temp_output_workdir, temp_output_workdir_destination),
                 (temp_output_workdir2, temp_output_workdir_destination2),
+                (temp_output_workdir3, temp_output_workdir_destination3),
+                (temp_output_workdir4, temp_output_workdir_destination4),
             ],
             output_files=output_files,
             version_file=temp_version_output_path,
@@ -283,12 +301,13 @@ def run(options):
         result_status = waiter.wait()
 
         stdout = result_status["stdout"].strip()
-        assert "stdout output".startswith(stdout)
+        std_streams_debug = f"actual stdout [{stdout}], actual stderr [{result_status['stderr']}]"
+        assert "stdout output".startswith(stdout), f"Startard output doesn't started with expected [stdout output], {std_streams_debug}"
         if hasattr(options, "maximum_stream_size"):
             assert len(stdout) == options.maximum_stream_size
 
         assert result_status["complete"] == "true"
-        assert result_status["returncode"] == 4, f"Expected exit code of 4, got {result_status['returncode']}"
+        assert result_status["returncode"] == 4, f"Expected exit code of 4, got {result_status['returncode']} - {std_streams_debug}"
         __finish(options, client, client_outputs, result_status)
         __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)
         __assert_contents(temp_output2_path, cmd_text, result_status)
@@ -301,6 +320,8 @@ def run(options):
         __assert_contents(os.path.join(temp_metadata_dir, "metadata_output"), b"meta output", result_status)
         if getattr(options, "test_rewrite_action", False):
             __assert_contents(temp_output_workdir_destination2, os.path.join(temp_directory, "shared2", "test1"), result_status)
+        __assert_contents(temp_output_workdir_destination3, "tmp-True", result_status)
+        __assert_contents(temp_output_workdir_destination4, "home-True", result_status)
         if job_description.env:
             __assert_contents(temp_output_workdir_destination, b"TEST_ENV_VALUE", result_status)
         __assert_contents(temp_version_output_path, b"1.0.1", result_status)

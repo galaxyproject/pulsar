@@ -5,7 +5,7 @@ shopt -s nullglob
 : ${PULSAR_TARGET_PORT:=8913}
 : ${PULSAR_INSTALL_TARGET:=pulsar-app}
 : ${PULSAR_TEST_DEBUG:=false}
-: ${PLANEMO_INSTALL_TARGET:=planemo==0.74.3}
+: ${PLANEMO_INSTALL_TARGET:=planemo==0.74.9}
 
 init_temp_dir() {
     case $(uname -s) in
