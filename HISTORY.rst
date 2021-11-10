@@ -6,10 +6,11 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.12.dev0
 ---------------------
 
-    
+* Fixes to bring HOME and temp directory handling closer to Galaxy native runners.
+* Enable globbed from_work_dir outputs for remote metadata.
 
 ---------------------
 0.14.11 (2021-07-19)
