@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.12.dev0
+0.14.12 (2021-11-10)
 ---------------------
 
 * Fixes to bring HOME and temp directory handling closer to Galaxy native runners.
