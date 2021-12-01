@@ -1,18 +1,40 @@
+import _thread as thread
 import os
 import platform
-import _thread as thread
+import tempfile
 import time
+from logging import getLogger
 from subprocess import Popen
 
-from .util import kill_pid
-from pulsar.managers.base.directory import DirectoryBaseManager
 from pulsar.managers import status
+from pulsar.managers.base.directory import DirectoryBaseManager
+from .util import kill_pid
 
-from logging import getLogger
 log = getLogger(__name__)
 
 JOB_FILE_SUBMITTED = "submitted"
 JOB_FILE_PID = "pid"
+
+try:
+    from galaxy.util.commands import new_clean_env
+except ImportError:
+    # We can drop this once we require galaxy-util >=21.01
+    def new_clean_env():
+        """
+        Returns a minimal environment to use when invoking a subprocess
+        """
+        env = {}
+        for k in ("HOME", "PATH", "TMPDIR"):
+            if k in os.environ:
+                env[k] = os.environ[k]
+        if "TMPDIR" not in env:
+            env["TMPDIR"] = os.path.abspath(tempfile.gettempdir())
+        # Set LC_CTYPE environment variable to enforce UTF-8 file encoding.
+        # This is needed e.g. for Python < 3.7 where
+        # `locale.getpreferredencoding()` (also used by open() to determine the
+        # default file encoding) would return `ANSI_X3.4-1968` without this.
+        env["LC_CTYPE"] = "C.UTF-8"
+        return env
 
 
 class BaseUnqueuedManager(DirectoryBaseManager):
@@ -219,14 +241,17 @@ class CoexecutionManager(BaseUnqueuedManager):
 
 def execute(command_line, working_directory, stdout, stderr):
     preexec_fn = None
-    if not (platform.system() == 'Windows'):
+    if platform.system() != 'Windows':
         preexec_fn = os.setpgrp
-    proc = Popen(args=command_line,
-                 shell=True,
-                 cwd=working_directory,
-                 stdout=stdout,
-                 stderr=stderr,
-                 preexec_fn=preexec_fn)
+    proc = Popen(
+        args=command_line,
+        shell=True,
+        cwd=working_directory,
+        stdout=stdout,
+        stderr=stderr,
+        preexec_fn=preexec_fn,
+        env=new_clean_env(),
+    )
     return proc
 
 
