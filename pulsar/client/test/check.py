@@ -302,7 +302,7 @@ def run(options):
 
         stdout = result_status["stdout"].strip()
         std_streams_debug = f"actual stdout [{stdout}], actual stderr [{result_status['stderr']}]"
-        assert "stdout output".startswith(stdout), f"Startard output doesn't started with expected [stdout output], {std_streams_debug}"
+        assert "stdout output".startswith(stdout), f"Standard output is not an initial substring of [stdout output], {std_streams_debug}"
         if hasattr(options, "maximum_stream_size"):
             assert len(stdout) == options.maximum_stream_size
 
