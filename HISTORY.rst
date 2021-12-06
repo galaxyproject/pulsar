@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.13.dev0
+0.14.13 (2021-12-06)
 ---------------------
 
 * Don't pass all environment variables to jobs launched by `Manager` (thanks
