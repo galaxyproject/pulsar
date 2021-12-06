@@ -6,10 +6,15 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.13.dev0
 ---------------------
 
-    
+* Don't pass all environment variables to jobs launched by `Manager` (thanks
+  to `@nsoranzo`_).
+  `Pull Request 295`_
+* Drop legacy job conf for Galaxy framework tests, test against
+  ``metadata_strategy: extended`` (thanks to `@mvdbeek`_).
+  `Pull Request 294`_
 
 ---------------------
 0.14.12 (2021-11-10)
@@ -407,6 +412,8 @@ History
 
 
 .. github_links
+.. _Pull Request 295: https://github.com/galaxyproject/pulsar/pull/295
+.. _Pull Request 294: https://github.com/galaxyproject/pulsar/pull/294
 .. _Pull Request 271: https://github.com/galaxyproject/pulsar/pull/271
 .. _Pull Request 274: https://github.com/galaxyproject/pulsar/pull/274
 .. _Pull Request 270: https://github.com/galaxyproject/pulsar/pull/270
@@ -535,3 +542,4 @@ History
 .. _@mvdbeek: https://github.com/mvdbeek
 .. _@tirkarthi: https://github.com/tirkarthi
 .. _@natefoo: https://github.com/natefoo
+.. _@nsoranzo: https://github.com/nsoranzo
