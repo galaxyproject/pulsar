@@ -14,6 +14,7 @@ from os.path import (
 )
 from re import compile, escape
 from typing import Any, Dict, List, Type
+from urllib.parse import urlencode
 
 from galaxy.util.bunch import Bunch
 
@@ -262,9 +263,8 @@ class FileActionMapper:
             raise Exception(MISSING_FILES_ENDPOINT_ERROR)
         if "?" not in url_base:
             url_base = "%s?" % url_base
-        # TODO: URL encode path.
-        url = "{}&path={}&file_type={}".format(url_base, action.path, file_type)
-        action.url = url
+        url_params = urlencode({"path": action.path, "file_type": file_type})
+        action.url = f"{url_base}{url_params}"
 
     def __inject_ssh_properties(self, action):
         for attr in ["ssh_key", "ssh_host", "ssh_port", "ssh_user"]:
