@@ -1,13 +1,15 @@
 """Code run on the client side for unstaging complete Pulsar jobs."""
 import fnmatch
 from contextlib import contextmanager
-from logging import getLogger
-from os.path import join, relpath
 from json import loads
+from logging import getLogger
+from os.path import (
+    join,
+    relpath,
+)
 
 from ..action_mapper import FileActionMapper
 from ..staging import COMMAND_VERSION_FILENAME
-
 
 log = getLogger(__name__)
 

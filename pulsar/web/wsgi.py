@@ -2,11 +2,10 @@ import atexit
 import inspect
 import logging
 
-from pulsar.main import load_app_configuration
-from pulsar.core import PulsarApp
-from pulsar.web.framework import RoutingApp
-
 import pulsar.web.routes
+from pulsar.core import PulsarApp
+from pulsar.main import load_app_configuration
+from pulsar.web.framework import RoutingApp
 
 log = logging.getLogger(__name__)
 

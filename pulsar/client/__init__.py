@@ -45,11 +45,11 @@ from .exceptions import PulsarClientTransportError
 from .manager import build_client_manager
 from .path_mapper import PathMapper
 from .staging import (
-    ClientJobDescription,
-    ClientInputs,
-    ClientInput,
-    ClientOutputs,
     CLIENT_INPUT_PATH_TYPES,
+    ClientInput,
+    ClientInputs,
+    ClientJobDescription,
+    ClientOutputs,
     EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN,
     PulsarOutputs,
 )

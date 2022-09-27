@@ -2,8 +2,10 @@ import os.path
 
 from galaxy.util import in_directory
 
-from .action_mapper import FileActionMapper
-from .action_mapper import path_type
+from .action_mapper import (
+    FileActionMapper,
+    path_type,
+)
 from .staging import CLIENT_INPUT_PATH_TYPES
 from .util import PathHelper
 

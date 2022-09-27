@@ -6,9 +6,11 @@ import inspect
 import re
 from os.path import exists
 
-from webob import Request
-from webob import Response
-from webob import exc
+from webob import (
+    exc,
+    Request,
+    Response,
+)
 
 from pulsar.client.util import json_dumps
 

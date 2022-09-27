@@ -1,25 +1,24 @@
+import logging
 import sys
 import threading
 
-from pulsar.mesos import (
-    Executor,
-    MesosExecutorDriver,
-    mesos_pb2,
-    ensure_mesos_libs,
-)
 from pulsar.client.util import from_base64_json
-from pulsar.scripts.submit_util import (
-    manager_from_args,
-    wait_for_job
-)
-from pulsar.manager_endpoint_util import submit_job
-
 from pulsar.main import (
     ArgumentParser,
     PulsarManagerConfigBuilder,
 )
+from pulsar.manager_endpoint_util import submit_job
+from pulsar.mesos import (
+    ensure_mesos_libs,
+    Executor,
+    mesos_pb2,
+    MesosExecutorDriver,
+)
+from pulsar.scripts.submit_util import (
+    manager_from_args,
+    wait_for_job,
+)
 
-import logging
 log = logging.getLogger(__name__)
 
 DESCRIPTION = "Mesos executor for Pulsar"

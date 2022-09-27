@@ -2,14 +2,14 @@ import logging
 import time
 
 import paramiko
-from pulsar.managers.util.retry import RetryActionExecutor
-
 from galaxy.util import (
     smart_str,
     string_as_bool,
     unicodify,
 )
 from galaxy.util.bunch import Bunch
+
+from pulsar.managers.util.retry import RetryActionExecutor
 from .local import LocalShell
 
 log = logging.getLogger(__name__)

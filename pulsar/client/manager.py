@@ -7,31 +7,33 @@ specific actions.
 
 import functools
 import threading
-from typing import Any, Dict, Type
-
 from logging import getLogger
 from os import getenv
 from queue import Queue
+from typing import (
+    Any,
+    Dict,
+    Type,
+)
 
 from .amqp_exchange_factory import get_exchange
 from .client import (
     BaseJobClient,
     InputCachingJobClient,
     JobClient,
-    MessageJobClient,
     MessageCLIJobClient,
     MessageCoexecutionPodJobClient,
+    MessageJobClient,
 )
 from .destination import url_to_destination_params
+from .object_client import ObjectStoreClient
 from .server_interface import (
     HttpPulsarInterface,
     LocalPulsarInterface,
     PulsarInterface,
 )
-from .object_client import ObjectStoreClient
 from .transport import get_transport
 from .util import TransferEventManager
-
 
 log = getLogger(__name__)
 

@@ -2,7 +2,6 @@
 """
 import os.path
 import posixpath
-
 from collections import deque
 from glob import glob
 from logging import getLogger
@@ -10,6 +9,7 @@ from logging import getLogger
 from galaxy.util import in_directory
 
 from .util import PathHelper
+
 log = getLogger(__name__)
 
 

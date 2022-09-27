@@ -128,6 +128,9 @@ open-rtd: docs
 open-project:
 	open $(PROJECT_URL) || xdg-open $(PROJECT_URL)
 
+format:  ## Format Python code base
+	$(IN_VENV) isort .
+
 dist: clean-build clean-pyc
 	$(IN_VENV) python setup.py sdist bdist_wheel
 	ls -l dist

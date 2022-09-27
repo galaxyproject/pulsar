@@ -2,12 +2,12 @@
 """
 try:
     from mesos.interface import (
+        Executor,
         Scheduler,
-        Executor
     )
     from mesos.native import (
+        MesosExecutorDriver,
         MesosSchedulerDriver,
-        MesosExecutorDriver
     )
 except ImportError:
     Scheduler = object

@@ -3,12 +3,16 @@ Pulsar job manager that uses a CLI interface to a job queue (e.g. Torque's qsub,
 qstat, etc...).
 """
 
+from logging import getLogger
+
 from .base.external import ExternalBaseManager
+from .util.cli import (
+    CliInterface,
+    split_params,
+)
 from .util.external import parse_external_id
-from .util.cli import CliInterface, split_params
 from .util.job_script import job_script
 
-from logging import getLogger
 log = getLogger(__name__)
 
 

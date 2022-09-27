@@ -1,21 +1,33 @@
 import os
 
-from .curl import curl_available
-from .curl import PycurlTransport
+from .curl import (
+    curl_available,
+    PycurlTransport,
+)
 from .requests import requests_multipart_post_available
-from .ssh import rsync_get_file, scp_get_file
-from .ssh import rsync_post_file, scp_post_file
+from .ssh import (
+    rsync_get_file,
+    rsync_post_file,
+    scp_get_file,
+    scp_post_file,
+)
 from .standard import UrllibTransport
 
 if curl_available:
-    from .curl import get_file
-    from .curl import post_file
+    from .curl import (
+        get_file,
+        post_file,
+    )
 elif requests_multipart_post_available:
-    from .requests import get_file
-    from .requests import post_file
+    from .requests import (
+        get_file,
+        post_file,
+    )
 else:
-    from .poster import get_file
-    from .poster import post_file
+    from .poster import (
+        get_file,
+        post_file,
+    )
 
 
 def get_transport(transport_type=None, os_module=os, transport_params=None):

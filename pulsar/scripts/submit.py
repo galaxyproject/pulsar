@@ -4,8 +4,8 @@ import sys
 
 from pulsar.main import ArgumentParser
 from pulsar.scripts.submit_util import (
-    run_server_for_job,
     add_common_submit_args,
+    run_server_for_job,
 )
 
 

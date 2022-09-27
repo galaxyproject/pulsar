@@ -3,7 +3,10 @@ import logging
 import threading
 
 try:
-    from drmaa import Session, JobControlAction
+    from drmaa import (
+        JobControlAction,
+        Session,
+    )
 except OSError as e:
     LOAD_ERROR_MESSAGE = "OSError - problem loading shared library [%s]." % e
     Session = None

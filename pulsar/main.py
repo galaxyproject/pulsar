@@ -17,14 +17,13 @@ This script can be used in a standalone fashion, but it is generally better to
 run the ``pulsar`` script with ``--mode webless`` - which will in turn
 delegate to this script.
 """
-import logging
-from logging.config import fileConfig
-
-import os
-import functools
-import time
-import sys
 import configparser
+import functools
+import logging
+import os
+import sys
+import time
+from logging.config import fileConfig
 
 try:
     import yaml
@@ -36,8 +35,10 @@ try:
 except ImportError:
     Daemonize = None
 
-from argparse import ArgumentParser
-from argparse import RawDescriptionHelpFormatter
+from argparse import (
+    ArgumentParser,
+    RawDescriptionHelpFormatter,
+)
 
 log = logging.getLogger(__name__)
 

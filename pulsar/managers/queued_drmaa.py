@@ -1,6 +1,7 @@
+import logging
+
 from .base.base_drmaa import BaseDrmaaManager
 
-import logging
 log = logging.getLogger(__name__)
 
 

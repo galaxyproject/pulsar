@@ -1,6 +1,9 @@
 """
 """
-from abc import ABCMeta, abstractmethod
+from abc import (
+    ABCMeta,
+    abstractmethod,
+)
 
 PULSAR_UNKNOWN_RETURN_CODE = '__unknown__'
 

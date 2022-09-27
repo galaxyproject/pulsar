@@ -1,12 +1,17 @@
-from os.path import exists
+from logging import getLogger
 from os import stat
+from os.path import exists
 
-from .util.condor import build_submit_description
-from .util.condor import condor_submit, condor_stop, summarize_condor_log, submission_params
 from .base.external import ExternalBaseManager
+from .util.condor import (
+    build_submit_description,
+    condor_stop,
+    condor_submit,
+    submission_params,
+    summarize_condor_log,
+)
 from ..managers import status
 
-from logging import getLogger
 log = getLogger(__name__)
 
 

@@ -1,9 +1,14 @@
 import logging
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import (
+    ABCMeta,
+    abstractmethod,
+)
 from io import BytesIO
 from string import Template
-from urllib.parse import urlencode, urljoin
+from urllib.parse import (
+    urlencode,
+    urljoin,
+)
 
 from galaxy.util import unicodify
 

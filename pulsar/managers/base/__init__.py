@@ -26,8 +26,8 @@ from uuid import uuid4
 
 from pulsar import locks
 from pulsar.client.job_directory import (
-    RemoteJobDirectory,
     get_mapped_file,
+    RemoteJobDirectory,
 )
 from pulsar.managers import ManagerInterface
 

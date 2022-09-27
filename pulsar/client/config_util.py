@@ -7,9 +7,8 @@ try:
     import yaml
 except ImportError:
     yaml = None  # type: ignore
-from configparser import ConfigParser
 import json
-
+from configparser import ConfigParser
 
 CONFIG_TYPE_JSON = "json"
 CONFIG_TYPE_YAML = "yaml"

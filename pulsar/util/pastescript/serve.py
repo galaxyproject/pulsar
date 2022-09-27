@@ -38,8 +38,10 @@ from gettext import gettext as _
 from logging.config import fileConfig
 from typing import Optional
 
-from .loadwsgi import loadapp, loadserver
-
+from .loadwsgi import (
+    loadapp,
+    loadserver,
+)
 
 difflib = None
 

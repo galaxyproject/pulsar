@@ -18,16 +18,20 @@ from .action_mapper import (
     path_type,
 )
 from .amqp_exchange import ACK_FORCE_NOACK_KEY
-from .decorators import parseJson
-from .decorators import retry
+from .decorators import (
+    parseJson,
+    retry,
+)
 from .destination import submit_params
 from .job_directory import RemoteJobDirectory
 from .setup_handler import build as build_setup_handler
-from .util import copy
-from .util import ensure_directory
-from .util import json_dumps
-from .util import json_loads
-from .util import to_base64_json
+from .util import (
+    copy,
+    ensure_directory,
+    json_dumps,
+    json_loads,
+    to_base64_json,
+)
 
 log = logging.getLogger(__name__)
 

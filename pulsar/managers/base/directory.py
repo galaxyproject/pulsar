@@ -3,10 +3,11 @@ import os
 import stat
 
 from galaxy.util import asbool
-from pulsar.managers.base import BaseManager
+
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
-from ..util.job_script import job_script
+from pulsar.managers.base import BaseManager
 from ..util.env import env_to_statement
+from ..util.job_script import job_script
 
 log = logging.getLogger(__name__)
 

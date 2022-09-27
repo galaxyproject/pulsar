@@ -2,8 +2,14 @@ import hashlib
 import json
 import os.path
 import shutil
-from base64 import b64decode as _b64decode, b64encode as _b64encode
-from errno import EEXIST, ENOENT
+from base64 import (
+    b64decode as _b64decode,
+    b64encode as _b64encode,
+)
+from errno import (
+    EEXIST,
+    ENOENT,
+)
 from functools import wraps
 from os import (
     curdir,
@@ -18,7 +24,10 @@ from os.path import (
     join,
     relpath,
 )
-from threading import Event, Lock
+from threading import (
+    Event,
+    Lock,
+)
 from weakref import WeakValueDictionary
 
 # TODO: move to galaxy.util so it doesn't have to be duplicated
