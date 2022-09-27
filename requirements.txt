@@ -7,6 +7,7 @@ galaxy-objectstore>=19.9.0.dev1
 galaxy-tool-util>=19.9.0.dev3
 galaxy-util>=19.9.0.dev1
 paramiko
+typing-extensions
 
 ## Uncomment if using DRMAA queue manager.
 #drmaa
