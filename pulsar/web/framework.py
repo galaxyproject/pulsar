@@ -183,6 +183,6 @@ class FileIterator:
 
     def __next__(self):
         buffer = self.input.read(1024)
-        if(buffer == b""):
+        if buffer == b"":
             raise StopIteration
         return buffer
