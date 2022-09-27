@@ -1,24 +1,27 @@
 import os
+import signal
 import subprocess
 from platform import system
 from time import sleep
 
 try:
-    from psutil import NoSuchProcess, Process
+    from psutil import (
+        NoSuchProcess,
+        Process,
+    )
 except ImportError:
-    """ Don't make psutil a strict requirement, but use if available. """
-    Process = None  # type: ignore
-    NoSuchProcess = Exception  # type: ignore
+    """Don't make psutil a strict requirement, but use if available."""
+    Process = None
 
 
-def kill_pid(pid: int, use_psutil: bool = True):
+def kill_pid(pid, use_psutil=True):
     if use_psutil and Process:
         _psutil_kill_pid(pid)
     else:
         _stock_kill_pid(pid)
 
 
-def _psutil_kill_pid(pid: int):
+def _psutil_kill_pid(pid):
     """
     http://stackoverflow.com/questions/1230669/subprocess-deleting-child-processes-in-windows
     """
@@ -31,8 +34,8 @@ def _psutil_kill_pid(pid: int):
         return
 
 
-def _stock_kill_pid(pid: int):
-    is_windows = system() == 'Windows'
+def _stock_kill_pid(pid):
+    is_windows = system() == "Windows"
 
     if is_windows:
         __kill_windows(pid)
@@ -42,12 +45,12 @@ def _stock_kill_pid(pid: int):
 
 def __kill_windows(pid):
     try:
-        subprocess.check_call(['taskkill', '/F', '/T', '/PID', pid])
+        subprocess.check_call(["taskkill", "/F", "/T", "/PID", pid])
     except subprocess.CalledProcessError:
         pass
 
 
-def __kill_posix(pid: int):
+def __kill_posix(pid):
     def __check_pid():
         try:
             os.kill(pid, 0)
@@ -56,7 +59,7 @@ def __kill_posix(pid: int):
             return False
 
     if __check_pid():
-        for sig in [15, 9]:
+        for sig in [signal.SIGTERM, signal.SIGKILL]:
             try:
                 os.killpg(pid, sig)
             except OSError:
