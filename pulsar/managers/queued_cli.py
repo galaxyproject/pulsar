@@ -21,7 +21,7 @@ class CliQueueManager(ExternalBaseManager):
 
     def __init__(self, name, app, **kwds):
         super().__init__(name, app, **kwds)
-        self.cli_interface = CliInterface(code_dir='.')
+        self.cli_interface = CliInterface()
         self.shell_params, self.job_params = split_params(kwds)
 
     def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
