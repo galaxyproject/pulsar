@@ -1,8 +1,8 @@
 import contextlib
 import datetime
 import os
-import time
 import threading
+import time
 
 try:
     # If galaxy-lib or Galaxy 19.05 present.
@@ -11,14 +11,19 @@ except ImportError:
     # If galaxy-tool-util or Galaxy 19.09 present.
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
 
-from pulsar.client.util import filter_destination_params
-from pulsar.managers import ManagerProxy
-from pulsar.managers import status
-from pulsar.managers.util.retry import RetryActionExecutor
-from .staging import preprocess
-from .staging import postprocess
-
 import logging
+
+from pulsar.client.util import filter_destination_params
+from pulsar.managers import (
+    ManagerProxy,
+    status,
+)
+from pulsar.managers.util.retry import RetryActionExecutor
+from .staging import (
+    postprocess,
+    preprocess,
+)
+
 log = logging.getLogger(__name__)
 
 DEFAULT_DO_MONITOR = False

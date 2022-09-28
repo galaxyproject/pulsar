@@ -9,15 +9,25 @@ from os.path import (
     join,
     relpath,
 )
-from re import escape, findall
+from re import (
+    escape,
+    findall,
+)
 
-from ..action_mapper import FileActionMapper
-from ..action_mapper import MessageAction
-from ..action_mapper import path_type
+from ..action_mapper import (
+    FileActionMapper,
+    MessageAction,
+    path_type,
+)
 from ..job_directory import RemoteJobDirectory
-from ..staging import CLIENT_INPUT_PATH_TYPES, COMMAND_VERSION_FILENAME
-from ..util import directory_files
-from ..util import PathHelper
+from ..staging import (
+    CLIENT_INPUT_PATH_TYPES,
+    COMMAND_VERSION_FILENAME,
+)
+from ..util import (
+    directory_files,
+    PathHelper,
+)
 
 log = getLogger(__name__)
 

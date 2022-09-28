@@ -1,13 +1,15 @@
 """
 """
+import logging
 import os
 
-from pulsar.client import action_mapper
-from pulsar.client import staging
+from pulsar.client import (
+    action_mapper,
+    staging,
+)
 from pulsar.client.staging import PulsarOutputs
 from pulsar.client.staging.down import ResultsCollector
 
-import logging
 log = logging.getLogger(__name__)
 
 

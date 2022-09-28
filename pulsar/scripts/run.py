@@ -4,29 +4,30 @@ import fnmatch
 import sys
 import uuid
 
+from pulsar.client import (
+    ClientJobDescription,
+    ClientOutputs,
+    finish_job,
+    PulsarOutputs,
+    submit_job,
+)
+from pulsar.client.test.check import (
+    client_info,
+    extract_client_options,
+    HELP_DISABLE_CLEANUP,
+    HELP_JOB_ID,
+    HELP_PRIVATE_TOKEN,
+    HELP_SUPPRESS_OUTPUT,
+    HELP_TRANSPORT,
+    HELP_URL,
+    Waiter,
+)
+from pulsar.client.util import json_dumps
 from pulsar.main import ArgumentParser
 from pulsar.scripts.submit_util import (
     add_common_submit_args,
     run_server_for_job,
 )
-
-from pulsar.client.test.check import (
-    HELP_URL,
-    HELP_PRIVATE_TOKEN,
-    HELP_TRANSPORT,
-    HELP_SUPPRESS_OUTPUT,
-    HELP_DISABLE_CLEANUP,
-    HELP_JOB_ID,
-    extract_client_options,
-    client_info,
-    Waiter,
-)
-from pulsar.client import ClientJobDescription
-from pulsar.client import ClientOutputs
-from pulsar.client import PulsarOutputs
-from pulsar.client import submit_job
-from pulsar.client import finish_job
-from pulsar.client.util import json_dumps
 
 HELP_AMQP_URL = "Communicate with Pulsar listining on a message queue at this URL."
 HELP_SERVER = "Run a Pulsar server locally instead of contacting a remote one."

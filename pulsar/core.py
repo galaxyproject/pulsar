@@ -1,19 +1,20 @@
 """
 """
 import os
+from logging import getLogger
 from tempfile import tempdir
 
-from pulsar.manager_factory import build_managers
-from pulsar.cache import Cache
-from pulsar.tools import ToolBox
-from pulsar.tools.authorization import get_authorizer
-from pulsar import messaging
+from galaxy.job_metrics import JobMetrics
 from galaxy.objectstore import build_object_store_from_config
 from galaxy.tool_util.deps import build_dependency_manager
-from galaxy.job_metrics import JobMetrics
 from galaxy.util.bunch import Bunch
 
-from logging import getLogger
+from pulsar import messaging
+from pulsar.cache import Cache
+from pulsar.manager_factory import build_managers
+from pulsar.tools import ToolBox
+from pulsar.tools.authorization import get_authorizer
+
 log = getLogger(__name__)
 
 DEFAULT_PRIVATE_TOKEN = None

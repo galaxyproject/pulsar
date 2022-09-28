@@ -3,10 +3,11 @@ import os
 import stat
 
 from galaxy.util import asbool
-from pulsar.managers.base import BaseManager
+
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
-from ..util.job_script import job_script
+from pulsar.managers.base import BaseManager
 from ..util.env import env_to_statement
+from ..util.job_script import job_script
 
 log = logging.getLogger(__name__)
 
@@ -116,9 +117,21 @@ class DirectoryBaseManager(BaseManager):
             tool_id = job_directory.load_metadata(JOB_FILE_TOOL_ID)
         return tool_id
 
+    def _expand_command_line(self, job_id, command_line: str, dependencies_description, job_directory=None) -> str:
+        command_line = super()._expand_command_line(
+            job_id, command_line, dependencies_description, job_directory=job_directory
+        )
+        if not self._is_windows:
+            rc_path = self._return_code_path(job_id)
+            CAPTURE_RETURN_CODE = "return_code=$?"
+            command_line = f"{command_line}; {CAPTURE_RETURN_CODE}; echo $return_code > {rc_path};"
+        return command_line
+
     # Helpers methods related to setting up job script files.
     def _setup_job_file(self, job_id, command_line, dependencies_description=None, env=[], setup_params=None):
-        command_line = self._expand_command_line(command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory)
+        command_line = self._expand_command_line(
+            job_id, command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory
+        )
         script_env = self._job_template_env(job_id, command_line=command_line, env=env, setup_params=setup_params)
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
@@ -137,7 +150,6 @@ class DirectoryBaseManager(BaseManager):
             return tmp_dir
 
     def _job_template_env(self, job_id, command_line=None, env=[], setup_params=None):
-        return_code_path = self._return_code_path(job_id)
         # TODO: Add option to ignore remote env.
         env = env + self.env_vars
         setup_params = setup_params or {}
@@ -148,7 +160,6 @@ class DirectoryBaseManager(BaseManager):
             'galaxy_lib': self._galaxy_lib(),
             'preserve_python_environment': setup_params.get('preserve_galaxy_python_environment', False),
             'env_setup_commands': env_setup_commands,
-            'exit_code_path': return_code_path,
             'job_directory': self.job_directory(job_id).job_directory,
             'working_directory': self.job_directory(job_id).working_directory(),
             'metadata_directory': self.job_directory(job_id).metadata_directory(),

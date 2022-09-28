@@ -7,7 +7,7 @@ import sys
 from pulsar.main import (
     ArgumentParser,
     DEFAULT_APP_YAML,
-    DEFAULT_INI
+    DEFAULT_INI,
 )
 
 try:

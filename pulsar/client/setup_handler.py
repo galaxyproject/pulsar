@@ -2,7 +2,6 @@ import os
 from uuid import uuid4
 
 from pulsar import __version__ as pulsar_version
-
 from .util import filter_destination_params
 
 REMOTE_SYSTEM_PROPERTY_PREFIX = "remote_property_"

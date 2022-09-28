@@ -3,8 +3,10 @@ import logging
 import socket
 import threading
 import uuid
-
-from time import sleep, time
+from time import (
+    sleep,
+    time,
+)
 
 try:
     import kombu

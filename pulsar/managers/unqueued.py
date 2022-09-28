@@ -60,10 +60,12 @@ class BaseUnqueuedManager(DirectoryBaseManager):
     def _prepare_run(self, job_id, command_line, dependencies_description, env, setup_params=None):
         self._check_execution_with_tool_file(job_id, command_line)
         self._record_submission(job_id)
-        if platform.system().lower() == "windows":
+        if self._is_windows:
             # TODO: Don't ignore requirements and env without warning. Ideally
             # process them or at least warn about them being ignored.
-            command_line = self._expand_command_line(command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory)
+            command_line = self._expand_command_line(
+                job_id, command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory
+            )
         else:
             command_line = self._setup_job_file(
                 job_id,

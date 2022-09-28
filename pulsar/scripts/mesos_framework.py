@@ -1,12 +1,9 @@
-from pulsar.mesos import (
-    ensure_mesos_libs
-)
-from pulsar.mesos.framework import run
-
 from pulsar.main import (
     ArgumentParser,
     PulsarManagerConfigBuilder,
 )
+from pulsar.mesos import ensure_mesos_libs
+from pulsar.mesos.framework import run
 
 DESCRIPTION = "Pulsar Mesos Framework Entry Point."
 

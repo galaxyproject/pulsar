@@ -2,7 +2,6 @@ import logging
 from string import Template
 
 from pulsar.managers import status
-
 from .directory import DirectoryBaseManager
 
 DEFAULT_JOB_NAME_TEMPLATE = "pulsar_$job_id"

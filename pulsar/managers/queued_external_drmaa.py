@@ -1,5 +1,5 @@
-from json import dumps
 from getpass import getuser
+from json import dumps
 
 from .base.base_drmaa import BaseDrmaaManager
 from .util.sudo import sudo_popen
@@ -11,6 +11,7 @@ except ImportError:
     from galaxy.tool_util.deps.commands import which
 
 from logging import getLogger
+
 log = getLogger(__name__)
 
 DEFAULT_CHOWN_WORKING_DIRECTORY_SCRIPT = "scripts/chown_working_directory.bash"

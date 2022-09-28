@@ -1,6 +1,5 @@
 import re
 from enum import Enum
-
 from os import sep
 from os.path import (
     basename,

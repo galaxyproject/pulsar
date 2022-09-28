@@ -6,11 +6,9 @@ try:
 except (OSError, ImportError, RuntimeError):
     JobState = None
 
+from pulsar.managers import status
 from .external import ExternalBaseManager
 from ..util.drmaa import DrmaaSessionFactory
-
-from pulsar.managers import status
-
 
 log = logging.getLogger(__name__)
 

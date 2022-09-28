@@ -4,13 +4,16 @@ import os.path
 
 try:
     import pycurl
-    from pycurl import Curl, HTTP_CODE, error
+    from pycurl import (
+        Curl,
+        error,
+        HTTP_CODE,
+    )
     curl_available = True
 except ImportError:
     curl_available = False
 
 from ..exceptions import PulsarClientTransportError
-
 
 PYCURL_UNAVAILABLE_MESSAGE = \
     "You are attempting to use the Pycurl version of the Pulsar client but pycurl is unavailable."

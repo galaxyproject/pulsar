@@ -7,8 +7,10 @@ import os
 
 from pulsar import __version__ as pulsar_version
 from pulsar.client.setup_handler import build_job_config
-from pulsar.managers import status
-from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
+from pulsar.managers import (
+    PULSAR_UNKNOWN_RETURN_CODE,
+    status,
+)
 from pulsar.managers.staging import realized_dynamic_file_sources
 
 log = logging.getLogger(__name__)

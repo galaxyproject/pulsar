@@ -1,5 +1,6 @@
-import pkg_resources
 import shutil
+
+import pkg_resources
 
 
 def main():

@@ -1,5 +1,8 @@
 from .amqp_exchange import PulsarExchange
-from .util import filter_destination_params, MessageQueueUUIDStore
+from .util import (
+    filter_destination_params,
+    MessageQueueUUIDStore,
+)
 
 
 def get_exchange(url, manager_name, params):

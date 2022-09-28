@@ -1,8 +1,13 @@
-from subprocess import check_call, Popen, PIPE, CalledProcessError
+import logging
+from subprocess import (
+    CalledProcessError,
+    check_call,
+    PIPE,
+    Popen,
+)
 
 from .queued_drmaa import DrmaaQueueManager
 
-import logging
 log = logging.getLogger(__name__)
 
 

@@ -1,8 +1,14 @@
 from os import system
-from os.path import join, abspath
-from pulsar.main import ArgumentParser, PulsarConfigBuilder
-from pulsar.core import DEFAULT_STAGING_DIRECTORY
+from os.path import (
+    abspath,
+    join,
+)
 
+from pulsar.core import DEFAULT_STAGING_DIRECTORY
+from pulsar.main import (
+    ArgumentParser,
+    PulsarConfigBuilder,
+)
 
 DESCRIPTION = "Change ownership of a job working directory."
 # Switch this to true to tighten up security somewhat in production mode,

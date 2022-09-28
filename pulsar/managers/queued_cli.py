@@ -3,12 +3,16 @@ Pulsar job manager that uses a CLI interface to a job queue (e.g. Torque's qsub,
 qstat, etc...).
 """
 
+from logging import getLogger
+
 from .base.external import ExternalBaseManager
+from .util.cli import (
+    CliInterface,
+    split_params,
+)
 from .util.external import parse_external_id
-from .util.cli import CliInterface, split_params
 from .util.job_script import job_script
 
-from logging import getLogger
 log = getLogger(__name__)
 
 
@@ -17,7 +21,7 @@ class CliQueueManager(ExternalBaseManager):
 
     def __init__(self, name, app, **kwds):
         super().__init__(name, app, **kwds)
-        self.cli_interface = CliInterface(code_dir='.')
+        self.cli_interface = CliInterface()
         self.shell_params, self.job_params = split_params(kwds)
 
     def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
@@ -26,7 +30,9 @@ class CliQueueManager(ExternalBaseManager):
         stdout_path = self._stdout_path(job_id)
         stderr_path = self._stderr_path(job_id)
         job_name = self._job_name(job_id)
-        command_line = self._expand_command_line(command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory)
+        command_line = self._expand_command_line(
+            job_id, command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory
+        )
         job_script_kwargs = self._job_template_env(
             job_id,
             command_line=command_line,

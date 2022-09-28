@@ -1,9 +1,10 @@
 import fnmatch
 import tempfile
-
 from contextlib import contextmanager
-from os import makedirs
-from os import unlink
+from os import (
+    makedirs,
+    unlink,
+)
 from os.path import (
     abspath,
     basename,
@@ -12,25 +13,34 @@ from os.path import (
     join,
     sep,
 )
-from re import compile, escape
-from typing import Any, Dict, List, Type
+from re import (
+    compile,
+    escape,
+)
+from typing import (
+    Any,
+    Dict,
+    List,
+    Type,
+)
 from urllib.parse import urlencode
 
 from galaxy.util.bunch import Bunch
 
 from .config_util import read_file
-from .transport import get_file
-from .transport import post_file
 from .transport import (
+    get_file,
+    post_file,
     rsync_get_file,
     rsync_post_file,
     scp_get_file,
     scp_post_file,
 )
-from .util import copy_to_path
-from .util import directory_files
-from .util import unique_path_prefix
-
+from .util import (
+    copy_to_path,
+    directory_files,
+    unique_path_prefix,
+)
 
 DEFAULT_MAPPED_ACTION = 'transfer'  # Not really clear to me what this should be, exception?
 DEFAULT_PATH_MAPPER_TYPE = 'prefix'

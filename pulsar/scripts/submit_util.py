@@ -7,7 +7,7 @@ import time
 from pulsar.client.util import from_base64_json
 from pulsar.main import (
     load_pulsar_app,
-    PulsarManagerConfigBuilder
+    PulsarManagerConfigBuilder,
 )
 from pulsar.manager_endpoint_util import submit_job
 from pulsar.managers.status import is_job_done

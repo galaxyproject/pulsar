@@ -2,32 +2,36 @@ import logging
 import os
 
 from pulsar.managers.util.pykube_util import (
+    delete_job,
     ensure_pykube,
     find_job_object_by_name,
     find_pod_object_by_name,
     galaxy_instance_id,
     Job,
     job_object_dict,
-    produce_unique_k8s_job_name,
+    produce_k8s_job_prefix,
     pull_policy,
     pykube_client_from_dict,
-    stop_job,
 )
 from .action_mapper import (
     actions,
     path_type,
 )
 from .amqp_exchange import ACK_FORCE_NOACK_KEY
-from .decorators import parseJson
-from .decorators import retry
+from .decorators import (
+    parseJson,
+    retry,
+)
 from .destination import submit_params
 from .job_directory import RemoteJobDirectory
 from .setup_handler import build as build_setup_handler
-from .util import copy
-from .util import ensure_directory
-from .util import json_dumps
-from .util import json_loads
-from .util import to_base64_json
+from .util import (
+    copy,
+    ensure_directory,
+    json_dumps,
+    json_loads,
+    to_base64_json,
+)
 
 log = logging.getLogger(__name__)
 
@@ -475,7 +479,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
 
-        job_name = self._k8s_job_name
+        k8s_job_prefix = self._k8s_job_prefix
         params = self.destination_params
 
         pulsar_container_image = self.pulsar_container_image
@@ -523,7 +527,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
 
         template = {
             "metadata": {
-                "labels": {"app": job_name},
+                "labels": {"app": k8s_job_prefix},
             },
             "spec": {
                 "volumes": volumes,
@@ -534,23 +538,23 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         spec = {"template": template}
         if "k8s_walltime_limit" in params:
             spec["activeDeadlineSeconds"] = int(params["k8s_walltime_limit"])
-        k8s_job_obj = job_object_dict(params, job_name, spec)
+        k8s_job_obj = job_object_dict(params, k8s_job_prefix, spec)
         pykube_client = self._pykube_client
         job = Job(pykube_client, k8s_job_obj)
         job.create()
 
     def kill(self):
-        job_name = self._k8s_job_name
+        job_name = self._k8s_job_prefix
         pykube_client = self._pykube_client
         job = find_job_object_by_name(pykube_client, job_name)
         if job:
             log.info("Kill k8s job with name %s" % job_name)
-            stop_job(job)
+            delete_job(job)
         else:
             log.info("Attempted to kill k8s job but it is unavailable.")
 
     def job_ip(self):
-        job_name = self._k8s_job_name
+        job_name = self._k8s_job_prefix
         pykube_client = self._pykube_client
         pod = find_pod_object_by_name(pykube_client, job_name)
         if pod:
@@ -569,10 +573,10 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         return pykube_client_from_dict(self.destination_params)
 
     @property
-    def _k8s_job_name(self):
+    def _k8s_job_prefix(self):
         job_id = self.job_id
-        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
-        return job_name
+        job_prefix = produce_k8s_job_prefix(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
+        return job_prefix
 
     def _pulsar_container_resources(self, params):
         return self._container_resources(params, container='pulsar')

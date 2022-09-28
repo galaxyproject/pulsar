@@ -1,22 +1,21 @@
 import logging
 import os
-
 from json import loads
 
 from webob import exc
 
-from pulsar.util import (
-    copy_to_path,
-    copy_to_temp,
-)
-from pulsar.client.job_directory import verify_is_in_directory
 from pulsar.client.action_mapper import path_type
+from pulsar.client.job_directory import verify_is_in_directory
 from pulsar.manager_endpoint_util import (
     setup_job,
     status_dict,
     submit_job,
 )
 from pulsar.manager_factory import DEFAULT_MANAGER_NAME
+from pulsar.util import (
+    copy_to_path,
+    copy_to_temp,
+)
 from pulsar.web.framework import Controller
 
 log = logging.getLogger(__name__)

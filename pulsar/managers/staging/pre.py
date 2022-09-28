@@ -1,7 +1,8 @@
 """
 """
-from pulsar.client.action_mapper import from_dict
 import logging
+
+from pulsar.client.action_mapper import from_dict
 
 log = logging.getLogger(__name__)
 

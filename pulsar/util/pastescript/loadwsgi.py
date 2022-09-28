@@ -7,12 +7,17 @@ import inspect
 import os
 import re
 import sys
-from typing import Callable, Dict, List, Optional, Union
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 from urllib.parse import unquote
 
 import pkg_resources
 from galaxy.util.properties import NicerConfigParser
-
 
 __all__ = ('loadapp', 'loadserver', 'loadfilter', 'appconfig')
 

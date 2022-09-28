@@ -94,7 +94,7 @@ def _get_manager_modules():
     managers_dir = pulsar.managers.__path__[0]
     module_names = []
     for fname in os.listdir(managers_dir):
-        if not(fname.startswith("_")) and fname.endswith(".py"):
+        if not (fname.startswith("_")) and fname.endswith(".py"):
             manager_module_name = "pulsar.managers.%s" % fname[:-len(".py")]
             module_names.append(manager_module_name)
     return module_names

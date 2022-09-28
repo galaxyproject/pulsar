@@ -7,7 +7,10 @@ import os.path
 import sys
 from argparse import ArgumentParser
 
-from galaxy.tool_util.deps.conda_util import CondaContext, install_conda
+from galaxy.tool_util.deps.conda_util import (
+    CondaContext,
+    install_conda,
+)
 from galaxy.util import safe_makedirs
 
 
