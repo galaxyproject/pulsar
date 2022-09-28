@@ -6,6 +6,7 @@ import errno
 import json
 import logging
 import os
+import platform
 from os import (
     curdir,
     getenv,
@@ -77,6 +78,10 @@ class BaseManager(ManagerInterface):
         self.dependency_manager = app.dependency_manager
         self.job_metrics = app.job_metrics
         self.object_store = app.object_store
+
+    @property
+    def _is_windows(self) -> bool:
+        return platform.system().lower() == "windows"
 
     def clean(self, job_id):
         if self.debug:
@@ -193,7 +198,7 @@ class BaseManager(ManagerInterface):
         else:
             return listdir(directory_or_none)
 
-    def _expand_command_line(self, command_line, dependencies_description, job_directory=None):
+    def _expand_command_line(self, job_id, command_line: str, dependencies_description, job_directory=None) -> str:
         if dependencies_description is None:
             return command_line
 
