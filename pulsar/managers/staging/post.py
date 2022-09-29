@@ -44,6 +44,9 @@ def __collect_outputs(job_directory, staging_config, action_executor):
 
 def realized_dynamic_file_sources(job_directory):
     launch_config = job_directory.load_metadata("launch_config")
+    if launch_config is None:
+        log.warning(f"Failed to load launch_config from: {job_directory.job_directory}")
+        return []
     dynamic_file_sources = launch_config.get("dynamic_file_sources")
     realized_dynamic_file_sources = []
     for dynamic_file_source in (dynamic_file_sources or []):
