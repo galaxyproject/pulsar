@@ -6,10 +6,15 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.14 (2022-10-30)
 ---------------------
 
-    
+* Bring in updated Galaxy runner util code. `Pull Request 303`_
+* Fix recovering "lost" jobs where the job directory does not exist at
+  startup/recovery time (thanks to `@natefoo`_). `Pull Request 301`_
+* Use urlencode to encode path (thanks to `@mvdbeek`_). `Pull Request 299`_
+* Support the k8s_job_ttl_secs_after_finished option as in the Galaxy
+  Kubernetes runner (thanks to `@natefoo`_). `Pull Request 287`_
 
 ---------------------
 0.14.13 (2021-12-06)
@@ -418,8 +423,12 @@ History
 
 
 .. github_links
+.. _Pull Request 303: https://github.com/galaxyproject/pulsar/pull/303
+.. _Pull Request 301: https://github.com/galaxyproject/pulsar/pull/301
+.. _Pull Request 299: https://github.com/galaxyproject/pulsar/pull/299
 .. _Pull Request 295: https://github.com/galaxyproject/pulsar/pull/295
 .. _Pull Request 294: https://github.com/galaxyproject/pulsar/pull/294
+.. _Pull Request 287: https://github.com/galaxyproject/pulsar/pull/287
 .. _Pull Request 271: https://github.com/galaxyproject/pulsar/pull/271
 .. _Pull Request 274: https://github.com/galaxyproject/pulsar/pull/274
 .. _Pull Request 270: https://github.com/galaxyproject/pulsar/pull/270
