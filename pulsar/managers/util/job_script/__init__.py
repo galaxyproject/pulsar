@@ -93,6 +93,9 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
         kwds["instrument_pre_commands"] = job_instrumenter.pre_execute_commands(working_directory) or ""
         kwds["instrument_post_commands"] = job_instrumenter.post_execute_commands(working_directory) or ""
 
+    # Setup home directory var
+    kwds["home_directory"] = kwds.get("home_directory", os.path.join(kwds["working_directory"], "home"))
+
     template_params = OPTIONAL_TEMPLATE_PARAMS.copy()
     template_params.update(**kwds)
     env_setup_commands_str = "\n".join(template_params["env_setup_commands"])

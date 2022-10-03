@@ -42,6 +42,9 @@ class RemoteJobDirectory:
         else:
             self.job_directory = remote_staging_directory
 
+    def home_directory(self):
+        return self._sub_dir('home')
+
     def metadata_directory(self):
         return self._sub_dir('metadata')
 
