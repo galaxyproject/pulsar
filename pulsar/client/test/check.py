@@ -364,7 +364,7 @@ class Waiter:
 
             self.client_manager.ensure_has_status_update_callback(on_update)
 
-    def wait(self, seconds=15):
+    def wait(self, seconds=120):
         final_status = None
         if not self.background:
             i = 0

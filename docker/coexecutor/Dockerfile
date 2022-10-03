@@ -34,6 +34,8 @@ RUN apt-get update \
 
 ADD pulsar_app-*-py2.py3-none-any.whl /pulsar_app-*-py2.py3-none-any.whl
 
+RUN pip install --upgrade setuptools && pip install pyOpenSSL --upgrade && pip install cryptography --upgrade
 RUN pip install --no-cache-dir /pulsar_app-*-py2.py3-none-any.whl[galaxy_extended_metadata]
+RUN pip install --upgrade 'importlib-metadata<5.0'
 RUN _pulsar-configure-galaxy-cvmfs
 RUN _pulsar-conda-init --conda_prefix=/pulsar_dependencies/conda

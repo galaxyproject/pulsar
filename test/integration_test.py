@@ -241,6 +241,9 @@ class ExternalQueueIntegrationTests(IntegrationTests):
             **self.default_kwargs
         )
 
+    # PULSAR_RABBIT_MQ_CONNECTION="amqp://guest:guest@localhost:5672"
+    # PULSAR_TEST_INFRASTRUCTURE_HOST="docker.for.mac.localhost"
+    # Setup MQ and expose it on 0.0.0.0 by setting NODE_IP_ADDRESS= to empty string
     @integration_test
     @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
     def test_integration_kubernetes(self):
@@ -260,7 +263,7 @@ class ExternalQueueIntegrationTests(IntegrationTests):
             manager_url=message_queue_url,
             inject_files_endpoint=True,
             k8s_enabled=True,
-            container="conda/miniconda2",
+            container="conda/miniconda3",
             remote_pulsar_app_config=remote_pulsar_app_config,
             **self.default_kwargs
         )

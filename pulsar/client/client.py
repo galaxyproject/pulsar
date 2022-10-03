@@ -411,7 +411,8 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         ensure_pykube()
         super().__init__(destination_params, job_id, client_manager)
         self.instance_id = galaxy_instance_id(destination_params)
-        self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
+        # Previously working and published image... "galaxy/pulsar-pod-staging:0.13.0"
+        self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.14.15.0")
         self._default_pull_policy = pull_policy(destination_params)
 
     def launch(
