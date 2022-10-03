@@ -23,6 +23,8 @@ from .test_utils import (
     test_pulsar_server,
 )
 
+TEST_TOOL_CONTAINER = "conda/miniconda3"
+
 
 class BaseIntegrationTest(TempDirectoryTestCase):
 
@@ -76,7 +78,9 @@ class BaseIntegrationTest(TempDirectoryTestCase):
     def _update_options_for_app(self, options, app, **kwds):
         if kwds.get("local_setup", False):
             staging_directory = app.staging_directory
-            if kwds.get("k8s_enabled"):
+            is_coexecution = kwds.get("k8s_enabled") or kwds.get("tes_url")
+            if is_coexecution:
+                # Update client to not require this - seems silly.
                 options["jobs_directory"] = "/pulsar_staging"
             else:
                 options["jobs_directory"] = staging_directory
@@ -228,6 +232,76 @@ class IntegrationTests(BaseIntegrationTest):
     def test_integration_cli_slurm(self):
         self._run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Slurm'}, private_token=None, **self.default_kwargs)
 
+    @integration_test
+    @skip_unless_environ("PULSAR_TES_SERVER_TARGET")
+    def test_tes_polling_integration(self):
+        remote_pulsar_app_config = {}
+        tes_url = environ.get("PULSAR_TES_SERVER_TARGET")
+        default_kwargs = self.default_kwargs.copy()
+        default_kwargs["test_requirement"] = False
+        self._run(
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            inject_files_endpoint=True,
+            tes_url=tes_url,
+            remote_pulsar_app_config=remote_pulsar_app_config,
+            expecting_full_metadata=False,
+            **default_kwargs
+        )
+
+    @integration_test
+    @skip_unless_environ("PULSAR_TES_SERVER_TARGET")
+    def test_coexecution_tes_polling_integration(self):
+        remote_pulsar_app_config = {}
+        tes_url = environ.get("PULSAR_TES_SERVER_TARGET")
+        default_kwargs = self.default_kwargs.copy()
+        default_kwargs["test_requirement"] = False
+        self._run(
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            inject_files_endpoint=True,
+            tes_url=tes_url,
+            container=TEST_TOOL_CONTAINER,
+            remote_pulsar_app_config=remote_pulsar_app_config,
+            expecting_full_metadata=False,
+            **default_kwargs
+        )
+
+    @integration_test
+    def test_kubernetes_polling_integration(self):
+        remote_pulsar_app_config = {}
+        default_kwargs = self.default_kwargs.copy()
+        default_kwargs["test_requirement"] = False
+        self._run(
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            inject_files_endpoint=True,
+            k8s_enabled=True,
+            remote_pulsar_app_config=remote_pulsar_app_config,
+            expecting_full_metadata=False,
+            **default_kwargs
+        )
+
+    @integration_test
+    def test_coexecution_kubernetes_polling_integration(self):
+        remote_pulsar_app_config = {}
+        default_kwargs = self.default_kwargs.copy()
+        default_kwargs["test_requirement"] = False
+        self._run(
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            inject_files_endpoint=True,
+            k8s_enabled=True,
+            container=TEST_TOOL_CONTAINER,
+            remote_pulsar_app_config=remote_pulsar_app_config,
+            expecting_full_metadata=False,
+            **default_kwargs
+        )
+
 
 class ExternalQueueIntegrationTests(IntegrationTests):
     default_kwargs = dict(direct_interface=False, test_requirement=False, test_unicode=True, test_env=True, test_rewrite_action=True)
@@ -253,14 +327,10 @@ class ExternalQueueIntegrationTests(IntegrationTests):
     # Setup MQ and expose it on 0.0.0.0 by setting NODE_IP_ADDRESS= to empty string
     @integration_test
     @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
-    def test_integration_kubernetes(self):
+    def test_coexecution_integration_kubernetes(self):
         message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
         remote_pulsar_app_config = {
-            "staging_directory": "/pulsar_staging/",
             "message_queue_url": to_infrastructure_uri(message_queue_url),
-            "manager": {
-                "type": "coexecution",
-            }
         }
         self._run(
             app_conf=dict(message_queue_url=message_queue_url),
@@ -270,7 +340,72 @@ class ExternalQueueIntegrationTests(IntegrationTests):
             manager_url=message_queue_url,
             inject_files_endpoint=True,
             k8s_enabled=True,
-            container="conda/miniconda3",
+            container=TEST_TOOL_CONTAINER,
+            remote_pulsar_app_config=remote_pulsar_app_config,
+            **self.default_kwargs
+        )
+
+    @integration_test
+    @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
+    def test_integration_kubernetes(self):
+        message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
+        remote_pulsar_app_config = {
+            "message_queue_url": to_infrastructure_uri(message_queue_url),
+        }
+        self._run(
+            app_conf=dict(message_queue_url=message_queue_url),
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            manager_url=message_queue_url,
+            inject_files_endpoint=True,
+            k8s_enabled=True,
+            remote_pulsar_app_config=remote_pulsar_app_config,
+            **self.default_kwargs
+        )
+
+    # PULSAR_RABBIT_MQ_CONNECTION="amqp://guest:guest@localhost:5672"
+    # PULSAR_TEST_INFRASTRUCTURE_HOST="docker.for.mac.localhost"
+    # Setup MQ and expose it on 0.0.0.0 by setting NODE_IP_ADDRESS= to empty string
+    @integration_test
+    @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
+    @skip_unless_environ("PULSAR_TES_SERVER_TARGET")
+    def test_coexecution_integration_tes_mq(self):
+        message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
+        remote_pulsar_app_config = {
+            "message_queue_url": to_infrastructure_uri(message_queue_url),
+        }
+        tes_url = environ.get("PULSAR_TES_SERVER_TARGET")
+        self._run(
+            app_conf=dict(message_queue_url=message_queue_url),
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            manager_url=message_queue_url,
+            inject_files_endpoint=True,
+            tes_url=tes_url,
+            container=TEST_TOOL_CONTAINER,
+            remote_pulsar_app_config=remote_pulsar_app_config,
+            **self.default_kwargs
+        )
+
+    @integration_test
+    @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
+    @skip_unless_environ("PULSAR_TES_SERVER_TARGET")
+    def test_integration_tes_mq(self):
+        message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
+        remote_pulsar_app_config = {
+            "message_queue_url": to_infrastructure_uri(message_queue_url),
+        }
+        tes_url = environ.get("PULSAR_TES_SERVER_TARGET")
+        self._run(
+            app_conf=dict(message_queue_url=message_queue_url),
+            private_token=None,
+            local_setup=True,
+            default_file_action="remote_transfer",
+            manager_url=message_queue_url,
+            inject_files_endpoint=True,
+            tes_url=tes_url,
             remote_pulsar_app_config=remote_pulsar_app_config,
             **self.default_kwargs
         )

@@ -5,6 +5,7 @@ import threading
 import traceback
 from logging import getLogger
 
+from pulsar.client.util import MonitorStyle
 from pulsar.managers.unqueued import Manager
 
 log = getLogger(__name__)
@@ -89,7 +90,7 @@ class QueueManager(Manager):
                 except Exception:
                     log.exception("Running command but failed to delete - command may rerun on Pulsar boot.")
                 # _run will not do anything if job has been cancelled.
-                self._run(job_id, command_line, background=False)
+                self._run(job_id, command_line, montior=MonitorStyle.FOREGROUND)
             except Exception:
                 log.warn("Uncaught exception running job with job_id %s" % job_id)
                 traceback.print_exc()

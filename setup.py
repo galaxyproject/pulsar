@@ -92,6 +92,7 @@ setup(
         pulsar-drmaa-kill=pulsar.scripts.drmaa_kill:main
         pulsar-chown-working-directory=pulsar.scripts.chown_working_directory:main
         pulsar-submit=pulsar.scripts.submit:main
+        pulsar-finish=pulsar.scripts.finish:main
         pulsar-run=pulsar.scripts.run:main
         _pulsar-conda-init=pulsar.scripts._conda_init:main
         _pulsar-configure-slurm=pulsar.scripts._configure_slurm:main

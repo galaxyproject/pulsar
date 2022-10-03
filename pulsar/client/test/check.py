@@ -297,18 +297,27 @@ def run(options):
             metadata_directory=temp_metadata_dir,
             **__extra_job_description_kwargs(options)
         )
-        submit_job(client, job_description)
+        job_id = submit_job(client, job_description)
+        if job_id:
+            client.job_id = job_id
         result_status = waiter.wait()
 
-        stdout = result_status["stdout"].strip()
-        std_streams_debug = f"actual stdout [{stdout}], actual stderr [{result_status['stderr']}]"
-        assert "stdout output".startswith(stdout), f"Standard output is not an initial substring of [stdout output], {std_streams_debug}"
-        if hasattr(options, "maximum_stream_size"):
-            assert len(stdout) == options.maximum_stream_size
+        expecting_full_metadata = getattr(options, "expecting_full_metadata", True)
+        if expecting_full_metadata:
+            stdout = result_status["stdout"].strip()
+            std_streams_debug = f"actual stdout [{stdout}], actual stderr [{result_status['stderr']}]"
+            assert "stdout output".startswith(stdout), f"Standard output is not an initial substring of [stdout output], {std_streams_debug}"
+
+            if hasattr(options, "maximum_stream_size"):
+                assert len(stdout) == options.maximum_stream_size
 
         assert result_status["complete"] == "true"
-        assert result_status["returncode"] == 4, f"Expected exit code of 4, got {result_status['returncode']} - {std_streams_debug}"
-        __finish(options, client, client_outputs, result_status)
+        if expecting_full_metadata:
+            assert result_status["returncode"] == 4, f"Expected exit code of 4, got {result_status['returncode']} - {std_streams_debug}"
+        if expecting_full_metadata:
+            __finish(options, client, client_outputs, result_status)
+        else:
+            client.clean()
         __assert_contents(temp_output_path, EXPECTED_OUTPUT, result_status)
         __assert_contents(temp_output2_path, cmd_text, result_status)
         if not legacy_galaxy_json:
@@ -329,7 +338,9 @@ def run(options):
             __assert_contents(temp_output3_path, "moo_override", result_status)
         else:
             __assert_contents(temp_output3_path, "moo_default", result_status)
-        __assert_has_rewritten_bwa_path(client, temp_output4_path)
+        client_job_id = getattr(options, "job_id", "123456")
+        # Revise this test so it works for containers... or fix whatever is broken.
+        __assert_has_rewritten_bwa_path(client, client_job_id, temp_output4_path)
         if getattr(options, "explicit_tool_declarations", False):
             __assert_contents(temp_output5_path, str(True), result_status)
         __exercise_errors(options, client, temp_output_path, temp_directory)
@@ -407,12 +418,13 @@ def __assert_contents(path, expected_contents, pulsar_state):
         file.close()
 
 
-def __assert_has_rewritten_bwa_path(client, temp_output4_path):
-    if client.default_file_action != "none":
+def __assert_has_rewritten_bwa_path(client, job_id, temp_output4_path):
+    if client.default_file_action != "none" and job_id:
         rewritten_index_path = open(temp_output4_path, encoding='utf-8').read()
         # Path written to this file will differ between Windows and Linux.
-        if re.search(r"%s[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa" % client.job_id, rewritten_index_path) is None:
-            raise AssertionError("[%s] does not contain rewritten path." % rewritten_index_path)
+        patt = r"%s[/\\]unstructured[/\\]\w+[/\\]bwa[/\\]human.fa" % job_id
+        if re.search(patt, rewritten_index_path) is None:
+            raise AssertionError("[%s] does not contain rewritten path [%s]." % (patt, rewritten_index_path))
 
 
 def __exercise_errors(options, client, temp_output_path, temp_directory):
@@ -480,6 +492,8 @@ def extract_client_options(options):
         client_options["files_endpoint"] = options.files_endpoint
     if hasattr(options, "k8s_enabled"):
         client_options["k8s_enabled"] = options.k8s_enabled
+    if hasattr(options, "tes_url"):
+        client_options["tes_url"] = options.tes_url
     if hasattr(options, "container"):
         client_options["container"] = options.container
     return client_options
@@ -507,7 +521,12 @@ def client_manager_from_args(options):
         manager_args['transport'] = options.transport
     if getattr(options, 'manager_url', None):
         manager_args['amqp_url'] = options.manager_url
-    return build_client_manager(**manager_args)
+    if getattr(options, 'tes_url', None):
+        manager_args['tes_url'] = options.tes_url
+    if getattr(options, "k8s_enabled", None):
+        manager_args['k8s_enabled'] = options.k8s_enabled
+    cm = build_client_manager(**manager_args)
+    return cm
 
 
 def __write_to_file(path, contents):

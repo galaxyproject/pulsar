@@ -6,6 +6,7 @@ from base64 import (
     b64decode as _b64decode,
     b64encode as _b64encode,
 )
+from enum import Enum
 from errno import (
     EEXIST,
     ENOENT,
@@ -313,3 +314,16 @@ class MessageQueueUUIDStore:
             if exc.errno == ENOENT:
                 raise KeyError(key)
             raise
+
+
+class ExternalId:
+    external_id: str
+
+    def __init__(self, external_id: str):
+        self.external_id = external_id
+
+
+class MonitorStyle(str, Enum):
+    FOREGROUND = "foreground"
+    BACKGROUND = "background"
+    NONE = "none"
