@@ -2,7 +2,6 @@ import logging
 import os
 
 from pulsar.managers.util.pykube_util import (
-    delete_job,
     ensure_pykube,
     find_job_object_by_name,
     find_pod_object_by_name,
@@ -12,6 +11,7 @@ from pulsar.managers.util.pykube_util import (
     produce_k8s_job_prefix,
     pull_policy,
     pykube_client_from_dict,
+    stop_job,
 )
 from .action_mapper import (
     actions,
@@ -548,7 +548,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         job = find_job_object_by_name(pykube_client, job_name)
         if job:
             log.info("Kill k8s job with name %s" % job_name)
-            delete_job(job)
+            stop_job(job)
         else:
             log.info("Attempted to kill k8s job but it is unavailable.")
 
