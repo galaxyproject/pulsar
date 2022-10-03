@@ -273,6 +273,8 @@ class FileActionMapper:
             raise Exception(MISSING_FILES_ENDPOINT_ERROR)
         if "?" not in url_base:
             url_base = "%s?" % url_base
+        else:
+            url_base = "%s&" % url_base
         url_params = urlencode({"path": action.path, "file_type": file_type})
         action.url = f"{url_base}{url_params}"
 
