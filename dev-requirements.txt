@@ -2,6 +2,7 @@
 pycurl
 kombu
 pykube
+boto3
 
 # For testing
 pytest

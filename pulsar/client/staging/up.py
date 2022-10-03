@@ -26,6 +26,7 @@ from ..staging import (
 )
 from ..util import (
     directory_files,
+    ExternalId,
     PathHelper,
 )
 
@@ -70,7 +71,11 @@ def submit_job(client, client_job_description, job_config=None):
     # it needs to be in the response to Pulsar even Pulsar is inititing staging actions
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
 
-    client.launch(**launch_kwds)
+    # for pulsar modalities that skip the explicit "setup" step, give them a chance to set an external
+    # id from the submission process (e.g. to TES).
+    launch_response = client.launch(**launch_kwds)
+    if isinstance(launch_response, ExternalId):
+        job_id = launch_response.external_id
     return job_id
 
 

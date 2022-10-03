@@ -24,14 +24,41 @@ def add_common_submit_args(arg_parser):
 
 
 def run_server_for_job(args):
+    wait = args.wait
     config_builder = PulsarManagerConfigBuilder(args)
     manager, app = manager_from_args(config_builder)
     try:
         job_config = _load_job_config(args)
         submit_job(manager, job_config)
-        wait_for_job(manager, job_config)
+        if wait:
+            log.info("Co-execution job setup, now waiting for job completion and postprocessing.")
+            wait_for_job(manager, job_config)
+            log.info("Leaving finish_execution and shutting down app")
     except BaseException:
-        log.exception("Failure submitting or waiting on job.")
+        if wait:
+            message = "Failure submitting or waiting on job."
+        else:
+            message = "Failure submitting job."
+        log.exception(message)
+    finally:
+        app.shutdown()
+
+
+def run_server_for_job_finish(args):
+    config_builder = PulsarManagerConfigBuilder(args)
+    manager, app = manager_from_args(config_builder)
+    try:
+        # We only need the job config so there should be an option to just
+        # send that I think.
+        job_config = _load_job_config(args)
+        job_id = job_config.get('job_id')
+        log.info("Informing Pulsar app the target job has completed")
+        manager._proxied_manager.finish_execution(job_id)
+        log.info("Waiting for job to complete")
+        wait_for_job(manager, job_config)
+        log.info("Leaving finish_execution and shutting down app")
+    except BaseException:
+        log.exception("Failure finishing job.")
     finally:
         app.shutdown()
 

@@ -21,9 +21,12 @@ from .client import (
     BaseJobClient,
     InputCachingJobClient,
     JobClient,
+    K8sMessageCoexecutionJobClient,
+    K8sPollingCoexecutionJobClient,
     MessageCLIJobClient,
-    MessageCoexecutionPodJobClient,
     MessageJobClient,
+    TesMessageCoexecutionJobClient,
+    TesPollingCoexecutionJobClient,
 )
 from .destination import url_to_destination_params
 from .object_client import ObjectStoreClient
@@ -44,6 +47,9 @@ class ClientManagerInterface:
 
     def get_client(self, destination_params: Dict[str, Any], job_id: str, **kwargs: Dict[str, Any]) -> BaseJobClient:
         """Get client instance for specified job description."""
+
+    def shutdown(self, ensure_cleanup=False):
+        """Mark client manager's work as complete and clean up resources it managed."""
 
 
 class ClientManager(ClientManagerInterface):
@@ -68,6 +74,7 @@ class ClientManager(ClientManagerInterface):
                 file_cache=file_cache,
             )
         else:
+            print(kwds)
             self.job_manager_interface_class = HttpPulsarInterface
             transport_type = kwds.get('transport', None)
             transport_params = {p.replace('transport_', '', 1): v for p, v in kwds.items() if p.startswith('transport_')}
@@ -106,13 +113,19 @@ except ImportError:
     from pulsar.managers.util.cli import factory as cli_factory
 
 
-class MessageQueueClientManager(ClientManagerInterface):
+class BaseRemoteConfiguredJobClientManager(ClientManagerInterface):
+
+    def __init__(self, **kwds: Dict[str, Any]):
+        self.manager_name = kwds.get("manager", None) or "_default_"
+
+
+class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
     status_cache: Dict[str, Any]
     ack_consumer_threads: Dict[str, threading.Thread]
 
     def __init__(self, **kwds: Dict[str, Any]):
+        super().__init__(**kwds)
         self.url = kwds.get('amqp_url')
-        self.manager_name = kwds.get("manager", None) or "_default_"
         self.exchange = get_exchange(self.url, self.manager_name, kwds)
         self.status_cache = {}
         self.callback_lock = threading.Lock()
@@ -222,9 +235,30 @@ class MessageQueueClientManager(ClientManagerInterface):
             shell = cli_factory.get_shell(destination_params)
             return MessageCLIJobClient(destination_params, job_id, self, shell)
         elif destination_params.get('k8s_enabled', False):
-            return MessageCoexecutionPodJobClient(destination_params, job_id, self)
+            return K8sMessageCoexecutionJobClient(destination_params, job_id, self)
+        elif destination_params.get("tes_url", False):
+            return TesMessageCoexecutionJobClient(destination_params, job_id, self)
         else:
             return MessageJobClient(destination_params, job_id, self)
+
+
+class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
+
+    def get_client(self, destination_params, job_id, **kwargs):
+        if job_id is None:
+            raise Exception("Cannot generate Pulsar client for empty job_id.")
+        destination_params = _parse_destination_params(destination_params)
+        destination_params.update(**kwargs)
+        # TODO: cli version of this...
+        if destination_params.get('k8s_enabled', False):
+            return K8sPollingCoexecutionJobClient(destination_params, job_id, self)
+        elif destination_params.get("tes_url", False):
+            return TesPollingCoexecutionJobClient(destination_params, job_id, self)
+        else:
+            raise Exception("Unknown client configuration")
+
+    def shutdown(self, ensure_cleanup=False):
+        pass
 
 
 def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
@@ -232,6 +266,8 @@ def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
         return ClientManager(**kwargs)  # TODO: Consider more separation here.
     elif kwargs.get('amqp_url', None):
         return MessageQueueClientManager(**kwargs)
+    elif kwargs.get("k8s_enabled") or kwargs.get("tes_url"):
+        return PollingJobClientManager(**kwargs)
     else:
         return ClientManager(**kwargs)
 
