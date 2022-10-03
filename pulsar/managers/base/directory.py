@@ -160,9 +160,10 @@ class DirectoryBaseManager(BaseManager):
             'galaxy_lib': self._galaxy_lib(),
             'preserve_python_environment': setup_params.get('preserve_galaxy_python_environment', False),
             'env_setup_commands': env_setup_commands,
-            'job_directory': self.job_directory(job_id).job_directory,
+            # job_diredctory not used by job_script and it calls the job directory working directory
             'working_directory': self.job_directory(job_id).working_directory(),
             'metadata_directory': self.job_directory(job_id).metadata_directory(),
+            'home_directory': self.job_directory(job_id).home_directory(),
             'job_id': job_id,
             'tmp_dir_creation_statement': self._tmp_dir(job_id),
         }
