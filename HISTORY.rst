@@ -6,10 +6,11 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.15.dev0
 ---------------------
 
-    
+* Fix small regressions bugs in 0.14.14 - updating runner util code was bigger swap over
+  than it seemed.
 
 ---------------------
 0.14.14 (2022-10-30)
