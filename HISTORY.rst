@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.14.16.dev0
+0.14.16 (2022-10-04)
 ---------------------
 
 * Fix small regression related to building URLs for client action mapping.
