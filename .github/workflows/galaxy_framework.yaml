@@ -46,7 +46,7 @@ jobs:
           path: ~/.cache/pip
           key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy/requirements.txt') }}
       - name: Run tests
-        run: ./run_tests.sh --framework
+        run: ./run_tests.sh --framework --id 'multi_data_optional'
         working-directory: 'galaxy'
         env:
           GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml

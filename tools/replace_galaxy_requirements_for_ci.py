@@ -14,6 +14,7 @@ subprocess.run(["python", "-m", "build", "--wheel"], env=env, check=True, stdout
 lib_wheel_path = glob.glob(f'{PULSAR_ROOT}/dist/pulsar_galaxy_lib-*-none-any.whl')[0]
 print(f"Replacing Galaxy pulsar-galaxy-lib requirements in {GALAXY_DIR} with {lib_wheel_path}")
 
+# dev-requirements no longer required in latest Galaxy - keep it around for older Galaxies though?
 for req in ["lib/galaxy/dependencies/pinned-requirements.txt", "lib/galaxy/dependencies/dev-requirements.txt"]:
     req_abs_path = os.path.join(GALAXY_DIR, req)
     with open(req_abs_path) as f:
