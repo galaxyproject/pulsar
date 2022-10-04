@@ -1,6 +1,11 @@
 import configparser
 from os import environ, makedirs, system
 from os.path import join
+from typing import (
+    Any,
+    Dict,
+    Optional,
+)
 
 from galaxy.util.bunch import Bunch
 
@@ -21,7 +26,10 @@ from .test_utils import (
 
 class BaseIntegrationTest(TempDirectoryTestCase):
 
-    def _run(self, app_conf={}, job_conf_props={}, **kwds):
+    def _run(self, app_conf: Optional[Dict[str, Any]] = None, job_conf_props: Optional[Dict[str, str]] = None, **kwds):
+        app_conf = app_conf or {}
+        job_conf_props = job_conf_props or {}
+
         app_conf = app_conf.copy()
         job_conf_props = job_conf_props.copy()
 
@@ -32,9 +40,8 @@ class BaseIntegrationTest(TempDirectoryTestCase):
         self.__setup_dependencies(app_conf)
         self._run_in_app(app_conf, **kwds)
 
-    def _run_in_app(self, app_conf, **kwds):
-        direct_interface = kwds.get("direct_interface", None)
-        inject_files_endpoint = direct_interface or kwds.get("inject_files_endpoint", False)
+    def _run_in_app(self, app_conf: Dict[str, Any], direct_interface: bool = False, inject_files_endpoint: bool = False, **kwds):
+        inject_files_endpoint = direct_interface or inject_files_endpoint
         if inject_files_endpoint:
             # Client directory hasn't bee created yet, don't restrict where
             # test files written.
@@ -74,7 +81,7 @@ class BaseIntegrationTest(TempDirectoryTestCase):
             else:
                 options["jobs_directory"] = staging_directory
 
-    def __setup_job_properties(self, app_conf, job_conf_props):
+    def __setup_job_properties(self, app_conf, job_conf_props: Dict[str, str]):
         if job_conf_props:
             job_conf = join(self.temp_directory, "job_managers.ini")
             config = configparser.ConfigParser()
