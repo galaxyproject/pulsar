@@ -6,10 +6,10 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.14.16.dev0
 ---------------------
 
-    
+* Fix small regression related to building URLs for client action mapping.
 
 ---------------------
 0.14.15 (2022-10-03)
