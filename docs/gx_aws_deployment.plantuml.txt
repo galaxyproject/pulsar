@@ -1,0 +1,41 @@
+@startuml
+
+!include plantuml_options.txt
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v14.0/dist
+!include AWSPuml/AWSCommon.puml
+!include AWSPuml/Groups/all.puml
+!include AWSPuml/Containers/Fargate.puml
+
+AWSCloudGroup(cloud) {
+    Fargate(api, "Batch", "")
+
+    component galaxy as "galaxy" {
+
+    }
+
+    frame pod as "Job Description" {
+        component job as "a galaxy job" {
+
+        }
+    }
+
+
+    storage disk as "shared efs" {
+
+    }
+
+    note left of disk 
+        Disk must be fully accessible to Galaxy
+        and any AWS spawned job containers,
+        live in the same cloud as Galaxy
+    end note
+
+}
+
+galaxy --> disk
+galaxy --> api : register_job_definition, submit_job, describe_jobs
+
+job --> disk
+api -[dashed]-> pod : [manages]
+
+@enduml

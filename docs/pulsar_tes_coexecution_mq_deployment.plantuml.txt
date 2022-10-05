@@ -1,0 +1,61 @@
+@startuml
+
+!include plantuml_options.txt
+
+!define KubernetesPuml https://raw.githubusercontent.com/dcasati/kubernetes-PlantUML/master/dist
+!includeurl KubernetesPuml/kubernetes_Common.puml
+!includeurl KubernetesPuml/kubernetes_Context.puml
+!includeurl KubernetesPuml/kubernetes_Simplified.puml
+
+component galaxy as "galaxy" {
+
+}
+
+queue queue as "RabbitMQ" {
+
+}
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+cloud cluster as "GA4GH TES Cluster" {
+    queue api as "GA4GH TES API" {
+        
+    }
+
+    frame pod as "TesTask" {
+
+        component stageout as "TesExecutor - pulsar stage-out" {
+        }
+        
+        component tool as "TesExecutor - tool container" {
+        }
+
+        component stagein as "TesExecutor - pulsar stage-in" {
+        }
+
+        stagein <.. tool : depends on
+        tool  <.. stageout : depends on
+
+    }
+
+}
+
+galaxy --> disk
+galaxy --> api : submit, cancel
+stagein --> queue : status updates
+stageout --> queue : status updates
+galaxy -[dotted]-> queue
+api -[dashed]-> pod : [manages]
+stagein --> galaxy : stage in
+stageout --> galaxy : stage out
+@enduml

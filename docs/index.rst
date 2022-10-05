@@ -16,6 +16,7 @@ Contents:
    install
    configure
    job_managers
+   containers
    galaxy_conf
    scripts
    conduct

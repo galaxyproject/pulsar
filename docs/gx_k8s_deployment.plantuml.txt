@@ -1,0 +1,45 @@
+@startuml
+
+!include plantuml_options.txt
+
+!define KubernetesPuml https://raw.githubusercontent.com/dcasati/kubernetes-PlantUML/master/dist
+!includeurl KubernetesPuml/kubernetes_Common.puml
+!includeurl KubernetesPuml/kubernetes_Context.puml
+!includeurl KubernetesPuml/kubernetes_Simplified.puml
+!includeurl KubernetesPuml/OSS/KubernetesApi.puml
+!includeurl KubernetesPuml/OSS/KubernetesPod.puml
+!includeurl KubernetesPuml/OSS/KubernetesPv.puml
+
+Cluster_Boundary(cluster, "Kubernetes Cluster") {
+    KubernetesApi(api, "Kubernetes Jobs API", "")
+
+    component galaxy as "galaxy" {
+
+    }
+
+    frame pod as "Job Pod" {
+
+        component job as "biocontainer" {
+
+        }
+
+    }
+
+	KubernetesPv(disk, "shared volume", "")
+
+    note left of disk 
+        Disk must be fully accessible to Galaxy
+        and any Kubernetes spawned job pods,
+        live in the same cloud as Galaxy
+    end note
+
+}
+
+galaxy --> disk
+galaxy --> api
+
+job --> disk
+api -[dashed]-> pod : [manages]
+
+
+@enduml
