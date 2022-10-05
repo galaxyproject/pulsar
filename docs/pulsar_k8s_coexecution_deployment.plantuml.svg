@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="771px" preserveAspectRatio="none" style="width:698px;height:771px;background:#FFFFFF;" version="1.1" viewBox="0 0 698 771" width="698px" zoomAndPan="magnify"><defs/><g><!--MD5=[ae7709657f611b622ade1638c535e86e]
+cluster cluster--><g id="cluster_cluster"><rect fill="#FFFFFF" height="373" rx="12.5" ry="12.5" style="stroke:#326CE5;stroke-width:1.0;" width="377" x="7" y="115"/><text fill="#000000" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="156" x="117.5" y="132.4688">Kubernetes Cluster</text></g><!--MD5=[a59b4262d7ac0b9dcf3b2bb90ca83b91]
+cluster pod--><g id="cluster_pod"><rect fill="none" height="113" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:1.0;" width="313" x="39" y="343"/><path d="M105,343 L105,352.4883 L95,362.4883 L39,362.4883 " fill="none" style="stroke:#FF8C00;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="56" x="42" y="357.5352">Job Pod</text></g><!--MD5=[7aa1830f6d3a10daacf1e4a3019ccce0]
+entity galaxy--><g id="elem_galaxy"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="85" x="375.5" y="7"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="440.5" y="12"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="438.5" y="14"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="438.5" y="18"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="390.5" y="40.5352">galaxy</text></g><!--MD5=[3aef3466144a60d8e52f82544e729ce7]
+entity disk--><g id="elem_disk"><rect fill="#FFEFD5" height="36.4883" rx="35" ry="35" style="stroke:#FF8C00;stroke-width:0.5;" width="104" x="303" y="550"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="313" y="573.5352">Object Store</text></g><!--MD5=[e2307af040e3f87d22824e7603ca28ec]
+entity api--><g id="elem_api"><rect fill="#FFFFFF" height="121.332" rx="2.5" ry="2.5" style="stroke:none;stroke-width:0.5;" width="187" x="96.5" y="152"/><image height="66" width="70" x="106.5" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABCCAIAAABl3TfFAAAD9ElEQVR42u1aS4pUQRDM03oFr+AVvIJu3Qlu3bhwLcxCxIWg4kLEhaABAUny6tOZUfV6egabYmhev6mqyE/kp8r+PrqP/YdU/rz+8OPJyzuOZ28+f//15wFDimDiePrq47tPPx8YpBfvv3bBXAfYTkgwqudvv1wEcxhQ5i1CAhj4SRVMHFDsrUC6+/YbJrQCJg4oeZ0/dEjwhI1g4lgkRtPAnIGkBQYTOB3SiJfPGwIx2nlUdl/A7GwqowlBvVuEkmH8GaR1MIAR/QECykThi2PuY3YSnjkdQ9iLbDmZ3Eb2thI0kxS8EgYgshokjaa1DABWpFlEDVLJlSHp9XRGADayhT6kPJi9SWcJ2IgkdEhVzeRznGTeOHIn686Y0U8JD2XvNAjdzvOdpOVnIWVCR1VFXakD1WLmlYWUmauad2H3nl97ejXxw2QU6epZhFRK/vFya6hAOJdLxp26xmJnOxJ9vXVl7GYSLpPu1N2JCUY830pX2K3bcMeTqWR3MkHdE4NpDdLJJv6X28JE4Ul3ale0jY5Epu4CdvOD7AGS3zHW3anlGKsKJsqVtsGduemPeCxqJlmBa+5kVfONXhEjGJ5TqF0mIFS+QC1laFNzJ6vWSJE3qdXY0KEq8CQaFYVN5WC47C9CytBvO4+tBFkuebAiF63rc1SqZGxPiPtWZZi2gOuKNjZAXEvQcGxC0Ovw/oQkMoZziBBWKvuiL470Ti3xL953/5nvdWSEgjtZiV6i6+O759eH3AfPI3OM4qlzNL6MIAnuZIs1Es3V40xMKN0yR5TtMWCvO9UgdZd3E8KvTtCEQV2NNEBTn8eoZBckbsxK+u1GUionKtB3yZ9kLeV3Fd3J8mXfpEppKSv2nEf1oqt3lE+UWmJHSNUOdTXwtzs+vNAKpdow8iUUSJmSiVrCvp0koCusiueeEDLt6MYloYHuk4iQSlXTyCUWY9EFLWmzJJt4DulwhDEqQ7SWcofEtS5upq/imcRhrW6U07rk0VdNZphSawXID6cyXVloGzgYS7kE1AhwV8GXcWnbYsqTJuPGCy1ih0imipXDC/mI/qzDmMWrMzLF1Q5jZE9liV4a2kITprXFrP5extzIbZ7UnLotjRIuUpHdwt2ajbll6naKIEv2Utji8kQBgw85Idv8u46cyxduqrmSF+086iMZeueI3MNO8vY0pXAtqspL7G9BLXTICIDdySqkbXeINALE8mwXsyJqITElz0MqxXE7Iyb6ZSpuZdHwqtnWKffxeBuK1Sv5gEYo0EP16F65NakFE4EMhENh/SKoUCxqkK5xEXQxA7zO/XER0qm50mKpsnRPfMsVyJYPNHvbA+k2P48Q0j8JDRk2W52mXAAAAABJRU5ErkJggg==" y="162"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="106.5" y="241.5352"> </text><text fill="#000000" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="167" x="106.5" y="259.957">Kubernetes Jobs API</text></g><!--MD5=[2a18fe44646d9882a8aae1fdc76eaba2]
+entity staging--><g id="elem_staging"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="83" x="244.5" y="386"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="307.5" y="391"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="305.5" y="393"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="305.5" y="397"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="43" x="259.5" y="419.5352">pulsar</text></g><!--MD5=[388b80d23af37d7490aec0b633ef638a]
+entity tool--><g id="elem_tool"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="127" x="82.5" y="386"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="189.5" y="391"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="187.5" y="393"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="187.5" y="397"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="87" x="97.5" y="419.5352">biocontainer</text></g><g id="elem_galaxynote"><path d="M471,381 L471,436.9316 L691,436.9316 L691,391 L681,381 L471,381 " fill="#FFEFD5" style="stroke:#181818;stroke-width:0.5;"/><path d="M681,381 L681,391 L691,391 L681,381 " fill="#FFEFD5" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="199" x="477" y="398.5684">Use extended metadata to write</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="180" x="477" y="413.8789">results right from Pulsar and</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="176" x="477" y="429.1895">skip the need for RabbitMQ.</text></g><g id="elem_disknote"><path d="M248,709 L248,764.9316 L462,764.9316 L462,719 L452,709 L248,709 " fill="#FFEFD5" style="stroke:#181818;stroke-width:0.5;"/><path d="M452,709 L452,719 L462,719 L452,709 " fill="#FFEFD5" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="185" x="254" y="726.5684">Disk is unrestricted and does</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="193" x="254" y="741.8789">not need to be shared between</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="115" x="254" y="757.1895">Pulsar and Galaxy.</text></g><!--MD5=[2b95124875bc84f928cd52ddf512f208]
+link galaxy to galaxynote--><g id="link_galaxy_galaxynote"><path d="M429.45,53.11 C434.1,62.3 439.44,73.1 444,83 C494.17,192.02 547.82,324.61 570.22,380.78 " fill="none" id="galaxy-galaxynote" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[31b1a11f9f0ac216f9afbe294b045677]
+link disk to disknote--><g id="link_disk_disknote"><path d="M355,586.24 C355,615.33 355,674.34 355,708.97 " fill="none" id="disk-disknote" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[444112ceeb685652cf6a950142e9793e]
+link galaxy to disk--><g id="link_galaxy_disk"><path d="M421.96,53.03 C433.71,123.97 463.49,351.58 396,520 C392.19,529.5 385.61,538.39 378.82,545.83 " fill="none" id="galaxy-to-disk" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="375.04,549.8,384.1438,546.0423,378.4886,546.1797,378.3513,540.5245,375.04,549.8" style="stroke:#666666;stroke-width:1.0;"/></g><!--MD5=[451fccf17c1492a785cfb73c80b2ead7]
+link galaxy to api--><g id="link_galaxy_api"><path d="M375.44,37.13 C342.33,43.72 296.83,57 265,83 C244.18,100.01 227.9,124.42 215.9,147.41 " fill="none" id="galaxy-to-api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="213.56,151.99,221.2184,145.7974,215.8361,147.5381,214.0954,142.1557,213.56,151.99" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="125" x="266" y="95.6016">submit, cancel, status</text></g><!--MD5=[5f341783c97d3cb4f4e39898b2608251]
+link api to pod--><g id="link_api_pod"><path d="M110.53,273.02 C93.72,288.92 77.58,307.23 66,327 C63.7363,330.8638 61.7422,334.9795 59.9857,339.2296 C59.5466,340.2922 59.1223,341.3631 58.7123,342.4406 C58.6611,342.5753 58.6101,342.7101 58.5593,342.8449 " fill="none" id="api-to-pod" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#666666" points="58.5593,342.8449,65.4744,335.832,60.3214,338.1657,57.9876,333.0127,58.5593,342.8449" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="60" x="83" y="315.6016">[manages]</text></g><!--MD5=[56ad6a3dee849658a1efadf2d59254fa]
+link staging to disk--><g id="link_staging_disk"><path d="M283.42,432.1 C281.75,455.4 282.15,492.47 297,520 C302.71,530.58 311.89,539.66 321.29,546.94 " fill="none" id="staging-to-disk" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="325.32,549.95,320.52,541.35,321.32,546.95,315.72,547.75,325.32,549.95" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="93" x="298" y="516.6016">stage in and out</text></g><!--MD5=[443064537662379e803d6b8a304945a5]
+@startuml
+
+
+!include plantuml_options.txt
+
+!define KubernetesPuml https://raw.githubusercontent.com/dcasati/kubernetes-PlantUML/master/dist
+!includeurl KubernetesPuml/kubernetes_Common.puml
+!includeurl KubernetesPuml/kubernetes_Context.puml
+!includeurl KubernetesPuml/kubernetes_Simplified.puml
+!includeurl KubernetesPuml/OSS/KubernetesApi.puml
+!includeurl KubernetesPuml/OSS/KubernetesPod.puml
+!includeurl KubernetesPuml/OSS/KubernetesPv.puml
+
+component galaxy as "galaxy" {
+
+}
+
+note as galaxynote
+    Use extended metadata to write
+    results right from Pulsar and
+    skip the need for RabbitMQ.
+end note
+
+galaxy ... galaxynote
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+Cluster_Boundary(cluster, "Kubernetes Cluster") {
+    KubernetesApi(api, "Kubernetes Jobs API", "")
+
+    frame pod as "Job Pod" {
+
+        component staging as "pulsar" {
+        }
+
+        component tool as "biocontainer" {
+        }
+
+    }
+
+}
+
+galaxy - -> disk
+galaxy - -> api : submit, cancel, status
+api -[dashed]-> pod : [manages]
+staging - -> disk : stage in and out
+@enduml
+
+@startuml
+
+
+
+skinparam class {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam object {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam ComponentBackgroundColor #FFEFD5
+skinparam ComponentBorderColor DarkOrange
+
+skinparam DatabaseBackgroundColor #FFEFD5
+skinparam DatabaseBorderColor DarkOrange
+
+skinparam StorageBackgroundColor #FFEFD5
+skinparam StorageBorderColor DarkOrange
+
+skinparam QueueBackgroundColor #FFEFD5
+skinparam QueueBorderColor DarkOrange
+
+skinparam note {
+    BackgroundColor #FFEFD5
+    BorderColor #BF5700
+}
+
+skinparam sequence {
+    ArrowColor Orange
+    ArrowFontColor DarkOrange
+    ActorBorderColor DarkOrange
+    ActorBackgroundColor #FFEFD5
+
+    ParticipantBorderColor DarkOrange
+    ParticipantBackgroundColor #FFEFD5
+
+    LifeLineBorderColor DarkOrange
+    LifeLineBackgroundColor #FFEFD5
+
+    DividerBorderColor DarkOrange
+    GroupBorderColor DarkOrange
+}
+
+
+
+
+
+skinparam defaultTextAlignment center
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam rectangle {
+    StereotypeFontSize 12
+}
+
+skinparam Arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+
+
+
+
+
+
+
+
+
+skinparam defaultTextAlignment left
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam rectangle {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam database {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam Arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+skinparam rectangle<<boundary>> {
+    Shadowing false
+    StereotypeFontSize 0
+    FontColor #444444
+    BorderColor #444444
+    BorderStyle dashed
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<cluster>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #326CE5
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<namespace>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #FF4216
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<node>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #096B24
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<service>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #096B24
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+
+
+
+
+
+
+
+
+hide stereotype
+
+
+
+
+sprite $KubernetesApi [70x66/16z] {
+rLU7iYCn20iT_l-7RxOaEyV88UMgNY-MXOJnvlOVGQigw6kE7IcVSrYT-9o7l1hqVOue07kBWxCMy9UDbgmLNWvCQaBm7EqhI1bZUPzdZgL2CJSE7dCuR_nM
+43oHz5mLvjRZ8jHZDENl8D-fJpcge_r7Sp0xH-V19VtC0Up7F8nOS2q4pXWqXkj2zlIsg3GO5W_c4PPoxXtma2mBagubQ3iR2fk20GlodVBWkiYp2vzjuJmS
+D8TTaOjvuDsLE9VwP4mYM-Zkknng4nf3pss9aaTDQkcEZL5u57ENxEBdFvmwU7LS4jeIP_T4rcbhQPRb9NrbJBJeQ1_qNE6oRPpCNaKuqg9Lpt7nkMLSCsDg
+Kce29UlSCWyjfhjBB4XyW0cLnqvqQD7ABBiMqXDZlFMSn_w5CZQR_Oet2HgpcYrKwHitInO_zlUdne1v75Lk6uCzgf1YFANzajTwqNTHl7q3j30OuOQkAdbS
+kNRbaYTZ0fP-0_ScvUjRWHSWDvO-CiXLien9l89OMgGd1B2WmTvwfO7nhxMnx8yDSf4sj7w60rpt4kFUIGcaDC_X11VULilYNzlTq8E2S6pYgjYO7iPxeDXX
+U-tn4qh5GNN5s3ziMtX3WYmxwatWgcbOOQyb83K0nZFdcC8SPIPiPOxZcH-StIkub2jlgRQEPmZALAYszUngotY6e4GpJfPGMyOpD1Pj9nbM56-yFd8MPrDf
+xe9uvWEd1Xf_GimiF52WeD0vdK5ldvxPcuxasp-E7m
+}
+
+skinparam rectangle<<KubernetesApi>> {
+    BackgroundColor #FFFFFF
+    BorderColor transparent
+    Shadowing false
+}
+sprite $KubernetesPod [70x66/16z] {
+rPTdckCm34CfTjp_m5kdoGuYorld_SxtGW4kj7mY742DNtRye4rk4tZXlcSa3lY-e_20a1sqGSZBGLk3SRammuhITRLNQDkgPTyp2XkGuWlRA95iCcHcu0v9
+-jr4PXA4hIE1aJui6WIzOEcmrzWiBmIZ3uUG2OrQ11DiY9bXsU0Mp9IJ6_SKaN9B5z1fCZCyWIvC18-bH3GQgD1fY0ez_hJvyw1U_ljb9FKFiocFjq-M5rxI
+h53Mvk3XJe7EpqYbpuVnp3AGCbbOCBvbOS7KbeK5Wr-n68bbOI4_jZqB2IRtB2GO_9h5xbZ8aqflMkPW0YU2MhI81O-8auKv0AKMj9yiR1amRW7QPak0eCzN
+bj9tYuEoVD7d-6cnNcyE3KuQqlhA6ZDmdoINqXPDbi8z_iJc8OqRc1p1FY4d1XPeOwRkhEwZUJryYOam3S1K4stcetazVETrHKkxeqUxewHvFRme3q1B2z3K
+F9x8X7FP4l84lNYYklnzvFOnNNLhNWyloWEC8IjgRL5PqnkVLvonTVTm0fnM-S_v2W
+}
+
+skinparam rectangle<<KubernetesPod>> {
+    BackgroundColor #FFFFFF
+    BorderColor transparent
+    Shadowing false
+}
+sprite $KubernetesPv [70x66/16z] {
+rTS7ZkKm30DGgultF_3sQj3mLxREczw8iGKpoNf37439BsTyqhOU2tptC4SI6vzd58XO4zeuI5aliiR9omCpt9JUH_kAjj5OvZbIcE23Bumf2vcJVJbu8jby
+vxQK135U4fxHQyfyOnGFyJxwhe7kgloawjENbvGzeC9KraRKSm_IOqhPEXFlKsyflciPrV7wpcUjUDYOxP-SrAdmS4-aoJ4YkettWspVjkoky1_79ABcsQZG
+jK0tnacuUbHr0_Zohj9Do4Hvj_YwuWSIlv9YP5lcAKKQQfu2rb3p5BRbynJxBId96gfbUXNc3PKwkwCuL6uZNOLqYqMVAXoVyCBCYF28oAm66fIHb3abcpL7
+3kESageRSzfIpw-EYgTwU5F8_UuxZ-SxR6k7kI2715Er21kFXmhi8aoZ5O2oyN25ZIjwjHRIhkCv3ye3q4g39HyFHrCWBQEdDcKhWfdluvaqivjf02LDntCM
+sueeMJTrJz5rryF7Aqx6fuSBdBMk_znx
+}
+
+skinparam rectangle<<KubernetesPv>> {
+    BackgroundColor #FFFFFF
+    BorderColor transparent
+    Shadowing false
+}
+
+component galaxy as "galaxy" {
+
+}
+
+note as galaxynote
+    Use extended metadata to write
+    results right from Pulsar and
+    skip the need for RabbitMQ.
+end note
+
+galaxy ... galaxynote
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+rectangle "==Kubernetes Cluster" <<cluster>> as cluster {
+    rectangle "<color:#0072C6><$KubernetesApi></color>\n\n==Kubernetes Jobs API" <<KubernetesApi>> as api
+
+    frame pod as "Job Pod" {
+
+        component staging as "pulsar" {
+        }
+
+        component tool as "biocontainer" {
+        }
+
+    }
+
+}
+
+galaxy - -> disk
+galaxy - -> api : submit, cancel, status
+api -[dashed]-> pod : [manages]
+staging - -> disk : stage in and out
+@enduml
+
+PlantUML version 1.2022.8(Sun Sep 25 05:00:33 EDT 2022)
+(GPL source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>

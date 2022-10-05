@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="794px" preserveAspectRatio="none" style="width:662px;height:794px;background:#FFFFFF;" version="1.1" viewBox="0 0 662 794" width="662px" zoomAndPan="magnify"><defs/><g><!--MD5=[ae7709657f611b622ade1638c535e86e]
+cluster cluster--><g id="cluster_cluster"><path d="M272.4278,38.6019 C284.5954,18.0644 303.6165,20.0448 314.5776,39.8621 C322.4708,19.6807 336.1285,14.1508 351.9722,32.0561 C365.1633,11.8924 378.5212,11.8028 393.4451,30.1921 C405.5332,10.1774 421.8255,6 436.7592,27.2017 C450.4938,7.5304 465.538,12.1306 477.0296,29.6317 C491.0409,16.1398 505.6463,14.1326 513.4441,36.026 C525.7386,14.7357 549.2186,14.3648 560.6895,36.9135 C577.621,20.3602 591.8212,18.8845 602,43.6628 C604.3292,41.4342 606.2912,42.2681 607.5241,44.9069 C622.4194,56.9118 622.7798,70.4464 606.8378,81.8788 C625.8581,93.6141 627.5813,111.256 606.2895,122.4465 C622.3652,134.5673 624.5893,146.499 605.7878,158.1295 C626.6933,168.8558 629.4927,180.6771 611.1515,196.8412 C629.3102,207.4118 628.3564,222.1567 610.7903,232.3641 C634.5045,241.5455 631.9733,261.025 615.0067,274.297 C631.9981,287.2984 629.4879,300.4579 611.6868,310.2462 C629.1642,320.7414 628.8387,334.4169 613.5387,346.5827 C635.1782,359.0327 632.7254,374.8308 612.7876,386.4985 C629.3586,400.5116 628.941,412.793 609.0338,423.0609 C624.4987,431.8983 628.1877,444.8167 610.9187,455.553 C629.8263,466.2936 629.4633,485.0752 608.8661,493.6895 C627.3635,508.3517 627.5469,522.0281 608.1676,536.066 C624.4186,554.3259 616.325,569.2223 595,574.6628 C597.7828,573.557 599.1122,575.1326 598.74,577.7946 C585.8792,599.1553 571.1551,597.7271 559.159,576.9817 C549.3555,594.9248 533.2285,598.6229 518.821,582.4205 C504.8888,598.7808 485.3855,601.9011 476.1178,577.5302 C468.2528,596.9574 449.4794,599.2637 437.3865,581.9923 C422.4888,604.8151 403.83,605.2274 391.1418,579.8715 C380.6664,597.9847 362.2663,595.2501 353.2161,578.3287 C341.9019,599.1576 324.4796,595.934 314.0724,577.4261 C290.6019,599.1969 274.6923,594.5084 260,567.6628 C263.8428,567.6152 265.629,570.599 263.2601,573.8333 C244.5616,564.6622 241.0417,544.2776 260.0474,532.1971 C241.4451,522.0863 242.5768,511.0919 257.7374,498.6558 C241.0229,483.3182 238.6795,469.6437 259.2746,455.6393 C242.6044,446.7199 237.6582,432.2964 255.2865,419.5833 C241.2829,409.3135 241.3894,392.4309 257.7746,384.3043 C239.0795,376.3922 239.2885,358.4495 254.997,347.9116 C236.04,338.2678 237.4575,325.0545 251.7657,312.3851 C229.6039,298.4043 235.0415,278.094 256.9256,269.4005 C240.2497,259.7311 241.4108,246.6307 256.217,236.2876 C236.5304,223.5557 239.1747,207.8562 256.7183,195.5828 C240.9204,181.5135 237.181,168.1055 259.082,156.3049 C242.0178,145.5782 241.9303,129.7312 260.8749,120.824 C243.2236,110.5555 243.205,95.0723 261.1043,85.0317 C239.2998,67.5132 242.558,48.5443 267,36.6628 C269.6834,35.1375 271.4207,35.435 272.4278,38.6019 " fill="none" style="stroke:#FF8C00;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="138" x="362" y="55.1979">GA4GH TES Cluster</text></g><!--MD5=[a59b4262d7ac0b9dcf3b2bb90ca83b91]
+cluster pod--><g id="cluster_pod"><rect fill="none" height="391" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:1.0;" width="294" x="284" y="159.6628"/><path d="M355,159.6628 L355,169.1511 L345,179.1511 L284,179.1511 " fill="none" style="stroke:#FF8C00;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="61" x="287" y="174.1979">TesTask</text></g><!--MD5=[7aa1830f6d3a10daacf1e4a3019ccce0]
+entity galaxy--><g id="elem_galaxy"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="85" x="150.5" y="341.6628"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="215.5" y="346.6628"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="213.5" y="348.6628"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="213.5" y="352.6628"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="165.5" y="375.1979">galaxy</text></g><!--MD5=[799e9543975076390d2a6ceafec8df6c]
+entity queue--><g id="elem_queue"><path d="M383.5,644.6628 L460.5,644.6628 C465.5,644.6628 465.5,657.9069 465.5,657.9069 C465.5,657.9069 465.5,671.1511 460.5,671.1511 L383.5,671.1511 C378.5,671.1511 378.5,657.9069 378.5,657.9069 C378.5,657.9069 378.5,644.6628 383.5,644.6628 " fill="#FFEFD5" style="stroke:#FF8C00;stroke-width:0.5;"/><path d="M460.5,644.6628 C455.5,644.6628 455.5,657.9069 455.5,657.9069 C455.5,671.1511 460.5,671.1511 460.5,671.1511 " fill="none" style="stroke:#FF8C00;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="67" x="383.5" y="663.1979">RabbitMQ</text></g><!--MD5=[3aef3466144a60d8e52f82544e729ce7]
+entity disk--><g id="elem_disk"><rect fill="#FFEFD5" height="36.4883" rx="35" ry="35" style="stroke:#FF8C00;stroke-width:0.5;" width="104" x="61" y="477.1628"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="71" y="500.6979">Object Store</text></g><!--MD5=[e2307af040e3f87d22824e7603ca28ec]
+entity api--><g id="elem_api"><path d="M273,63.6628 L387,63.6628 C392,63.6628 392,76.9069 392,76.9069 C392,76.9069 392,90.1511 387,90.1511 L273,90.1511 C268,90.1511 268,76.9069 268,76.9069 C268,76.9069 268,63.6628 273,63.6628 " fill="#FFEFD5" style="stroke:#FF8C00;stroke-width:0.5;"/><path d="M387,63.6628 C382,63.6628 382,76.9069 382,76.9069 C382,90.1511 387,90.1511 387,90.1511 " fill="none" style="stroke:#FF8C00;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="104" x="273" y="82.1979">GA4GH TES API</text></g><!--MD5=[ebb1f0377481b0e501bf7a15ec60dd77]
+entity stageout--><g id="elem_stageout"><rect fill="#FFEFD5" height="62.9766" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="188" x="328" y="463.6628"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="496" y="468.6628"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="494" y="470.6628"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="494" y="474.6628"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="144" x="343" y="497.1979">TesExecutor - pulsar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="68" x="343" y="513.6862">stage-out</text></g><!--MD5=[388b80d23af37d7490aec0b633ef638a]
+entity tool--><g id="elem_tool"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="237" x="316.5" y="341.6628"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="533.5" y="346.6628"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="531.5" y="348.6628"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="531.5" y="352.6628"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="197" x="331.5" y="375.1979">TesExecutor - tool container</text></g><!--MD5=[41b98c76e40abe8d242f8ec737fdea7f]
+entity stagein--><g id="elem_stagein"><rect fill="#FFEFD5" height="62.9766" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="188" x="341" y="202.6628"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="509" y="207.6628"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="507" y="209.6628"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="507" y="213.6628"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="144" x="356" y="236.1979">TesExecutor - pulsar</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="58" x="356" y="252.6862">stage-in</text></g><g id="elem_disknote"><path d="M6,731.6628 L6,787.5944 L220,787.5944 L220,741.6628 L210,731.6628 L6,731.6628 " fill="#FFEFD5" style="stroke:#181818;stroke-width:0.5;"/><path d="M210,731.6628 L210,741.6628 L220,741.6628 L210,731.6628 " fill="#FFEFD5" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="185" x="12" y="749.2311">Disk is unrestricted and does</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="193" x="12" y="764.5417">not need to be shared between</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="115" x="12" y="779.8522">Pulsar and Galaxy.</text></g><!--MD5=[31b1a11f9f0ac216f9afbe294b045677]
+link disk to disknote--><g id="link_disk_disknote"><path codeLine="27" d="M113,513.3828 C113,557.9828 113,677.5128 113,731.5128 " fill="none" id="disk-disknote" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[10e83ea447926ee463da083ca9e55d33]
+reverse link stagein to tool--><g id="link_stagein_tool"><path d="M435,270.9728 C435,293.6328 435,322.1928 435,341.5828 " fill="none" id="stagein-backto-tool" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#666666" points="435,265.9428,431,274.9428,435,270.9428,439,274.9428,435,265.9428" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="69" x="436" y="308.2643">depends on</text></g><!--MD5=[ece4e2e3e759bc5a40f44a5ffd50d888]
+reverse link tool to stageout--><g id="link_tool_stageout"><path d="M432.25,392.8128 C430.17,413.4128 427.3,441.7528 425.13,463.2328 " fill="none" id="tool-backto-stageout" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#666666" points="432.77,387.7528,427.8894,396.3073,432.2697,392.7277,435.8493,397.1079,432.77,387.7528" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="69" x="430" y="430.2643">depends on</text></g><!--MD5=[444112ceeb685652cf6a950142e9793e]
+link galaxy to disk--><g id="link_galaxy_disk"><path d="M179.25,387.7528 C164.51,411.4328 141.25,448.7928 126.57,472.3628 " fill="none" id="galaxy-to-disk" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="123.76,476.8828,131.9053,471.3462,126.3972,472.6348,125.1085,467.1267,123.76,476.8828" style="stroke:#666666;stroke-width:1.0;"/></g><!--MD5=[451fccf17c1492a785cfb73c80b2ead7]
+link galaxy to api--><g id="link_galaxy_api"><path d="M185.54,341.5728 C172.75,299.3728 151.61,205.9728 191,143.6628 C207.8,117.0828 238.53,101.0028 266.83,91.3728 " fill="none" id="galaxy-to-api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="271.72,89.7628,261.9187,88.7964,266.9737,91.3353,264.4348,96.3904,271.72,89.7628" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="83" x="192" y="238.7643">submit, cancel</text></g><!--MD5=[e0bd3a4d97068c7d10ae3aabbb9f38f2]
+link stagein to queue--><g id="link_stagein_queue"><path d="M495.87,265.6828 C524.37,283.5528 555.42,309.0628 571,341.6628 C579.82,360.1128 572.84,367.3028 571,387.6628 C562.74,479.0028 569.57,506.1328 534,590.6628 C522.96,616.8928 495.63,633.2928 470.72,643.1928 " fill="none" id="stagein-to-queue" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="465.78,645.0828,475.615,645.6055,470.4504,643.2975,472.7585,638.1329,465.78,645.0828" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="85" x="569" y="430.2643">status updates</text></g><!--MD5=[2f1e50051be999d266d4579f70bb7be0]
+link stageout to queue--><g id="link_stageout_queue"><path d="M422,526.7328 C422,560.1528 422,612.5328 422,639.4428 " fill="none" id="stageout-to-queue" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="422,644.4728,426,635.4728,422,639.4728,418,635.4728,422,644.4728" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="85" x="423" y="611.2643">status updates</text></g><!--MD5=[75a01f7e250777048f143d92b943598b]
+link galaxy to queue--><g id="link_galaxy_queue"><path d="M198.53,387.8128 C210.4,431.4628 242.08,529.6428 300,590.6628 C322.71,614.5828 356.04,631.8028 382.13,642.6428 " fill="none" id="galaxy-to-queue" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:1.0,3.0;"/><polygon fill="#666666" points="386.92,644.5928,380.1132,637.4747,382.2945,642.6941,377.0752,644.8754,386.92,644.5928" style="stroke:#666666;stroke-width:1.0;"/></g><!--MD5=[5f341783c97d3cb4f4e39898b2608251]
+link api to pod--><g id="link_api_pod"><path d="M322.94,89.8528 C315.83,102.7528 305.2,123.9428 300,143.6628 C298.7663,148.339 297.7141,153.1951 296.8175,158.1189 C296.7615,158.4267 296.7061,158.7347 296.6513,159.0429 C296.6238,159.197 296.5966,159.3512 296.5695,159.5054 " fill="none" id="api-to-pod" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#666666" points="296.5695,159.5054,302.0672,151.3339,297.4351,154.581,294.188,149.9488,296.5695,159.5054" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="60" x="308" y="132.2643">[manages]</text></g><!--MD5=[d69fd75b6b00a55c5482f975482b0c53]
+link stagein to galaxy--><g id="link_stagein_galaxy"><path d="M377.34,265.7828 C335.16,288.1728 278.67,318.1728 239.39,339.0328 " fill="none" id="stagein-to-galaxy" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="234.69,341.5228,244.5132,340.812,239.1006,339.1676,240.7449,333.755,234.69,341.5228" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="45" x="315" y="308.2643">stage in</text></g><!--MD5=[353d00f892bb97a58ac1dbdcdd9df522]
+link stageout to galaxy--><g id="link_stageout_galaxy"><path d="M367.31,463.4728 C327.37,441.0628 273.95,411.0828 236.81,390.2428 " fill="none" id="stageout-to-galaxy" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="232.37,387.7528,238.2642,395.6432,236.7313,390.198,242.1765,388.6651,232.37,387.7528" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="53" x="308" y="430.2643">stage out</text></g><!--MD5=[095f514ecffebb9e8003e1ab130ef6a1]
+@startuml
+
+
+!include plantuml_options.txt
+
+!define KubernetesPuml https://raw.githubusercontent.com/dcasati/kubernetes-PlantUML/master/dist
+!includeurl KubernetesPuml/kubernetes_Common.puml
+!includeurl KubernetesPuml/kubernetes_Context.puml
+!includeurl KubernetesPuml/kubernetes_Simplified.puml
+
+component galaxy as "galaxy" {
+
+}
+
+queue queue as "RabbitMQ" {
+
+}
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+cloud cluster as "GA4GH TES Cluster" {
+    queue api as "GA4GH TES API" {
+        
+    }
+
+    frame pod as "TesTask" {
+
+        component stageout as "TesExecutor - pulsar stage-out" {
+        }
+        
+        component tool as "TesExecutor - tool container" {
+        }
+
+        component stagein as "TesExecutor - pulsar stage-in" {
+        }
+
+        stagein <.. tool : depends on
+        tool  <.. stageout : depends on
+
+    }
+
+}
+
+galaxy - -> disk
+galaxy - -> api : submit, cancel
+stagein - -> queue : status updates
+stageout - -> queue : status updates
+galaxy -[dotted]-> queue
+api -[dashed]-> pod : [manages]
+stagein - -> galaxy : stage in
+stageout - -> galaxy : stage out
+@enduml
+
+@startuml
+
+
+
+skinparam class {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam object {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam ComponentBackgroundColor #FFEFD5
+skinparam ComponentBorderColor DarkOrange
+
+skinparam DatabaseBackgroundColor #FFEFD5
+skinparam DatabaseBorderColor DarkOrange
+
+skinparam StorageBackgroundColor #FFEFD5
+skinparam StorageBorderColor DarkOrange
+
+skinparam QueueBackgroundColor #FFEFD5
+skinparam QueueBorderColor DarkOrange
+
+skinparam note {
+    BackgroundColor #FFEFD5
+    BorderColor #BF5700
+}
+
+skinparam sequence {
+    ArrowColor Orange
+    ArrowFontColor DarkOrange
+    ActorBorderColor DarkOrange
+    ActorBackgroundColor #FFEFD5
+
+    ParticipantBorderColor DarkOrange
+    ParticipantBackgroundColor #FFEFD5
+
+    LifeLineBorderColor DarkOrange
+    LifeLineBackgroundColor #FFEFD5
+
+    DividerBorderColor DarkOrange
+    GroupBorderColor DarkOrange
+}
+
+
+
+
+
+skinparam defaultTextAlignment center
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam rectangle {
+    StereotypeFontSize 12
+}
+
+skinparam Arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+
+
+
+
+
+
+
+
+
+skinparam defaultTextAlignment left
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam rectangle {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam database {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam Arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+skinparam rectangle<<boundary>> {
+    Shadowing false
+    StereotypeFontSize 0
+    FontColor #444444
+    BorderColor #444444
+    BorderStyle dashed
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<cluster>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #326CE5
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<namespace>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #FF4216
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<node>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #096B24
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<service>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #096B24
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+
+
+
+
+
+
+
+
+hide stereotype
+
+
+
+
+
+component galaxy as "galaxy" {
+
+}
+
+queue queue as "RabbitMQ" {
+
+}
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+cloud cluster as "GA4GH TES Cluster" {
+    queue api as "GA4GH TES API" {
+        
+    }
+
+    frame pod as "TesTask" {
+
+        component stageout as "TesExecutor - pulsar stage-out" {
+        }
+        
+        component tool as "TesExecutor - tool container" {
+        }
+
+        component stagein as "TesExecutor - pulsar stage-in" {
+        }
+
+        stagein <.. tool : depends on
+        tool  <.. stageout : depends on
+
+    }
+
+}
+
+galaxy - -> disk
+galaxy - -> api : submit, cancel
+stagein - -> queue : status updates
+stageout - -> queue : status updates
+galaxy -[dotted]-> queue
+api -[dashed]-> pod : [manages]
+stagein - -> galaxy : stage in
+stageout - -> galaxy : stage out
+@enduml
+
+PlantUML version 1.2022.8(Sun Sep 25 05:00:33 EDT 2022)
+(GPL source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>

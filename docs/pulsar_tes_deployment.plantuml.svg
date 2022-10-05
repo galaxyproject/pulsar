@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="683px" preserveAspectRatio="none" style="width:627px;height:683px;background:#FFFFFF;" version="1.1" viewBox="0 0 627 683" width="627px" zoomAndPan="magnify"><defs/><g><!--MD5=[ae7709657f611b622ade1638c535e86e]
+cluster cluster--><g id="cluster_cluster"><path d="M35.8327,132.6204 C41.3189,119.475 54.0176,119.6023 61.3364,130.6918 C67.5126,121.3103 76.2496,120.2953 82.518,130.5925 C90.9467,118.3527 101.68,116.8214 110.407,130.2686 C115.6281,119.2975 125.9092,116.9538 132.7756,128.6447 C137.7812,113.7992 150.4833,115.3868 158.9243,124.9668 C166.2088,114.8563 178.175,115.02 183.9593,126.691 C189.783,115.0274 199.6294,112.9587 207.9203,124.0986 C216.1269,111.9491 224.8127,115.0133 231.5763,125.6 C238.4112,116.7648 247.1598,117.476 252.4973,127.2806 C261.3289,112.8891 271.777,114.2282 279.9454,127.9285 C288.0517,117.5155 295.5911,119.6812 301.9952,129.7601 C308.8027,120.6006 320.289,120.7256 325.3693,131.7594 C331.1209,119.3363 342.2827,120.487 349.1853,130.5397 C363.987,116.6168 373.3696,123.3995 380.0889,139 C382.1093,139.4754 383.2023,140.518 381.8188,142.6201 C393.8584,150.5132 392.6632,157.7809 382.1281,165.9729 C394.3385,172.883 396.0057,181.6762 384.9186,191.1668 C397.8814,196.9222 397.6571,204.1845 387.9822,213.1018 C400.1246,220.2076 400.2975,232.8945 387.0785,239.1194 C399.4076,248.0572 398.2617,257.2808 387.2608,266.3747 C398.7664,273.347 398.5393,282.1656 389.0367,290.6733 C401.3465,299.1445 399.9127,308.655 387.0666,315.097 C397.1811,323.5684 393.1809,333.2838 382.7912,337.9129 C394.0903,345.3465 393.781,357.8335 381.6609,364.2625 C393.0671,376.9909 387.9604,387.3926 373.0889,392 C375.6145,392.3393 376.3434,394.0468 374.6224,396.0101 C367.687,407.5692 360.167,407.2943 353.4196,395.8368 C347.8168,409.4708 336.502,410.6942 328.0799,398.6153 C319.3674,409.974 311.0833,408.4785 303.739,397.1475 C296.9687,411.2992 285.8143,411.8307 277.3499,398.7916 C270.4237,408.8904 262.0902,410.6424 254.9479,399.0144 C248.6849,413.6566 239.5025,414.9054 228.8404,403.4082 C221.3069,414.3741 209.395,413.7277 204.1118,401.0543 C196.5006,414.2709 186.9232,412.0461 179.5573,400.8079 C173.6276,411.3008 165.1794,413.8249 157.3776,402.7315 C147.7787,413.5808 138.6353,413.35 131.4618,400.1211 C122.5404,412.0276 114.9468,408.6517 108.2231,397.8701 C101.7232,407.5842 92.4333,410.0935 85.8854,397.9191 C78.7176,409.4463 66.8928,407.3639 61.3372,396.1768 C46.7341,409.0318 31.7745,402.534 27.0889,385 C27.8356,384.589 28.404,384.7319 28.5293,385.6657 C17.7315,379.831 15.777,368.7762 26.4909,361.1528 C13.8678,356.0737 14.5122,346.628 23.979,339.0396 C11.6613,333.8341 9.6457,322.1905 20.3805,313.71 C8.8309,305.4272 6.0077,296.1868 19.0758,286.7143 C8.5179,280.1035 7.5361,270.2602 18.94,263.5208 C6.5645,256.9826 6.3132,247.5139 17.7877,239.8162 C6,230.8612 10.1219,219.9168 22.1535,215.1835 C9.1485,204.1058 13.8716,196.5984 25.8433,189.0466 C16.5482,180.1622 14.1915,171.1176 27.932,164.167 C15.0871,151.9753 14.6512,138.0126 34.0889,132 C34.9441,131.2357 35.6209,131.5762 35.8327,132.6204 " fill="none" style="stroke:#FF8C00;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="138" x="134.5889" y="150.5352">GA4GH TES Cluster</text></g><!--MD5=[a59b4262d7ac0b9dcf3b2bb90ca83b91]
+cluster pod--><g id="cluster_pod"><rect fill="none" height="113" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:1.0;" width="305" x="51.0889" y="255"/><path d="M122.0889,255 L122.0889,264.4883 L112.0889,274.4883 L51.0889,274.4883 " fill="none" style="stroke:#FF8C00;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="61" x="54.0889" y="269.5352">TesTask</text></g><!--MD5=[7aa1830f6d3a10daacf1e4a3019ccce0]
+entity galaxy--><g id="elem_galaxy"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="85" x="279.5889" y="11"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="344.5889" y="16"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="342.5889" y="18"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="342.5889" y="22"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="294.5889" y="44.5352">galaxy</text></g><!--MD5=[3aef3466144a60d8e52f82544e729ce7]
+entity disk--><g id="elem_disk"><rect fill="#FFEFD5" height="36.4883" rx="35" ry="35" style="stroke:#FF8C00;stroke-width:0.5;" width="104" x="288.0889" y="462"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="298.0889" y="485.5352">Object Store</text></g><!--MD5=[e2307af040e3f87d22824e7603ca28ec]
+entity api--><g id="elem_api"><path d="M140.0889,159 L254.0889,159 C259.0889,159 259.0889,172.2441 259.0889,172.2441 C259.0889,172.2441 259.0889,185.4883 254.0889,185.4883 L140.0889,185.4883 C135.0889,185.4883 135.0889,172.2441 135.0889,172.2441 C135.0889,172.2441 135.0889,159 140.0889,159 " fill="#FFEFD5" style="stroke:#FF8C00;stroke-width:0.5;"/><path d="M254.0889,159 C249.0889,159 249.0889,172.2441 249.0889,172.2441 C249.0889,185.4883 254.0889,185.4883 254.0889,185.4883 " fill="none" style="stroke:#FF8C00;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="104" x="140.0889" y="177.5352">GA4GH TES API</text></g><!--MD5=[2a18fe44646d9882a8aae1fdc76eaba2]
+entity staging--><g id="elem_staging"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="237" x="94.5889" y="298"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="311.5889" y="303"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="309.5889" y="305"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="309.5889" y="309"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="197" x="109.5889" y="331.5352">TesExecutor - pulsar+conda</text></g><g id="elem_GMN3"><path d="M400.0889,6 L400.0889,61.9316 L620.0889,61.9316 L620.0889,16 L610.0889,6 L400.0889,6 " fill="#FFEFD5" style="stroke:#181818;stroke-width:0.5;"/><path d="M610.0889,6 L610.0889,16 L620.0889,16 L610.0889,6 " fill="#FFEFD5" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="199" x="406.0889" y="23.5684">Use extended metadata to write</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="180" x="406.0889" y="38.8789">results right from Pulsar and</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="176" x="406.0889" y="54.1895">skip the need for RabbitMQ.</text></g><g id="elem_disknote"><path d="M233.0889,621 L233.0889,676.9316 L447.0889,676.9316 L447.0889,631 L437.0889,621 L233.0889,621 " fill="#FFEFD5" style="stroke:#181818;stroke-width:0.5;"/><path d="M437.0889,621 L437.0889,631 L447.0889,631 L437.0889,621 " fill="#FFEFD5" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="185" x="239.0889" y="638.5684">Disk is unrestricted and does</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="193" x="239.0889" y="653.8789">not need to be shared between</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="115" x="239.0889" y="669.1895">Pulsar and Galaxy.</text></g><!--MD5=[59acfaa45b93ef8b8a489331b8c2a839]
+link galaxy to GMN3--><g id="link_galaxy_GMN3"><path d="M364.6789,34 C376.4189,34 388.1589,34 399.8989,34 " fill="none" id="galaxy-GMN3" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[31b1a11f9f0ac216f9afbe294b045677]
+link disk to disknote--><g id="link_disk_disknote"><path codeLine="29" d="M340.0889,498.24 C340.0889,527.33 340.0889,586.34 340.0889,620.97 " fill="none" id="disk-disknote" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[444112ceeb685652cf6a950142e9793e]
+link galaxy to disk--><g id="link_galaxy_disk"><path d="M364.8089,55.77 C378.6589,64.84 392.4189,76.9 400.0889,92 C468.5089,226.74 466.2489,296.14 400.0889,432 C394.8689,442.72 385.8889,451.72 376.4389,458.88 " fill="none" id="galaxy-to-disk" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="372.3689,461.83,381.9993,459.7674,376.4113,458.8874,377.2912,453.2994,372.3689,461.83" style="stroke:#666666;stroke-width:1.0;"/></g><!--MD5=[451fccf17c1492a785cfb73c80b2ead7]
+link galaxy to api--><g id="link_galaxy_api"><path d="M301.3989,57.15 C291.5789,67.68 279.7089,80.47 269.0889,92 C249.0489,113.77 226.0289,139.08 211.5289,155.06 " fill="none" id="galaxy-to-api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="208.0289,158.92,217.0312,154.9253,211.3816,155.2106,211.0962,149.561,208.0289,158.92" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="125" x="270.0889" y="104.6016">submit, cancel, status</text></g><!--MD5=[5f341783c97d3cb4f4e39898b2608251]
+link api to pod--><g id="link_api_pod"><path d="M158.4989,185.01 C131.9989,195.23 98.1089,212.52 78.0889,239 C75.3889,242.5713 73.0642,246.4653 71.0635,250.5516 C70.5633,251.5732 70.0834,252.6068 69.6229,253.6504 C69.5078,253.9113 69.3939,254.1728 69.2812,254.4349 C69.2249,254.566 69.1688,254.6972 69.1131,254.8285 " fill="none" id="api-to-pod" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#666666" points="69.1131,254.8285,76.3115,248.1067,71.0666,250.226,68.9474,244.9811,69.1131,254.8285" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="60" x="102.0889" y="227.6016">[manages]</text></g><!--MD5=[56ad6a3dee849658a1efadf2d59254fa]
+link staging to disk--><g id="link_staging_disk"><path d="M230.5089,344.01 C248.1789,366.28 276.3689,401.66 301.0889,432 C307.9989,440.48 315.6689,449.75 322.3689,457.8 " fill="none" id="staging-to-disk" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="325.5689,461.65,322.8835,452.1743,322.3693,457.8077,316.7359,457.2935,325.5689,461.65" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="93" x="302.0889" y="428.6016">stage in and out</text></g><!--MD5=[560391ff9861cced6f156a469ba32f89]
+@startuml
+
+
+!include plantuml_options.txt
+
+!define KubernetesPuml https://raw.githubusercontent.com/dcasati/kubernetes-PlantUML/master/dist
+!includeurl KubernetesPuml/kubernetes_Common.puml
+!includeurl KubernetesPuml/kubernetes_Context.puml
+!includeurl KubernetesPuml/kubernetes_Simplified.puml
+
+component galaxy as "galaxy" {
+
+}
+
+note right of galaxy
+    Use extended metadata to write
+    results right from Pulsar and
+    skip the need for RabbitMQ.
+end note
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+cloud cluster as "GA4GH TES Cluster" {
+    queue api as "GA4GH TES API" {
+        
+    }
+
+    frame pod as "TesTask" {
+
+        component staging as "TesExecutor - pulsar+conda" {
+        }
+
+    }
+
+}
+
+galaxy - -> disk
+galaxy - -> api : submit, cancel, status
+api -[dashed]-> pod : [manages]
+staging - -> disk : stage in and out
+@enduml
+
+@startuml
+
+
+
+skinparam class {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam object {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam ComponentBackgroundColor #FFEFD5
+skinparam ComponentBorderColor DarkOrange
+
+skinparam DatabaseBackgroundColor #FFEFD5
+skinparam DatabaseBorderColor DarkOrange
+
+skinparam StorageBackgroundColor #FFEFD5
+skinparam StorageBorderColor DarkOrange
+
+skinparam QueueBackgroundColor #FFEFD5
+skinparam QueueBorderColor DarkOrange
+
+skinparam note {
+    BackgroundColor #FFEFD5
+    BorderColor #BF5700
+}
+
+skinparam sequence {
+    ArrowColor Orange
+    ArrowFontColor DarkOrange
+    ActorBorderColor DarkOrange
+    ActorBackgroundColor #FFEFD5
+
+    ParticipantBorderColor DarkOrange
+    ParticipantBackgroundColor #FFEFD5
+
+    LifeLineBorderColor DarkOrange
+    LifeLineBackgroundColor #FFEFD5
+
+    DividerBorderColor DarkOrange
+    GroupBorderColor DarkOrange
+}
+
+
+
+
+
+skinparam defaultTextAlignment center
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam rectangle {
+    StereotypeFontSize 12
+}
+
+skinparam Arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+
+
+
+
+
+
+
+
+
+skinparam defaultTextAlignment left
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam rectangle {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam database {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam Arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+skinparam rectangle<<boundary>> {
+    Shadowing false
+    StereotypeFontSize 0
+    FontColor #444444
+    BorderColor #444444
+    BorderStyle dashed
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<cluster>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #326CE5
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<namespace>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #FF4216
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<node>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #096B24
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+skinparam rectangle<<service>> {
+    StereotypeFontColor #000000
+    FontColor #000000
+    BorderStyle line
+    BorderColor #096B24
+    BackgroundColor #FFFFFF
+    RoundCorner 25
+}
+
+
+
+
+
+
+
+
+
+hide stereotype
+
+
+
+
+
+component galaxy as "galaxy" {
+
+}
+
+note right of galaxy
+    Use extended metadata to write
+    results right from Pulsar and
+    skip the need for RabbitMQ.
+end note
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+cloud cluster as "GA4GH TES Cluster" {
+    queue api as "GA4GH TES API" {
+        
+    }
+
+    frame pod as "TesTask" {
+
+        component staging as "TesExecutor - pulsar+conda" {
+        }
+
+    }
+
+}
+
+galaxy - -> disk
+galaxy - -> api : submit, cancel, status
+api -[dashed]-> pod : [manages]
+staging - -> disk : stage in and out
+@enduml
+
+PlantUML version 1.2022.8(Sun Sep 25 05:00:33 EDT 2022)
+(GPL source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>
