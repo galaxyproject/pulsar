@@ -160,6 +160,7 @@ class TestRequiredFilesObject:
 def run(options):
     logging.basicConfig(level=logging.DEBUG)
     waiter = None
+    client_manager = None
     try:
         temp_directory = tempfile.mkdtemp(prefix='pulsar-check-client.')
         temp_index_dir = os.path.join(temp_directory, "idx", "bwa")
@@ -344,12 +345,13 @@ def run(options):
         if getattr(options, "explicit_tool_declarations", False):
             __assert_contents(temp_output5_path, str(True), result_status)
         __exercise_errors(options, client, temp_output_path, temp_directory)
-        client_manager.shutdown()
     except BaseException:
         if not options.suppress_output:
             traceback.print_exc()
         raise
     finally:
+        if client_manager:
+            client_manager.shutdown()
         if waiter is not None:
             waiter.shutdown()
         if getattr(options, 'cleanup', True):
