@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="711px" preserveAspectRatio="none" style="width:382px;height:711px;background:#FFFFFF;" version="1.1" viewBox="0 0 382 711" width="382px" zoomAndPan="magnify"><defs/><g><!--MD5=[bfeb4e40a9e05244ea0843bb1cef058f]
+cluster cloud--><g id="cluster_cloud"><rect fill="#FFFFFF" height="698" style="stroke:#000000;stroke-width:1.0;" width="369" x="7" y="7"/><text fill="#000000" font-family="sans-serif" font-size="0" font-style="italic" lengthAdjust="spacing" textLength="0" x="191.5" y="9">«AWSCloudGroup»</text><image height="32" width="32" x="10" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAADD0lEQVR42u1W+zNUURz3x/SQyqM0eZTnsruIsZFXtKJksGFjrLBCxBC2sEwI4zETii2GDGNIHhNjpilZrIzXmvJoKMbj07mnsTNNY+zGTP2wZ+bMnO89937v5/v5fs7nXp0jBhb4l1NHC0ALQAtAC2CvDUMzLoIEIkTHp8En4DaOGlpC34QNJ3d/umbuMTDjwMGNr3pG35QNh8vX6NrYwgmhwgREipJh4+SlOYCZ2Xl0vumDrKkNyyvfUPWsAZbcK2AGz/smveeR9CmNuTw/Gufml2D4/UfYkhcuLi2jvbMHL162YnRcgVPn7TQDcMLYVrUOFcZjfWODVv5hRI7M3EJ6vXdgCIrJKSSkZNF4YHAYmZIipGRIMK74fLAWWDt6Ij27ADmkqryiclqp3jkWJAWl6H47AD0CkGEmLjkTsuY2GJhysLm5CXuXq+AQRlbXvqO3fwix9zJgZM7VDIDtJW+skQQV1XVUAxU19SoAzh4B+LG+Dt8b4YSBQQLUA3PKBQSGRkNOqN7NcZHthuzHTzA6NoGvi0u0ILUBJNzPoj3cjRkhMeO0iT1twzTRR1dPHyTSUro/O6fE6/YuwlTZH7mOGVlhdl5JmVIbAM8nCNs7OygnDBSX1aD/3TC2trbBvyWk+2WVtRQQwwITP5e10NjFM5DGaQ/zUdfQjIwcKWrqZFhdXQOLsKqRBryuhyG3oAQicTpOEuo9+CGkBb+EaW7HgzA2BbpnbWjMJBdEJaqOp9EFB8SIH0BaXElFabMH/f+nEemesSaVWR9Kcu8AAZpaOzAyOg75mAIWbPf9ATBuVl3bSNSf+psXHHR+kk/Q1qnVguOEBUbhM3PzKCyppEdvt7/qTiYHI9r6xmbqJ13EOzTWAMfVD20d3dghJ0K58AWvWtqpskMi4+DlH0Z8nw8rYs8cV196ciJikqhwO7t7qY9MTc8gQpQE/+A7cCTfkL8WIeNuRaVVmJyaxn5jaXmF9L0dweF3KQuH/jk2Y/Go64lTs6nT5eQVI5GsBVFisJx9NG6V9odEC0ALQAvgJ4HBKuXsRFh7AAAAAElFTkSuQmCC" y="19"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="10" x="42" y="48.0469">  </text><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="78" x="52" y="48.0469">AWS Cloud</text></g><!--MD5=[a59b4262d7ac0b9dcf3b2bb90ca83b91]
+cluster pod--><g id="cluster_pod"><rect fill="none" height="113" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:1.0;" width="191" x="153" y="419"/><path d="M275,419 L275,428.4883 L265,438.4883 L153,438.4883 " fill="none" style="stroke:#FF8C00;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="112" x="156" y="433.5352">Job Description</text></g><!--MD5=[e2307af040e3f87d22824e7603ca28ec]
+entity api--><g id="elem_api"><rect fill="#FFFFFF" height="131.1094" rx="2.5" ry="2.5" style="stroke:#FF9900;stroke-width:0.5;" width="84" x="150" y="218"/><text fill="#000000" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="55" x="164.5" y="239.6016">«Fargate»</text><text fill="#000000" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="45" x="169.5" y="257.6016">Batch</text><image height="64" width="64" x="160" xlink:href="data:image/png;base64,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" y="260.9766"/><text fill="#000000" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="8" x="188" y="336.5781">[]</text></g><g id="elem_GMN8"><path d="M23,587 L23,688.8633 L233,688.8633 L233,597 L223,587 L23,587 " fill="#FFEFD5" style="stroke:#181818;stroke-width:0.5;"/><path d="M223,587 L223,597 L233,597 L223,587 " fill="#FFEFD5" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="185" x="29" y="604.5684">Disk must be fully accessible</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="59" x="94" y="619.8789">to Galaxy</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="163" x="40" y="635.1895">and any AWS spawned job</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="70" x="88.5" y="650.5">containers,</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="156" x="43.5" y="665.8105">live in the same cloud as</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="42" x="102.5" y="681.1211">Galaxy</text></g><!--MD5=[7aa1830f6d3a10daacf1e4a3019ccce0]
+entity galaxy--><g id="elem_galaxy"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="85" x="101.5" y="68"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="166.5" y="73"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="164.5" y="75"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="164.5" y="79"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="116.5" y="101.5352">galaxy</text></g><!--MD5=[713b73db6f10ca464231664cf9910668]
+entity job--><g id="elem_job"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="123" x="196.5" y="462"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="299.5" y="467"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="297.5" y="469"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="297.5" y="473"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="83" x="211.5" y="495.5352">a galaxy job</text></g><!--MD5=[3aef3466144a60d8e52f82544e729ce7]
+entity disk--><g id="elem_disk"><rect fill="#FFEFD5" height="36.4883" rx="35" ry="35" style="stroke:#FF8C00;stroke-width:0.5;" width="91" x="268.5" y="620"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="71" x="278.5" y="643.5352">shared efs</text></g><!--MD5=[b433953b1e2f0d8c2a53c80ff35cd96d]
+link GMN8 to disk--><g id="link_GMN8_disk"><path d="M233.35,638 C245.01,638 256.66,638 268.32,638 " fill="none" id="GMN8-disk" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[444112ceeb685652cf6a950142e9793e]
+link galaxy to disk--><g id="link_galaxy_disk"><path d="M135.82,114.06 C110.98,185.27 44.05,412.19 145,548 C174.95,588.29 207.23,562.42 251,587 C265.66,595.23 280.46,606.78 292.03,616.7 " fill="none" id="galaxy-to-disk" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="295.83,620,291.6524,611.0811,292.053,616.7237,286.4103,617.1243,295.83,620" style="stroke:#666666;stroke-width:1.0;"/></g><!--MD5=[451fccf17c1492a785cfb73c80b2ead7]
+link galaxy to api--><g id="link_galaxy_api"><path d="M149.6,114.23 C155.66,138.27 165.62,177.82 174.37,212.54 " fill="none" id="galaxy-to-api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="175.65,217.63,177.3141,207.9227,174.4205,212.7835,169.5597,209.8899,175.65,217.63" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="132" x="169" y="156.6016">register_job_definition,</text><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="68" x="201" y="170.7344">submit_job,</text><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="81" x="196.5" y="184.8672">describe_jobs</text></g><!--MD5=[9f771da3d7293c5c41094a3f6f756fb2]
+link job to disk--><g id="link_job_disk"><path d="M266.26,508.28 C276.9,536.97 295.28,586.53 305.86,615.06 " fill="none" id="job-to-disk" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="307.62,619.79,308.2579,609.9618,305.8895,615.099,300.7523,612.7306,307.62,619.79" style="stroke:#666666;stroke-width:1.0;"/></g><!--MD5=[5f341783c97d3cb4f4e39898b2608251]
+link api to pod--><g id="link_api_pod"><path d="M181.94,349.27 C179.71,363.605 177.3094,379.0438 174.9572,394.1748 C173.7811,401.7404 172.6171,409.229 171.4926,416.4643 C171.4223,416.9165 171.3522,417.3677 171.2822,417.8179 C171.2473,418.043 171.2123,418.2678 171.1774,418.4924 " fill="none" id="api-to-pod" style="stroke:#666666;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#666666" points="171.1774,418.4924,176.5121,410.2135,171.9453,413.5517,168.607,408.9849,171.1774,418.4924" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="60" x="177" y="391.6016">[manages]</text></g><!--MD5=[d24be2e754014f0cad2b3f3c6c6e1116]
+@startuml
+
+
+!include plantuml_options.txt
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v14.0/dist
+!include AWSPuml/AWSCommon.puml
+!include AWSPuml/Groups/all.puml
+!include AWSPuml/Containers/Fargate.puml
+
+AWSCloudGroup(cloud) {
+    Fargate(api, "Batch", "")
+
+    component galaxy as "galaxy" {
+
+    }
+
+    frame pod as "Job Description" {
+        component job as "a galaxy job" {
+
+        }
+    }
+
+
+    storage disk as "shared efs" {
+
+    }
+
+    note left of disk 
+        Disk must be fully accessible to Galaxy
+        and any AWS spawned job containers,
+        live in the same cloud as Galaxy
+    end note
+
+}
+
+galaxy - -> disk
+galaxy - -> api : register_job_definition, submit_job, describe_jobs
+
+job - -> disk
+api -[dashed]-> pod : [manages]
+
+@enduml
+
+@startuml
+
+
+
+skinparam class {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam object {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam ComponentBackgroundColor #FFEFD5
+skinparam ComponentBorderColor DarkOrange
+
+skinparam DatabaseBackgroundColor #FFEFD5
+skinparam DatabaseBorderColor DarkOrange
+
+skinparam StorageBackgroundColor #FFEFD5
+skinparam StorageBorderColor DarkOrange
+
+skinparam QueueBackgroundColor #FFEFD5
+skinparam QueueBorderColor DarkOrange
+
+skinparam note {
+    BackgroundColor #FFEFD5
+    BorderColor #BF5700
+}
+
+skinparam sequence {
+    ArrowColor Orange
+    ArrowFontColor DarkOrange
+    ActorBorderColor DarkOrange
+    ActorBackgroundColor #FFEFD5
+
+    ParticipantBorderColor DarkOrange
+    ParticipantBackgroundColor #FFEFD5
+
+    LifeLineBorderColor DarkOrange
+    LifeLineBackgroundColor #FFEFD5
+
+    DividerBorderColor DarkOrange
+    GroupBorderColor DarkOrange
+}
+
+
+
+
+
+
+skinparam defaultTextAlignment center
+
+skinparam PackageTitleAlignment Left
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam rectangle {
+    StereotypeFontSize 12
+}
+
+skinparam Arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sprite $AWSAccount [64x64/16z] {
+xTPNOiGm24NHHr51x7-zwI8zaN1wVF_FmBZxt-ZihCfYzMNFMEFWLppxKfpouvWtr4DUW2FUmAW7l60myjwWtb4JFiQxCn8-ndiiiETZV2omvMFyNE0TptYO
+nVYR6Ezwa4Q25kDZWVUyFjoxnVXOODiR83D2tVP37jOs_RF-exVMBEyRuRgIz0gglJS1ZHKlFMhNlinVxA0L_wZc1l6xEihxtjh3t1N3PvAu_uazQkXx_ldn
+tFVYKKzu9eygRDjNT9yH-OOFD4-0eYMyWMus60BrX7SZa2W3nVTyL1aWDS_vw0Vx_FTR_llnztTsTWa
+}
+
+
+  skinparam rectangle<<AWSAccountGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #CD2264
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $AWSCloud [64x64/16z] {
+xT45jXmX48NXlmg7kllVRleyuc4cxlqTmUsYVy7jThlDcbFAFQJPkwJtoo5fb6kuBJsGs3pKOUXYC7LnaYApXSxmsaTFKBMWI5f0ssLJXJB6gBvq5hjmJ79S
+KiV8BoLBHjQNg11g45AXWgICIqRI5zXB5tJ9MCQKZ2OLI4DFH7N07K9oYXQcJDE49OK3bgUEzhYbP3lXYgjJrCbgk2xHd4iE7LLeR- -l2QlGjJ0bghRL3AgE
+77-NdsHqPqd6Wld-BVtf-Z1OaWe9avJ9cDv9k8uoT6acNaeDUFFt54cH-vAYFxp_PEkG90LxdmNCtGO3F7Gs4rXP6ddfqj9EkgIoXxC1LaFVReN-Qj5BybJY
+C1BwlELcRj0FuNzvi9bntFjBToWi7KI6FFJSQcbvqbati3gVf9SWJReUYCB5SflnoT0epgMfPZssCfldKbllOupUMt7ZHGsfX9vPrJZp5leY-weVIdNfAyIe
+UL_QF9KszOFTRhVRAm
+}
+
+
+  skinparam rectangle<<AWSCloudGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $AWSCloudAlt [64x64/16z] {
+xTG5SWKX30RWFu45OlS_RjtB8fsEypsNo6BnpN4SXxVC0ALYVugk05BEYO2ydy4Ot3oUIGPaDvnGuuCGsbxp_3t0UQ-3WleZ8P5jT8yKFoXoX8buBBYWdUyQ
+0w0QSyIzde0YbN75ZAB4RubUcihpaQpTlxY_le3des_3mV5P_F0VRRAMxCAmlW5KVP0UMM942uFqDfmrfXf1RvfZNzjVv8ELDoVTTUH8iIXHT-NLM5HxdJP8
+B198BrvZaQBDw-ykGqFPkVxnpXzZU3ThNP__3cVeulgpuS4_9dHRnXXKcepKmVwByCgOeE8nOj96DFx9SHp78m
+}
+
+
+  skinparam rectangle<<AWSCloudAltGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #000000
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $AutoScalingGroup [64x64/16z] {
+xTJ50GCm34DH6U9e_uNBp7NAzRj_NG9yebAYSuG3VImV6N0e1EZvdB383WIKX34WJ74kUaOm3SOHrLUV8NxOY_CE2j__VmIDgO5ClXguCtVRfO1lSx4zGHuJ
+750kTHnglAf1k1QGpYFNy-p0AiyFz4sklXumtY6Exc-yzlrKNtqVwmDjsQioHT3clSAP7e3byzMNvioJLPwcpfzLoXG
+}
+
+
+  skinparam rectangle<<AutoScalingGroupGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #D86613
+    BorderStyle dashed
+    Shadowing false
+    RoundCorner 0
+  }
+
+  skinparam rectangle<<AvailabilityZoneGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #5B9CD5
+    BorderStyle dashed
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $CorporateDataCenter [64x64/16z] {
+xPN50O0m3003RMp_WN5trzm7FQGnFG73O6n0wtreGUlza2iGSBtlwds-pKUtptVmRr_uwlXP_0bJshx355waGuwlVO6SS8cFW9oYAL9kKe9WcSywp7L-4VVM
+TerVh5jh-ok_Y7jxQ_6_nBVuM_pxt_-YzKSUPfbFC4guOduEmNeiXX43
+}
+
+
+  skinparam rectangle<<CorporateDataCenterGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #5A6B86
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $EC2InstanceContents [64x64/16z] {
+xPPL0iH024CPAD3xdtZ9kjUTzv5KnfLwJ9B4zMngKBk-EDGCseIImKYWGb0ZXPMo-_mkmiGIK84M4dbyYXVzdr-eYORy_V-x1joONmFxFcwWCJ_uEevk0JVc
+Dz3Kl-Fz7px-9a5fp2z1bUC_RFo6pb-E_x3pO_3uZtz-vlxXe7dyEP2X-IVid_obDEHNQg1a_DM0iSEuWbOCTJQOIBqlakG4
+}
+
+
+  skinparam rectangle<<EC2InstanceContentsGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #D86613
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $ElasticBeanstalkContainer [64x64/16z] {
+xPC7igKm30HRcVjVU0DXIomOVixp8YwtPigIfnFzw4S_gifwCfmc06ZKKwmLnDnTGUBHU82jjkLWZysEPC_oo085DNKP_XXUoRELp7fWUZicKWVGXrGmycGD
+SLUaxdcHPcmYzeUf9LEWjtYr-2M8pARLijtntcB77zDMCF4xtDkM9QxIYejV9d0Wn_parrqm9Eh_lgFxYmKvTBVQxGNLm_Q0ymHrw6ygwC4ji85zZAUXIwdf
+UhaYQimxUSfBFsPyo0TnERc1H0YnhOMgTSSaBlFBFB8YA-yW4BV-JkpdPk4JhQc4QcDIm_uT_PtSUnOwcX-jzJTJyOKtQiUNakFvpVdQ0rWjVE3zS5Bmg_iZ
+vdytIVxhYQ8cs5nO1Vpo_WgitCQNiK89uZNTQCwDp4Bwm5LZhnMwgF5FahmxNrNr39v5J-TzrfFWDWVVbS_nmV_eHp_w3G
+}
+
+
+  skinparam rectangle<<ElasticBeanstalkContainerGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #D86613
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+  skinparam rectangle<<GenericGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #5A6B86
+    BorderStyle dashed
+    Shadowing false
+    RoundCorner 0
+  }
+
+  skinparam rectangle<<GenericAltGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #EFF0F3
+    BorderColor #Transparent
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $GenericBlue [64x64/16z] xS4n4G0000AXtVw1xV47B0y0000u
+
+
+  skinparam rectangle<<GenericBlueGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #3A47CB
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $GenericGreen [64x64/16z] xS4n4G0000AXsVw5xV47B0y0000u
+
+
+  skinparam rectangle<<GenericGreenGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #3F8624
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $GenericOrange [64x64/16z] xS4n4G0000AXrVw9xV47B0y0000u
+
+
+  skinparam rectangle<<GenericOrangeGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #D86613
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $GenericPink [64x64/16z] xS4n4G0000AXtVw1xV47B0y0000u
+
+
+  skinparam rectangle<<GenericPinkGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #CD2264
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $GenericPurple [64x64/16z] xS4n4G0000AXtVw1xV47B0y0000u
+
+
+  skinparam rectangle<<GenericPurpleGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #693BC5
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $GenericRed [64x64/16z] xS4n4G0000AXtVw1xV47B0y0000u
+
+
+  skinparam rectangle<<GenericRedGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #D6232C
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $GenericTurquoise [64x64/16z] xS4n4G0000AXtVw1xV47B0y0000u
+
+
+  skinparam rectangle<<GenericTurquoiseGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #1B7B67
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $IoTGreengrass [64x64/16z] {
+xPQ72gGm60OdvI_V-x_muJR1Cyag7ErsWAtEs4tq7_3ZHxJQKxSnAE2wIL2bB6X9MlUprQSa9xJ00KheG6TxZUKEvEOwvU-iIMgOvXZnUZrGQ5PX55XlPmDw
+raN0yKSbHfjMSCqeM7JGoCz2Qa8KeD16leAgAU6XVX98prV7jE8H65786u7zf0PTQnfjuAkW6u7TT_n6OFT5q_M0buzVqOt0JYUl1w9z92TqEM2x5BYk1Ow-
+wMfWlFvruEWxhik1ZCFJz6fWfw49wq2fauV_A10jLuVV0EeWOCJYyWjgfD7E0-NZKqUxcOzNSq_vXc9xJIciyFOxhbDg-Uo42Q2emSDxlASsSh3wztvL8Y8L
+6yh7gnxlgGUD60z-7esk6JRvtzd8vKHWZBjHftf9pPa50b8hZ9AJVzRu-J2VbPhwXYZKEDeTkhwbGtNjHEEGN90TQDqZmgqnjiTuuqsrr1qot3rI_uWVF_u
+}
+
+
+  skinparam rectangle<<IoTGreengrassGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #3F8624
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $IoTGreengrassDeployment [64x64/16z] {
+xLO7TaGX21n0aBt_WLDydpHN0p-zpFOL7cqGBX-2V_p3pVmDwWe0UbhTm6OCEwVT6-Z-ayZEs2O0SlzD03Glver1wXJs6LeCV2Wen5tkl_PYsialuJhaHDhz
+8OVjqNGo1X_MPrWo2Oo-El1CsT5M9rCgYbOauO1lZFH41XIRMXCdQ4kwQKUsrvWZj8f0ng5kW-SXrvVftnVHHg_xzGesU8YyJV_D_hlqD-NFmM-hdy3Fy2yw
+K0baTVx7KSHHxxysyQ3I_mJFrD4N3WWinmDVgBS4ZmFJ_IcGL1y5xDdzRHJMf_gjSetMZ_dHGdwkqHh6m34_CL6o8J6GN6D-Ji94kKb0royzXRvbVt3Gc_ON
+Hg_kJy63858Uqnpd-a2FFIA8L0AannupI64rTPUdUrJDUF3ei0-nBzWZ9nvymHwzmJ_-SGi
+}
+
+
+  skinparam rectangle<<IoTGreengrassDeploymentGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #3F8624
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $PrivateSubnet [64x64/16z] {
+xPG5Ti1020K_Jkv_uBh6U6pgtOdBhCFoMKmcuHuvB0iU81lI1H2BS2LGjEqao7FBdT1k0hzLak4zNM6hrcH7J_1gBA4Ttn2R_hHwJyiARuq0PDiZwtH_szjY
+0ChA83_Vdxxp0o1U0pnSf4eQV0gXyeku_cT-nXNV0K1or3UGkO9w_Zg9EdJCTyGg6VPyHQwShwq_GMN_w_4NqFZy4m2vilu4kJJzzV__sZV-R_ahJwdBBoZy
+z89OFf39v1O
+}
+
+
+  skinparam rectangle<<PrivateSubnetGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #E6F2F8
+    BorderColor #Transparent
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $PublicSubnet [64x64/16z] {
+xPG5TiGm30M_MBd_WSleW9_SBdl2C6PfEHMJIRX73ik2DyY6T0748bm956Kx2P8VzqueDu5_AidmcgwmfZLPqHFSZ2MquXjYrPzIxsbfyD88GDOziahtrxs5
+LdnR-tBz_lITtm1n2_1saLxIu4C8FRyJrm_cH_p5Tm2G7FKDP2wWahzAeWuTynsnIeOLNv4hvvpr9sZL_xED_njEzVbldxEw_bR_Fx9l_6ZvAm_fbz-XuwTt
+YEKVcKoU0G
+}
+
+
+  skinparam rectangle<<PublicSubnetGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #E9F3E6
+    BorderColor #Transparent
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $Region [64x64/16z] {
+xTDN3iCm38DX9bxo_G_SlLaKWjbqwd__lDsVN1HPDOKt04NmCpQzqLS0kGjLZVU68le75O-Vq_rce0dhjmcrkxp0oHDtU86J9-xqp0M_uu9Fo8Ad0JoU1n0y
+3U3sF83Vym22vm6M__-Sy_yhXGy_KlZmjgcYsAOXZtDjnETprXSkYjO
+}
+
+
+  skinparam rectangle<<RegionGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #5B9CD5
+    BorderStyle dotted
+    Shadowing false
+    RoundCorner 0
+  }
+
+  skinparam rectangle<<SecurityGroupGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #DF3312
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $ServerContents [64x64/16z] xPP30i0m4033nVy_t7DjpzoAP0q_5W2f8yYoyp6C41UUZpf8N7n-vFsVpeSEQy_d3klEu__SuThuuN_jSBN_QuVzzdEUyvpdFEVtxu_xzzVz-_D-01e
+
+
+  skinparam rectangle<<ServerContentsGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #5A6B86
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $SpotFleet [64x64/16z] {
+xPQ7aiKW24Kl8E3___2s56JdYTjhpfGKF7V4rFvZkRWGl4CsROIcvYytObSP9oGHOPKEsNPS08YQ2znC262B8NDag-evtlJC4t_IoVigm45sez92BmCcFLhI
+ou09jRuEU8dkHO3vKxr2OJd0RMSJcKhTGRa5nSdJbMneTU-Mrq2WE_iPGkM3XqNCpyz-Gg5rzpjnnsU_4yrzHdxy3aQ_mQS-PDHn8aFDvWtaaa9jWsZCXgpR
+pqVP9vxv3LxxzIqa1B7T5Sc-nXr1imREcwmxWEmBO35gElzX8RC_mAZMR-qJLTTlxODdlaEIJxoH32-UGA9n8i87ps-B6G8FF-5f-Qe6ig_72Kb3PZ32Z-S_
+lr1y_G5p13q5MAnbzG9JER2U0WXU-juMNoRjAmnM1DJK7oc1l5ol0sgTsuqAMGJKkXD8Sy45q3I3Sl8De6R7_UFA0FkYXVpLK090J602W2Y8zPVXAho5DFkK
+_yUBYujx
+}
+
+
+  skinparam rectangle<<SpotFleetGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #D86613
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $StepFunctionsWorkflow [64x64/16z] {
+xPO50i8m40ItaPFy_x-uG-qMXq6g4vThZ-FF7nFrkEq5ApJi5sIL3XRraLP_XXBK3RMjw5BGT-JTVv2CwfRY3UW9AsgB8qZM66OtlgKpqAKJR5A9Uu5CyQtr
+OE_iAoxncJsTpqYmcRxrNBD-JLVOBL_qb7Bm4wQC0y45HpzDwGUNBHbLDcYRwlVKc_OVNNw-_VZ-uyTFl_-0-SFEtqzVlzZrczq_YFsBtJ_v_PkF7_ZuXO-V
+-FYDZn_v-9MFdtd-_5a2
+}
+
+
+  skinparam rectangle<<StepFunctionsWorkflowGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #CD2264
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $VPC [64x64/16z] {
+xPH5WaGX34GhJj__mEC2-HAOwILlWrPIw6DaizbiN0WWjlOdjG5W4GOWwn4QW_op6WBugfnWlwsWrG0CJ-5YHQwmWv-su1wSkmBorkynb_x4hS0PRzY47dpc
+2L0tWfRoE4t2Y2yVvSqvdzAIkKjqs6iNrfP65_G24FeEBxQmQJ_Tt_ShmCD6qaq41yJxz9-E-krL0iMLF0qnVUvev2HnSVDeFCaVPEe-onZNmF89AFlKykRr
+leaErwcyULb_DfHT-Qm-Jyr1Att0dv-_GV-r_ZpDy0DVxNyIsFWMv9laDYx-aUAZBV_JDlN3EH3NaKazxZ06tRWqGW4L5blu7V5u4flDPlCA
+}
+
+
+  skinparam rectangle<<VPCGroup>> {
+    StereotypeFontSize 0
+    BackgroundColor #FFFFFF
+    BorderColor #1E8900
+    BorderStyle plain
+    Shadowing false
+    RoundCorner 0
+  }
+
+sprite $Fargate [64x64/16z] {
+xPQ7bben34HdHit__yCfFcQLzi0cFU7kqhcMonmznhTvyU95EUdrh1m2I41HvtOQ0Cj-SZXlOCsyN-thG5VisMmFaEW1MaVk-twRSa_VZ_nLKvbQSpdrrm6k
+uplt9qLE-Lb_aEFG3wihlonsWXDNVZoAKN9-uSgVmpFlvSxh_lhBx-HGYCVx5z2L3ztcOL_xTgihNFdasrSiF_VJtWOdhto7QZuf0RJ8-kXNXX7eZtnSOK3K
+gaUWuPfF1M3ZcY1WkIg5kvcPUwmtqW34WwP709fpR-OQ181H6yrBc52IcIHYelqMLk4caGH8IkPdFRZgufqjqhhfzwN0SjCc80FWdGl0171h10COQG360e1b
+4B0ztm10R9y20DlrHmavh7qR2TNOzVjMxZNzTJlpR_txrBSqh217hDZEDxVy91e93VCeFsG8K92TdvFyadsRxnp2zfjVw0jqqWaz_UiDw4lMCuGKuv_bnOlt
+}
+
+
+skinparam rectangle<<Fargate>> {
+    BackgroundColor #FFFFFF
+    BorderColor #FF9900
+}
+
+rectangle "<img data:image/png;base64,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{scale=0.5}>  <color:#000000>AWS Cloud</color>" as cloud <<AWSCloudGroup>> {
+    rectangle "==Batch\n<img data:image/png;base64,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{scale=1}>\n//<size:12>[]</size>//" <<Fargate>> as api
+
+    component galaxy as "galaxy" {
+
+    }
+
+    frame pod as "Job Description" {
+        component job as "a galaxy job" {
+
+        }
+    }
+
+
+    storage disk as "shared efs" {
+
+    }
+
+    note left of disk 
+        Disk must be fully accessible to Galaxy
+        and any AWS spawned job containers,
+        live in the same cloud as Galaxy
+    end note
+
+}
+
+galaxy - -> disk
+galaxy - -> api : register_job_definition, submit_job, describe_jobs
+
+job - -> disk
+api -[dashed]-> pod : [manages]
+
+@enduml
+
+PlantUML version 1.2022.8(Sun Sep 25 05:00:33 EDT 2022)
+(GPL source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>
