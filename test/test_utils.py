@@ -15,6 +15,7 @@ from tempfile import mkdtemp
 from shutil import rmtree
 import time
 
+import pytest
 import webob
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
@@ -39,6 +40,14 @@ except ImportError:
 
 import stopit
 from functools import wraps
+
+
+class MarkGenerator:
+    def __getattr__(self, name):
+        return getattr(pytest.mark, name)
+
+
+mark = MarkGenerator()
 
 
 def timed(timeout):

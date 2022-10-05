@@ -9,7 +9,7 @@ jobs:
         tox-env: [py37-lint, py37-dist, py37-docs]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v3
       with:
         python-version: 3.7
     - name: Install tox
@@ -30,7 +30,7 @@ jobs:
           python: 3.8
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python }}
     - name: Install tox
@@ -65,7 +65,7 @@ jobs:
           python: 3.7
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python }}
     - name: Install tox
@@ -74,19 +74,24 @@ jobs:
       run: .ci/setup_tests.sh
     - name: Run tests
       run: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; tox -e ${{ matrix.tox-env }}
-  # https://github.com/coverallsapp/github-action/issues/30
-  #  - name: Coveralls Parallel
-  #    uses: coverallsapp/github-action@master
-  #    with:
-  #      github-token: ${{ secrets.github_token }}
-  #      flag-name: run-${{ matrix.tox-env }}
-  #      parallel: true
-  #finish:
-  #  needs: test
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #  - name: Coveralls Finished
-  #    uses: coverallsapp/github-action@master
-  #    with:
-  #      github-token: ${{ secrets.github_token }}
-  #      parallel-finished: true
+  tes-test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - tox-env: py37-test-funnel
+          python: 3.7
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.13
+    - name: Install tox
+      run: pip install tox
+    - name: Run tests
+      run: FUNNEL_SERVER_TARGET=DEPLOY tox -e ${{ matrix.tox-env }}

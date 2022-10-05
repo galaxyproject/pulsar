@@ -13,6 +13,7 @@ from pulsar.client.test.check import run
 from .test_utils import (
     files_server,
     integration_test,
+    mark,
     skip_unless_any_module,
     skip_unless_environ,
     skip_unless_executable,
@@ -233,6 +234,7 @@ class IntegrationTests(BaseIntegrationTest):
         self._run(app_conf={}, job_conf_props={'type': 'queued_cli', 'job_plugin': 'Slurm'}, private_token=None, **self.default_kwargs)
 
     @integration_test
+    @mark.test_requires_tes
     @skip_unless_environ("PULSAR_TES_SERVER_TARGET")
     def test_tes_polling_integration(self):
         remote_pulsar_app_config = {}
@@ -252,6 +254,7 @@ class IntegrationTests(BaseIntegrationTest):
 
     @integration_test
     @skip_unless_environ("PULSAR_TES_SERVER_TARGET")
+    @mark.test_requires_tes
     def test_coexecution_tes_polling_integration(self):
         remote_pulsar_app_config = {}
         tes_url = environ.get("PULSAR_TES_SERVER_TARGET")
@@ -270,6 +273,7 @@ class IntegrationTests(BaseIntegrationTest):
         )
 
     @integration_test
+    @mark.test_requires_kubernetes
     def test_kubernetes_polling_integration(self):
         remote_pulsar_app_config = {}
         default_kwargs = self.default_kwargs.copy()
@@ -286,6 +290,7 @@ class IntegrationTests(BaseIntegrationTest):
         )
 
     @integration_test
+    @mark.test_requires_kubernetes
     def test_coexecution_kubernetes_polling_integration(self):
         remote_pulsar_app_config = {}
         default_kwargs = self.default_kwargs.copy()
@@ -327,6 +332,7 @@ class ExternalQueueIntegrationTests(IntegrationTests):
     # Setup MQ and expose it on 0.0.0.0 by setting NODE_IP_ADDRESS= to empty string
     @integration_test
     @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
+    @mark.test_requires_kubernetes
     def test_coexecution_integration_kubernetes(self):
         message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
         remote_pulsar_app_config = {
@@ -347,6 +353,7 @@ class ExternalQueueIntegrationTests(IntegrationTests):
 
     @integration_test
     @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
+    @mark.test_requires_kubernetes
     def test_integration_kubernetes(self):
         message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
         remote_pulsar_app_config = {
@@ -370,6 +377,7 @@ class ExternalQueueIntegrationTests(IntegrationTests):
     @integration_test
     @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
     @skip_unless_environ("PULSAR_TES_SERVER_TARGET")
+    @mark.test_requires_tes
     def test_coexecution_integration_tes_mq(self):
         message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
         remote_pulsar_app_config = {
@@ -392,7 +400,8 @@ class ExternalQueueIntegrationTests(IntegrationTests):
     @integration_test
     @skip_unless_environ("PULSAR_RABBIT_MQ_CONNECTION")
     @skip_unless_environ("PULSAR_TES_SERVER_TARGET")
-    def test_integration_tes_mq(self):
+    @mark.test_requires_tes
+    def test_integration_tes_mq(self, tes_funnel_client):
         message_queue_url = environ.get("PULSAR_RABBIT_MQ_CONNECTION")
         remote_pulsar_app_config = {
             "message_queue_url": to_infrastructure_uri(message_queue_url),
