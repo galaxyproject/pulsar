@@ -10,7 +10,7 @@ jobs:
       matrix:
         python-version: ['3.7']
         galaxy-branch: ['pulsar_debug']
-        metadata-strategy: 'extended'
+        metadata-strategy: ['extended']
     services:
       postgres:
         image: postgres:13
@@ -42,7 +42,7 @@ jobs:
           path: ~/.cache/pip
           key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy/requirements.txt') }}
       - name: Run tests
-        run: ./run_tests.sh --framework --id 'multi_data_optional'
+        run: ./run_tests.sh --framework
         working-directory: 'galaxy'
         env:
           GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml
