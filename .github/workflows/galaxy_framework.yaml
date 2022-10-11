@@ -9,12 +9,8 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.7']
-        galaxy-branch: ['dev', 'master']
-        metadata-strategy: ['directory']
-        include:
-          - python-version: '3.7'
-            galaxy-branch: 'dev'
-            metadata-strategy: 'extended'
+        galaxy-branch: ['pulsar_debug']
+        metadata-strategy: 'extended'
     services:
       postgres:
         image: postgres:13
@@ -31,7 +27,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v2
         with:
-          repository: galaxyproject/galaxy
+          repository: jmchilton/galaxy
           ref: ${{ matrix.galaxy-branch }}
           path: galaxy
       - uses: actions/setup-python@v2

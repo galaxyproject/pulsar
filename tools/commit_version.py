@@ -32,10 +32,10 @@ def main(argv):
                      mod,
                      flags=re.MULTILINE)
         mod = open(mod_path, "w").write(mod)
-    for f in ("HISTORY.rst", os.path.join(source_dir, "__init__.py")):
-        if not shell(["git", "diff", "--quiet", "--", f]):
-            print("Expected changes to '{}' not found, refusing to commit".format(f))
-            sys.exit(1)
+        for f in ("HISTORY.rst", os.path.join(source_dir, "__init__.py")):
+            if not shell(["git", "diff", "--quiet", "--", f]):
+                print("Expected changes to '{}' not found, refusing to commit".format(f))
+                sys.exit(1)
     shell(["git", "commit", "-m", "Version %s" % version,
            "HISTORY.rst", "%s/__init__.py" % source_dir])
     shell(["git", "tag", version])
