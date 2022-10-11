@@ -1,0 +1,55 @@
+@startuml
+
+!include plantuml_options.txt
+
+!define KubernetesPuml https://raw.githubusercontent.com/dcasati/kubernetes-PlantUML/master/dist
+
+!includeurl KubernetesPuml/kubernetes_Common.puml
+!includeurl KubernetesPuml/kubernetes_Context.puml
+!includeurl KubernetesPuml/kubernetes_Simplified.puml
+!includeurl KubernetesPuml/OSS/KubernetesApi.puml
+!includeurl KubernetesPuml/OSS/KubernetesPod.puml
+!includeurl KubernetesPuml/OSS/KubernetesPv.puml
+
+component galaxy as "galaxy" {
+
+}
+
+queue queue as "RabbitMQ" {
+
+}
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+Cluster_Boundary(cluster, "Kubernetes Cluster") {
+    KubernetesApi(api, "Kubernetes Jobs API", "")
+
+    frame pod as "Job Pod" {
+
+        component staging as "pulsar" {
+        }
+
+        component tool as "biocontainer" {
+        }
+
+    }
+
+}
+
+galaxy --> disk
+galaxy --> api : submit, cancel
+staging --> queue : status updates, final job status
+galaxy -[dotted]-> queue
+api -[dashed]-> pod : [manages]
+staging --> galaxy : stage in and out
+@enduml

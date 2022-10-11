@@ -8,6 +8,7 @@ from subprocess import Popen
 
 from pulsar.managers import status
 from pulsar.managers.base.directory import DirectoryBaseManager
+from pulsar.client.util import MonitorStyle
 from .util import kill_pid
 
 log = getLogger(__name__)
@@ -77,10 +78,13 @@ class BaseUnqueuedManager(DirectoryBaseManager):
         return command_line
 
     def _start_monitor(self, *args, **kwd):
-        if kwd.get("background", True):
+        monitor = kwd.get("monitor", MonitorStyle.BACKGROUND)
+        if monitor == MonitorStyle.BACKGROUND:
             thread.start_new_thread(self._monitor_execution, args)
-        else:
+        elif monitor == MonitorStyle.FOREGROUND:
             self._monitor_execution(*args)
+        else:
+            log.info("No monitoring job")
 
 
 # Job Locks (for status updates). Following methods are locked.
@@ -171,7 +175,7 @@ class Manager(BaseUnqueuedManager):
             self._job_directory(job_id).remove_metadata(JOB_FILE_SUBMITTED)
         return pid
 
-    def _run(self, job_id, command_line, background=True):
+    def _run(self, job_id, command_line, montior: MonitorStyle = MonitorStyle.BACKGROUND):
         with self._get_job_lock(job_id):
             if self._was_cancelled(job_id):
                 return
@@ -179,7 +183,7 @@ class Manager(BaseUnqueuedManager):
         proc, stdout, stderr = self._proc_for_job_id(job_id, command_line)
         with self._get_job_lock(job_id):
             self._record_pid(job_id, proc.pid)
-        self._start_monitor(job_id, proc, stdout, stderr, background=background)
+        self._start_monitor(job_id, proc, stdout, stderr, montior=montior)
 
     def _proc_for_job_id(self, job_id, command_line):
         job_directory = self.job_directory(job_id)
@@ -206,6 +210,7 @@ class CoexecutionManager(BaseUnqueuedManager):
 
     def __init__(self, name, app, **kwds):
         super().__init__(name, app, **kwds)
+        self.monitor = MonitorStyle(kwds.get("monitor", "background"))
 
     def get_status(self, job_id):
         return self._get_status(job_id)
@@ -215,8 +220,6 @@ class CoexecutionManager(BaseUnqueuedManager):
 
     def _monitor_execution(self, job_id):
         return_code_path = self._return_code_path(job_id)
-        # Write dummy JOB_FILE_PID so get_status thinks this job is running.
-        self._job_directory(job_id).store_metadata(JOB_FILE_PID, "1")
         try:
             while not os.path.exists(return_code_path):
                 time.sleep(0.1)
@@ -228,6 +231,11 @@ class CoexecutionManager(BaseUnqueuedManager):
         finally:
             self._finish_execution(job_id)
 
+    def finish_execution(self, job_id):
+        # expose this publicly for post-processing containers
+        self._job_directory(job_id).remove_metadata(JOB_FILE_PID)
+        self._finish_execution(job_id)
+
     def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
         command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env, setup_params=setup_params)
         job_directory = self.job_directory(job_id)
@@ -237,8 +245,12 @@ class CoexecutionManager(BaseUnqueuedManager):
             self._stderr_path(job_id),
         )
         command_line = "cd '{}'; sh {}".format(working_directory, command_line)
+        log.info("writing command line [%s] for co-execution" % command_line)
         self._write_command_line(job_id, command_line)
-        self._start_monitor(job_id)
+        # Write dummy JOB_FILE_PID so get_status thinks this job is running.
+        self._job_directory(job_id).store_metadata(JOB_FILE_PID, "1")
+        monitor = self.monitor
+        self._start_monitor(job_id, monitor=monitor)
 
 
 def execute(command_line, working_directory, stdout, stderr):

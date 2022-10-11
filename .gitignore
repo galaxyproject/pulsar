@@ -6,6 +6,7 @@ dist
 *.egg
 *.egg-info
 docs/_build
+docs/plantuml.jar
 cache
 *.pyc
 *~

@@ -1,6 +1,26 @@
 import logging
 import os
+from enum import Enum
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+)
+from typing_extensions import Protocol
 
+from pulsar.managers.util.tes import (
+    ensure_tes_client,
+    TesClient,
+    TesExecutor,
+    TesState,
+    TesTask,
+    tes_client_from_dict,
+    tes_galaxy_instance_id,
+    tes_resources,
+)
 from pulsar.managers.util.pykube_util import (
     ensure_pykube,
     find_job_object_by_name,
@@ -13,6 +33,7 @@ from pulsar.managers.util.pykube_util import (
     pykube_client_from_dict,
     stop_job,
 )
+from pulsar.managers import status as manager_status
 from .action_mapper import (
     actions,
     path_type,
@@ -28,8 +49,10 @@ from .setup_handler import build as build_setup_handler
 from .util import (
     copy,
     ensure_directory,
+    ExternalId,
     json_dumps,
     json_loads,
+    MonitorStyle,
     to_base64_json,
 )
 
@@ -46,6 +69,10 @@ sh $path;
 echo 'ran script'"""
 
 
+PULSAR_CONTAINER_IMAGE = "galaxy/pulsar-pod-staging:0.15.0.0"
+CONTAINER_STAGING_DIRECTORY = "/pulsar_staging/"
+
+
 class OutputNotFoundException(Exception):
 
     def __init__(self, path):
@@ -55,9 +82,16 @@ class OutputNotFoundException(Exception):
         return "No remote output found for path %s" % self.path
 
 
+class ClientManagerProtocol(Protocol):
+    manager_name: str
+
+
 class BaseJobClient:
+    ensure_library_available: Optional[Callable[[], None]] = None
 
     def __init__(self, destination_params, job_id):
+        precondition = self.__class__.ensure_library_available
+        precondition and precondition()
         destination_params = destination_params or {}
         self.destination_params = destination_params
         self.assign_job_id(job_id)
@@ -85,10 +119,10 @@ class BaseJobClient:
 
     def _set_job_directory(self):
         if "jobs_directory" in self.destination_params:
-            staging_directory = self.destination_params["jobs_directory"]
+            pulsar_staging = self.destination_params["jobs_directory"]
             sep = self.destination_params.get("remote_sep", os.sep)
             job_directory = RemoteJobDirectory(
-                remote_staging_directory=staging_directory,
+                remote_staging_directory=pulsar_staging,
                 remote_id=self.job_id,
                 remote_sep=sep,
             )
@@ -299,7 +333,8 @@ class JobClient(BaseJobClient):
         return None
 
 
-class BaseMessageJobClient(BaseJobClient):
+class BaseRemoteConfiguredJobClient(BaseJobClient):
+    client_manager: ClientManagerProtocol
 
     def __init__(self, destination_params, job_id, client_manager):
         super().__init__(destination_params, job_id)
@@ -307,15 +342,6 @@ class BaseMessageJobClient(BaseJobClient):
             error_message = "Message-queue based Pulsar client requires destination define a remote job_directory to stage files into."
             raise Exception(error_message)
         self.client_manager = client_manager
-
-    def clean(self):
-        del self.client_manager.status_cache[self.job_id]
-
-    def full_status(self):
-        full_status = self.client_manager.status_cache.get(self.job_id, None)
-        if full_status is None:
-            raise Exception("full_status() called before a final status was properly cached with cilent manager.")
-        return full_status
 
     def _build_setup_message(self, command_line, dependencies_description, env, remote_staging, job_config, dynamic_file_sources):
         """
@@ -340,6 +366,24 @@ class BaseMessageJobClient(BaseJobClient):
             launch_params["setup_params"] = setup_params
         return launch_params
 
+
+class MessagingClientManagerProtocol(ClientManagerProtocol):
+    status_cache: Dict[str, Dict[str, Any]]
+
+
+class BaseMessageJobClient(BaseRemoteConfiguredJobClient):
+    client_manager: MessagingClientManagerProtocol
+
+    def clean(self):
+        del self.client_manager.status_cache[self.job_id]
+
+    def full_status(self):
+        job_id = self.job_id
+        full_status = self.client_manager.status_cache.get(job_id, None)
+        if full_status is None:
+            raise Exception("full_status() called for [%s] before a final status was properly cached with cilent manager." % job_id)
+        return full_status
+
     def _build_status_request_message(self):
         # Because this is used to poll, status requests will not be resent if we do not receive an acknowledgement
         update_params = {
@@ -363,9 +407,9 @@ class MessageJobClient(BaseMessageJobClient):
             job_config=job_config,
             dynamic_file_sources=dynamic_file_sources,
         )
-        response = self.client_manager.exchange.publish("setup", launch_params)
+        self.client_manager.exchange.publish("setup", launch_params)
         log.info("Job published to setup message queue: %s", self.job_id)
-        return response
+        return None
 
     def get_status(self):
         status_params = self._build_status_request_message()
@@ -405,14 +449,25 @@ class MessageCLIJobClient(BaseMessageJobClient):
         pass
 
 
-class MessageCoexecutionPodJobClient(BaseMessageJobClient):
+class CoexecutionContainerCommand(NamedTuple):
+    image: str
+    command: str
+    args: List[str]
+    working_directory: str
+    ports: Optional[List[int]] = None
 
-    def __init__(self, destination_params, job_id, client_manager):
-        ensure_pykube()
-        super().__init__(destination_params, job_id, client_manager)
-        self.instance_id = galaxy_instance_id(destination_params)
-        self.pulsar_container_image = destination_params.get("pulsar_container_image", "galaxy/pulsar-pod-staging:0.13.0")
-        self._default_pull_policy = pull_policy(destination_params)
+
+class ExecutionType(str, Enum):
+    # containers run one after each other with similar configuration
+    # like in TES or AWS Batch
+    SEQUENTIAL = "sequential"
+    # containers run concurrently with the same file system - like K8S
+    PARALLEL = "parallel"
+
+
+class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
+    execution_type: ExecutionType
+    pulsar_container_image: str
 
     def launch(
         self,
@@ -424,7 +479,7 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         dynamic_file_sources=None,
         container_info=None,
         pulsar_app_config=None
-    ):
+    ) -> Optional[ExternalId]:
         """
         """
         launch_params = self._build_setup_message(
@@ -440,19 +495,26 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
         if container_info is not None:
             container = container_info.get("container_id")
             guest_ports = container_info.get("guest_ports")
+        wait_after_submission = not (container and self.execution_type == ExecutionType.SEQUENTIAL)
 
         manager_name = self.client_manager.manager_name
         manager_type = "coexecution" if container is not None else "unqueued"
-        if "manager" not in pulsar_app_config and "managers" not in pulsar_app_config:
-            pulsar_app_config["managers"] = {manager_name: {"type": manager_type}}
+        pulsar_app_config = pulsar_app_config or {}
+        manager_config = self._ensure_manager_config(
+            pulsar_app_config, manager_name, manager_type,
+        )
+
+        if "staging_directory" not in manager_config and "staging_directory" not in pulsar_app_config:
+            pulsar_app_config["staging_directory"] = CONTAINER_STAGING_DIRECTORY
+
+        if "monitor" not in manager_config:
+            manager_config["monitor"] = MonitorStyle.BACKGROUND.value if wait_after_submission else MonitorStyle.NONE.value
+        if "persistence_directory" not in pulsar_app_config:
+            pulsar_app_config["persistence_directory"] = os.path.join(CONTAINER_STAGING_DIRECTORY, "persisted_data")
         elif "manager" in pulsar_app_config and manager_name != '_default_':
             log.warning(
                 "'manager' set in app config but client has non-default manager '%s', this will cause communication"
                 " failures, remove `manager` from app or client config to fix", manager_name)
-
-        manager_args = []
-        if manager_name != "_default_":
-            manager_args = ["--manager", manager_name]
 
         using_dependencies = container is None and dependencies_description is not None
         if using_dependencies and "dependency_resolution" not in pulsar_app_config:
@@ -478,53 +540,258 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             pulsar_app_config["dependency_resolution"] = dependency_resolution
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
-
-        job_name = self._k8s_job_name
-        params = self.destination_params
-
         pulsar_container_image = self.pulsar_container_image
-        pulsar_container_resources = self._pulsar_container_resources(params)
 
-        job_directory = self.job_directory
+        wait_arg = "--wait" if wait_after_submission else "--no-wait"
+        pulsar_container = CoexecutionContainerCommand(
+            pulsar_container_image,
+            "pulsar-submit",
+            self._pulsar_script_args(manager_name, base64_message, base64_app_conf, wait_arg=wait_arg),
+            "/",
+            None,
+        )
 
+        tool_container = None  # Default to just use dependency resolution in Pulsar container
+        if container:
+            job_directory = self.job_directory
+            command = TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE % job_directory.job_directory
+            ports = None
+            if guest_ports:
+                ports = [int(p) for p in guest_ports]
+
+            tool_container = CoexecutionContainerCommand(
+                container,
+                "sh",
+                ["-c", command],
+                "/",
+                ports,
+            )
+
+        pulsar_finish_container: Optional[CoexecutionContainerCommand] = None
+        if not wait_after_submission:
+            pulsar_finish_container = CoexecutionContainerCommand(
+                pulsar_container_image,
+                "pulsar-finish",
+                self._pulsar_script_args(manager_name, base64_message, base64_app_conf),
+                "/",
+                None,
+            )
+
+        return self._launch_containers(pulsar_container, tool_container, pulsar_finish_container)
+
+    def _pulsar_script_args(self, manager_name, base64_job, base64_app_conf, wait_arg=None):
+        manager_args = []
+        if manager_name != "_default_":
+            manager_args.append("--manager")
+            manager_args.append(manager_name)
+        if wait_arg:
+            manager_args.append(wait_arg)
+        manager_args.extend(["--base64", base64_job, "--app_conf_base64", base64_app_conf])
+        return manager_args
+
+    def _ensure_manager_config(self, pulsar_app_config, manager_name, manager_type):
+        if "manager" in pulsar_app_config:
+            manager_config = pulsar_app_config["manager"]
+        elif "managers" in pulsar_app_config:
+            managers_config = pulsar_app_config["managers"]
+            if manager_name not in managers_config:
+                managers_config[manager_name] = {}
+            manager_config = managers_config[manager_name]
+        else:
+            manager_config = {}
+            pulsar_app_config["manager"] = manager_config
+        if "type" not in manager_config:
+            manager_config["type"] = manager_type
+        return manager_config
+
+    def _launch_containers(
+        self,
+        pulsar_submit_container: CoexecutionContainerCommand,
+        tool_container: Optional[CoexecutionContainerCommand],
+        pulsar_finish_container: Optional[CoexecutionContainerCommand]
+    ) -> Optional[ExternalId]:
+        ...
+
+
+class BaseMessageCoexecutionJobClient(BaseMessageJobClient):
+    pulsar_container_image: str
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        self.pulsar_container_image = destination_params.get("pulsar_container_image", PULSAR_CONTAINER_IMAGE)
+
+
+class BasePollingCoexecutionJobClient(BaseRemoteConfiguredJobClient):
+    pulsar_container_image: str
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        self.pulsar_container_image = destination_params.get("pulsar_container_image", PULSAR_CONTAINER_IMAGE)
+
+
+def tes_state_to_pulsar_status(state: Optional[TesState]) -> str:
+    state = state or TesState.UNKNOWN
+    state_map = {
+        TesState.UNKNOWN: manager_status.FAILED,
+        TesState.INITIALIZING: manager_status.PREPROCESSING,
+        TesState.RUNNING: manager_status.RUNNING,
+        TesState.PAUSED: manager_status.RUNNING,
+        TesState.COMPLETE: manager_status.COMPLETE,
+        TesState.EXECUTOR_ERROR: manager_status.FAILED,
+        TesState.SYSTEM_ERROR: manager_status.FAILED,
+        TesState.CANCELED: manager_status.CANCELLED,
+    }
+    if state not in state_map:
+        log.warning(f"Unknown tes state encountered [{state}]")
+        return manager_status.FAILED
+    else:
+        return state_map[state]
+
+
+def tes_state_is_complete(state: Optional[TesState]) -> bool:
+    state = state or TesState.UNKNOWN
+    state_map = {
+        TesState.UNKNOWN: True,
+        TesState.INITIALIZING: False,
+        TesState.RUNNING: False,
+        TesState.PAUSED: False,
+        TesState.COMPLETE: True,
+        TesState.EXECUTOR_ERROR: True,
+        TesState.SYSTEM_ERROR: True,
+        TesState.CANCELED: True,
+    }
+    if state not in state_map:
+        log.warning(f"Unknown tes state encountered [{state}]")
+        return True
+    else:
+        return state_map[state]
+
+
+class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
+    """"""
+    ensure_library_available = ensure_tes_client
+    execution_type = ExecutionType.SEQUENTIAL
+
+    def _launch_containers(
+        self,
+        pulsar_submit_container: CoexecutionContainerCommand,
+        tool_container: Optional[CoexecutionContainerCommand],
+        pulsar_finish_container: Optional[CoexecutionContainerCommand]
+    ) -> ExternalId:
+        volumes = [
+            CONTAINER_STAGING_DIRECTORY,
+        ]
+        pulsar_container_executor = self._container_to_executor(pulsar_submit_container)
+        executors = [pulsar_container_executor]
+        if tool_container:
+            tool_container_executor = self._container_to_executor(tool_container)
+            executors.append(tool_container_executor)
+
+            assert pulsar_finish_container
+            pulsar_finish_executor = self._container_to_executor(pulsar_finish_container)
+            executors.append(pulsar_finish_executor)
+
+        name = self._tes_job_name
+        tes_task = TesTask(
+            name=name,
+            executors=executors,
+            volumes=volumes,
+            resources=tes_resources(self.destination_params)
+        )
+        created_task = self._tes_client.create_task(tes_task)
+        return ExternalId(created_task.id)
+
+    def _container_to_executor(self, container: CoexecutionContainerCommand) -> TesExecutor:
+        if container.ports:
+            raise Exception("exposing container ports not possible via TES")
+        return TesExecutor(
+            image=container.image,
+            command=[container.command] + container.args,
+            workdir=container.working_directory,
+        )
+
+    @property
+    def _tes_client(self) -> TesClient:
+        return tes_client_from_dict(self.destination_params)
+
+    @property
+    def _tes_job_name(self):
+        # currently just _k8s_job_prefix... which might be fine?
+        job_id = self.job_id
+        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
+        return job_name
+
+    def _setup_tes_client_properties(self, destination_params):
+        self.instance_id = tes_galaxy_instance_id(destination_params)
+
+    def kill(self):
+        self._tes_client.cancel_task(self.job_id)
+
+    def clean(self):
+        pass
+
+    def raw_check_complete(self) -> Dict[str, Any]:
+        tes_task: TesTask = self._tes_client.get_task(self.job_id, "FULL")
+        tes_state = tes_task.state
+        return {
+            "status": tes_state_to_pulsar_status(tes_state),
+            "complete": "true" if tes_state_is_complete(tes_state) else "false",  # Ancient John, what were you thinking?
+        }
+
+
+class TesPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesTesContainersMixin):
+    """A client that co-executes pods via GA4GH TES and depends on amqp for status updates."""
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        self._setup_tes_client_properties(destination_params)
+
+
+class TesMessageCoexecutionJobClient(BaseMessageCoexecutionJobClient, LaunchesTesContainersMixin):
+    """A client that co-executes pods via GA4GH TES and doesn't depend on amqp for status updates."""
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        self._setup_tes_client_properties(destination_params)
+
+
+class LaunchesK8ContainersMixin(CoexecutionLaunchMixin):
+    """Mixin to provide K8 launch and kill interaction."""
+    ensure_library_available = ensure_pykube
+    execution_type = ExecutionType.PARALLEL
+
+    def _launch_containers(
+        self,
+        pulsar_submit_container: CoexecutionContainerCommand,
+        tool_container: Optional[CoexecutionContainerCommand],
+        pulsar_finish_container: Optional[CoexecutionContainerCommand]
+    ) -> None:
+        assert pulsar_finish_container is None
         volumes = [
             {"name": "staging-directory", "emptyDir": {}},
         ]
         volume_mounts = [
-            {"mountPath": "/pulsar_staging", "name": "staging-directory"},
+            {"mountPath": CONTAINER_STAGING_DIRECTORY, "name": "staging-directory"},
         ]
-        pulsar_container_dict = {
-            "name": "pulsar-container",
-            "image": pulsar_container_image,
-            "command": ["pulsar-submit"],
-            "args": ["--base64", base64_message, "--app_conf_base64", base64_app_conf] + manager_args,
-            "workingDir": "/",
-            "volumeMounts": volume_mounts,
-        }
+        pulsar_container_dict = self._container_command_to_dict("pulsar-container", pulsar_submit_container)
+        pulsar_container_resources = self._pulsar_container_resources
         if pulsar_container_resources:
             pulsar_container_dict["resources"] = pulsar_container_resources
-        tool_container_image = container
-        tool_container_resources = self._tool_container_resources(params)
+        pulsar_container_dict["volumeMounts"] = volume_mounts
+
         container_dicts = [pulsar_container_dict]
-        if container:
-            command = TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE % job_directory.job_directory
-            tool_container_spec = {
-                "name": "tool-container",
-                "image": tool_container_image,
-                "command": ["sh"],
-                "args": ["-c", command],
-                "workingDir": "/",
-                "volumeMounts": volume_mounts,
-            }
+        if tool_container:
+            tool_container_dict = self._container_command_to_dict("tool-container", tool_container)
+            tool_container_resources = self._tool_container_resources
             if tool_container_resources:
-                tool_container_spec["resources"] = tool_container_resources
-            if guest_ports:
-                tool_container_spec["ports"] = [{"containerPort": int(p)} for p in guest_ports]
-            container_dicts.append(tool_container_spec)
+                tool_container_dict["resources"] = tool_container_resources
+            tool_container_dict["volumeMounts"] = volume_mounts
+            container_dicts.append(tool_container_dict)
         for container_dict in container_dicts:
             if self._default_pull_policy:
                 container_dict["imagePullPolicy"] = self._default_pull_policy
 
+        job_name = self._k8s_job_name
         template = {
             "metadata": {
                 "labels": {"app": job_name},
@@ -536,11 +803,26 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             }
         }
         spec = {"template": template}
+        params = self.destination_params
         spec.update(self._job_spec_params(params))
         k8s_job_obj = job_object_dict(params, job_name, spec)
         pykube_client = self._pykube_client
         job = Job(pykube_client, k8s_job_obj)
         job.create()
+
+    def _container_command_to_dict(self, name: str, container: CoexecutionContainerCommand) -> Dict[str, Any]:
+        container_dict: Dict[str, Any] = {
+            "name": name,
+            "image": container.image,
+            "command": [container.command],
+            "args": container.args,
+            "workingDir": container.working_directory,
+        }
+        ports = container.ports
+        if ports:
+            container_dict["ports"] = [{"containerPort": p} for p in ports]
+
+        return container_dict
 
     def kill(self):
         job_name = self._k8s_job_name
@@ -551,6 +833,9 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             stop_job(job)
         else:
             log.info("Attempted to kill k8s job but it is unavailable.")
+
+    def clean(self):
+        self.kill()  # pretty much the same here right?
 
     def job_ip(self):
         job_name = self._k8s_job_name
@@ -585,10 +870,14 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
             spec["ttlSecondsAfterFinished"] = int(params["k8s_job_ttl_secs_after_finished"])
         return spec
 
-    def _pulsar_container_resources(self, params):
+    @property
+    def _pulsar_container_resources(self):
+        params = self.destination_params
         return self._container_resources(params, container='pulsar')
 
-    def _tool_container_resources(self, params):
+    @property
+    def _tool_container_resources(self):
+        params = self.destination_params
         return self._container_resources(params, container='tool')
 
     def _container_resources(self, params, container=None):
@@ -604,6 +893,78 @@ class MessageCoexecutionPodJobClient(BaseMessageJobClient):
                     resources[subkey] = {}
                 resources[subkey][resource] = params[container + '_' + resource_param]
         return resources
+
+    def _setup_k8s_client_properties(self, destination_params):
+        self.instance_id = galaxy_instance_id(destination_params)
+        self._default_pull_policy = pull_policy(destination_params)
+
+
+class K8sMessageCoexecutionJobClient(BaseMessageCoexecutionJobClient, LaunchesK8ContainersMixin):
+    """A client that co-executes pods via Kubernetes and depends on amqp for status updates."""
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        self._setup_k8s_client_properties(destination_params)
+
+
+class K8sPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesK8ContainersMixin):
+    """A client that co-executes pods via Kubernetes and doesn't depend on amqp."""
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        self._setup_k8s_client_properties(destination_params)
+
+    def full_status(self):
+        status = self._raw_check_complete()
+        return status
+
+    def raw_check_complete(self):
+        return self._raw_check_complete()
+
+    def _raw_check_complete(self):
+        job_name = self._k8s_job_name
+        pykube_client = self._pykube_client
+        job = find_job_object_by_name(pykube_client, job_name)
+        job_failed = (job.obj['status']['failed'] > 0
+                      if 'failed' in job.obj['status'] else False)
+        job_active = (job.obj['status']['active'] > 0
+                      if 'active' in job.obj['status'] else False)
+        job_succeeded = (job.obj['status']['succeeded'] > 0
+                         if 'succeeded' in job.obj['status'] else False)
+        if job_failed:
+            status = manager_status.FAILED
+        elif job_succeeded > 0 and job_active == 0:
+            status = manager_status.COMPLETE
+        elif job_active >= 0:
+            status = manager_status.RUNNING
+        else:
+            status = manager_status.FAILED
+
+        return {
+            "status": status,
+            "complete": "true" if manager_status.is_job_done(status) else "false",  # Ancient John, what were you thinking?
+        }
+
+
+class LaunchesAwsBatchContainersMixin(CoexecutionLaunchMixin):
+    """..."""
+    execution_type = ExecutionType.SEQUENTIAL
+
+
+class AwsBatchPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesAwsBatchContainersMixin):
+    """A client that co-executes pods via AWS Batch and doesn't depend on amqp for status updates."""
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        raise NotImplementedError()
+
+
+class AwsBatchMessageCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesAwsBatchContainersMixin):
+    """A client that co-executes pods via AWS Batch and depends on amqp for status updates."""
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        raise NotImplementedError()
 
 
 class InputCachingJobClient(JobClient):

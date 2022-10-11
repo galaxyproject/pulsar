@@ -1,20 +1,28 @@
 """Utilities allowing for high-level testing throughout Pulsar."""
 
-import traceback
+import os
+import configparser
 import sys
 import threading
-import os
-
+import traceback
 from contextlib import contextmanager
 from stat import S_IXGRP, S_IXOTH
 from os import pardir, stat, chmod, access, X_OK, pathsep, environ
-from os import makedirs, listdir
+from os import makedirs, listdir, system
 from os.path import join, dirname, isfile, split
 from os.path import exists
+from pathlib import Path
 from tempfile import mkdtemp
 from shutil import rmtree
+from typing import (
+    Any,
+    Dict,
+    Optional,
+)
+
 import time
 
+import pytest
 import webob
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
@@ -41,6 +49,14 @@ import stopit
 from functools import wraps
 
 
+class MarkGenerator:
+    def __getattr__(self, name):
+        return getattr(pytest.mark, name)
+
+
+mark = MarkGenerator()
+
+
 def timed(timeout):
     def outer_wrapper(f):
         @wraps(f)
@@ -55,7 +71,7 @@ def timed(timeout):
     return outer_wrapper
 
 
-INTEGRATION_MAXIMUM_TEST_TIME = 15
+INTEGRATION_MAXIMUM_TEST_TIME = 120
 integration_test = timed(INTEGRATION_MAXIMUM_TEST_TIME)
 
 TEST_DIR = dirname(__file__)
@@ -261,6 +277,9 @@ def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
             yield test_pulsar_server
 
 
+test_pulsar_server.__test__ = False
+
+
 class RestartablePulsarAppProvider:
 
     def __init__(self, global_conf={}, app_conf={}, test_conf={}, web=True):
@@ -333,6 +352,9 @@ def test_pulsar_app(
                 pass
             except Exception:
                 pass
+
+
+test_pulsar_app.__test__ = False
 
 
 @contextmanager
@@ -552,3 +574,55 @@ class EnvironmentVarGuard:
             else:
                 self._environ[k] = v
         os.environ = self._environ
+
+
+class IntegrationTestConfiguration:
+    _test_suffix: Optional[str]
+    _app_conf_dict: Dict[str, Any]
+    _test_conf_dict: Dict[str, Any]
+
+    def __init__(self, tmp_path: Path, test_suffix: Optional[str] = None):
+        self._app_conf_dict = {}
+        self._test_conf_dict = {}
+        self._tmp_path = tmp_path
+        self.__setup_dependencies()
+        self._test_suffix = test_suffix
+
+    def __setup_dependencies(self):
+        dependencies_dir = self._tmp_path / "dependencies"
+        dep1_directory = dependencies_dir / "dep1" / "1.1"
+        makedirs(dep1_directory)
+        try:
+            # Let external users read/execute this directory for run as user
+            # test.
+            system("chmod 755 %s" % self._tmp_path)
+            system("chmod -R 755 %s" % dependencies_dir)
+        except Exception as e:
+            print(e)
+        env_file = dep1_directory / "env.sh"
+        env_file.write_text("MOO=moo_override; export MOO")
+        self._app_conf_dict["tool_dependency_dir"] = str(dependencies_dir)
+
+    def write_job_conf_props(self, job_conf_props: Optional[Dict[str, str]]):
+        if job_conf_props:
+            job_conf_props = job_conf_props.copy()
+            job_conf = self._tmp_path / "job_managers.ini"
+            config = configparser.ConfigParser()
+            section_name = "manager:_default_"
+            config.add_section(section_name)
+            for key, value in job_conf_props.items():
+                config.set(section_name, key, value)
+            with open(job_conf, "w") as configf:
+                config.write(configf)
+
+            self._app_conf_dict["job_managers_config"] = job_conf
+
+    def set_app_conf_props(self, **kwd):
+        self._app_conf_dict.update(**kwd)
+
+    def set_test_conf_props(self, **kwd):
+        self._test_conf_dict.update(**kwd)
+
+    @property
+    def test_suffix(self) -> str:
+        return self._test_suffix or ""

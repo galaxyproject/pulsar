@@ -9,7 +9,7 @@ jobs:
         tox-env: [py37-lint, py37-dist, py37-docs]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v3
       with:
         python-version: 3.7
     - name: Install tox
@@ -30,7 +30,7 @@ jobs:
           python: 3.8
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python }}
     - name: Install tox
@@ -45,19 +45,19 @@ jobs:
     strategy:
       matrix:
         include:
-        - tox-env: py36-test
+        - tox-env: py36-test-ci
           python: 3.6
         - tox-env: py36-test-unit
           python: 3.6
-        - tox-env: py37-test
+        - tox-env: py37-test-ci
           python: 3.7
         - tox-env: py37-test-unit
           python: 3.7
-        - tox-env: py38-test
+        - tox-env: py38-test-ci
           python: 3.8
         - tox-env: py38-test-unit
           python: 3.8
-        - tox-env: py39-test
+        - tox-env: py39-test-ci
           python: 3.9
         - tox-env: py39-test-unit
           python: 3.9
@@ -65,7 +65,7 @@ jobs:
           python: 3.7
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python }}
     - name: Install tox
@@ -74,19 +74,28 @@ jobs:
       run: .ci/setup_tests.sh
     - name: Run tests
       run: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; tox -e ${{ matrix.tox-env }}
-  # https://github.com/coverallsapp/github-action/issues/30
-  #  - name: Coveralls Parallel
-  #    uses: coverallsapp/github-action@master
-  #    with:
-  #      github-token: ${{ secrets.github_token }}
-  #      flag-name: run-${{ matrix.tox-env }}
-  #      parallel: true
-  #finish:
-  #  needs: test
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #  - name: Coveralls Finished
-  #    uses: coverallsapp/github-action@master
-  #    with:
-  #      github-token: ${{ secrets.github_token }}
-  #      parallel-finished: true
+  ## Can't get the following tests to work - they fall over on the containerized job not being able to
+  ## connect to the host running the Pulsar server for file transfers in stage out/in.
+  # tes-test:
+  #   name: Run Tests
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       include:
+  #       - tox-env: py37-test-funnel
+  #         python: 3.7
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - uses: actions/setup-python@v3
+  #     with:
+  #       python-version: ${{ matrix.python }}
+  #   - name: Set up Go 1.x
+  #     uses: actions/setup-go@v2
+  #     with:
+  #       go-version: ^1.13
+  #   - name: Pre-fetch required docker containers
+  #     run: docker pull 'galaxy/pulsar-pod-staging:0.15.0.0' && docker pull 'conda/miniconda3'
+  #   - name: Install tox
+  #     run: pip install tox
+  #   - name: Run tests
+  #     run: PULSAR_TEST_INFRASTRUCTURE_HOST="_PLATFORM_AUTO_" FUNNEL_SERVER_TARGET=DEPLOY PULSAR_TES_SERVER_TARGET=http://localhost:8000/ tox -e ${{ matrix.tox-env }}
