@@ -9,7 +9,13 @@ History
 0.15.0.dev0
 ---------------------
 
-    
+* Updated Galaxy+Pulsar container.
+* Rework container execution - generalize Kubernetes execution to allow it to work without a
+  message queue and to allow TES execution based on pydantic-tes (https://github.com/jmchilton/pydantic-tes).
+* Add documentation and diagrams for container execution scenarios.
+* Rework integration tests to use pytest more aggressively.
+* Fixes to CI to run more tests that weren't being executed because Tox was not sending
+  environment variables through to pytest.
 
 ---------------------
 0.14.16 (2022-10-04)
