@@ -355,7 +355,11 @@ def run(options):
         if waiter is not None:
             waiter.shutdown()
         if getattr(options, 'cleanup', True):
-            shutil.rmtree(temp_directory)
+            try:
+                shutil.rmtree(temp_directory)
+            except PermissionError as e:
+                print(e)
+                print(f"Problem removing directory tree {temp_directory} due to a permission error.")
 
 
 class Waiter:

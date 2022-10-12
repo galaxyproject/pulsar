@@ -5,6 +5,7 @@ pykube
 boto3
 
 # For testing
+simple-job-files
 pytest
 webtest
 coverage

@@ -61,8 +61,19 @@ jobs:
           python: 3.9
         - tox-env: py39-test-unit
           python: 3.9
+        - tox-env: py39-install-wheel-no-conda
+          python: 3.9
         - tox-env: py37-install-wheel
           python: 3.7
+    services:
+      job-files:
+        image: galaxy/simple-job-files:latest
+        env:
+          JOB_FILES_ROOT_DIRECTORY: /tmp
+        ports:
+          - '8000:8000'
+        volumes:
+          - '/tmp:/tmp:rw'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v3
@@ -73,7 +84,12 @@ jobs:
     - name: Run setup
       run: .ci/setup_tests.sh
     - name: Run tests
-      run: export PULSAR_TEST_KEY=test_data/testkey; export TEST_WEBAPP_POST_SHUTDOWN_SLEEP=1; . local_env.sh; tox -e ${{ matrix.tox-env }}
+      run: . local_env.sh; tox -e ${{ matrix.tox-env }}
+      env:
+        PULSAR_TEST_KEY: "test_data/testkey"
+        PULSAR_TEST_EXTERNAL_JOB_FILES_URL: "http://localhost:8000"
+        PULSAR_TEST_EXTERNAL_JOB_FILES_DIRECTORY: "/tmp"
+        TEST_WEBAPP_POST_SHUTDOWN_SLEEP: 1
   ## Can't get the following tests to work - they fall over on the containerized job not being able to
   ## connect to the host running the Pulsar server for file transfers in stage out/in.
   # tes-test:

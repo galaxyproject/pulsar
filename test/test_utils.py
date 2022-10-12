@@ -10,7 +10,6 @@ from stat import S_IXGRP, S_IXOTH
 from os import pardir, stat, chmod, access, X_OK, pathsep, environ
 from os import makedirs, listdir, system
 from os.path import join, dirname, isfile, split
-from os.path import exists
 from pathlib import Path
 from tempfile import mkdtemp
 from shutil import rmtree
@@ -23,19 +22,16 @@ from typing import (
 import time
 
 import pytest
-import webob
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
-import galaxy.util
-import pulsar.util
 from galaxy.job_metrics import NULL_JOB_INSTRUMENTER
 from galaxy.util.bunch import Bunch
+from simplejobfiles.app import JobFilesApp
 
 from pulsar.managers.util import drmaa
 from pulsar.tools import ToolBox
 from pulsar.managers.base import JobDirectory
-from pulsar.web.framework import file_response
 
 from unittest import TestCase, skip
 
@@ -244,19 +240,13 @@ class NullJobMetrics:
 
 @nottest
 @contextmanager
-def server_for_test_app(app):
-    try:
-        from paste.exceptions.errormiddleware import ErrorMiddleware
-        error_app = ErrorMiddleware(app.app, debug=True, error_log="errors.log")
-    except ImportError:
-        # paste.exceptions not available for Python 3.
-        error_app = app.app
-
+def server_for_test_app(test_app):
+    app = test_app.app
     create_kwds = {
     }
     if os.environ.get("PULSAR_TEST_FILE_SERVER_HOST"):
         create_kwds["host"] = os.environ.get("PULSAR_TEST_FILE_SERVER_HOST")
-    server = StopableWSGIServer.create(error_app, **create_kwds)
+    server = StopableWSGIServer.create(app, **create_kwds)
     try:
         server.wait()
         yield server
@@ -457,56 +447,29 @@ class TestAuthorizer:
         return self.authorization
 
 
-class JobFilesApp:
-
-    def __init__(self, root_directory=None, allow_multiple_downloads=False):
-        self.root_directory = root_directory
-        self.served_files = []
-        self.allow_multiple_downloads = allow_multiple_downloads
-
-    def __call__(self, environ, start_response):
-        req = webob.Request(environ)
-        params = req.params.mixed()
-        method = req.method
-        if method == "POST":
-            resp = self._post(req, params)
-        elif method == "GET":
-            resp = self._get(req, params)
-        else:
-            raise Exception("Unhandled request method %s" % method)
-        return resp(environ, start_response)
-
-    def _post(self, request, params):
-        path = params['path']
-        if not galaxy.util.in_directory(path, self.root_directory):
-            assert False, "{} not in {}".format(path, self.root_directory)
-        parent_directory = dirname(path)
-        if not exists(parent_directory):
-            makedirs(parent_directory)
-        pulsar.util.copy_to_path(params["file"].file, path)
-        return webob.Response(body='')
-
-    def _get(self, request, params):
-        path = params['path']
-        if path in self.served_files and not self.allow_multiple_downloads:  # emulate Galaxy not allowing the same request twice...
-            raise Exception("Same file copied multiple times...")
-        if not galaxy.util.in_directory(path, self.root_directory):
-            assert False, "{} not in {}".format(path, self.root_directory)
-        self.served_files.append(path)
-        return file_response(path)
-
-
 @contextmanager
-def files_server(directory=None, allow_multiple_downloads=False):
-    if not directory:
-        with temp_directory() as directory:
-            app = TestApp(JobFilesApp(directory, allow_multiple_downloads=allow_multiple_downloads))
-            with server_for_test_app(app) as server:
-                yield server, directory
+def files_server(directory=None):
+    external_url = os.environ.get("PULSAR_TEST_EXTERNAL_JOB_FILES_URL")
+    if external_url:
+        if directory is None:
+            directory = os.environ.get("PULSAR_TEST_EXTERNAL_JOB_FILES_DIRECTORY")
+            if directory:
+                yield Bunch(application_url=external_url), directory
+            else:
+                with temp_directory() as directory:
+                    yield Bunch(application_url=external_url), directory
+        else:
+            yield Bunch(application_url=external_url)
     else:
-        app = TestApp(JobFilesApp(directory, allow_multiple_downloads=allow_multiple_downloads))
-        with server_for_test_app(app) as server:
-            yield server
+        if not directory:
+            with temp_directory() as directory:
+                app = TestApp(JobFilesApp(directory))
+                with server_for_test_app(app) as server:
+                    yield server, directory
+        else:
+            app = TestApp(JobFilesApp(directory))
+            with server_for_test_app(app) as server:
+                yield server
 
 
 def dump_other_threads():
