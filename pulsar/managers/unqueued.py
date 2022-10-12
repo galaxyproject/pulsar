@@ -190,6 +190,7 @@ class Manager(BaseUnqueuedManager):
         working_directory = job_directory.working_directory()
         stdout = self._open_standard_output(job_id)
         stderr = self._open_standard_error(job_id)
+        log.info(f"running {command_line} in {working_directory}")
         proc = execute(command_line=command_line,
                        working_directory=working_directory,
                        stdout=stdout,

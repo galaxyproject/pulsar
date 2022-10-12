@@ -132,8 +132,11 @@ class DirectoryBaseManager(BaseManager):
         command_line = self._expand_command_line(
             job_id, command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory
         )
+        setup_params = setup_params or {}
+        log.info("command_line is %s" % command_line)
         script_env = self._job_template_env(job_id, command_line=command_line, env=env, setup_params=setup_params)
         script = job_script(**script_env)
+        log.info("job_script is %s" % script)
         return self._write_job_script(job_id, script)
 
     def _tmp_dir(self, job_id: str):

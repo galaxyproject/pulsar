@@ -90,6 +90,7 @@ class QueueManager(Manager):
                 except Exception:
                     log.exception("Running command but failed to delete - command may rerun on Pulsar boot.")
                 # _run will not do anything if job has been cancelled.
+                log.info("running command_line %s" % command_line)
                 self._run(job_id, command_line, montior=MonitorStyle.FOREGROUND)
             except Exception:
                 log.warn("Uncaught exception running job with job_id %s" % job_id)
