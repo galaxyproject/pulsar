@@ -61,9 +61,9 @@ jobs:
           python: 3.9
         - tox-env: py39-test-unit
           python: 3.9
-        - tox-env: py39-install-wheel-no-conda
+        - tox-env: py39-install_wheel-no_conda
           python: 3.9
-        - tox-env: py37-install-wheel
+        - tox-env: py37-install_wheel
           python: 3.7
     services:
       job-files:
@@ -94,7 +94,7 @@ jobs:
   ## connect to the host running the Pulsar server for file transfers in stage out/in.
   # tes-test:
   #   name: Run Tests
-  # runs-on: ubuntu-20.04
+  #   runs-on: ubuntu-20.04
   #   strategy:
   #     matrix:
   #       include:
