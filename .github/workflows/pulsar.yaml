@@ -24,10 +24,8 @@ jobs:
         include:
         - tox-env: py36-mypy
           python: 3.6
-        - tox-env: py37-mypy
-          python: 3.7
-        - tox-env: py38-mypy
-          python: 3.8
+        - tox-env: py311-mypy
+          python: 3.11
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v3
@@ -36,7 +34,7 @@ jobs:
     - name: Install tox
       run: pip install tox
     - name: Setup pycurl
-      run: sudo apt update; sudo apt install -y libxml2-dev libxslt1-dev libcurl4-openssl-dev python-pycurl openssh-server
+      run: sudo apt update; sudo apt install -y libxml2-dev libxslt1-dev libcurl4-openssl-dev openssh-server
     - name: Run tox
       run: tox -e ${{ matrix.tox-env }}
   test:
@@ -49,18 +47,10 @@ jobs:
           python: 3.6
         - tox-env: py36-test-unit
           python: 3.6
-        - tox-env: py37-test-ci
-          python: 3.7
-        - tox-env: py37-test-unit
-          python: 3.7
-        - tox-env: py38-test-ci
-          python: 3.8
-        - tox-env: py38-test-unit
-          python: 3.8
-        - tox-env: py39-test-ci
-          python: 3.9
-        - tox-env: py39-test-unit
-          python: 3.9
+        - tox-env: py311-test-ci
+          python: 3.11
+        - tox-env: py311-test-unit
+          python: 3.11
         - tox-env: py39-install_wheel-no_conda
           python: 3.9
         - tox-env: py37-install_wheel

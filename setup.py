@@ -31,10 +31,6 @@ else:
 if PULSAR_GALAXY_LIB:
     requirements = [r for r in requirements if not r.startswith("galaxy-")]
 
-test_requirements = [
-    # TODO: put package test requirements here
-]
-
 
 _version_re = re.compile(r'__version__\s+=\s+(.*)')
 
@@ -128,7 +124,6 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
-    test_suite='test',
-    tests_require=test_requirements
 )
