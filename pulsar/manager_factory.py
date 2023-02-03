@@ -32,7 +32,8 @@ def build_managers(app, conf):
             manager_description = ManagerDescription.from_dict(manager_options, manager_name)
             manager_descriptions.add(manager_description)
     elif "manager" in conf:
-        manager_description = ManagerDescription.from_dict(conf["manager"])
+        manager_name = conf["manager"].pop("name", DEFAULT_MANAGER_NAME)
+        manager_description = ManagerDescription.from_dict(conf["manager"], manager_name=manager_name)
         manager_descriptions.add(manager_description)
     else:
         manager_descriptions.add(ManagerDescription())

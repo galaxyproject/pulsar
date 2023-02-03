@@ -334,6 +334,16 @@ class PulsarManagerConfigBuilder(PulsarConfigBuilder):
         PulsarConfigBuilder.populate_options(arg_parser)
         arg_parser.add_argument("--manager", default=DEFAULT_MANAGER)
 
+    def load(self):
+        app_conf = super().load()
+        if self.manager != DEFAULT_MANAGER and "manager" in app_conf and "name" not in app_conf["manager"]:
+            log.info(
+                "Default manager not in app conf is not named but `--manager` is supplied, applying supplied manager "
+                f"name '{self.manager}' to default manager"
+            )
+            app_conf["manager"]["name"] = self.manager
+        return app_conf
+
 
 def main(argv=None, config_env=False):
     mod_docstring = sys.modules[__name__].__doc__
