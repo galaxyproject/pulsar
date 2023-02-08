@@ -236,7 +236,7 @@ class PulsarExchange:
         except Exception:
             log.exception("Problem with acknowledgement manager, leaving ack_manager method in problematic state!")
             raise
-        log.debug('Acknowledgedment manager thread exiting')
+        log.debug('Acknowledgement manager thread exiting')
 
     def __get_payload(self, uuid, failed):
         """Retry reading a message from the publish_uuid_store once, delete on the second failure."""
