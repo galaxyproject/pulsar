@@ -126,6 +126,7 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
     def __init__(self, **kwds: Dict[str, Any]):
         super().__init__(**kwds)
         self.url = kwds.get('amqp_url')
+        self.amqp_key_prefix = kwds.get("amqp_key_prefix", None)
         self.exchange = get_exchange(self.url, self.manager_name, kwds)
         self.status_cache = {}
         self.callback_lock = threading.Lock()
@@ -231,6 +232,8 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
             raise Exception("Cannot generate Pulsar client for empty job_id.")
         destination_params = _parse_destination_params(destination_params)
         destination_params.update(**kwargs)
+        if self.amqp_key_prefix:
+            destination_params["amqp_key_prefix"] = self.amqp_key_prefix
         if 'shell_plugin' in destination_params:
             shell = cli_factory.get_shell(destination_params)
             return MessageCLIJobClient(destination_params, job_id, self, shell)
