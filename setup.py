@@ -109,7 +109,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'web': ['Paste', 'PasteScript'],
-        'galaxy_extended_metadata': ['galaxy-job-execution>=19.9.0.dev0', 'galaxy-util[template]'],
+        'galaxy_extended_metadata': ['galaxy-job-execution', 'galaxy-util[template]'],
     },
     license="Apache License 2.0",
     zip_safe=False,
