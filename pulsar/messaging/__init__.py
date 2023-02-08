@@ -10,11 +10,11 @@ from ..messaging import bind_amqp
 log = logging.getLogger(__name__)
 
 
-def bind_app(app, queue_id, connect_ssl=None):
+def bind_app(app, queue_id, conf=None):
     connection_string = __id_to_connection_string(app, queue_id)
     queue_state = QueueState()
     for manager in app.managers.values():
-        bind_amqp.bind_manager_to_queue(manager, queue_state, connection_string, connect_ssl)
+        bind_amqp.bind_manager_to_queue(manager, queue_state, connection_string, conf)
     return queue_state
 
 

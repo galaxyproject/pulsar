@@ -56,6 +56,7 @@ class PulsarExchange:
         self,
         url,
         manager_name,
+        amqp_key_prefix=None,
         connect_ssl=None,
         timeout=DEFAULT_TIMEOUT,
         publish_kwds={},
@@ -69,6 +70,7 @@ class PulsarExchange:
             raise Exception(KOMBU_UNAVAILABLE)
         self.__url = url
         self.__manager_name = manager_name
+        self.__amqp_key_prefix = amqp_key_prefix
         self.__connect_ssl = connect_ssl
         self.__exchange = kombu.Exchange(DEFAULT_EXCHANGE_NAME, DEFAULT_EXCHANGE_TYPE)
         self.__timeout = timeout
@@ -293,10 +295,13 @@ class PulsarExchange:
         return queue_name
 
     def __key_prefix(self):
-        if self.__manager_name == "_default_":
-            key_prefix = "pulsar_"
+        if self.__amqp_key_prefix is not None:
+            key_prefix = self.__amqp_key_prefix
         else:
-            key_prefix = "pulsar_%s_" % self.__manager_name
+            if self.__manager_name == "_default_":
+                key_prefix = "pulsar_"
+            else:
+                key_prefix = "pulsar_%s_" % self.__manager_name
         return key_prefix
 
     def __start_heartbeat(self, queue_name, connection):
