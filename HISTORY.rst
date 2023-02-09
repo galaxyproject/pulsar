@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev0
+0.15.0.dev1
 ---------------------
 
 * Updated Galaxy+Pulsar container.
@@ -16,6 +16,9 @@ History
 * Rework integration tests to use pytest more aggressively.
 * Fixes to CI to run more tests that weren't being executed because Tox was not sending
   environment variables through to pytest.
+* Add option ``amqp_key_prefix`` to direct task queue naming while retaining simple
+  default manager names and such in container scheduling deployments.
+* Various typing and CI fixes.
 
 ---------------------
 0.14.16 (2022-10-04)
