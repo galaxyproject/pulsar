@@ -169,6 +169,7 @@ class ManagerDescription:
         return ManagerDescription(manager_type, manager_name, manager_options)
 
     @staticmethod
-    def from_dict(config, manager_name=DEFAULT_MANAGER_NAME):
+    def from_dict(config, manager_name=None):
         manager_type = config.get("type", DEFAULT_MANAGER_TYPE)
+        manager_name = manager_name or config.get("name") or DEFAULT_MANAGER_NAME
         return ManagerDescription(manager_type, manager_name, config)

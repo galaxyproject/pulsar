@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         tox-env: [py37-lint, py37-dist, py37-docs]
@@ -18,7 +18,7 @@ jobs:
       run: tox -e ${{ matrix.tox-env }}
   mypy:
     name: MyPy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         include:
@@ -41,7 +41,7 @@ jobs:
       run: tox -e ${{ matrix.tox-env }}
   test:
     name: Run Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         include:
@@ -78,7 +78,7 @@ jobs:
   ## connect to the host running the Pulsar server for file transfers in stage out/in.
   # tes-test:
   #   name: Run Tests
-  #   runs-on: ubuntu-latest
+  # runs-on: ubuntu-20.04
   #   strategy:
   #     matrix:
   #       include:

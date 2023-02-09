@@ -9,6 +9,7 @@ def get_exchange(url, manager_name, params):
     connect_ssl = parse_amqp_connect_ssl_params(params)
     exchange_kwds = dict(
         manager_name=manager_name,
+        amqp_key_prefix=params.get("amqp_key_prefix"),
         connect_ssl=connect_ssl,
         publish_kwds=parse_amqp_publish_kwds(params)
     )

@@ -109,7 +109,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'web': ['Paste', 'PasteScript'],
-        'galaxy_extended_metadata': ['galaxy-job-execution>=19.9.0.dev0', 'galaxy-util[template]'],
+        'galaxy_extended_metadata': ['galaxy-job-execution', 'galaxy-util[template]'],
     },
     license="Apache License 2.0",
     zip_safe=False,
@@ -123,10 +123,11 @@ setup(
         'Operating System :: Microsoft :: Windows',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     test_suite='test',
     tests_require=test_requirements

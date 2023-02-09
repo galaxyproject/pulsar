@@ -15,7 +15,7 @@ except ImportError:
 
 
 def kill_pid(pid: int, use_psutil: bool = True):
-    if use_psutil and Process:
+    if use_psutil and Process is not None:
         _psutil_kill_pid(pid)
     else:
         _stock_kill_pid(pid)
