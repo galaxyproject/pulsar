@@ -16,6 +16,8 @@ from typing import (
     Type,
 )
 
+from typing_extensions import Protocol
+
 from .amqp_exchange_factory import get_exchange
 from .client import (
     BaseJobClient,
@@ -43,12 +45,12 @@ log = getLogger(__name__)
 DEFAULT_TRANSFER_THREADS = 2
 
 
-class ClientManagerInterface:
+class ClientManagerInterface(Protocol):
 
     def get_client(self, destination_params: Dict[str, Any], job_id: str, **kwargs: Dict[str, Any]) -> BaseJobClient:
         """Get client instance for specified job description."""
 
-    def shutdown(self, ensure_cleanup=False):
+    def shutdown(self, ensure_cleanup=False) -> None:
         """Mark client manager's work as complete and clean up resources it managed."""
 
 
