@@ -50,8 +50,8 @@ class BaseDrmaaManager(ExternalBaseManager):
         }[drmaa_state]
 
     def _build_template_attributes(self, job_id, command_line, dependencies_description=None, env=[], submit_params={}, setup_params=None):
-        stdout_path = self._stdout_path(job_id)
-        stderr_path = self._stderr_path(job_id)
+        stdout_path = self._job_stdout_path(job_id)
+        stderr_path = self._job_stderr_path(job_id)
         working_directory = self.job_directory(job_id).working_directory()
 
         attributes = {
