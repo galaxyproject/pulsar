@@ -9,11 +9,11 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.7']
-        galaxy-branch: ['dev', 'master']
+        galaxy-branch: ['pulsar_standing_branch', 'master']
         metadata-strategy: ['directory']
         include:
           - python-version: '3.7'
-            galaxy-branch: 'dev'
+            galaxy-branch: 'pulsar_standing_branch'
             metadata-strategy: 'extended'
     services:
       postgres:
@@ -31,7 +31,7 @@ jobs:
       - name: Checkout tools repo
         uses: actions/checkout@v2
         with:
-          repository: galaxyproject/galaxy
+          repository: mvdbeek/galaxy
           ref: ${{ matrix.galaxy-branch }}
           path: galaxy
       - uses: actions/setup-python@v2
