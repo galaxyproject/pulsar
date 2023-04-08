@@ -135,8 +135,7 @@ class ResultsCollector:
         )
 
     def __realized_dynamic_file_source_references(self):
-        references = []
-        extra_files = []
+        references = {"filename": [], "extra_files": []}
 
         def record_references(from_dict):
             if isinstance(from_dict, list):
@@ -144,10 +143,8 @@ class ResultsCollector:
                     record_references(v)
             elif isinstance(from_dict, dict):
                 for k, v in from_dict.items():
-                    if k == "filename":
-                        references.append(v)
-                    elif k == "extra_files":
-                        extra_files.append(v)
+                    if k in references:
+                        references[k].append(v)
                     if isinstance(v, (list, dict)):
                         record_references(v)
 
@@ -170,13 +167,13 @@ class ResultsCollector:
                 for line in contents.splitlines():
                     parse_and_record_references(line)
 
-        return references, extra_files
+        return references
 
     def __collect_directory_files(self, directory, contents, output_type):
         if directory is None:  # e.g. output_metadata_directory
             return
 
-        dynamic_file_source_references, extra_files_references = self.__realized_dynamic_file_source_references()
+        dynamic_file_source_references = self.__realized_dynamic_file_source_references()
 
         # Fetch remaining working directory outputs of interest.
         for name in contents:
@@ -185,7 +182,7 @@ class ResultsCollector:
                 continue
             if self.client_outputs.dynamic_match(name):
                 collect = True
-            elif name in dynamic_file_source_references or any(name.startswith(r) for r in extra_files_references):
+            elif name in dynamic_file_source_references["filename"] or any(name.startswith(r) for r in dynamic_file_source_references["extra_files"]):
                 collect = True
 
             if collect:
