@@ -18,7 +18,7 @@ sphinx==1.2
 pyflakes
 flake8
 
-mypy
+mypy<=1.0.1  # https://github.com/pydantic/pydantic/issues/5192
 types-paramiko
 types-pkg-resources
 types-PyYAML
