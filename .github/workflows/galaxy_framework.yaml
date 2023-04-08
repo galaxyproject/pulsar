@@ -45,13 +45,21 @@ jobs:
         with:
           path: ~/.cache/pip
           key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy/requirements.txt') }}
-      - name: Run tests
+      - name: Run tests (and allow failure)
         run: ./run_tests.sh --framework
+        if: matrix.galaxy-branch == 'master' || matrix.metadata-strategy == 'extended'
         working-directory: 'galaxy'
         env:
           GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml
           GALAXY_CONFIG_OVERRIDE_METADATA_STRATEGY: ${{ matrix.metadata-strategy }}
         continue-on-error: true
+      - name: Run tests (must pass)
+        if: matrix.metadata-strategy == 'directory' && matrix.galaxy-branch == 'pulsar_standing_branch'
+        run: ./run_tests.sh --framework
+        working-directory: 'galaxy'
+        env:
+          GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml
+          GALAXY_CONFIG_OVERRIDE_METADATA_STRATEGY: ${{ matrix.metadata-strategy }}
       - uses: actions/upload-artifact@v2
         with:
           name: Framework test results (${{ matrix.python-version }})
