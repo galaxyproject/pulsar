@@ -81,6 +81,8 @@ def submit_job(manager, job_config):
         submit_params = job_config.get('submit_params', {})
         touch_outputs = job_config.get('touch_outputs', [])
         dynamic_file_sources = job_config.get("dynamic_file_sources", None)
+        token_endpoint = job_config.get("token_endpoint", None)
+
         job_config = None
         if setup_params or force_setup:
             input_job_id = setup_params.get("job_id", job_id)
@@ -108,6 +110,7 @@ def submit_job(manager, job_config):
             "env": env,
             "setup_params": setup_params,
             "dynamic_file_sources": dynamic_file_sources,
+            "token_endpoint": token_endpoint,
         }
         manager.preprocess_and_launch(job_id, launch_config)
     except Exception:
