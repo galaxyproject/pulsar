@@ -100,6 +100,7 @@ class BaseJobClient:
             setattr(self, attr, destination_params.get(attr, None))
         self.env = destination_params.get("env", [])
         self.files_endpoint = destination_params.get("files_endpoint", None)
+        self.token_endpoint = destination_params.get("token_endpoint", None)
 
         default_file_action = self.destination_params.get("default_file_action", "transfer")
         if default_file_action not in actions:
@@ -166,7 +167,8 @@ class JobClient(BaseJobClient):
         super().__init__(destination_params, job_id)
         self.job_manager_interface = job_manager_interface
 
-    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None, dynamic_file_sources=None):
+    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
+               dynamic_file_sources=None, token_endpoint=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -190,6 +192,8 @@ class JobClient(BaseJobClient):
         if job_config and 'touch_outputs' in job_config:
             # message clients pass the entire job config
             launch_params['submit_extras'] = json_dumps({'touch_outputs': job_config['touch_outputs']})
+        if token_endpoint is not None:
+            launch_params["token_endpoint"] = json_dumps({'token_endpoint': token_endpoint})
 
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
@@ -344,7 +348,8 @@ class BaseRemoteConfiguredJobClient(BaseJobClient):
         self.client_manager = client_manager
         self.amqp_key_prefix = self.destination_params.get("amqp_key_prefix")
 
-    def _build_setup_message(self, command_line, dependencies_description, env, remote_staging, job_config, dynamic_file_sources):
+    def _build_setup_message(self, command_line, dependencies_description, env, remote_staging, job_config,
+                             dynamic_file_sources, token_endpoint):
         """
         """
         launch_params = dict(command_line=command_line, job_id=self.job_id)
@@ -359,6 +364,8 @@ class BaseRemoteConfiguredJobClient(BaseJobClient):
             launch_params['remote_staging'] = remote_staging
             launch_params['remote_staging']['ssh_key'] = self.ssh_key
         launch_params['dynamic_file_sources'] = dynamic_file_sources
+        launch_params['token_endpoint'] = token_endpoint
+
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
             # destination arguments. Hence, must have Pulsar setup job
@@ -397,7 +404,8 @@ class BaseMessageJobClient(BaseRemoteConfiguredJobClient):
 
 class MessageJobClient(BaseMessageJobClient):
 
-    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None, dynamic_file_sources=None):
+    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
+               dynamic_file_sources=None, token_endpoint=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -407,6 +415,7 @@ class MessageJobClient(BaseMessageJobClient):
             remote_staging=remote_staging,
             job_config=job_config,
             dynamic_file_sources=dynamic_file_sources,
+            token_endpoint=token_endpoint,
         )
         self.client_manager.exchange.publish("setup", launch_params)
         log.info("Job published to setup message queue: %s", self.job_id)
@@ -429,7 +438,8 @@ class MessageCLIJobClient(BaseMessageJobClient):
         self.remote_pulsar_path = destination_params["remote_pulsar_path"]
         self.shell = shell
 
-    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None, dynamic_file_sources=None):
+    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
+               dynamic_file_sources=None, token_endpoint=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -439,6 +449,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
             remote_staging=remote_staging,
             job_config=job_config,
             dynamic_file_sources=dynamic_file_sources,
+            token_endpoint=token_endpoint,
         )
         base64_message = to_base64_json(launch_params)
         submit_command = os.path.join(self.remote_pulsar_path, "scripts", "submit.bash")
@@ -479,6 +490,7 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
         job_config=None,
         dynamic_file_sources=None,
         container_info=None,
+        token_endpoint=None,
         pulsar_app_config=None
     ) -> Optional[ExternalId]:
         """
@@ -490,6 +502,7 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
             remote_staging=remote_staging,
             job_config=job_config,
             dynamic_file_sources=dynamic_file_sources,
+            token_endpoint=token_endpoint,
         )
         container = None
         guest_ports = None
