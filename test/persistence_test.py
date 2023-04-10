@@ -7,7 +7,7 @@ from pulsar.managers.stateful import StatefulManagerProxy
 from pulsar.tools.authorization import get_authorizer
 from .test_utils import (
     temp_directory,
-    TestDependencyManager
+    TestDependencyManager, get_test_user_auth_manager
 )
 from galaxy.job_metrics import NULL_JOB_INSTRUMENTER
 from galaxy.util.bunch import Bunch
@@ -125,6 +125,7 @@ def _app():
             staging_directory=staging_directory,
             persistence_directory=staging_directory,
             authorizer=get_authorizer(None),
+            user_auth_manager=get_test_user_auth_manager(),
             dependency_manager=TestDependencyManager(),
             job_metrics=Bunch(default_job_instrumenter=NULL_JOB_INSTRUMENTER),
             object_store=None,

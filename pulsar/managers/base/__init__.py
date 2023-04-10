@@ -73,6 +73,7 @@ class BaseManager(ManagerInterface):
         self.tmp_dir = kwds.get("tmp_dir", None)
         self.debug = str(kwds.get("debug", False)).lower() == "true"
         self.authorizer = app.authorizer
+        self.user_auth_manager = app.user_auth_manager
         self.__init_system_properties()
         self.__init_env_vars(**kwds)
         self.dependency_manager = app.dependency_manager
@@ -179,6 +180,8 @@ class BaseManager(ManagerInterface):
         log.debug("job_id: {} - Checking authorization of command_line [{}]".format(job_id, command_line))
         authorization = self._get_authorization(job_id, tool_id)
         job_directory = self._job_directory(job_id)
+        self.user_auth_manager.authorize(job_id, job_directory)
+
         tool_files_dir = job_directory.tool_files_directory()
         for file in self._list_dir(tool_files_dir):
             if os.path.isdir(join(tool_files_dir, file)):

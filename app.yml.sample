@@ -124,6 +124,22 @@
 ## Maximum number of seconds to sleep between each retry.
 #amqp_publish_retry_interval_max: 60
 
+
+## configure user authentication/authorization plugins
+## parameters depend on auth type. Authentication plugin should return a username
+## and authorization plugin should authorize this user
+#user_auth:
+#  authentication:
+#    - type: oidc
+#      oidc_jwks_url: https://login.microsoftonline.com/xxx/discovery/v2.0/keys
+#      oidc_provider: azure
+#      oidc_username_in_token: preferred_username
+#      oidc_username_template: *.
+#  authorization:
+#    - type: userlist
+#      userlist_allowed_users:
+#        - xxx
+
 ## *Experimental*. Enable file caching by specifing a directory here. 
 ## Directory used to store incoming file cache. It works fine for HTTP
 ## transfer, have not tested with staging by coping. Also there is no

@@ -2,7 +2,7 @@ from pulsar.managers.unqueued import Manager
 
 from os.path import join
 
-from .test_utils import BaseManagerTestCase
+from .test_utils import BaseManagerTestCase, get_failing_user_auth_manager
 
 
 class ManagerTest(BaseManagerTestCase):
@@ -30,6 +30,12 @@ class ManagerTest(BaseManagerTestCase):
 
     def test_unauthorized_command_line(self):
         self.authorizer.authorization.allow_execution = False
+        job_id = self.manager.setup_job("123", "tool1", "1.0.0")
+        with self.assertRaises(Exception):
+            self.manager.launch(job_id, 'python')
+
+    def test_unauthorized_user(self):
+        self.manager.user_auth_manager = get_failing_user_auth_manager()
         job_id = self.manager.setup_job("123", "tool1", "1.0.0")
         with self.assertRaises(Exception):
             self.manager.launch(job_id, 'python')

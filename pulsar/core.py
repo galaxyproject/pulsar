@@ -19,6 +19,8 @@ from pulsar.manager_factory import build_managers
 from pulsar.tools import ToolBox
 from pulsar.tools.authorization import get_authorizer
 
+from pulsar.user_auth.manager import UserAuthManager
+
 log = getLogger(__name__)
 
 DEFAULT_PRIVATE_TOKEN = None
@@ -46,6 +48,7 @@ class PulsarApp:
         self.__setup_object_store(conf)
         self.__setup_dependency_manager(conf)
         self.__setup_job_metrics(conf)
+        self.__setup_user_auth_manager(conf)
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
         self.__setup_bind_to_message_queue(conf)
@@ -70,6 +73,9 @@ class PulsarApp:
         if message_queue_url:
             queue_state = messaging.bind_app(self, message_queue_url, conf)
         self.__queue_state = queue_state
+
+    def __setup_user_auth_manager(self, conf):
+        self.user_auth_manager = UserAuthManager(conf)
 
     def __setup_tool_config(self, conf):
         """
