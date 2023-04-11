@@ -25,6 +25,7 @@ types-PyYAML
 types-pycurl
 types-requests
 types-psutil
+sentry-sdk
 
 # For release
 wheel

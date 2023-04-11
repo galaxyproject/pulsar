@@ -1,5 +1,6 @@
 """
 """
+import logging
 import os
 from logging import getLogger
 from tempfile import tempdir
@@ -9,7 +10,10 @@ from galaxy.objectstore import build_object_store_from_config
 from galaxy.tool_util.deps import build_dependency_manager
 from galaxy.util.bunch import Bunch
 
-from pulsar import messaging
+from pulsar import (
+    __version__ as pulsar_version,
+    messaging,
+)
 from pulsar.cache import Cache
 from pulsar.manager_factory import build_managers
 from pulsar.tools import ToolBox
@@ -34,6 +38,7 @@ class PulsarApp:
         if conf is None:
             conf = {}
         self.config_dir = conf.get('config_dir', os.getcwd())
+        self.__setup_sentry_integration(conf)
         self.__setup_staging_directory(conf.get("staging_directory", DEFAULT_STAGING_DIRECTORY))
         self.__setup_private_token(conf.get("private_token", DEFAULT_PRIVATE_TOKEN))
         self.__setup_persistence_directory(conf.get("persistence_directory", None))
@@ -83,6 +88,27 @@ class PulsarApp:
             log.info(NOT_WHITELIST_WARNING)
         self.toolbox = toolbox
         self.authorizer = get_authorizer(toolbox)
+
+    def __setup_sentry_integration(self, conf):
+        sentry_dsn = conf.get("sentry_dsn")
+        if sentry_dsn:
+            try:
+                import sentry_sdk
+                from sentry_sdk.integrations.logging import LoggingIntegration
+            except ImportError:
+                log.error("sentry_dsn configured, but sentry-sdk not installed")
+                sentry_sdk = None
+                LoggingIntegration = None
+            if sentry_sdk:
+                sentry_logging = LoggingIntegration(
+                    level=logging.INFO,  # Capture info and above as breadcrumbs
+                    event_level=getattr(logging, conf.get("sentry_event_level", "WARNING")),  # Send warnings as events
+                )
+                sentry_sdk.init(
+                    sentry_dsn,
+                    release=pulsar_version,
+                    integrations=[sentry_logging],
+                )
 
     def __setup_staging_directory(self, staging_directory):
         self.staging_directory = os.path.abspath(staging_directory)
