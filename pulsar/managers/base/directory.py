@@ -15,8 +15,10 @@ log = logging.getLogger(__name__)
 # should be able to replace metadata backing with non-file stuff now that
 # the abstractions are fairly well utilized.
 JOB_FILE_RETURN_CODE = "return_code"
-JOB_FILE_STANDARD_OUTPUT = "stdout"
-JOB_FILE_STANDARD_ERROR = "stderr"
+TOOL_FILE_STANDARD_OUTPUT = os.path.join("metadata", "tool_stdout")
+TOOL_FILE_STANDARD_ERROR = os.path.join("metadata", "tool_stderr")
+JOB_FILE_STANDARD_OUTPUT = os.path.join("metadata", "job_stdout")
+JOB_FILE_STANDARD_ERROR = os.path.join("metadata", "job_stderr")
 JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
@@ -34,9 +36,23 @@ class DirectoryBaseManager(BaseManager):
         return int(return_code_str) if return_code_str and return_code_str != PULSAR_UNKNOWN_RETURN_CODE else return_code_str
 
     def stdout_contents(self, job_id):
-        return self._read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size, default=b"")
+        try:
+            return self._read_job_file(job_id, TOOL_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size)
+        except FileNotFoundError:
+            # Could be old job finishing up, drop in 2024?
+            return self._read_job_file(job_id, "tool_stdout", size=self.maximum_stream_size, default=b"")
 
     def stderr_contents(self, job_id):
+        try:
+            return self._read_job_file(job_id, TOOL_FILE_STANDARD_ERROR, size=self.maximum_stream_size)
+        except FileNotFoundError:
+            # Could be old job finishing up, drop in 2024?
+            return self._read_job_file(job_id, "tool_stderr", size=self.maximum_stream_size, default=b"")
+
+    def job_stdout_contents(self, job_id):
+        return self._read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size, default=b"")
+
+    def job_stderr_contents(self, job_id):
         return self._read_job_file(job_id, JOB_FILE_STANDARD_ERROR, size=self.maximum_stream_size, default=b"")
 
     def read_command_line(self, job_id):
@@ -47,10 +63,16 @@ class DirectoryBaseManager(BaseManager):
             command_line = json.loads(command_line)
         return command_line
 
-    def _stdout_path(self, job_id):
+    def _tool_stdout_path(self, job_id):
+        return self._job_file(job_id, TOOL_FILE_STANDARD_OUTPUT)
+
+    def _tool_stderr_path(self, job_id):
+        return self._job_file(job_id, TOOL_FILE_STANDARD_ERROR)
+
+    def _job_stdout_path(self, job_id):
         return self._job_file(job_id, JOB_FILE_STANDARD_OUTPUT)
 
-    def _stderr_path(self, job_id):
+    def _job_stderr_path(self, job_id):
         return self._job_file(job_id, JOB_FILE_STANDARD_ERROR)
 
     def _return_code_path(self, job_id):
@@ -100,10 +122,10 @@ class DirectoryBaseManager(BaseManager):
             log.info("Failed to determine if job with id %s was cancelled, assuming no." % job_id)
             return False
 
-    def _open_standard_output(self, job_id):
+    def _open_job_standard_output(self, job_id):
         return self._job_directory(job_id).open_file(JOB_FILE_STANDARD_OUTPUT, 'w')
 
-    def _open_standard_error(self, job_id):
+    def _open_job_standard_error(self, job_id):
         return self._job_directory(job_id).open_file(JOB_FILE_STANDARD_ERROR, 'w')
 
     def _check_execution_with_tool_file(self, job_id, command_line):

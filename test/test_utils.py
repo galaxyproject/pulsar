@@ -177,7 +177,9 @@ class BaseManagerTestCase(TestCase):
 
     @nottest
     def _test_simple_execution(self, manager, timeout=None):
-        command = """python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stdout.flush(); sys.stderr.write(\'moo\'); sys.stderr.flush()" """
+        command = """
+python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stdout.flush(); sys.stderr.write(\'moo\'); sys.stderr.flush()" \
+2> ../metadata/tool_stderr > ../metadata/tool_stdout"""
         job_id = manager.setup_job("123", "tool1", "1.0.0")
         manager.launch(job_id, command)
 
@@ -185,8 +187,10 @@ class BaseManagerTestCase(TestCase):
         while manager.get_status(job_id) not in ['complete', 'cancelled']:
             if time_end and time.time() > time_end:
                 raise Exception("Timeout.")
-        self.assertEqual(manager.stderr_contents(job_id), b'moo')
-        self.assertEqual(manager.stdout_contents(job_id), b'Hello World!')
+        self.assertEqual(manager.job_stderr_contents(job_id), b"")
+        self.assertEqual(manager.job_stdout_contents(job_id), b"")
+        self.assertEqual(manager.stderr_contents(job_id), b"moo")
+        self.assertEqual(manager.stdout_contents(job_id), b"Hello World!")
         self.assertEqual(manager.return_code(job_id), 0)
         manager.clean(job_id)
         self.assertEqual(len(listdir(self.staging_directory)), 0)

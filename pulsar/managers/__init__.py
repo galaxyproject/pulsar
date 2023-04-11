@@ -53,15 +53,25 @@ class ManagerInterface:
     @abstractmethod
     def stdout_contents(self, job_id):
         """
-        After completion, return contents of stdout associated with specified
-        job.
+        After completion, return contents of stdout of the tool script.
         """
 
     @abstractmethod
     def stderr_contents(self, job_id):
         """
-        After completion, return contents of stderr associated with specified
-        job.
+        After completion, return contents of stderr of the tool script.
+        """
+
+    @abstractmethod
+    def job_stdout_contents(self, job_id):
+        """
+        After completion, return contents of stdout of the job as produced by the job runner.
+        """
+
+    @abstractmethod
+    def job_stderr_contents(self, job_id):
+        """
+        After completion, return contents of stderr of the job as produced by the job runner.
         """
 
     @abstractmethod
@@ -106,6 +116,12 @@ class ManagerProxy:
 
     def stderr_contents(self, *args, **kwargs):
         return self._proxied_manager.stderr_contents(*args, **kwargs)
+
+    def job_stdout_contents(self, *args, **kwargs):
+        return self._proxied_manager.job_stdout_contents(*args, **kwargs)
+
+    def job_stderr_contents(self, *args, **kwargs):
+        return self._proxied_manager.job_stderr_contents(*args, **kwargs)
 
     def kill(self, *args, **kwargs):
         return self._proxied_manager.kill(*args, **kwargs)

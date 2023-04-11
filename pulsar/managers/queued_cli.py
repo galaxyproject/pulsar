@@ -27,8 +27,8 @@ class CliQueueManager(ExternalBaseManager):
     def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
         self._check_execution_with_tool_file(job_id, command_line)
         shell, job_interface = self.__get_cli_plugins()
-        stdout_path = self._stdout_path(job_id)
-        stderr_path = self._stderr_path(job_id)
+        stdout_path = self._job_stdout_path(job_id)
+        stderr_path = self._job_stderr_path(job_id)
         job_name = self._job_name(job_id)
         command_line = self._expand_command_line(
             job_id, command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory

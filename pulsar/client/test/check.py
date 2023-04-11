@@ -226,7 +226,7 @@ def run(options):
         test_unicode = getattr(options, "test_unicode", False)  # TODO Switch this in integration tests
         legacy_galaxy_json = getattr(options, "legacy_galaxy_json", False)
         cmd_text = EXAMPLE_UNICODE_TEXT if test_unicode else "Hello World"
-        command_line_params = (
+        command_line_arguments = (
             temp_tool_path,
             temp_config_path,
             temp_input_path,
@@ -246,7 +246,8 @@ def run(options):
             "1" if legacy_galaxy_json else "0",
         )
         assert os.path.exists(temp_index_path)
-        command_line = 'python %s "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s" "%s"' % command_line_params
+        quoted_args = (f'"{a}"' for a in command_line_arguments)
+        command_line = f"python {' '.join(quoted_args)} 2> ../metadata/tool_stderr > ../metadata/tool_stdout"
         config_files = [temp_config_path]
         client_inputs = []
         client_inputs.append(ClientInput(temp_input_path, CLIENT_INPUT_PATH_TYPES.INPUT_PATH))

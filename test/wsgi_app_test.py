@@ -59,8 +59,8 @@ def test_standard_requests():
         check_response = app.get("/jobs/%s/status" % job_id)
         check_config = json.loads(check_response.body.decode("utf-8"))
         assert check_config['returncode'] == 0
-        assert check_config['stdout'] == "test_out"
-        assert check_config['stderr'] == ""
+        assert check_config['job_stdout'] == "test_out"
+        assert check_config['job_stderr'] == ""
 
         kill_response = app.put("/jobs/%s/cancel" % job_id)
         assert kill_response.body.decode("utf-8") == 'OK'

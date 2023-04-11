@@ -188,8 +188,8 @@ class Manager(BaseUnqueuedManager):
     def _proc_for_job_id(self, job_id, command_line):
         job_directory = self.job_directory(job_id)
         working_directory = job_directory.working_directory()
-        stdout = self._open_standard_output(job_id)
-        stderr = self._open_standard_error(job_id)
+        stdout = self._open_job_standard_output(job_id)
+        stderr = self._open_job_standard_error(job_id)
         proc = execute(command_line=command_line,
                        working_directory=working_directory,
                        stdout=stdout,
@@ -240,10 +240,6 @@ class CoexecutionManager(BaseUnqueuedManager):
         command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env, setup_params=setup_params)
         job_directory = self.job_directory(job_id)
         working_directory = job_directory.working_directory()
-        command_line += " > '{}' 2> '{}'".format(
-            self._stdout_path(job_id),
-            self._stderr_path(job_id),
-        )
         command_line = "cd '{}'; sh {}".format(working_directory, command_line)
         log.info("writing command line [%s] for co-execution" % command_line)
         self._write_command_line(job_id, command_line)

@@ -46,8 +46,8 @@ class CondorQueueManager(ExternalBaseManager):
         submit_params.update(self.submission_params)
         build_submit_params = dict(
             executable=job_file_path,
-            output=self._stdout_path(job_id),
-            error=self._stderr_path(job_id),
+            output=self._job_stdout_path(job_id),
+            error=self._job_stderr_path(job_id),
             user_log=log_path,
             query_params=submit_params,
         )

@@ -38,6 +38,8 @@ def __job_complete_dict(complete_status, manager, job_id):
         return_code = None
     stdout_contents = manager.stdout_contents(job_id).decode("utf-8")
     stderr_contents = manager.stderr_contents(job_id).decode("utf-8")
+    job_stdout_contents = manager.job_stdout_contents(job_id).decode("utf-8")
+    job_stderr_contents = manager.job_stderr_contents(job_id).decode("utf-8")
     job_directory = manager.job_directory(job_id)
     as_dict = dict(
         job_id=job_id,
@@ -46,6 +48,8 @@ def __job_complete_dict(complete_status, manager, job_id):
         returncode=return_code,
         stdout=stdout_contents,
         stderr=stderr_contents,
+        job_stdout=job_stdout_contents,
+        job_stderr=job_stderr_contents,
         working_directory=job_directory.working_directory(),
         metadata_directory=job_directory.metadata_directory(),
         job_directory=job_directory.job_directory,
