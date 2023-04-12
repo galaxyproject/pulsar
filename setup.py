@@ -108,6 +108,7 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     extras_require={
+        'amqp': ['kombu>=5.2.3'],
         'web': ['Paste', 'PasteScript'],
         'galaxy_extended_metadata': ['galaxy-job-execution', 'galaxy-util[template]'],
     },
