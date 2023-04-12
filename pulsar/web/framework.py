@@ -69,7 +69,7 @@ def build_func_args(func, *arg_dicts):
             if func_arg not in args and func_arg in arg_values:
                 args[func_arg] = arg_values[func_arg]
 
-    func_args = inspect.getargspec(func).args
+    func_args = inspect.getfullargspec(func).args
     for arg_dict in arg_dicts:
         add_args(func_args, arg_dict)
 
@@ -108,7 +108,7 @@ class Controller:
 
     def __build_args(self, func, args, req, environ):
         args = build_func_args(func, args, req.GET, self._app_args(args, req))
-        func_args = inspect.getargspec(func).args
+        func_args = inspect.getfullargspec(func).args
 
         for func_arg in func_args:
             if func_arg == "ip":

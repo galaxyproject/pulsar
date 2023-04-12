@@ -52,6 +52,7 @@ class ClientManagerInterface(Protocol):
 
     def shutdown(self, ensure_cleanup=False) -> None:
         """Mark client manager's work as complete and clean up resources it managed."""
+        return
 
 
 class ClientManager(ClientManagerInterface):
@@ -103,10 +104,6 @@ class ClientManager(ClientManagerInterface):
         job_manager_interface_args = dict(destination_params=destination_params, **self.job_manager_interface_args)
         job_manager_interface = job_manager_interface_class(**job_manager_interface_args)
         return self.client_class(destination_params, job_id, job_manager_interface, **self.extra_client_kwds)
-
-    def shutdown(self, ensure_cleanup=False):
-        """Mark client manager's work as complete and clean up resources it managed."""
-        pass
 
 
 try:
@@ -336,7 +333,7 @@ class ClientCacher:
     def __init_transfer_threads(self, num_transfer_threads):
         self.num_transfer_threads = num_transfer_threads
         self.transfer_queue = Queue()
-        for i in range(num_transfer_threads):
+        for _ in range(num_transfer_threads):
             t = threading.Thread(target=self._transfer_worker)
             t.daemon = True
             t.start()
