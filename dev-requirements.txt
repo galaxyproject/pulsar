@@ -1,6 +1,6 @@
 # Optional requirements used by test cases
 pycurl
-kombu
+kombu>=5.2.3
 pykube
 boto3
 
