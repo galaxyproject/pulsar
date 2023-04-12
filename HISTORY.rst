@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev1
+0.15.0.dev3
 ---------------------
 
 * Updated Galaxy+Pulsar container.
@@ -19,6 +19,10 @@ History
 * Add option ``amqp_key_prefix`` to direct task queue naming while retaining simple
   default manager names and such in container scheduling deployments.
 * Various typing and CI fixes.
+* Fixes for extra_file handling
+* Separate tool_stdio and job_stdio handling
+* Re-import MEMORY_STATEMENT.sh from Galaxy
+* Add support for logging to sentry
 
 ---------------------
 0.14.16 (2022-10-04)
