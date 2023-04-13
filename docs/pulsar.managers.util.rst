@@ -14,6 +14,14 @@ Subpackages
 Submodules
 ----------
 
+pulsar.managers.util.aws\_batch module
+--------------------------------------
+
+.. automodule:: pulsar.managers.util.aws_batch
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pulsar.managers.util.env module
 -------------------------------
 
@@ -38,6 +46,22 @@ pulsar.managers.util.kill module
     :undoc-members:
     :show-inheritance:
 
+pulsar.managers.util.process\_groups module
+-------------------------------------------
+
+.. automodule:: pulsar.managers.util.process_groups
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pulsar.managers.util.pykube\_util module
+----------------------------------------
+
+.. automodule:: pulsar.managers.util.pykube_util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pulsar.managers.util.retry module
 ---------------------------------
 
@@ -50,6 +74,14 @@ pulsar.managers.util.sudo module
 --------------------------------
 
 .. automodule:: pulsar.managers.util.sudo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pulsar.managers.util.tes module
+-------------------------------
+
+.. automodule:: pulsar.managers.util.tes
     :members:
     :undoc-members:
     :show-inheritance:

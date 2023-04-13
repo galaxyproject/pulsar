@@ -44,6 +44,14 @@ pulsar.scripts.drmaa\_launch module
     :undoc-members:
     :show-inheritance:
 
+pulsar.scripts.finish module
+----------------------------
+
+.. automodule:: pulsar.scripts.finish
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pulsar.scripts.mesos\_executor module
 -------------------------------------
 

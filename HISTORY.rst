@@ -6,23 +6,23 @@ History
 .. to_doc
 
 ---------------------
-0.15.0.dev3
+0.15.0 (2023-04-13)
 ---------------------
 
-* Updated Galaxy+Pulsar container.
+* Updated Galaxy+Pulsar container. `Pull Request 306`_
 * Rework container execution - generalize Kubernetes execution to allow it to work without a
-  message queue and to allow TES execution based on pydantic-tes (https://github.com/jmchilton/pydantic-tes).
-* Add documentation and diagrams for container execution scenarios.
+  message queue and to allow TES execution based on pydantic-tes (https://github.com/jmchilton/pydantic-tes). `Pull Request 302`_
+* Add documentation and diagrams for container execution scenarios. `Pull Request 302`_
 * Rework integration tests to use pytest more aggressively.
 * Fixes to CI to run more tests that weren't being executed because Tox was not sending
   environment variables through to pytest.
 * Add option ``amqp_key_prefix`` to direct task queue naming while retaining simple
-  default manager names and such in container scheduling deployments.
-* Various typing and CI fixes.
-* Fixes for extra_file handling
-* Separate tool_stdio and job_stdio handling
-* Re-import MEMORY_STATEMENT.sh from Galaxy
-* Add support for logging to sentry
+  default manager names and such in container scheduling deployments. `Pull Request 315`_
+* Various typing and CI fixes. `Pull Request 312`_, `Pull Request 319`_
+* Fixes for extra_file handling. `Pull Request 318`_
+* Separate tool_stdio and job_stdio handling. `Pull Request 318`_
+* Re-import MEMORY_STATEMENT.sh from Galaxy. `Pull Request 297`_
+* Add support for logging to sentry. `Pull Request 322`_
 
 ---------------------
 0.14.16 (2022-10-04)
@@ -455,6 +455,15 @@ History
 
 
 .. github_links
+
+.. _Pull Request 322: https://github.com/galaxyproject/pulsar/pull/322
+.. _Pull Request 318: https://github.com/galaxyproject/pulsar/pull/318
+.. _Pull Request 319: https://github.com/galaxyproject/pulsar/pull/319
+.. _Pull Request 312: https://github.com/galaxyproject/pulsar/pull/312
+.. _Pull Request 315: https://github.com/galaxyproject/pulsar/pull/315
+.. _Pull Request 306: https://github.com/galaxyproject/pulsar/pull/306
+.. _Pull Request 297: https://github.com/galaxyproject/pulsar/pull/297
+.. _Pull Request 302: https://github.com/galaxyproject/pulsar/pull/302
 .. _Pull Request 303: https://github.com/galaxyproject/pulsar/pull/303
 .. _Pull Request 301: https://github.com/galaxyproject/pulsar/pull/301
 .. _Pull Request 299: https://github.com/galaxyproject/pulsar/pull/299

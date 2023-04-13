@@ -4,6 +4,22 @@ pulsar.managers.util.cli.job package
 Submodules
 ----------
 
+pulsar.managers.util.cli.job.lsf module
+---------------------------------------
+
+.. automodule:: pulsar.managers.util.cli.job.lsf
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pulsar.managers.util.cli.job.pbs module
+---------------------------------------
+
+.. automodule:: pulsar.managers.util.cli.job.pbs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pulsar.managers.util.cli.job.slurm module
 -----------------------------------------
 

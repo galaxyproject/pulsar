@@ -77,14 +77,6 @@ pulsar.client.exceptions module
     :undoc-members:
     :show-inheritance:
 
-pulsar.client.interface module
-------------------------------
-
-.. automodule:: pulsar.client.interface
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pulsar.client.job\_directory module
 -----------------------------------
 
@@ -113,6 +105,14 @@ pulsar.client.path\_mapper module
 ---------------------------------
 
 .. automodule:: pulsar.client.path_mapper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pulsar.client.server\_interface module
+--------------------------------------
+
+.. automodule:: pulsar.client.server_interface
     :members:
     :undoc-members:
     :show-inheritance:
