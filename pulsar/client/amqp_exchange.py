@@ -14,6 +14,8 @@ try:
 except ImportError:
     kombu = None
 
+from packaging.version import parse as parse_version
+
 log = logging.getLogger(__name__)
 
 
@@ -37,6 +39,7 @@ ACK_UUID_RESPONSE_KEY = 'acknowledge_uuid_response'
 ACK_FORCE_NOACK_KEY = 'force_noack'
 DEFAULT_ACK_MANAGER_SLEEP = 15
 DEFAULT_REPUBLISH_TIME = 30
+MINIMUM_KOMBU_VERSION_PUBLISH_TIMEOUT = parse_version("5.2.0")
 
 
 class PulsarExchange:
@@ -68,6 +71,7 @@ class PulsarExchange:
         """
         if not kombu:
             raise Exception(KOMBU_UNAVAILABLE)
+        self.__kombu_version = parse_version(kombu.__version__)
         self.__url = url
         self.__manager_name = manager_name
         self.__amqp_key_prefix = amqp_key_prefix
@@ -271,6 +275,9 @@ class PulsarExchange:
             publish_kwds["retry_policy"]["errback"] = errback
         else:
             publish_kwds = self.__publish_kwds
+        if self.__kombu_version < MINIMUM_KOMBU_VERSION_PUBLISH_TIMEOUT:
+            log.warning(f"kombu version {kombu.__version__} does not support timeout argument to publish. Consider updating to 5.2.0 or newer")
+            publish_kwds.pop("timeout", None)
         return publish_kwds
 
     def __publish_log_prefex(self, transaction_uuid=None):
