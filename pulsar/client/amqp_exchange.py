@@ -10,6 +10,7 @@ from time import (
 
 try:
     import kombu
+    import kombu.exceptions
     from kombu import pools
 except ImportError:
     kombu = None
@@ -128,7 +129,11 @@ class PulsarExchange:
                                 connection.drain_events(timeout=self.__timeout)
                             except socket.timeout:
                                 pass
-            except (OSError, amqp.exceptions.ConnectionForced, amqp.exceptions.RecoverableChannelError, amqp.exceptions.RecoverableConnectionError) as exc:
+            except (
+                OSError,
+                amqp.exceptions.ConnectionForced,
+                kombu.exceptions.OperationalError,
+            ) as exc:
                 self.__handle_io_error(exc, heartbeat_thread)
             except BaseException:
                 log.exception("Problem consuming queue, consumer quitting in problematic fashion!")
