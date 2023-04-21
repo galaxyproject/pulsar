@@ -7,6 +7,7 @@ from time import (
     sleep,
     time,
 )
+from typing import Optional
 
 try:
     import kombu
@@ -78,6 +79,14 @@ class PulsarExchange:
             raise Exception(KOMBU_UNAVAILABLE)
         if not amqp:
             raise Exception(AMQP_UNAVAILABLE)
+        # conditional imports and type checking prevent us from doing this at the module level.
+        self.recoverable_exceptions = (
+            socket.timeout,
+            amqp.exceptions.ConnectionForced,  # e.g. connection closed on rabbitmq sigterm
+            amqp.exceptions.RecoverableConnectionError,  # connection closed
+            amqp.exceptions.RecoverableChannelError,  # publish time out
+            kombu.exceptions.OperationalError,  # ConnectionRefusedError, e.g. when getting a new connection while rabbitmq is down
+        )
         self.__url = url
         self.__manager_name = manager_name
         self.__amqp_key_prefix = amqp_key_prefix
@@ -125,15 +134,8 @@ class PulsarExchange:
                     with kombu.Consumer(connection, queues=[queue], callbacks=callbacks, accept=['json']):
                         heartbeat_thread = self.__start_heartbeat(queue_name, connection)
                         while check and connection.connected:
-                            try:
-                                connection.drain_events(timeout=self.__timeout)
-                            except socket.timeout:
-                                pass
-            except (
-                OSError,
-                amqp.exceptions.ConnectionForced,
-                kombu.exceptions.OperationalError,
-            ) as exc:
+                            connection.drain_events(timeout=self.__timeout)
+            except self.recoverable_exceptions as exc:
                 self.__handle_io_error(exc, heartbeat_thread)
             except BaseException:
                 log.exception("Problem consuming queue, consumer quitting in problematic fashion!")
@@ -175,7 +177,7 @@ class PulsarExchange:
                 log.warning('Cannot remove UUID %s from store, already removed', ack_uuid)
             message.ack()
 
-    def __handle_io_error(self, exc, heartbeat_thread):
+    def __handle_io_error(self, exc: BaseException, heartbeat_thread: Optional[threading.Thread] = None):
         # In testing, errno is None
         log.warning('Got %s, will retry: %s', exc.__class__.__name__, exc)
         try:
@@ -247,8 +249,12 @@ class PulsarExchange:
                             log.debug('UUID %s has not been acknowledged, '
                                       'republishing original message on queue %s',
                                       unack_uuid, resubmit_queue)
-                            self.publish(resubmit_queue, payload)
-                            self.publish_uuid_store.set_time(unack_uuid)
+                            try:
+                                self.publish(resubmit_queue, payload)
+                                self.publish_uuid_store.set_time(unack_uuid)
+                            except self.recoverable_exceptions as e:
+                                self.__handle_io_error(e)
+                                continue
         except Exception:
             log.exception("Problem with acknowledgement manager, leaving ack_manager method in problematic state!")
             raise
