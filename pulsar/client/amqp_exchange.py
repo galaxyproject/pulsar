@@ -7,17 +7,27 @@ from time import (
     sleep,
     time,
 )
+from typing import Optional
 
+from packaging.version import parse as parse_version
 try:
     import kombu
+    import kombu.exceptions
     from kombu import pools
 except ImportError:
     kombu = None
+
+try:
+    import amqp
+    import amqp.exceptions
+except ImportError:
+    amqp = None
 
 log = logging.getLogger(__name__)
 
 
 KOMBU_UNAVAILABLE = "Attempting to bind to AMQP message queue, but kombu dependency unavailable"
+AMQP_UNAVAILABLE = "Attempting to bind to AMQP message queue, but pyampq dependency unavailable"
 
 DEFAULT_EXCHANGE_NAME = "pulsar"
 DEFAULT_EXCHANGE_TYPE = "direct"
@@ -37,6 +47,7 @@ ACK_UUID_RESPONSE_KEY = 'acknowledge_uuid_response'
 ACK_FORCE_NOACK_KEY = 'force_noack'
 DEFAULT_ACK_MANAGER_SLEEP = 15
 DEFAULT_REPUBLISH_TIME = 30
+MINIMUM_KOMBU_VERSION_PUBLISH_TIMEOUT = parse_version("5.2.0")
 
 
 class PulsarExchange:
@@ -47,7 +58,7 @@ class PulsarExchange:
 
     Each Pulsar manager is defined solely by name in the scheme, so only one Pulsar
     should target each AMQP endpoint or care should be taken that unique
-    manager names are used across Pulsar servers targetting same AMQP endpoint -
+    manager names are used across Pulsar servers targeting the same AMQP endpoint -
     and in particular only one such Pulsar should define an default manager with
     name _default_.
     """
@@ -68,6 +79,17 @@ class PulsarExchange:
         """
         if not kombu:
             raise Exception(KOMBU_UNAVAILABLE)
+        if not amqp:
+            raise Exception(AMQP_UNAVAILABLE)
+        # conditional imports and type checking prevent us from doing this at the module level.
+        self.recoverable_exceptions = (
+            socket.timeout,
+            amqp.exceptions.ConnectionForced,  # e.g. connection closed on rabbitmq sigterm
+            amqp.exceptions.RecoverableConnectionError,  # connection closed
+            amqp.exceptions.RecoverableChannelError,  # publish time out
+            kombu.exceptions.OperationalError,  # ConnectionRefusedError, e.g. when getting a new connection while rabbitmq is down
+        )
+        self.__kombu_version = parse_version(kombu.__version__)
         self.__url = url
         self.__manager_name = manager_name
         self.__amqp_key_prefix = amqp_key_prefix
@@ -84,7 +106,7 @@ class PulsarExchange:
         self.consume_uuid_store = consume_uuid_store
         self.publish_ack_lock = threading.Lock()
         # Ack manager should sleep before checking for
-        # repbulishes, but if that changes, need to drain the
+        # republishes, but if that changes, need to drain the
         # queue once before the ack manager starts doing its
         # thing
         self.ack_manager_thread = self.__start_ack_manager()
@@ -115,11 +137,8 @@ class PulsarExchange:
                     with kombu.Consumer(connection, queues=[queue], callbacks=callbacks, accept=['json']):
                         heartbeat_thread = self.__start_heartbeat(queue_name, connection)
                         while check and connection.connected:
-                            try:
-                                connection.drain_events(timeout=self.__timeout)
-                            except socket.timeout:
-                                pass
-            except OSError as exc:
+                            connection.drain_events(timeout=self.__timeout)
+            except self.recoverable_exceptions as exc:
                 self.__handle_io_error(exc, heartbeat_thread)
             except BaseException:
                 log.exception("Problem consuming queue, consumer quitting in problematic fashion!")
@@ -161,7 +180,7 @@ class PulsarExchange:
                 log.warning('Cannot remove UUID %s from store, already removed', ack_uuid)
             message.ack()
 
-    def __handle_io_error(self, exc, heartbeat_thread):
+    def __handle_io_error(self, exc: BaseException, heartbeat_thread: Optional[threading.Thread] = None):
         # In testing, errno is None
         log.warning('Got %s, will retry: %s', exc.__class__.__name__, exc)
         try:
@@ -233,8 +252,12 @@ class PulsarExchange:
                             log.debug('UUID %s has not been acknowledged, '
                                       'republishing original message on queue %s',
                                       unack_uuid, resubmit_queue)
-                            self.publish(resubmit_queue, payload)
-                            self.publish_uuid_store.set_time(unack_uuid)
+                            try:
+                                self.publish(resubmit_queue, payload)
+                                self.publish_uuid_store.set_time(unack_uuid)
+                            except self.recoverable_exceptions as e:
+                                self.__handle_io_error(e)
+                                continue
         except Exception:
             log.exception("Problem with acknowledgement manager, leaving ack_manager method in problematic state!")
             raise
@@ -271,6 +294,9 @@ class PulsarExchange:
             publish_kwds["retry_policy"]["errback"] = errback
         else:
             publish_kwds = self.__publish_kwds
+        if self.__kombu_version < MINIMUM_KOMBU_VERSION_PUBLISH_TIMEOUT:
+            log.warning(f"kombu version {kombu.__version__} does not support timeout argument to publish. Consider updating to 5.2.0 or newer")
+            publish_kwds.pop("timeout", None)
         return publish_kwds
 
     def __publish_log_prefex(self, transaction_uuid=None):

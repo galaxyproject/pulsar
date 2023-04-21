@@ -89,6 +89,10 @@
 ## kombu.Connection's drain_events() method.
 #amqp_consumer_timeout: 0.2
 
+## publishing messages to the queue may hang if the connection becomes invalid.
+## this value is used as the timeout argument to the producer.publish function.
+#amqp_publish_timeout: 2.0
+
 # AMQP does not guarantee that a published message is received by the AMQP
 # server, so Pulsar can request that the consumer acknowledge messages and will
 # resend them if acknowledgement is not received after a configurable timeout

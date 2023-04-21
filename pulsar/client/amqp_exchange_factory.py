@@ -11,7 +11,7 @@ def get_exchange(url, manager_name, params):
         manager_name=manager_name,
         amqp_key_prefix=params.get("amqp_key_prefix"),
         connect_ssl=connect_ssl,
-        publish_kwds=parse_amqp_publish_kwds(params)
+        publish_kwds=parse_amqp_publish_kwds(params),
     )
     if params.get('amqp_acknowledge', False):
         exchange_kwds.update(parse_ack_kwds(params, manager_name))

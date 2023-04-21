@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 
 TYPED_PARAMS = {
     "amqp_consumer_timeout": lambda val: None if str(val) == "None" else float(val),
+    "amqp_publish_timeout": lambda val: None if str(val) == "None" else float(val),
     "amqp_publish_retry": asbool,
     "amqp_publish_retry_max_retries": int,
     "amqp_publish_retry_interval_start": int,
