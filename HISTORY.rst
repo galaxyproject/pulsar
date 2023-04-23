@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.15.2.dev0 (2023-04-23)
+---------------------
+* Fix Pulsar and Pulsar client reconnection to AMQP server. `Pull Request 324`_
+
+---------------------
 0.15.1 (2023-04-13)
 ---------------------
 * No changes, working around pypi isssue.
@@ -461,6 +466,7 @@ History
 
 .. github_links
 
+.. _Pull Request 324: https://github.com/galaxyproject/pulsar/pull/324
 .. _Pull Request 322: https://github.com/galaxyproject/pulsar/pull/322
 .. _Pull Request 318: https://github.com/galaxyproject/pulsar/pull/318
 .. _Pull Request 319: https://github.com/galaxyproject/pulsar/pull/319
