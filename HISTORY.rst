@@ -5,9 +5,9 @@ History
 
 .. to_doc
 
----------------------
+--------------------------
 0.15.2.dev0 (2023-04-23)
----------------------
+--------------------------
 * Fix Pulsar and Pulsar client reconnection to AMQP server. `Pull Request 324`_
 
 ---------------------
