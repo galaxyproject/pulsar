@@ -137,7 +137,10 @@ class PulsarExchange:
                     with kombu.Consumer(connection, queues=[queue], callbacks=callbacks, accept=['json']):
                         heartbeat_thread = self.__start_heartbeat(queue_name, connection)
                         while check and connection.connected:
-                            connection.drain_events(timeout=self.__timeout)
+                            try:
+                                connection.drain_events(timeout=self.__timeout)
+                            except socket.timeout:
+                                pass
             except self.recoverable_exceptions as exc:
                 self.__handle_io_error(exc, heartbeat_thread)
             except BaseException:
