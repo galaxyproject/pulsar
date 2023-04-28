@@ -6,6 +6,11 @@ History
 .. to_doc
 
 --------------------------
+0.15.2.dev1 (2023-04-28)
+--------------------------
+* Reduce verbosity of timeout exception catching. `Pull Request 325`_
+
+--------------------------
 0.15.2.dev0 (2023-04-23)
 --------------------------
 * Fix Pulsar and Pulsar client reconnection to AMQP server. `Pull Request 324`_
@@ -466,6 +471,7 @@ History
 
 .. github_links
 
+.. _Pull Request 325: https://github.com/galaxyproject/pulsar/pull/325
 .. _Pull Request 324: https://github.com/galaxyproject/pulsar/pull/324
 .. _Pull Request 322: https://github.com/galaxyproject/pulsar/pull/322
 .. _Pull Request 318: https://github.com/galaxyproject/pulsar/pull/318
