@@ -5,15 +5,11 @@ History
 
 .. to_doc
 
---------------------------
-0.15.2.dev1 (2023-04-28)
---------------------------
-* Reduce verbosity of timeout exception catching. `Pull Request 325`_
-
---------------------------
-0.15.2.dev0 (2023-04-23)
---------------------------
+---------------------
+0.15.2 (2023-05-02)
+---------------------
 * Fix Pulsar and Pulsar client reconnection to AMQP server. `Pull Request 324`_
+* Reduce verbosity of timeout exception catching. `Pull Request 325`_
 
 ---------------------
 0.15.1 (2023-04-13)
