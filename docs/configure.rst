@@ -112,6 +112,34 @@ You can consult the `Kombu documentation
 <http://kombu.readthedocs.org/en/latest/reference/kombu.connection.html>`__ for
 even more information.
 
+User Authentication/Authorization
+`````````````
+
+You can configure Pulsar to authenticate user during request processing and check
+if this user is allowed to run a job.
+
+Various authentication/authorization plugins can be configured in `app.yml` to
+do that and plugin parameters depend on auth type. For example, the following
+configuration uses `oidc` plugin for authentication and `userlist` for
+authorization::
+
+    user_auth:
+      authentication:
+        - type: oidc
+          oidc_jwks_url: https://login.microsoftonline.com/xxx/discovery/v2.0/keys
+          oidc_provider: azure
+          oidc_username_in_token: preferred_username
+          oidc_username_template: *.
+      authorization:
+        - type: userlist
+          userlist_allowed_users:
+            - xxx
+
+
+see `plugins folder
+<https://github.com/galaxyproject/pulsar/blob/master/pulsar/user_auth/methods>`_
+for available plugins and their parameters.
+
 Customizing the Pulsar Environment (\*nix only)
 -----------------------------------------------
 
