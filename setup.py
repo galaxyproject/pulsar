@@ -75,6 +75,8 @@ setup(
         'pulsar.messaging',
         'pulsar.scripts',
         'pulsar.tools',
+        'pulsar.user_auth',
+        'pulsar.user_auth.methods',
         'pulsar.util',
         'pulsar.util.pastescript',
         'pulsar.web',
