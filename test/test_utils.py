@@ -32,6 +32,7 @@ from simplejobfiles.app import JobFilesApp
 from pulsar.managers.util import drmaa
 from pulsar.tools import ToolBox
 from pulsar.managers.base import JobDirectory
+from pulsar.user_auth.manager import UserAuthManager
 
 from unittest import TestCase, skip
 
@@ -171,6 +172,7 @@ class BaseManagerTestCase(TestCase):
         self.app = minimal_app_for_managers()
         self.staging_directory = self.app.staging_directory
         self.authorizer = self.app.authorizer
+        self.user_auth_manager = self.app.user_auth_manager
 
     def tearDown(self):
         rmtree(self.staging_directory)
@@ -229,11 +231,24 @@ def minimal_app_for_managers():
     staging_directory = temp_directory_persist(prefix='minimal_app_')
     rmtree(staging_directory)
     authorizer = TestAuthorizer()
+    user_auth_manager = get_test_user_auth_manager()
     return Bunch(staging_directory=staging_directory,
                  authorizer=authorizer,
                  job_metrics=NullJobMetrics(),
                  dependency_manager=TestDependencyManager(),
+                 user_auth_manager=user_auth_manager,
                  object_store=object())
+
+
+def get_test_user_auth_manager():
+    config = {"user_auth": {"authentication": [{"type": "allow_all"}], "authorization": [{"type": "allow_all"}]}}
+    return UserAuthManager(config)
+
+
+def get_failing_user_auth_manager():
+    config = {"user_auth": {"authentication": [{"type": "allow_all"}],
+                            "authorization": [{"type": "userlist", "userlist_allowed_users": []}]}}
+    return UserAuthManager(config)
 
 
 class NullJobMetrics:
@@ -286,11 +301,11 @@ class RestartablePulsarAppProvider:
     @contextmanager
     def new_app(self):
         with test_pulsar_app(
-            self.global_conf,
-            self.app_conf,
-            self.test_conf,
-            staging_directory=self.staging_directory,
-            web=self.web,
+                self.global_conf,
+                self.app_conf,
+                self.test_conf,
+                staging_directory=self.staging_directory,
+                web=self.web,
         ) as app:
             yield app
 
@@ -313,11 +328,11 @@ def restartable_pulsar_app_provider(**kwds):
 @nottest
 @contextmanager
 def test_pulsar_app(
-    global_conf={},
-    app_conf={},
-    test_conf={},
-    staging_directory=None,
-    web=True,
+        global_conf={},
+        app_conf={},
+        test_conf={},
+        staging_directory=None,
+        web=True,
 ):
     clean_staging_directory = False
     if staging_directory is None:
@@ -424,7 +439,6 @@ def skip_without_drmaa(f):
 
 
 def _which(program):
-
     def is_exe(fpath):
         return isfile(fpath) and access(fpath, X_OK)
 
@@ -491,7 +505,6 @@ def dump_other_threads():
 # Extracted from: https://github.com/python/cpython/blob/
 # 937ee9e745d7ff3c2010b927903c0e2a83623324/Lib/test/support/__init__.py
 class EnvironmentVarGuard:
-
     """Class to help protect the environment variable properly.  Can be used as
     a context manager."""
 

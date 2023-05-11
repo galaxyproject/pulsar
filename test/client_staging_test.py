@@ -11,6 +11,7 @@ from galaxy.tool_util.deps.requirements import ToolRequirement
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
 TEST_REQUIREMENT_2 = ToolRequirement("test2", "1.0")
 TEST_ENV_1 = dict(name="x", value="y")
+TEST_TOKEN_ENDPOINT = "endpoint"
 
 
 class TestStager(TempDirectoryTestCase):
@@ -153,6 +154,7 @@ class MockClient:
         self.default_file_action = "transfer"
         self.action_config_path = None
         self.files_endpoint = None
+        self.token_endpoint = TEST_TOKEN_ENDPOINT
         self.expected_tool = tool
         self.job_id = "1234"
         self.expected_command_line = None
@@ -176,11 +178,13 @@ class MockClient:
         assert tool_version == self.expected_tool.version
         return {}
 
-    def launch(self, command_line, dependencies_description, job_config={}, remote_staging={}, env=[], dynamic_file_sources=None):
+    def launch(self, command_line, dependencies_description, job_config={}, remote_staging={}, env=[], dynamic_file_sources=None,
+               token_endpoint=None):
         if self.expected_command_line is not None:
             message = "Excepected command line {}, got {}".format(self.expected_command_line, command_line)
             assert self.expected_command_line == command_line, message
         assert dependencies_description.requirements == [TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]
+        assert token_endpoint == TEST_TOKEN_ENDPOINT
         assert env == [TEST_ENV_1]
 
     def expect_command_line(self, expected_command_line):
