@@ -79,7 +79,15 @@ class PulsarServerOutputCollector:
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
         description = "staging out file {} via {}".format(pulsar_path, action)
-        self.action_executor.execute(lambda: action.write_from_path(pulsar_path), description)
+
+        if not action.path_exists():
+            log.warn(
+                f"Output not collectable. File does not exist: {pulsar_path}")
+        else:
+            self.action_executor.execute(
+                lambda: action.write_from_path(pulsar_path),
+                description,
+            )
 
 
 def __pulsar_outputs(job_directory):
