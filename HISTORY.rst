@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.15.3 (2023-07-20)
+---------------------
+* Fix Pulsar consumer state after ``ConnectionResetError``. `Pull Request 331`_
+* User auth plugins (thanks to `@SergeyYakubov`_). `Pull Request 321`_
+
+---------------------
 0.15.2 (2023-05-02)
 ---------------------
 * Fix Pulsar and Pulsar client reconnection to AMQP server. `Pull Request 324`_
@@ -467,6 +473,8 @@ History
 
 .. github_links
 
+.. _Pull Request 331: https://github.com/galaxyproject/pulsar/pull/331
+.. _Pull Request 321: https://github.com/galaxyproject/pulsar/pull/321
 .. _Pull Request 325: https://github.com/galaxyproject/pulsar/pull/325
 .. _Pull Request 324: https://github.com/galaxyproject/pulsar/pull/324
 .. _Pull Request 322: https://github.com/galaxyproject/pulsar/pull/322
@@ -612,3 +620,4 @@ History
 .. _@tirkarthi: https://github.com/tirkarthi
 .. _@natefoo: https://github.com/natefoo
 .. _@nsoranzo: https://github.com/nsoranzo
+.. _@SergeyYakubov: https://github.com/SergeyYakubov

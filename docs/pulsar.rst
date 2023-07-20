@@ -13,6 +13,7 @@ Subpackages
     pulsar.messaging
     pulsar.scripts
     pulsar.tools
+    pulsar.user_auth
     pulsar.util
     pulsar.web
 
