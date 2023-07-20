@@ -83,6 +83,7 @@ class PulsarExchange:
             raise Exception(AMQP_UNAVAILABLE)
         # conditional imports and type checking prevent us from doing this at the module level.
         self.recoverable_exceptions = (
+            ConnectionResetError,  # https://github.com/galaxyproject/pulsar/issues/328
             socket.timeout,
             amqp.exceptions.ConnectionForced,  # e.g. connection closed on rabbitmq sigterm
             amqp.exceptions.RecoverableConnectionError,  # connection closed
