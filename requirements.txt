@@ -2,7 +2,7 @@ webob
 psutil
 PasteDeploy
 pyyaml
-galaxy-job-metrics>=19.9.0
+galaxy-job-metrics>=21.9.0
 galaxy-objectstore>=19.9.0
 galaxy-tool-util>=19.9.0
 galaxy-util>=22.1.2
