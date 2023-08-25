@@ -84,6 +84,7 @@ class PulsarExchange:
         # conditional imports and type checking prevent us from doing this at the module level.
         self.recoverable_exceptions = (
             ConnectionResetError,  # https://github.com/galaxyproject/pulsar/issues/328
+            TimeoutError,
             socket.timeout,
             amqp.exceptions.ConnectionForced,  # e.g. connection closed on rabbitmq sigterm
             amqp.exceptions.RecoverableConnectionError,  # connection closed
@@ -140,7 +141,7 @@ class PulsarExchange:
                         while check and connection.connected:
                             try:
                                 connection.drain_events(timeout=self.__timeout)
-                            except socket.timeout:
+                            except (socket.timeout, TimeoutError):
                                 pass
             except self.recoverable_exceptions as exc:
                 self.__handle_io_error(exc, heartbeat_thread)
