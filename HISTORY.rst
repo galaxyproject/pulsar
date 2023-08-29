@@ -6,6 +6,13 @@ History
 .. to_doc
 
 ---------------------
+0.15.4 (2023-08-29)
+---------------------
+* Add .readthedocs.yaml (thanks to `@natefoo`_). `Pull Request 332`_
+* Add explicit TimeoutError catching (thanks to `@mvdbeek`_). `Pull Request 337`_
+* Update galaxy-job-metrics requirement (thanks to `@cat-bro`_). `Pull Request 334`_
+
+---------------------
 0.15.3 (2023-07-20)
 ---------------------
 * Fix Pulsar consumer state after ``ConnectionResetError``. `Pull Request 331`_
@@ -473,6 +480,9 @@ History
 
 .. github_links
 
+.. _Pull Request 332: https://github.com/galaxyproject/pulsar/pull/332
+.. _Pull Request 337: https://github.com/galaxyproject/pulsar/pull/337
+.. _Pull Request 334: https://github.com/galaxyproject/pulsar/pull/334
 .. _Pull Request 331: https://github.com/galaxyproject/pulsar/pull/331
 .. _Pull Request 321: https://github.com/galaxyproject/pulsar/pull/321
 .. _Pull Request 325: https://github.com/galaxyproject/pulsar/pull/325
@@ -621,3 +631,4 @@ History
 .. _@natefoo: https://github.com/natefoo
 .. _@nsoranzo: https://github.com/nsoranzo
 .. _@SergeyYakubov: https://github.com/SergeyYakubov
+.. _@cat-bro: https://github.com/cat-bro

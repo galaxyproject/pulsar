@@ -5,13 +5,14 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
-    pulsar.util.pastescript
+   pulsar.util.pastescript
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.util
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

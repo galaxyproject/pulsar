@@ -5,6 +5,6 @@ Module contents
 ---------------
 
 .. automodule:: pulsar.managers.util.condor
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
