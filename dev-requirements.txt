@@ -12,7 +12,8 @@ coverage
 stopit
 
 # For dev
-sphinx==1.2
+sphinx
+sphinxcontrib-apidoc
 
 # Used for code checking.
 pyflakes
