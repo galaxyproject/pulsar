@@ -86,6 +86,9 @@ class PulsarExchange:
             ConnectionResetError,  # https://github.com/galaxyproject/pulsar/issues/328
             TimeoutError,
             socket.timeout,
+            # Needed as long as py-ampq raises plain OSError:
+            # https://github.com/celery/py-amqp/blob/a92dd037712b5b7b1622f4f9d83157d095c90910/amqp/transport.py#L584
+            OSError,
             amqp.exceptions.ConnectionForced,  # e.g. connection closed on rabbitmq sigterm
             amqp.exceptions.RecoverableConnectionError,  # connection closed
             amqp.exceptions.RecoverableChannelError,  # publish time out
