@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.15.5 (2023-09-15)
+---------------------
+* Add catchall OSError to recoverable exceptions (thanks to `@mvdbeek`_).
+  `Pull Request 338`_
+
+---------------------
 0.15.4 (2023-08-29)
 ---------------------
 * Add .readthedocs.yaml (thanks to `@natefoo`_). `Pull Request 332`_
@@ -480,6 +486,7 @@ History
 
 .. github_links
 
+.. _Pull Request 338: https://github.com/galaxyproject/pulsar/pull/338
 .. _Pull Request 332: https://github.com/galaxyproject/pulsar/pull/332
 .. _Pull Request 337: https://github.com/galaxyproject/pulsar/pull/337
 .. _Pull Request 334: https://github.com/galaxyproject/pulsar/pull/334
