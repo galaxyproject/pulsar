@@ -67,14 +67,23 @@ def post_file(url, path):
         # pycurl doesn't always produce a great exception for this,
         # wrap it in a better one.
         message = NO_SUCH_FILE_MESSAGE % (path, url)
-        raise Exception(message)
+        raise FileNotFoundError(message)
     c = _new_curl_object_for_url(url)
     c.setopt(c.HTTPPOST, [("file", (c.FORM_FILE, path.encode('ascii')))])
-    c.perform()
+    try:
+        c.perform()
+    except error as exc:
+        raise PulsarClientTransportError(
+            code=_error_curl_to_pulsar(exc.args[0]),
+            message=POST_FAILED_MESSAGE % (url, exc.args[0]),
+            transport_code=exc.args[0],
+            transport_message=exc.args[1])
     status_code = c.getinfo(HTTP_CODE)
     if int(status_code) != 200:
-        message = POST_FAILED_MESSAGE % (url, status_code)
-        raise Exception(message)
+        raise PulsarClientTransportError(
+            code=PulsarClientTransportError.NOT_200,
+            message=POST_FAILED_MESSAGE % (url, status_code),
+            transport_code=status_code)
 
 
 def get_file(url, path):

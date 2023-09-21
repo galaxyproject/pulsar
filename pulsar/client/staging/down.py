@@ -9,6 +9,7 @@ from os.path import (
 )
 
 from ..action_mapper import FileActionMapper
+from ..exceptions import PulsarClientTransportError
 from ..staging import COMMAND_VERSION_FILENAME
 
 log = getLogger(__name__)
@@ -207,6 +208,8 @@ class ResultsCollector:
         log.info("collecting output {} with action {}".format(name, action))
         try:
             return self.output_collector.collect_output(self, output_type, action, name)
+        except PulsarClientTransportError:
+            raise
         except Exception as e:
             if _allow_collect_failure(output_type):
                 log.warning(
