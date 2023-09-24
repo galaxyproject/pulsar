@@ -97,7 +97,7 @@ available (given the need to test commands with DRMAA, condor, sudo, etc...).::
 This will mount your copy of `pulsar` in a Docker container preconfigured with all
 optional dependencies needed to run a wide range of integration tests. If Docker
 is to much of an ordeal many of Pulsar's tests can be executed by simply running 
-``nosetests`` from within an ``virtualenv`` configured as explained above.::
+``pytest`` from within an ``virtualenv`` configured as explained above.::
 
     $ make tests
 
