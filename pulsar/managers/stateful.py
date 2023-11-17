@@ -11,16 +11,17 @@ except ImportError:
     # If galaxy-tool-util or Galaxy 19.09 present.
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
 
-import logging
-import requests
 from pathlib import Path
+import requests
 
+import logging
 
 from pulsar.client.util import filter_destination_params
 from pulsar.managers import (
     ManagerProxy,
     status,
 )
+from pulsar.managers.base.directory import  TOOL_FILE_STANDARD_ERROR, TOOL_FILE_STANDARD_OUTPUT
 from pulsar.managers.util.retry import RetryActionExecutor
 from .staging import (
     postprocess,
@@ -47,8 +48,6 @@ DEFAULT_MIN_POLLING_INTERVAL = 0.5
 DEFAULT_SEND_STDOUT = False
 DEFAULT_STDOUT_INTERVAL = 3.0
 
-
-
 class StatefulManagerProxy(ManagerProxy):
     """
     """
@@ -58,17 +57,16 @@ class StatefulManagerProxy(ManagerProxy):
         min_polling_interval = float(manager_options.get("min_polling_interval", DEFAULT_MIN_POLLING_INTERVAL))
         preprocess_retry_action_kwds = filter_destination_params(manager_options, "preprocess_action_")
         postprocess_retry_action_kwds = filter_destination_params(manager_options, "postprocess_action_")
+        self.send_stdout = bool(manager_options.get("send_stdout_update", DEFAULT_SEND_STDOUT))
+        self.stdout_update_interval = datetime.timedelta(0, float(manager_options.get("stdout_update_interval", DEFAULT_STDOUT_INTERVAL)))
         self.__preprocess_action_executor = RetryActionExecutor(**preprocess_retry_action_kwds)
         self.__postprocess_action_executor = RetryActionExecutor(**postprocess_retry_action_kwds)
         self.min_polling_interval = datetime.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs.from_manager(manager)
         self.__state_change_callback = self._default_status_change_callback
         self.__monitor = None
-        self.send_stdout = bool(manager_options.get("send_stdout_update", DEFAULT_SEND_STDOUT))
-        self.stdout_update_interval = datetime.timedelta(0, float(manager_options.get("stdout_update_interval", DEFAULT_STDOUT_INTERVAL)))
         self.__stdout_file_pointer_map = dict()
         self.__stderr_file_pointer_map = dict()
-
 
     def set_state_change_callback(self, state_change_callback):
         self.__state_change_callback = state_change_callback
@@ -85,6 +83,12 @@ class StatefulManagerProxy(ManagerProxy):
     @property
     def name(self):
         return self._proxied_manager.name
+
+    def is_live_stdout_update(self):
+        """
+        Whether this manager is sending Stdout while the job is running (true if so)
+        """
+        return self.send_stdout
 
     def setup_job(self, *args, **kwargs):
         job_id = self._proxied_manager.setup_job(*args, **kwargs)
@@ -147,6 +151,8 @@ class StatefulManagerProxy(ManagerProxy):
             )
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
+            self.__stdout_file_pointer_map[job_id] = 0
+            self.__stderr_file_pointer_map[job_id] = 0
             self.active_jobs.activate_job(job_id)
         except Exception as e:
             with job_directory.lock("status"):
@@ -210,7 +216,6 @@ class StatefulManagerProxy(ManagerProxy):
                     break
         if self.send_stdout:
             new_thread_for_job(self, "stdout_update", job_id, do_stdout_update, daemon=False)
-
 
     def get_status(self, job_id):
         """ Compute status used proxied manager and handle state transitions
@@ -438,11 +443,12 @@ class ManagerMonitor:
         iteration_start = datetime.datetime.now()
         for active_job_id in active_job_ids:
             try:
-                self._check_active_job_status(active_job_id)
+                job_status = self._check_active_job_status(active_job_id)
             except Exception:
                 log.exception("Failed checking active job status for job_id %s" % active_job_id)
         iteration_end = datetime.datetime.now()
         iteration_length = iteration_end - iteration_start
+
         if iteration_length < self.stateful_manager.min_polling_interval:
             to_sleep = (self.stateful_manager.min_polling_interval - iteration_length)
             microseconds = to_sleep.microseconds + (to_sleep.seconds + to_sleep.days * 24 * 3600) * (10 ** 6)
@@ -452,7 +458,7 @@ class ManagerMonitor:
     def _check_active_job_status(self, active_job_id):
         # Manager itself will handle state transitions when status changes,
         # just need to poll get_status
-        self.stateful_manager.get_status(active_job_id)
+        return self.stateful_manager.get_status(active_job_id)
 
 
 def new_thread_for_job(manager, action, job_id, target, daemon):
