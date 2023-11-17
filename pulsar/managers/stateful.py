@@ -12,6 +12,9 @@ except ImportError:
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
 
 import logging
+import requests
+from pathlib import Path
+
 
 from pulsar.client.util import filter_destination_params
 from pulsar.managers import (
@@ -41,6 +44,9 @@ ACTIVE_STATUS_PREPROCESSING = "preprocessing"
 ACTIVE_STATUS_LAUNCHED = "launched"
 
 DEFAULT_MIN_POLLING_INTERVAL = 0.5
+DEFAULT_SEND_STDOUT = False
+DEFAULT_STDOUT_INTERVAL = 3.0
+
 
 
 class StatefulManagerProxy(ManagerProxy):
@@ -58,6 +64,11 @@ class StatefulManagerProxy(ManagerProxy):
         self.active_jobs = ActiveJobs.from_manager(manager)
         self.__state_change_callback = self._default_status_change_callback
         self.__monitor = None
+        self.send_stdout = bool(manager_options.get("send_stdout_update", DEFAULT_SEND_STDOUT))
+        self.stdout_update_interval = datetime.timedelta(0, float(manager_options.get("stdout_update_interval", DEFAULT_STDOUT_INTERVAL)))
+        self.__stdout_file_pointer_map = dict()
+        self.__stderr_file_pointer_map = dict()
+
 
     def set_state_change_callback(self, state_change_callback):
         self.__state_change_callback = state_change_callback
@@ -148,6 +159,59 @@ class StatefulManagerProxy(ManagerProxy):
     def handle_failure_before_launch(self, job_id):
         self.__state_change_callback(status.FAILED, job_id)
 
+    def post_remote_output(self, job_id, force_empty=False):
+        """
+        Send output file back to Galaxy server via Galaxy API
+        """
+        job_directory = self._proxied_manager.job_directory(job_id)
+        try:
+            files_endpoint = job_directory.load_metadata("launch_config")["remote_staging"]["action_mapper"][
+                "files_endpoint"]
+            galaxy_file_dir = Path(job_directory.load_metadata("launch_config")["remote_staging"]["client_outputs"][
+                                       "working_directory"]).parent / "outputs"
+            for filename in [TOOL_FILE_STANDARD_OUTPUT, TOOL_FILE_STANDARD_ERROR]:
+                file_contents = self._prepare_file_output(job_id, job_directory, filename)
+                if file_contents != "" or force_empty:
+                    self._post_file(file_contents, galaxy_file_dir / (Path(filename).name), files_endpoint)
+        except Exception as e:
+            log.error("Error sending output to Galaxy server while job is running. Error: %s", e)
+
+    def _prepare_file_output(self, job_id, job_directory, filename):
+        file_output = job_directory.open_file(filename, mode="rb")
+        if filename == TOOL_FILE_STANDARD_ERROR:
+            file_output.seek(self.__stderr_file_pointer_map.get(job_id, 0))
+            diff = file_output.read()
+            self.__stderr_file_pointer_map[job_id] = self.__stderr_file_pointer_map[job_id] + len(diff)
+            return diff.decode("utf-8")
+        else:
+            file_output.seek(self.__stdout_file_pointer_map.get(job_id, 0))
+            diff = file_output.read()
+            self.__stdout_file_pointer_map[job_id] = self.__stdout_file_pointer_map[job_id] + len(diff)
+            return diff.decode("utf-8")
+
+    def _post_file(self, remote_file, path, endpoint):
+        file = {"file": (path.name, (remote_file))}
+        values = {"path": path, "file_type": "output"}
+        r = requests.post(url=endpoint, files=file, data=values)
+        log.debug("Successfully posted file to %s. Status Code: %d", path, r.status_code)
+
+    def stdout_update(self, job_id):
+        def do_stdout_update():
+            while self._proxied_manager.get_status(job_id) == status.RUNNING:
+                try:
+                    microseconds = self.stdout_update_interval.microseconds \
+                                   + (self.stdout_update_interval.seconds + self.stdout_update_interval.days * 24 * 3600) * (
+                                           10 ** 6)
+                    total_seconds = microseconds / (10 ** 6)
+                    time.sleep(total_seconds)
+                    self.post_remote_output(job_id)
+                except Exception as e:
+                    log.error("Error doing stdout update for job id: %s. Error: %s", job_id, e)
+                    break
+        if self.send_stdout:
+            new_thread_for_job(self, "stdout_update", job_id, do_stdout_update, daemon=False)
+
+
     def get_status(self, job_id):
         """ Compute status used proxied manager and handle state transitions
         and track additional state information needed.
@@ -163,7 +227,7 @@ class StatefulManagerProxy(ManagerProxy):
             self.__deactivate(job_id, proxy_status)
         elif state_change == "to_running":
             self.__state_change_callback(status.RUNNING, job_id)
-
+            self.stdout_update(job_id)
         return self.__status(job_directory, proxy_status)
 
     def __proxy_status(self, job_directory, job_id):
@@ -220,6 +284,7 @@ class StatefulManagerProxy(ManagerProxy):
             postprocess_success = False
             job_directory = self._proxied_manager.job_directory(job_id)
             try:
+                self.post_remote_output(job_id, True)
                 postprocess_success = postprocess(job_directory, self.__postprocess_action_executor)
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
@@ -227,6 +292,9 @@ class StatefulManagerProxy(ManagerProxy):
             if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
                 final_status = status.FAILED
             self.__state_change_callback(final_status, job_id)
+            self.__stdout_file_pointer_map.pop(job_id)
+            self.__stderr_file_pointer_map.pop(job_id)
+
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
     def shutdown(self, timeout=None):
