@@ -5,6 +5,8 @@ and message queue.
 import logging
 import os
 
+from galaxy.util import unicodify
+
 from pulsar import __version__ as pulsar_version
 from pulsar.client.setup_handler import build_job_config
 from pulsar.managers import (
@@ -36,10 +38,10 @@ def __job_complete_dict(complete_status, manager, job_id):
     return_code = manager.return_code(job_id)
     if return_code == PULSAR_UNKNOWN_RETURN_CODE:
         return_code = None
-    stdout_contents = manager.stdout_contents(job_id).decode("utf-8")
-    stderr_contents = manager.stderr_contents(job_id).decode("utf-8")
-    job_stdout_contents = manager.job_stdout_contents(job_id).decode("utf-8")
-    job_stderr_contents = manager.job_stderr_contents(job_id).decode("utf-8")
+    stdout_contents = unicodify(manager.stdout_contents(job_id))
+    stderr_contents = unicodify(manager.stderr_contents(job_id))
+    job_stdout_contents = unicodify(manager.job_stdout_contents(job_id).decode("utf-8"))
+    job_stderr_contents = unicodify(manager.job_stderr_contents(job_id).decode("utf-8"))
     job_directory = manager.job_directory(job_id)
     as_dict = dict(
         job_id=job_id,
