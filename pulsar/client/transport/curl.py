@@ -2,6 +2,7 @@ import io
 import logging
 import os.path
 
+import requests
 try:
     import pycurl
     from pycurl import (
@@ -77,10 +78,18 @@ def post_file(url, path):
         raise Exception(message)
 
 
+def get_size(url):
+    response = requests.head(url)
+    return response.headers["content-length"]
+
+
 def get_file(url, path):
     if path and os.path.exists(path):
-        buf = _open_output(path, 'ab')
         size = os.path.getsize(path)
+        if size and get_size(url) == size:
+            # Already got the whole file, fixes https://github.com/galaxyproject/pulsar/issues/340
+            return
+        buf = _open_output(path, 'ab')
         success_codes = (200, 206)
     else:
         buf = _open_output(path)
