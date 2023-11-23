@@ -1,9 +1,6 @@
 import logging
 
-try:
-    import requests
-except ImportError:
-    requests = None  # type: ignore
+import requests
 
 try:
     import requests_toolbelt

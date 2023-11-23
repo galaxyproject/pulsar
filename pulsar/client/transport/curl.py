@@ -2,6 +2,7 @@ import io
 import logging
 import os.path
 
+import requests
 try:
     import pycurl
     from pycurl import (
@@ -77,15 +78,38 @@ def post_file(url, path):
         raise Exception(message)
 
 
-def get_file(url, path):
-    if path and os.path.exists(path):
-        buf = _open_output(path, 'ab')
+def get_size(url) -> int:
+    response = requests.head(url)
+    if response.status_code >= 299:
+        log.warning("Response to HEAD request for '%s' with status code %s, cannot resume download", url, response.status_code)
+        return -1
+    try:
+        return int(response.headers["content-length"])
+    except KeyError:
+        log.error("'content-length' header not sent for '%s', cannot resume download", url)
+        return -1
+
+
+def get_file(url, path: str):
+    success_codes = [200]
+    size = 0
+    if os.path.exists(path):
         size = os.path.getsize(path)
-        success_codes = (200, 206)
+        remote_size = get_size(url)
+        if size and remote_size == size:
+            # Already got the whole file, fixes https://github.com/galaxyproject/pulsar/issues/340
+            return
+        if remote_size == -1:
+            # Don't know how large remote file is, so we'll have to start over
+            size = 0
+            buf = _open_output(path)
+        else:
+            # We got some data left to download
+            buf = _open_output(path, 'ab')
+            success_codes = [200, 206]
     else:
+        # definitely a new download
         buf = _open_output(path)
-        size = 0
-        success_codes = (200,)
     try:
         c = _new_curl_object_for_url(url)
         c.setopt(c.WRITEFUNCTION, buf.write)
