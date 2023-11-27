@@ -306,6 +306,9 @@ class BaseAction:
     def path(self):
         return self.source.get("path")
 
+    def path_exists(self):
+        return exists(self.path)
+
     def unstructured_map(self, path_helper):
         unstructured_map = self.file_lister.unstructured_map(self.path)
         if self.staging_needed:
