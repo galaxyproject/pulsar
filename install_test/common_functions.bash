@@ -107,6 +107,7 @@ run_planemo() {
     then
         galaxy_root_args="--galaxy_root $GALAXY_ROOT"
     fi
-    planemo --verbose test $galaxy_root_args "$@"
+    MARKDOWN_OUTPUT="${GITHUB_STEP_SUMMARY:-tool_test_output.md}"
+    planemo --verbose test --test_output_markdown "$MARKDOWN_OUTPUT" $galaxy_root_args "$@"
     echo "Tests complete."
 }
