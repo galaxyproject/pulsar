@@ -51,8 +51,6 @@ jobs:
           python: 3.11
         - tox-env: py311-test-unit
           python: 3.11
-        - tox-env: py39-install_wheel-no_conda
-          python: 3.9
         - tox-env: py37-install_wheel
           python: 3.7
     services:

@@ -17,8 +17,8 @@ cd ..
 
 check_pulsar
 
-init_planemo "conda_testing"
+init_planemo "seqtk_complete"
 
-run_planemo --job_config_file "$SCRIPT_DIR/galaxy_job_conf.xml" test_tools/bwa.xml
+run_planemo --job_config_file "$SCRIPT_DIR/galaxy_job_conf.xml" test_tools/seqtk_seq.xml
 
 stop_pulsar
