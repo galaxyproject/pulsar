@@ -10,6 +10,7 @@ paramiko
 typing-extensions
 pydantic-tes>=0.1.5
 pyjwt
+tuspy
 
 ## Uncomment if using DRMAA queue manager.
 #drmaa

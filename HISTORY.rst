@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.15.6.dev0
+---------------------
+* Allow tus uploads to Galaxy.
+  `Pull Request 351`_
+
+---------------------
 0.15.5 (2023-09-15)
 ---------------------
 * Add catchall OSError to recoverable exceptions (thanks to `@mvdbeek`_).
@@ -486,6 +492,7 @@ History
 
 .. github_links
 
+.. _Pull Request 351: https://github.com/galaxyproject/pulsar/pull/351
 .. _Pull Request 338: https://github.com/galaxyproject/pulsar/pull/338
 .. _Pull Request 332: https://github.com/galaxyproject/pulsar/pull/332
 .. _Pull Request 337: https://github.com/galaxyproject/pulsar/pull/337
