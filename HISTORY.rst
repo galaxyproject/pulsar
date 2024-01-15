@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.15.6.dev0
+0.15.6 (2024-01-15)
 ---------------------
 * Allow tus uploads to Galaxy.
   `Pull Request 351`_
