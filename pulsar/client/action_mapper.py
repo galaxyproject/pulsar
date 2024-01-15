@@ -36,6 +36,9 @@ from .transport import (
     scp_get_file,
     scp_post_file,
 )
+from .transport.tus import (
+    tus_upload_file,
+)
 from .util import (
     copy_to_path,
     directory_files,
@@ -482,6 +485,34 @@ class RemoteTransferAction(BaseAction):
         post_file(self.url, pulsar_path)
 
 
+class RemoteTransferTusAction(BaseAction):
+    """ This action indicates the Pulsar server should transfer the file before
+    execution via one of the remote transfer implementations. This is like a TransferAction, but
+    it indicates the action requires network access to the staging server and TUS
+    will be used for the transfer
+    """
+    inject_url = True
+    action_type = "remote_transfer_tus"
+    staging = STAGING_ACTION_REMOTE
+
+    def __init__(self, source, file_lister=None, url=None):
+        super().__init__(source, file_lister=file_lister)
+        self.url = url
+
+    def to_dict(self):
+        return self._extend_base_dict(url=self.url)
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return RemoteTransferAction(source=action_dict["source"], url=action_dict["url"])
+
+    def write_to_path(self, path):
+        get_file(self.url, path)
+
+    def write_from_path(self, pulsar_path):
+        tus_upload_file(self.url, pulsar_path)
+
+
 class RemoteObjectStoreCopyAction(BaseAction):
     """
     """
@@ -635,6 +666,7 @@ class MessageAction:
 DICTIFIABLE_ACTION_CLASSES = [
     RemoteCopyAction,
     RemoteTransferAction,
+    RemoteTransferTusAction,
     MessageAction,
     RsyncTransferAction,
     ScpTransferAction,
@@ -817,6 +849,7 @@ ACTION_CLASSES: List[Type[BaseAction]] = [
     CopyAction,
     RemoteCopyAction,
     RemoteTransferAction,
+    RemoteTransferTusAction,
     RemoteObjectStoreCopyAction,
     RsyncTransferAction,
     ScpTransferAction,

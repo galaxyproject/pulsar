@@ -8,6 +8,7 @@ from pulsar.client.transport.standard import UrllibTransport
 from pulsar.client.transport.curl import PycurlTransport
 from pulsar.client.transport.curl import post_file
 from pulsar.client.transport.curl import get_file
+from pulsar.client.transport.tus import find_tus_endpoint
 from pulsar.client.transport import get_transport
 
 from .test_utils import files_server
@@ -105,6 +106,12 @@ def test_curl_problems():
         except Exception:
             exception_raised = True
         assert exception_raised
+
+
+def test_find_tus_endpoint():
+    galaxy_endpoint = "http://subdomain.galaxy.org/prefix/api/jobs/1231sdfsq23e/files?job_key=34"
+    tus_endpoint = find_tus_endpoint(galaxy_endpoint)
+    assert tus_endpoint == "http://subdomain.galaxy.org/prefix/api/job_files/resumable_upload?job_key=34"
 
 
 def test_get_transport():
