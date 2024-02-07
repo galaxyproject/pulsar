@@ -76,6 +76,12 @@ def _get_default_options(conf):
     options["job_directory_mode"] = None
     if job_directory_mode is not None:
         options["job_directory_mode"] = int(job_directory_mode, 8)
+    stdout_update = conf.get("send_stdout_update", None)
+    if stdout_update is not None:
+        options["send_stdout_update"] = stdout_update
+    stdout_update_interval = conf.get("stdout_update_interval", None)
+    if stdout_update_interval is not None:
+        options["stdout_update_interval"] = stdout_update_interval
     return options
 
 

@@ -123,6 +123,17 @@ class ManagerProxy:
     def job_stderr_contents(self, *args, **kwargs):
         return self._proxied_manager.job_stderr_contents(*args, **kwargs)
 
+    def is_live_stdout_update(self):
+        """ Optional.
+         Whether this manager is sending Stdout while the job is running (true if so)
+        """
+        try:
+            # only present in stateful manager currently
+            stdout_live_update = self._proxied_manager.is_live_stdout_update()
+            return stdout_live_update
+        except AttributeError:
+            return False
+
     def kill(self, *args, **kwargs):
         return self._proxied_manager.kill(*args, **kwargs)
 
