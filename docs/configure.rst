@@ -222,6 +222,10 @@ In the event that the connection to the AMQP server is lost during message
 publish, the Pulsar server can retry the connection, governed by the
 ``amqp_publish*`` options documented in `app.yml.sample`_.
 
+By default, `AMQP heartbeats`_ are enabled at an interval of 580 seconds. This
+can be adjusted by setting ``amqp_heartbeat`` or disabled by setting it to
+``false`` or ``0``.
+
 Caching (Experimental)
 ----------------------
 
@@ -241,3 +245,4 @@ and future plans and progress can be tracked on `this Trello card <https://trell
 .. _RabbitMQ: https://www.rabbitmq.com/
 .. _app.yml.sample: https://github.com/galaxyproject/pulsar/blob/master/app.yml.sample
 .. _Two Generals Problem: https://en.wikipedia.org/wiki/Two_Generals%27_Problem
+.. _AMQP heartbeats: https://www.rabbitmq.com/docs/heartbeats
