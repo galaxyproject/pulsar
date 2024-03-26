@@ -76,6 +76,7 @@ class PulsarExchange:
         consume_uuid_store=None,
         republish_time=DEFAULT_REPUBLISH_TIME,
         durable=True,
+        heartbeat=DEFAULT_HEARTBEAT,
     ):
         """
         """
@@ -107,6 +108,7 @@ class PulsarExchange:
         )
         self.__timeout = timeout
         self.__republish_time = republish_time
+        self.__heartbeat = heartbeat
         # Be sure to log message publishing failures.
         if publish_kwds.get("retry", False) and "retry_policy" not in publish_kwds:
             publish_kwds["retry_policy"] = {}
@@ -141,10 +143,13 @@ class PulsarExchange:
             callbacks.append(callback)
         while check:
             heartbeat_thread = None
+            if self.__heartbeat:
+                connection_kwargs["heartbeat"] = self.__heartbeat
             try:
-                with self.connection(self.__url, heartbeat=DEFAULT_HEARTBEAT, **connection_kwargs) as connection:
+                with self.connection(self.__url, **connection_kwargs) as connection:
                     with kombu.Consumer(connection, queues=[queue], callbacks=callbacks, accept=['json']):
-                        heartbeat_thread = self.__start_heartbeat(queue_name, connection)
+                        if self.__heartbeat:
+                            heartbeat_thread = self.__start_heartbeat(queue_name, connection)
                         while check and connection.connected:
                             try:
                                 connection.drain_events(timeout=self.__timeout)
