@@ -112,8 +112,8 @@ Pulsar can manage jobs via command-line execution of ``qsub``, ``qdel``,
         type: queued_cli
         job_plugin: Torque
 
-``job_plugin`` can also be ``slurm`` (to use ``srun``, etc...) or
-``slurm_torque`` (to use the Slurm varaint of ``qsub``, etc...).
+``job_plugin`` can also be ``Slurm`` (to use ``srun``, etc...) or
+``SlurmTorque`` (to use the Slurm varaint of ``qsub``, etc...).
 
 Pulsar can also login into a remote host before executing these commands if
 the job manager is not accessible from the Pulsar host.
