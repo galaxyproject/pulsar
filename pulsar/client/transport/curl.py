@@ -79,7 +79,7 @@ def post_file(url, path):
 
 
 def get_size(url) -> int:
-    response = requests.head(url)
+    response = requests.head(url, headers={"accept-encoding": "identity"})
     if response.status_code >= 299:
         log.warning("Response to HEAD request for '%s' with status code %s, cannot resume download", url, response.status_code)
         return -1
