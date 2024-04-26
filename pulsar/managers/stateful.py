@@ -3,6 +3,7 @@ import datetime
 import os
 import threading
 import time
+from functools import partial
 
 try:
     # If galaxy-lib or Galaxy 19.05 present.
@@ -103,6 +104,7 @@ class StatefulManagerProxy(ManagerProxy):
         def do_preprocess():
             with self._handling_of_preprocessing_state(job_id, launch_config):
                 job_directory = self._proxied_manager.job_directory(job_id)
+                was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
                 staging_config = launch_config.get("remote_staging", {})
                 # TODO: swap out for a generic "job_extra_params"
                 if 'action_mapper' in staging_config and \
@@ -111,7 +113,7 @@ class StatefulManagerProxy(ManagerProxy):
                     for action in staging_config['setup']:
                         action['action'].update(ssh_key=staging_config['action_mapper']['ssh_key'])
                 setup_config = staging_config.get("setup", [])
-                preprocess(job_directory, setup_config, self.__preprocess_action_executor, object_store=self.object_store)
+                preprocess(job_directory, setup_config, self.__preprocess_action_executor, was_cancelled, object_store=self.object_store)
                 self.active_jobs.deactivate_job(job_id, active_status=ACTIVE_STATUS_PREPROCESSING)
 
         new_thread_for_job(self, "preprocess", job_id, do_preprocess, daemon=False)
@@ -121,6 +123,9 @@ class StatefulManagerProxy(ManagerProxy):
         job_directory = self._proxied_manager.job_directory(job_id)
         try:
             yield
+            if self._proxied_manager._was_cancelled(job_id):
+                log.info("Exiting job launch, job is cancelled")
+                return
             launch_kwds = {}
             if launch_config.get("dependencies_description"):
                 dependencies_description = DependenciesDescription.from_dict(launch_config["dependencies_description"])
@@ -219,8 +224,9 @@ class StatefulManagerProxy(ManagerProxy):
         def do_postprocess():
             postprocess_success = False
             job_directory = self._proxied_manager.job_directory(job_id)
+            was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
             try:
-                postprocess_success = postprocess(job_directory, self.__postprocess_action_executor)
+                postprocess_success = postprocess(job_directory, self.__postprocess_action_executor, was_cancelled)
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
             final_status = status.COMPLETE if postprocess_success else status.FAILED

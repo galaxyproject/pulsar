@@ -13,27 +13,27 @@ from pulsar.client.staging.down import ResultsCollector
 log = logging.getLogger(__name__)
 
 
-def postprocess(job_directory, action_executor):
+def postprocess(job_directory, action_executor, was_cancelled):
     # Returns True if outputs were collected.
     try:
         if job_directory.has_metadata("launch_config"):
             staging_config = job_directory.load_metadata("launch_config").get("remote_staging", None)
         else:
             staging_config = None
-        collected = __collect_outputs(job_directory, staging_config, action_executor)
+        collected = __collect_outputs(job_directory, staging_config, action_executor, was_cancelled)
         return collected
     finally:
         job_directory.write_file("postprocessed", "")
     return False
 
 
-def __collect_outputs(job_directory, staging_config, action_executor):
+def __collect_outputs(job_directory, staging_config, action_executor, was_cancelled):
     collected = True
     if "action_mapper" in staging_config:
         file_action_mapper = action_mapper.FileActionMapper(config=staging_config["action_mapper"])
         client_outputs = staging.ClientOutputs.from_dict(staging_config["client_outputs"])
         pulsar_outputs = __pulsar_outputs(job_directory)
-        output_collector = PulsarServerOutputCollector(job_directory, action_executor)
+        output_collector = PulsarServerOutputCollector(job_directory, action_executor, was_cancelled)
         results_collector = ResultsCollector(output_collector, file_action_mapper, client_outputs, pulsar_outputs)
         collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
@@ -62,11 +62,17 @@ def realized_dynamic_file_sources(job_directory):
 
 class PulsarServerOutputCollector:
 
-    def __init__(self, job_directory, action_executor):
+    def __init__(self, job_directory, action_executor, was_cancelled):
         self.job_directory = job_directory
         self.action_executor = action_executor
+        self.was_cancelled = was_cancelled
 
     def collect_output(self, results_collector, output_type, action, name):
+        def action_if_not_cancelled():
+            if self.was_cancelled():
+                log.info(f"Skipped output collection '{name}', job is cancelled")
+                return
+            action.write_from_path(pulsar_path)
         # Not using input path, this is because action knows it path
         # in this context.
         if action.staging_action_local:
@@ -79,7 +85,7 @@ class PulsarServerOutputCollector:
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
         description = "staging out file {} via {}".format(pulsar_path, action)
-        self.action_executor.execute(lambda: action.write_from_path(pulsar_path), description)
+        self.action_executor.execute(action_if_not_cancelled, description)
 
 
 def __pulsar_outputs(job_directory):
