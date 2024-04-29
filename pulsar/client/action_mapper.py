@@ -8,6 +8,7 @@ from os import (
 from os.path import (
     abspath,
     basename,
+    commonpath,
     dirname,
     exists,
     join,
@@ -190,6 +191,8 @@ class FileActionMapper:
         self.ssh_port = config.get("ssh_port", None)
         self.mappers = mappers_from_dicts(config.get("paths", []))
         self.files_endpoint = config.get("files_endpoint", None)
+        # Might want to make the working directory available here so that we know where to place archive
+        # for archive action
 
     def action(self, source, type, mapper=None):
         path = source.get("path", None)
@@ -269,6 +272,13 @@ class FileActionMapper:
             self.__inject_url(action, file_type)
         if getattr(action, "inject_ssh_properties", False):
             self.__inject_ssh_properties(action)
+        if getattr(action, "inject_archive_path", False):
+            self.__inject_archive_path(action)
+
+    def __inject_archive_path(self, action):
+        # What's the action lifecycle ?
+        # Maybe setting the archive path in the action constructor is ok ?
+        pass
 
     def __inject_url(self, action, file_type):
         url_base = self.files_endpoint
@@ -513,6 +523,37 @@ class RemoteTransferTusAction(BaseAction):
         tus_upload_file(self.url, pulsar_path)
 
 
+class ArchiveAction(BaseAction):
+    """
+    This action indicates that the pulsar server should create a tar file and POST that tar file to the staging server.
+    """
+
+    inject_url = True
+    action_type = "archive_transfer"
+    staging = STAGING_ACTION_REMOTE
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return ArchiveAction(source=action_dict["source"], url=action_dict["url"])
+
+    def write_to_path(self, path):
+        get_file(self.url, path)
+
+    def write_from_path(self, pulsar_path: str):
+        archive_path = join(pulsar_path.split("/work")[-1], "pulsar_out.tar")  # find something less brittle
+        add_archive_file(pulsar_path, archive_path)
+
+
+def add_archive_file(pulsar_path:str, archive_path: str):
+    import tarfile
+
+    prefix_to_strip = commonpath(archive_path, pulsar_path)
+    archive_name = pulsar_path.split(prefix_to_strip)[-1]  # again, make more robust, pathlib?
+
+    tf = tarfile.open(archive_path, "a")
+    tf.add(pulsar_path, archive_name)
+
+
 class RemoteObjectStoreCopyAction(BaseAction):
     """
     """
@@ -664,6 +705,7 @@ class MessageAction:
 
 
 DICTIFIABLE_ACTION_CLASSES = [
+    ArchiveAction,
     RemoteCopyAction,
     RemoteTransferAction,
     RemoteTransferTusAction,
@@ -844,6 +886,7 @@ DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
 
 ACTION_CLASSES: List[Type[BaseAction]] = [
     NoneAction,
+    ArchiveAction,
     RewriteAction,
     TransferAction,
     CopyAction,
