@@ -1,7 +1,35 @@
 import os
 
 from .test_utils import files_server
-from pulsar.client.action_mapper import RemoteTransferAction
+from pulsar.client.action_mapper import (
+    JsonTransferAction,
+    RemoteTransferAction,
+)
+
+
+def test_write_to_path_json():
+    with files_server() as (server, directory):
+        from_path = os.path.join(directory, "remote_get")
+
+        to_path = os.path.join(directory, "local_get")
+        url = server.application_url + "?path=%s" % from_path
+        action = JsonTransferAction({"path": to_path}, url=url)
+        action.write_to_path(to_path)
+        assert action.path == to_path
+        assert action.url == url
+        assert action.finalize() == {"path": to_path, "url": url}
+
+
+def test_write_from_file_json():
+    with files_server() as (server, directory):
+        from_path = os.path.join(directory, "local_post")
+        to_path = os.path.join(directory, "remote_post")
+        url = server.application_url + "?path=%s" % to_path
+        action = JsonTransferAction({"path": to_path}, url=url)
+        action.write_from_path(from_path)
+        assert action.path == to_path
+        assert action.url == url
+        assert action.finalize() == {"path": to_path, "url": url}
 
 
 def test_write_to_file():

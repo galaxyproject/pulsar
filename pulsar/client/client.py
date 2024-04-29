@@ -168,7 +168,7 @@ class JobClient(BaseJobClient):
         self.job_manager_interface = job_manager_interface
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -405,7 +405,7 @@ class BaseMessageJobClient(BaseRemoteConfiguredJobClient):
 class MessageJobClient(BaseMessageJobClient):
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -439,7 +439,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
         self.shell = shell
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -477,6 +477,24 @@ class ExecutionType(str, Enum):
     PARALLEL = "parallel"
 
 
+class LocalSequentialLaunchMixin(BaseRemoteConfiguredJobClient):
+
+    def launch(
+        self,
+        command_line,
+        dependencies_description=None,
+        env=None,
+        remote_staging=None,
+        job_config=None,
+        dynamic_file_sources=None,
+        container_info=None,
+        token_endpoint=None,
+        pulsar_app_config=None,
+        staging_manifest=None
+    ) -> Optional[ExternalId]:
+        pass
+
+
 class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
     execution_type: ExecutionType
     pulsar_container_image: str
@@ -491,7 +509,8 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
         dynamic_file_sources=None,
         container_info=None,
         token_endpoint=None,
-        pulsar_app_config=None
+        pulsar_app_config=None,
+        staging_manifest=None
     ) -> Optional[ExternalId]:
         """
         """
@@ -754,6 +773,12 @@ class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
             "status": tes_state_to_pulsar_status(tes_state),
             "complete": "true" if tes_state_is_complete(tes_state) else "false",  # Ancient John, what were you thinking?
         }
+
+
+class LocalSequentialClient(BaseMessageCoexecutionJobClient, LocalSequentialLaunchMixin):
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
 
 
 class TesPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesTesContainersMixin):

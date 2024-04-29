@@ -16,16 +16,28 @@ from pulsar.scripts import submit
 
 class BaseCliTestCase(TempDirectoryTestCase):
 
+    def setup_action_mapper(self, files_endpoint):
+        return {
+            "default_action": "remote_transfer",
+            "files_endpoint": files_endpoint,
+        }
+
     def run_and_check_submission(self):
         job_id = "0"
         galaxy_working = temp_directory_persist()
         output_name = "dataset_1211231231231231231.dat"
         galaxy_output = os.path.join(galaxy_working, output_name)
-        pulsar_output = os.path.join(self.staging_directory, job_id, "outputs", output_name)
+        pulsar_output = os.path.join(
+            self.staging_directory, job_id, "outputs", output_name
+        )
         pulsar_input = os.path.join(self.staging_directory, job_id, "inputs", "cow")
         with files_server("/") as test_files_server:
             files_endpoint = test_files_server.application_url
-            action = {"name": "cow", "type": "input", "action": {"action_type": "message", "contents": "cow file contents\n"}}
+            action = {
+                "name": "cow",
+                "type": "input",
+                "action": {"action_type": "message", "contents": "cow file contents\n"},
+            }
             client_outputs = ClientOutputs(
                 working_directory=galaxy_working,
                 output_files=[os.path.join(galaxy_working, output_name)],
@@ -39,10 +51,7 @@ class BaseCliTestCase(TempDirectoryTestCase):
                 setup=True,
                 remote_staging={
                     "setup": [action],
-                    "action_mapper": {
-                        "default_action": "remote_transfer",
-                        "files_endpoint": files_endpoint,
-                    },
+                    "action_mapper": self.setup_action_mapper(files_endpoint),
                     "client_outputs": client_outputs.to_dict(),
                 },
             )
@@ -74,7 +83,8 @@ class CliFileAppConfigTestCase(BaseCliTestCase):
     def _encode_application(self):
         app_conf = dict(
             staging_directory=self.staging_directory,
-            message_queue_url="memory://submittest"
+            message_queue_url="memory://submittest",
+            conda_auto_init=False,
         )
         app_conf_path = os.path.join(self.config_directory, "app.yml")
         with open(app_conf_path, "w") as f:
@@ -93,6 +103,29 @@ class CliCommandLineAppConfigTestCase(BaseCliTestCase):
     def _encode_application(self):
         app_conf = dict(
             staging_directory=self.staging_directory,
-            message_queue_url="memory://submittest"
+            message_queue_url="memory://submittest",
+            conda_auto_init=False,
+        )
+        return ["--app_conf_base64", to_base64_json(app_conf)]
+
+
+class SequentialLocalCommandLineAppConfigTestCase(BaseCliTestCase):
+
+    @skip_unless_module("kombu")
+    @integration_test
+    def test(self):
+        self.run_and_check_submission()
+
+    def setup_action_mapper(self, files_endpoint):
+        return {
+            "default_action": "json_transfer",
+            "files_endpoint": files_endpoint,
+        }
+
+    def _encode_application(self):
+        app_conf = dict(
+            staging_directory=self.staging_directory,
+            message_queue_url="memory://submittest",
+            conda_auto_init=False,
         )
         return ["--app_conf_base64", to_base64_json(app_conf)]

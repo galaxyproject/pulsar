@@ -17,6 +17,8 @@ def preprocess(job_directory, setup_actions, action_executor, was_cancelled, obj
         action = from_dict(setup_action["action"])
         if getattr(action, "inject_object_store", False):
             action.object_store = object_store
+        if getattr(action, "inject_job_directory", False):
+            action.job_directory = job_directory
         path = job_directory.calculate_path(name, input_type)
         description = "Staging {} '{}' via {} to {}".format(input_type, name, action, path)
         log.debug(description)
