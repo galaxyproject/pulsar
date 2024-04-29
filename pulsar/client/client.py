@@ -168,7 +168,7 @@ class JobClient(BaseJobClient):
         self.job_manager_interface = job_manager_interface
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -405,7 +405,7 @@ class BaseMessageJobClient(BaseRemoteConfiguredJobClient):
 class MessageJobClient(BaseMessageJobClient):
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -439,7 +439,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
         self.shell = shell
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -491,7 +491,8 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
         dynamic_file_sources=None,
         container_info=None,
         token_endpoint=None,
-        pulsar_app_config=None
+        pulsar_app_config=None,
+        staging_manifest=None
     ) -> Optional[ExternalId]:
         """
         """

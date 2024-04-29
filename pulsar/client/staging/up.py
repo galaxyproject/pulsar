@@ -71,6 +71,11 @@ def submit_job(client, client_job_description, job_config=None):
     # it needs to be in the response to Pulsar even Pulsar is inititing staging actions
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
+
+    staging_manifest = file_stager.action_mapper.finalize()
+    if staging_manifest:
+        launch_kwds["staging_manifest"] = staging_manifest
+
     # for pulsar modalities that skip the explicit "setup" step, give them a chance to set an external
     # id from the submission process (e.g. to TES).
     launch_response = client.launch(**launch_kwds)
