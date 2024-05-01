@@ -7,8 +7,11 @@ from pulsar.client.action_mapper import from_dict
 log = logging.getLogger(__name__)
 
 
-def preprocess(job_directory, setup_actions, action_executor, object_store=None):
+def preprocess(job_directory, setup_actions, action_executor, was_cancelled, object_store=None):
     for setup_action in setup_actions:
+        if was_cancelled():
+            log.info("Exiting preprocessing, job is cancelled")
+            return
         name = setup_action["name"]
         input_type = setup_action["type"]
         action = from_dict(setup_action["action"])
