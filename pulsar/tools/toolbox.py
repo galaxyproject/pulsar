@@ -68,7 +68,8 @@ class InputsValidator:
         config_validator = self.config_validators.get(name, None)
         valid = True
         if config_validator:
-            contents = open(path, encoding="UTF-8").read()
+            with open(path, encoding="UTF-8") as fh:
+                contents = fh.read()
             valid = config_validator.validate(job_directory, contents)
         return valid
 

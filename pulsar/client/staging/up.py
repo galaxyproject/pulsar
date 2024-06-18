@@ -579,11 +579,8 @@ def _read(path):
     Utility method to quickly read small files (config files and tool
     wrappers) into memory as bytes.
     """
-    input = open(path, encoding="utf-8")
-    try:
+    with open(path, encoding="utf-8") as input:
         return input.read()
-    finally:
-        input.close()
 
 
 __all__ = ['submit_job']

@@ -592,20 +592,20 @@ class ServeCommand(Command):
         # Ensure the log file is writeable
         if self.options.log_file:
             try:
-                writeable_log_file = open(self.options.log_file, 'a')
+                with open(self.options.log_file, 'a'):
+                    pass
             except OSError as ioe:
                 msg = 'Error: Unable to write to log file: %s' % ioe
                 raise BadCommand(msg)
-            writeable_log_file.close()
 
         # Ensure the pid file is writeable
         if self.options.pid_file:
             try:
-                writeable_pid_file = open(self.options.pid_file, 'a')
+                with open(self.options.pid_file, 'a'):
+                    pass
             except OSError as ioe:
                 msg = 'Error: Unable to write to pid file: %s' % ioe
                 raise BadCommand(msg)
-            writeable_pid_file.close()
 
         if getattr(self.options, 'daemon', False):
             try:
@@ -721,9 +721,8 @@ class ServeCommand(Command):
         pid = os.getpid()
         if self.verbose > 1:
             print(f'Writing PID {pid} to {pid_file}')
-        f = open(pid_file, 'w')
-        f.write(str(pid))
-        f.close()
+        with open(pid_file, 'w') as f:
+            f.write(str(pid))
         atexit.register(_remove_pid_file, pid, pid_file, self.verbose)
 
     def stop_daemon(self):
@@ -913,9 +912,8 @@ def live_pidfile(pidfile):
 def read_pidfile(filename):
     if os.path.exists(filename):
         try:
-            f = open(filename)
-            content = f.read()
-            f.close()
+            with open(filename) as f:
+                content = f.read()
             return int(content.strip())
         except (ValueError, OSError):
             return None
@@ -931,9 +929,8 @@ def _remove_pid_file(written_pid, filename, verbosity):
         return
     if not os.path.exists(filename):
         return
-    f = open(filename)
-    content = f.read().strip()
-    f.close()
+    with open(filename) as f:
+        content = f.read().strip()
     try:
         pid_in_file = int(content)
     except ValueError:

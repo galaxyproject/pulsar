@@ -26,9 +26,10 @@ if poster is not None:
 def post_file(url, path):
     __ensure_poster()
     try:
-        datagen, headers = poster.encode.multipart_encode({"file": open(path, "rb")})
-        request = Request(url, datagen, headers)
-        return urlopen(request).read()
+        with open(path, "rb") as fh:
+            datagen, headers = poster.encode.multipart_encode({"file": fh})
+            request = Request(url, datagen, headers)
+            return urlopen(request).read()
     except Exception:
         log.exception("Problem with poster post of [%s]" % path)
         raise

@@ -446,7 +446,8 @@ class RemoteCopyAction(BaseAction):
         return RemoteCopyAction(source=action_dict["source"])
 
     def write_to_path(self, path):
-        copy_to_path(open(self.path, "rb"), path)
+        with open(self.path, "rb") as f:
+            copy_to_path(f, path)
 
     def write_from_path(self, pulsar_path):
         destination = self.path
@@ -534,7 +535,8 @@ class RemoteObjectStoreCopyAction(BaseAction):
             object_store_id=object_store_ref["object_store_id"],
         )
         filename = self.object_store.get_filename(dataset_object)
-        copy_to_path(open(filename, 'rb'), path)
+        with open(filename, "rb") as f:
+            copy_to_path(f, path)
 
     def write_from_path(self, pulsar_path):
         raise NotImplementedError("Writing raw files to object store not supported at this time.")
@@ -660,7 +662,8 @@ class MessageAction:
         return MessageAction(contents=action_dict["contents"])
 
     def write_to_path(self, path):
-        open(path, "w").write(self.contents)
+        with open(path, "w") as f:
+            f.write(self.contents)
 
 
 DICTIFIABLE_ACTION_CLASSES = [

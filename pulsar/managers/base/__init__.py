@@ -186,7 +186,8 @@ class BaseManager(ManagerInterface):
         for file in self._list_dir(tool_files_dir):
             if os.path.isdir(join(tool_files_dir, file)):
                 continue
-            contents = open(join(tool_files_dir, file)).read()
+            with open(join(tool_files_dir, file)) as fh:
+                contents = fh.read()
             log.debug("job_id: {} - checking tool file {}".format(job_id, file))
             authorization.authorize_tool_file(basename(file), contents)
         config_files_dir = job_directory.configs_directory()
@@ -255,28 +256,21 @@ class JobDirectory(RemoteJobDirectory):
 
     def read_file(self, name, size=-1, default=None):
         path = self._job_file(name)
-        job_file = None
         try:
-            job_file = open(path, 'rb')
-            return job_file.read(size)
+            with open(path, 'rb') as job_file:
+                return job_file.read(size)
         except Exception:
             if default is not None:
                 return default
             else:
                 raise
-        finally:
-            if job_file:
-                job_file.close()
 
     def write_file(self, name, contents):
         path = self._job_file(name)
-        job_file = open(path, 'wb')
-        try:
-            if isinstance(contents, str):
-                contents = contents.encode("UTF-8")
+        if isinstance(contents, str):
+            contents = contents.encode("UTF-8")
+        with open(path, "wb") as job_file:
             job_file.write(contents)
-        finally:
-            job_file.close()
         return path
 
     def remove_file(self, name):

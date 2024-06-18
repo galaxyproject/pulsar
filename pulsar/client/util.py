@@ -40,19 +40,16 @@ def copy_to_path(object, path):
     """
     Copy file-like object to path.
     """
-    output = open(path, 'wb')
-    _copy_and_close(object, output)
+    with open(path, 'wb') as output:
+        _copy(object, output)
 
 
-def _copy_and_close(object, output):
-    try:
-        while True:
-            buffer = object.read(BUFFER_SIZE)
-            if not buffer:
-                break
-            output.write(buffer)
-    finally:
-        output.close()
+def _copy(object, output):
+    while True:
+        buffer = object.read(BUFFER_SIZE)
+        if not buffer:
+            break
+        output.write(buffer)
 
 
 # Variant of base64 compat layer inspired by BSD code from Bcfg2
@@ -283,10 +280,12 @@ class MessageQueueUUIDStore:
         return exists(self.__path(item))
 
     def __setitem__(self, key, value):
-        open(self.__path(key), 'w').write(json.dumps(value))
+        with open(self.__path(key), "w") as f:
+            f.write(json.dumps(value))
 
     def __getitem__(self, key):
-        return json.loads(open(self.__path(key)).read())
+        with open(self.__path(key)) as f:
+            return json.loads(f.read())
 
     def __delitem__(self, key):
         try:

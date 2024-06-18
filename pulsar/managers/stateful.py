@@ -88,7 +88,8 @@ class StatefulManagerProxy(ManagerProxy):
         job_directory = self._proxied_manager.job_directory(job_id)
         for name in touch_outputs:
             path = job_directory.calculate_path(name, 'output')
-            job_directory.open_file(path, mode='a')
+            with contextlib.closing(job_directory.open_file(path, mode='a')):
+                pass
 
     def preprocess_and_launch(self, job_id, launch_config):
         self._persist_launch_config(job_id, launch_config)
@@ -320,7 +321,8 @@ class ActiveJobs:
         if self._active_job_directory(active_status):
             path = self._active_job_file(job_id, active_status=active_status)
             try:
-                open(path, "w").close()
+                with open(path, "w"):
+                    pass
             except Exception:
                 log.warn(ACTIVATE_FAILED_MESSAGE % job_id)
 

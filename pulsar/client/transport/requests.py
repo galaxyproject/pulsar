@@ -21,10 +21,11 @@ def post_file(url, path):
         raise ImportError(REQUESTS_TOOLBELT_UNAVAILABLE_MESSAGE)
 
     __ensure_requests()
-    m = requests_toolbelt.MultipartEncoder(
-        fields={'file': ('filename', open(path, 'rb'))}
-    )
-    requests.post(url, data=m, headers={'Content-Type': m.content_type})
+    with open(path, "rb") as f:
+        m = requests_toolbelt.MultipartEncoder(
+            fields={'file': ('filename', f)}
+        )
+        requests.post(url, data=m, headers={'Content-Type': m.content_type})
 
 
 def get_file(url, path):
