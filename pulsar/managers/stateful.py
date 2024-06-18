@@ -370,6 +370,9 @@ class ManagerMonitor:
                 self._monitor_active_jobs()
             except Exception:
                 log.exception("Failure in stateful manager monitor step.")
+                # This should hopefully be a rare event.
+                # Let's not hammer the system with job lookups
+                time.sleep(1)
 
     def _monitor_active_jobs(self):
         active_job_ids = self.stateful_manager.active_jobs.active_job_ids()
