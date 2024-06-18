@@ -295,7 +295,8 @@ def _handle_server_ini(args, directory):
         server_config = SERVER_CONFIG_TEMPLATE.safe_substitute(
             **config_dict
         )
-        open(ini_file, "w").write(server_config)
+        with open(ini_file, "w") as fh:
+            fh.write(server_config)
 
 
 def _handle_app_yaml(args, directory):
@@ -312,7 +313,8 @@ def _handle_app_yaml(args, directory):
     contents += 'conda_auto_install: {}\n'.format(auto_conda)
     if not IS_WINDOWS and args.libdrmaa_path:
         contents += 'manager:\n  type: queued_drmaa\n'
-    open(yaml_file, "w").write(contents)
+    with open(yaml_file, "w") as fh:
+        fh.write(contents)
 
 
 def _handle_local_env(args, directory, dependencies):
@@ -327,7 +329,8 @@ def _handle_local_env(args, directory, dependencies):
     local_env_contents = LOCAL_ENV_TEMPLATE.safe_substitute(
         libdrmaa_line=libdrmaa_line,
     )
-    open(local_env_file, "w").write(local_env_contents)
+    with open(local_env_file, "w") as fh:
+        fh.write(local_env_contents)
 
 
 def _handle_supervisor(args, mode, directory, dependencies):
@@ -339,7 +342,8 @@ def _handle_supervisor(args, mode, directory, dependencies):
             mode=mode,
         )
         conf_path = os.path.join(directory, "supervisor.conf")
-        open(conf_path, "w").write(config)
+        with open(conf_path, "w") as fh:
+            fh.write(config)
         dependencies.append("supervisor")
 
 

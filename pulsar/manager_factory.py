@@ -52,7 +52,8 @@ def build_managers(app, conf):
 
 def _populate_manager_descriptions_from_ini(manager_descriptions, job_managers_config):
     config = configparser.ConfigParser()
-    config.readfp(open(job_managers_config))
+    with open(job_managers_config) as config_fh:
+        config.read_file(config_fh)
     for section in config.sections():
         if not section.startswith(MANAGER_PREFIX):
             continue

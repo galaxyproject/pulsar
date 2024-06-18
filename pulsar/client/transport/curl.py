@@ -33,14 +33,16 @@ class PycurlTransport:
 
     def execute(self, url, method=None, data=None, input_path=None, output_path=None):
         buf = _open_output(output_path)
+        input_fh = None
         try:
             c = _new_curl_object_for_url(url)
             c.setopt(c.WRITEFUNCTION, buf.write)
             if method:
                 c.setopt(c.CUSTOMREQUEST, method)
             if input_path:
+                input_fh = open(input_path, "rb")
                 c.setopt(c.UPLOAD, 1)
-                c.setopt(c.READFUNCTION, open(input_path, 'rb').read)
+                c.setopt(c.READFUNCTION, input_fh.read)
                 filesize = os.path.getsize(input_path)
                 c.setopt(c.INFILESIZE, filesize)
             if data:
@@ -61,6 +63,8 @@ class PycurlTransport:
                 return buf.getvalue()
         finally:
             buf.close()
+            if input_fh:
+                input_fh.close()
 
 
 def post_file(url, path):

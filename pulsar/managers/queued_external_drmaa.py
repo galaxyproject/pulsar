@@ -44,7 +44,8 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
             submit_params=submit_params,
             setup_params=setup_params,
         )
-        print(open(attributes['remoteCommand']).read())
+        with open(attributes["remoteCommand"]) as fh:
+            print(fh.read())
         job_attributes_file = self._write_job_file(job_id, 'jt.json', dumps(attributes))
         user = submit_params.get('user', None)
         log.info("Submit as user %s" % user)

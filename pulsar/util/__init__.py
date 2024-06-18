@@ -9,19 +9,16 @@ def copy_to_path(object, path):
     """
     Copy file-like object to path.
     """
-    output = open(path, 'wb')
-    _copy_and_close(object, output)
+    with open(path, 'wb') as output:
+        _copy(object, output)
 
 
-def _copy_and_close(object, output):
-    try:
-        while True:
-            buffer = object.read(BUFFER_SIZE)
-            if not buffer:
-                break
-            output.write(buffer)
-    finally:
-        output.close()
+def _copy(object, output):
+    while True:
+        buffer = object.read(BUFFER_SIZE)
+        if not buffer:
+            break
+        output.write(buffer)
 
 
 def copy_to_temp(object):
@@ -29,8 +26,8 @@ def copy_to_temp(object):
     Copy file-like object to temp file and return
     path.
     """
-    temp_file = NamedTemporaryFile(delete=False)
-    _copy_and_close(object, temp_file)
+    with NamedTemporaryFile(delete=False) as temp_file:
+        _copy(object, temp_file)
     return temp_file.name
 
 

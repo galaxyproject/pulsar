@@ -233,10 +233,11 @@ class PulsarDataset:
 
 
 def _handle_upload(file_cache, path, body, cache_token=None):
-    source = body
     if cache_token:
         cached_file = file_cache.destination(cache_token)
-        source = open(cached_file, 'rb')
-        log.info("Copying cached file {} to {}".format(cached_file, path))
-    copy_to_path(source, path)
+        with open(cached_file, 'rb') as source:
+            log.info("Copying cached file {} to {}".format(cached_file, path))
+            copy_to_path(source, path)
+    else:
+        copy_to_path(body, path)
     return {"path": path}
