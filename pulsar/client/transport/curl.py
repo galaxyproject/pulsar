@@ -1,3 +1,4 @@
+import contextlib
 import io
 import logging
 import os.path
@@ -70,16 +71,13 @@ def post_file(url, path):
         # wrap it in a better one.
         message = NO_SUCH_FILE_MESSAGE % (path, url)
         raise Exception(message)
-    try:
-        c = _new_curl_object_for_url(url)
+    with contextlib.closing(_new_curl_object_for_url(url)) as c:
         c.setopt(c.HTTPPOST, [("file", (c.FORM_FILE, path.encode('ascii')))])
         c.perform()
         status_code = c.getinfo(HTTP_CODE)
         if int(status_code) != 200:
             message = POST_FAILED_MESSAGE % (url, status_code)
             raise Exception(message)
-    finally:
-        c.close()
 
 
 def get_size(url) -> int:
