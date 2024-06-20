@@ -1,5 +1,5 @@
 # Default tests run with make test
-NOSE_TESTS?=test pulsar
+PYTEST_TESTS?=test pulsar
 # Default environment for make tox
 ENV?=py27
 # Extra arguments supplied to tox command
@@ -81,7 +81,7 @@ _lint-dist:
 lint-dist: dist _lint-dist
 
 tests:
-	$(IN_VENV) nosetests $(NOSE_TESTS)
+	$(IN_VENV) pytest $(PYTEST_TESTS)
 
 test-install-pypi:
 	bash install_test/test_install_conda.bash

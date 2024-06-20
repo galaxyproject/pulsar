@@ -36,12 +36,6 @@ from pulsar.user_auth.manager import UserAuthManager
 
 from unittest import TestCase, skip
 
-try:
-    from nose.tools import nottest
-except ImportError:
-    def nottest(x):
-        return x
-
 import stopit
 from functools import wraps
 
@@ -109,7 +103,7 @@ class TestManager:
 
 
 @contextmanager
-def test_job_directory():
+def temp_job_directory():
     with temp_directory(prefix='job_') as directory:
         yield JobDirectory(directory, '1')
 
@@ -128,7 +122,7 @@ def temp_directory_persist(prefix=''):
 
 
 @contextmanager
-def test_manager():
+def get_test_manager():
     manager = TestManager()
     manager.setup_temp_directory()
     yield manager
@@ -177,7 +171,6 @@ class BaseManagerTestCase(TestCase):
     def tearDown(self):
         rmtree(self.staging_directory)
 
-    @nottest
     def _test_simple_execution(self, manager, timeout=None):
         command = """
 python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stdout.flush(); sys.stderr.write(\'moo\'); sys.stderr.flush()" \
@@ -257,7 +250,6 @@ class NullJobMetrics:
         self.default_job_instrumenter = NULL_JOB_INSTRUMENTER
 
 
-@nottest
 @contextmanager
 def server_for_test_app(test_app):
     app = test_app.app
@@ -278,7 +270,6 @@ def server_for_test_app(test_app):
         time.sleep(int(environ.get("TEST_WEBAPP_POST_SHUTDOWN_SLEEP")))
 
 
-@nottest
 @contextmanager
 def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
     with test_pulsar_app(global_conf, app_conf, test_conf) as app:
@@ -325,7 +316,6 @@ def restartable_pulsar_app_provider(**kwds):
         has_app.cleanup()
 
 
-@nottest
 @contextmanager
 def test_pulsar_app(
         global_conf={},
