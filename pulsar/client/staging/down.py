@@ -72,6 +72,7 @@ class ResultsCollector:
         self.__collect_other_working_directory_files()
         self.__collect_metadata_directory_files()
         self.__collect_job_directory_files()
+        # finalize collection here for executors that need this ?
         return self.exception_tracker.collection_failure_exceptions
 
     def __collect_working_directory_outputs(self):
