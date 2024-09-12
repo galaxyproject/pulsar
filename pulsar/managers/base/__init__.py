@@ -186,7 +186,7 @@ class BaseManager(ManagerInterface):
         for file in self._list_dir(tool_files_dir):
             if os.path.isdir(join(tool_files_dir, file)):
                 continue
-            contents = open(join(tool_files_dir, file)).read()
+            contents = open(join(tool_files_dir, file), "rb").read()
             log.debug("job_id: {} - checking tool file {}".format(job_id, file))
             authorization.authorize_tool_file(basename(file), contents)
         config_files_dir = job_directory.configs_directory()
