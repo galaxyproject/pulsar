@@ -57,7 +57,7 @@ class BaseCliTestCase(TempDirectoryTestCase):
             )
             base64 = to_base64_json(launch_params)
             assert not os.path.exists(galaxy_output)
-            submit.main(["--base64", base64] + self._encode_application())
+            submit.main(["--build_client_manager", "true", "--base64", base64] + self._encode_application())
             assert os.path.exists(galaxy_output)
             out_contents = open(galaxy_output).read()
             assert out_contents == "cow file contents\n", out_contents
@@ -127,5 +127,6 @@ class SequentialLocalCommandLineAppConfigTestCase(BaseCliTestCase):
             staging_directory=self.staging_directory,
             message_queue_url="memory://submittest",
             conda_auto_init=False,
+            manager={"type": "coexecution"}
         )
         return ["--app_conf_base64", to_base64_json(app_conf)]

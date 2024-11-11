@@ -5,6 +5,7 @@ import logging
 import time
 
 from pulsar.client.util import from_base64_json
+from pulsar.client.manager import build_client_manager
 from pulsar.main import (
     load_pulsar_app,
     PulsarManagerConfigBuilder,
@@ -20,6 +21,7 @@ DEFAULT_POLL_TIME = 2
 def add_common_submit_args(arg_parser):
     arg_parser.add_argument("--file", default=None)
     arg_parser.add_argument("--base64", default=None)
+    arg_parser.add_argument("--build_client_manager", default=None)
     PulsarManagerConfigBuilder.populate_options(arg_parser)
 
 
@@ -32,6 +34,10 @@ def run_server_for_job(args):
         submit_job(manager, job_config)
         if wait:
             log.info("Co-execution job setup, now waiting for job completion and postprocessing.")
+            if args.build_client_manager:
+                client_manager = build_client_manager(arc_enabled=True)
+                client = client_manager.get_client({"arc_url": "http://localhost:8082", "jobs_directory": "/works"}, job_id=job_config["job_id"])
+                client.launch()
             wait_for_job(manager, job_config)
             log.info("Leaving finish_execution and shutting down app")
     except BaseException:
