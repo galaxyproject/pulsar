@@ -536,7 +536,8 @@ class JsonTransferAction(BaseAction):
     def __init__(self, source, file_lister=None, url=None):
         super().__init__(source, file_lister)
         self.url = url
-        self._path = None
+        self._from_path = None
+        self._to_path = None
 
     @classmethod
     def from_dict(cls, action_dict):
@@ -546,13 +547,16 @@ class JsonTransferAction(BaseAction):
         return self._extend_base_dict(url=self.url)
 
     def write_to_path(self, path):
-        self._path = path
+        self._to_path = path
 
     def write_from_path(self, pulsar_path: str):
-        self._path = pulsar_path
+        self._from_path = pulsar_path
 
     def finalize(self):
-        return {"url": self.url, "path": self.path}
+        if self._to_path:
+            return {"url": self.url, "to_path": self._to_path}
+        else:
+            return {"url": self.url, "from_path": self._from_path}
 
 
 class RemoteObjectStoreCopyAction(BaseAction):
