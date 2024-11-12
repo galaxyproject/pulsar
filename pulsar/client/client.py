@@ -492,8 +492,11 @@ class LocalSequentialLaunchMixin(BaseRemoteConfiguredJobClient):
         pulsar_app_config=None,
         staging_manifest=None
     ) -> Optional[ExternalId]:
+        # 1. call staging script with staging manifest [handled by ARC]
+        # 2. call actual command_line
+        # 3. call script that does output collection (similar to __collect_outputs) and outputs staging manifest
+        # 4. stage outputs back using manifest [handled by ARC]
         pass
-
 
 class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
     execution_type: ExecutionType
