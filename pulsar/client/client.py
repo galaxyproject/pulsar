@@ -505,8 +505,7 @@ class LocalSequentialLaunchMixin(BaseRemoteConfiguredJobClient):
         MANIFEST_SCRIPT = importlib.resources.path(scripts, "collect_output_manifest.py")
 
         with tempfile.NamedTemporaryFile(mode="w") as temp_fh:
-            fixed_manifest = [staging_manifest[0]]
-            temp_fh.write(json_dumps(fixed_manifest))
+            temp_fh.write(json_dumps(staging_manifest))
             temp_fh.flush()
             staging_process = subprocess.run([sys.executable, STAGING_SCRIPT, "--json", temp_fh.name], capture_output=True)
             assert staging_process.returncode == 0, staging_process.stderr.decode()
