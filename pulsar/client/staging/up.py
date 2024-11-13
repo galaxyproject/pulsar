@@ -72,7 +72,15 @@ def submit_job(client, client_job_description, job_config=None):
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
 
-    staging_manifest = file_stager.action_mapper.finalize()
+    # populate `to_path`
+    staging_manifest = []
+    for action in file_stager.action_mapper.actions:
+        if action.file_type not in ("output", "output_workdir"):
+            name = basename(action.path)
+            path = file_stager.job_directory.calculate_path(name, action.file_type)
+            action.write_to_path(path)
+            staging_manifest.append(action.finalize())
+
     if staging_manifest:
         launch_kwds["staging_manifest"] = staging_manifest
 
