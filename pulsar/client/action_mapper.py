@@ -543,6 +543,9 @@ class JsonTransferAction(BaseAction):
     def from_dict(cls, action_dict):
         return JsonTransferAction(source=action_dict["source"], url=action_dict["url"])
 
+    def to_dict(self):
+        return self._extend_base_dict(url=self.url)
+
     def write_to_path(self, path):
         self._to_path = path
 

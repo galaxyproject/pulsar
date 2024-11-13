@@ -4,6 +4,9 @@ import json
 import logging
 import time
 
+from pulsar.client import ClientJobDescription, ClientOutputs, ClientInput
+from pulsar.client import submit_job as submit_client_job
+from pulsar.client.manager import build_client_manager
 from pulsar.client.util import from_base64_json
 from pulsar.main import (
     load_pulsar_app,
@@ -32,6 +35,23 @@ def run_server_for_job(args):
         submit_job(manager, job_config)
         if wait:
             log.info("Co-execution job setup, now waiting for job completion and postprocessing.")
+            if args.build_client_manager:
+                client_manager = build_client_manager(arc_enabled=True)
+                client = client_manager.get_client({"arc_url": "http://localhost:8082", "jobs_directory": app.staging_directory}, job_id=job_config["job_id"], default_file_action=job_config["remote_staging"]["action_mapper"]["default_action"], files_endpoint=job_config["remote_staging"]["action_mapper"]["files_endpoint"])
+                # FIXME: we can probably only test the input staging here, so adjust tests accordingly
+                client_inputs = [
+                    ClientInput(path=action_source["path"], input_type="input_path")
+                    for action_source in job_config["remote_staging"]["client_inputs"]
+                ]
+                client_outputs = ClientOutputs.from_dict(job_config["remote_staging"]["client_outputs"])
+                job_description = ClientJobDescription(
+                    command_line=job_config["command_line"],
+                    working_directory=client_outputs.working_directory,
+                    client_inputs=client_inputs,
+                    client_outputs=client_outputs,
+                )
+                job_config["working_directory"] = client_outputs.working_directory
+                submit_client_job(client, job_description)
             wait_for_job(manager, job_config)
             log.info("Leaving finish_execution and shutting down app")
     except BaseException:

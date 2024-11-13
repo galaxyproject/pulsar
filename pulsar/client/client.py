@@ -498,6 +498,7 @@ class LocalSequentialLaunchMixin(BaseRemoteConfiguredJobClient):
         # 4. stage outputs back using manifest [handled by ARC]
         pass
 
+
 class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
     execution_type: ExecutionType
     pulsar_container_image: str

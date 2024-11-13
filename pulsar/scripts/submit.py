@@ -15,6 +15,7 @@ def main(args=None):
     add_common_submit_args(arg_parser)
     arg_parser.add_argument('--wait', action='store_true')
     arg_parser.add_argument('--no_wait', "--no-wait", dest='wait', action='store_false')
+    arg_parser.add_argument('--build_client_manager', action='store_true')
     arg_parser.set_defaults(wait=True)
     args = arg_parser.parse_args(args)
     run_server_for_job(args)

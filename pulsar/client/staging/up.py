@@ -72,6 +72,13 @@ def submit_job(client, client_job_description, job_config=None):
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
 
+    # populate `to_path`
+    for action in file_stager.action_mapper.actions:
+        name = basename(action.path)
+        input_type = "input"
+        path = file_stager.job_directory.calculate_path(name, input_type)
+        action.write_to_path(path)
+
     staging_manifest = file_stager.action_mapper.finalize()
     if staging_manifest:
         launch_kwds["staging_manifest"] = staging_manifest
@@ -564,7 +571,8 @@ class TransferTracker:
     def register_rewrite_action(self, action, remote_path, force=False):
         if action.staging_needed or force:
             path = getattr(action, 'path', None)
-            if path:
+            if path and path not in self.file_renames:
+                # this should only happen in unit testing ... don't really know why
                 self.file_renames[path] = remote_path
 
     def rewrite_input_paths(self):

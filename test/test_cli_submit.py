@@ -9,7 +9,7 @@ from .test_utils import (
     temp_directory_persist,
 )
 
-from pulsar.client import ClientOutputs
+from pulsar.client import ClientOutputs, ClientInput
 from pulsar.client.util import to_base64_json
 from pulsar.scripts import submit
 
@@ -25,25 +25,40 @@ class BaseCliTestCase(TempDirectoryTestCase):
     def run_and_check_submission(self):
         job_id = "0"
         galaxy_working = temp_directory_persist()
+        input_name = "dataset_1.dat"
         output_name = "dataset_1211231231231231231.dat"
+        # TODO: input should not be in working directory
+        galaxy_input = os.path.join(galaxy_working, input_name)
+        with open(galaxy_input, "w") as handle:
+            handle.write("cow file contents\n")
         galaxy_output = os.path.join(galaxy_working, output_name)
+        pulsar_input = os.path.join(self.staging_directory, job_id, "inputs", input_name)
         pulsar_output = os.path.join(
             self.staging_directory, job_id, "outputs", output_name
         )
-        pulsar_input = os.path.join(self.staging_directory, job_id, "inputs", "cow")
         with files_server("/") as test_files_server:
             files_endpoint = test_files_server.application_url
             action = {
                 "name": "cow",
                 "type": "input",
-                "action": {"action_type": "message", "contents": "cow file contents\n"},
+                "action": {
+                    "action_type": "json_transfer",
+                    "files_endpoint": files_endpoint,
+                    "path": galaxy_input,
+                },
             }
+            client_inputs = [
+                ClientInput(
+                     path=galaxy_input,
+                     input_type="input_path",
+                ).action_source
+            ]
             client_outputs = ClientOutputs(
                 working_directory=galaxy_working,
                 output_files=[os.path.join(galaxy_working, output_name)],
             )
             launch_params = dict(
-                command_line="cat '{}' > '{}'".format(pulsar_input, pulsar_output),
+                command_line="cat '{}' > '{}'".format(galaxy_input, galaxy_output),
                 job_id=job_id,
                 setup_params=dict(
                     job_id=job_id,
@@ -52,12 +67,13 @@ class BaseCliTestCase(TempDirectoryTestCase):
                 remote_staging={
                     "setup": [action],
                     "action_mapper": self.setup_action_mapper(files_endpoint),
+                    "client_inputs": client_inputs,
                     "client_outputs": client_outputs.to_dict(),
                 },
             )
             base64 = to_base64_json(launch_params)
             assert not os.path.exists(galaxy_output)
-            submit.main(["--build_client_manager", "true", "--base64", base64] + self._encode_application())
+            submit.main(["--build_client_manager", "--base64", base64] + self._encode_application())
             assert os.path.exists(galaxy_output)
             out_contents = open(galaxy_output).read()
             assert out_contents == "cow file contents\n", out_contents
