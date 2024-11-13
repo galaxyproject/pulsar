@@ -21,6 +21,7 @@ from typing import (
     Any,
     Dict,
     List,
+    Optional,
     Type,
 )
 from urllib.parse import urlencode
@@ -203,7 +204,7 @@ class FileActionMapper:
         if mapper:
             file_lister = mapper.file_lister
             action_kwds = mapper.action_kwds
-        action = action_class(source, file_lister=file_lister, **action_kwds)
+        action = action_class(source, file_lister=file_lister, file_type=type, **action_kwds)
         self.__process_action(action, type)
         self.actions.append(action)
         return action
@@ -272,6 +273,7 @@ class FileActionMapper:
         """ Extension point to populate extra action information after an
         action has been created.
         """
+        action.file_type = file_type
         if getattr(action, "inject_url", False):
             self.__inject_url(action, file_type)
         if getattr(action, "inject_ssh_properties", False):
@@ -307,10 +309,12 @@ class BaseAction:
     whole_directory_transfer_supported = False
     action_spec: Dict[str, Any] = {}
     action_type: str
+    file_type: Optional[str] = None
 
-    def __init__(self, source, file_lister=None):
+    def __init__(self, source, file_lister=None, file_type=None):
         self.source = source
         self.file_lister = file_lister or DEFAULT_FILE_LISTER
+        self.file_type = file_type
 
     @property
     def path(self):
@@ -400,8 +404,8 @@ class RewriteAction(BaseAction):
     action_type = "rewrite"
     staging = STAGING_ACTION_NONE
 
-    def __init__(self, source, file_lister=None, source_directory=None, destination_directory=None):
-        super().__init__(source, file_lister=file_lister)
+    def __init__(self, source, file_lister=None, source_directory=None, destination_directory=None, file_type=None):
+        super().__init__(source, file_lister=file_lister, file_type=file_type)
         self.source_directory = source_directory
         self.destination_directory = destination_directory
 
@@ -477,8 +481,8 @@ class RemoteTransferAction(BaseAction):
     action_type = "remote_transfer"
     staging = STAGING_ACTION_REMOTE
 
-    def __init__(self, source, file_lister=None, url=None):
-        super().__init__(source, file_lister=file_lister)
+    def __init__(self, source, file_lister=None, url=None, file_type=None):
+        super().__init__(source, file_lister=file_lister, file_type=file_type)
         self.url = url
 
     def to_dict(self):
@@ -505,8 +509,8 @@ class RemoteTransferTusAction(BaseAction):
     action_type = "remote_transfer_tus"
     staging = STAGING_ACTION_REMOTE
 
-    def __init__(self, source, file_lister=None, url=None):
-        super().__init__(source, file_lister=file_lister)
+    def __init__(self, source, file_lister=None, url=None, file_type=None):
+        super().__init__(source, file_lister=file_lister, file_type=file_type)
         self.url = url
 
     def to_dict(self):
@@ -533,8 +537,8 @@ class JsonTransferAction(BaseAction):
     action_type = "json_transfer"
     staging = STAGING_ACTION_REMOTE
 
-    def __init__(self, source, file_lister=None, url=None):
-        super().__init__(source, file_lister)
+    def __init__(self, source, file_lister=None, url=None, file_type=None):
+        super().__init__(source, file_lister, file_type)
         self.url = url
         self._from_path = None
         self._to_path = None
