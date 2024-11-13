@@ -35,29 +35,30 @@ References:
 
 # When the URL is the target, use POST.
 
-import aiohttp
 import json
 import sys
-from typing import Iterable
-from typing import Literal
-from dataclasses import dataclass, field
 from argparse import ArgumentParser
-from typing import Optional
+
+from pulsar.client.transport import (
+    get_file,
+    post_file,
+)
 
 
-@dataclass
-class StagingDeclaration:
-    """Declare where to read a file from and where to save it to."""
 
-    source: str  # a URL
-    target: str  # a URL
+def main(args):
+    for entry in parse_json_manifest(args.json):
+        if entry.get("to_path"):
+            get_file(entry["url"], entry["to_path"])
+        elif entry.get("from_path"):
+            post_file(entry["url"], entry["from_path"])
+        else:
+            raise Exception(f"Didn't expect this in the staging manifest: {entry}")
 
 
-...
-
-
-def parse_json_manifest() -> tuple[StagingDeclaration]:
-    ...
+def parse_json_manifest(json_path):
+    with open(json_path) as fh:
+        return json.load(fh)
 
 
 HELP_STAGE = "Read a file from `source` and save it to `target`."
@@ -74,7 +75,7 @@ def make_parser() -> ArgumentParser:
     parser.add_argument(
         "--stage", dest="stage", metavar=("source", "target"), nargs=2, action="append", help=HELP_STAGE
     )
-    parser.add_argument("--json", dest="json", nargs=1, action="append", help=HELP_JSON)
+    parser.add_argument("--json", help=HELP_JSON)
 
     return parser
 
@@ -82,4 +83,5 @@ def make_parser() -> ArgumentParser:
 if __name__ == "__main__":
     """Invoke script from the command line."""
     argument_parser = make_parser()
-    args = argument_parser.parse_args(sys.argv[1:])
+    args = argument_parser.parse_args()
+    main(args)

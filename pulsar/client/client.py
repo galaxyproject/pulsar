@@ -496,8 +496,36 @@ class LocalSequentialLaunchMixin(BaseRemoteConfiguredJobClient):
         # 2. call actual command_line
         # 3. call script that does output collection (similar to __collect_outputs) and outputs staging manifest
         # 4. stage outputs back using manifest [handled by ARC]
-        pass
+        import importlib.resources
+        import tempfile
+        import subprocess
+        import sys
+        from pulsar import scripts
+        STAGING_SCRIPT = importlib.resources.path(scripts, "staging_arc.py")
+        MANIFEST_SCRIPT = importlib.resources.path(scripts, "collect_output_manifest.py")
 
+        with tempfile.NamedTemporaryFile(mode="w") as temp_fh:
+            fixed_manifest = [staging_manifest[0]]
+            temp_fh.write(json_dumps(fixed_manifest))
+            temp_fh.flush()
+            staging_process = subprocess.run([sys.executable, STAGING_SCRIPT, "--json", temp_fh.name], capture_output=True)
+            assert staging_process.returncode == 0, staging_process.stderr.decode()
+        job_process = subprocess.run(command_line, shell=True, capture_output=True)
+        assert job_process.returncode == 0, job_process.stderr.decode()
+
+        job_directory = self.job_directory.job_directory
+
+        output_manifest_path = os.path.join(job_directory, "output_manifest.json")
+
+        with tempfile.NamedTemporaryFile(mode="w") as staging_config_fh:
+            staging_config_fh.write(json_dumps(remote_staging))
+            staging_config_fh.flush()
+
+            p = subprocess.run([sys.executable, MANIFEST_SCRIPT, "--job-directory", job_directory, "--staging-config-path", staging_config_fh.name, "--output-manifest-path", output_manifest_path])
+            assert p.returncode == 0
+
+        stage_out_process = subprocess.run([sys.executable, STAGING_SCRIPT, "--json", output_manifest_path], capture_output=True)
+        assert stage_out_process.returncode == 0, stage_out_process.stderr.decode()
 
 class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
     execution_type: ExecutionType
