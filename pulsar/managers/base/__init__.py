@@ -232,7 +232,7 @@ class JobDirectory(RemoteJobDirectory):
     def __init__(
         self,
         staging_directory,
-        job_id,
+        job_id=None,
         lock_manager=None,
         directory_maker=None
     ):
@@ -240,7 +240,8 @@ class JobDirectory(RemoteJobDirectory):
         self._directory_maker = directory_maker or DirectoryMaker()
         self.lock_manager = lock_manager
         # Assert this job id isn't hacking path somehow.
-        assert job_id == basename(job_id)
+        if job_id:
+            assert job_id == basename(job_id)
 
     def _job_file(self, name):
         return os.path.join(self.job_directory, name)
