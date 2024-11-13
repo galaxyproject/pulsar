@@ -36,7 +36,7 @@ class BaseCliTestCase(TempDirectoryTestCase):
         pulsar_output = os.path.join(
             self.staging_directory, job_id, "outputs", output_name
         )
-        with files_server("/") as test_files_server:
+        with files_server("/", allow_multiple_downloads=True) as test_files_server:
             files_endpoint = test_files_server.application_url
             action = {
                 "name": "cow",
