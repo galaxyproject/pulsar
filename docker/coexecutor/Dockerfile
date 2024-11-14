@@ -1,3 +1,22 @@
+# use the root of the repository as context, i.e. `docker build . -f ./docker/coexecutor/Dockerfile`
+
+FROM python:3.12-bookworm as build_wheel
+
+ENV PIP_ROOT_USER_ACTION=ignore
+
+WORKDIR /build
+
+# install requirements
+COPY requirements.txt .
+COPY dev-requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir setuptools -r requirements.txt -r dev-requirements.txt
+
+# build Pulsar wheel
+COPY . .
+RUN python setup.py sdist bdist_wheel
+
+
 FROM python:3.12-bookworm
 
 ENV PYTHONUNBUFFERED 1
@@ -49,7 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get -y autoremove \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log
 
-ADD pulsar_app-*-py2.py3-none-any.whl /
+COPY --from=build_wheel /build/dist/pulsar_app-*-py2.py3-none-any.whl /
 
 SHELL ["/bin/bash", "-c"]
 
