@@ -374,6 +374,90 @@ class BaseRemoteConfiguredJobClient(BaseJobClient):
             launch_params["setup_params"] = setup_params
         return launch_params
 
+    def get_pulsar_app_config(
+        self,
+        pulsar_app_config,
+        container,
+        wait_after_submission,
+        manager_name,
+        manager_type,
+        dependencies_description,
+    ):
+
+        pulsar_app_config = pulsar_app_config or {}
+        manager_config = self._ensure_manager_config(
+            pulsar_app_config,
+            manager_name,
+            manager_type,
+        )
+
+        if (
+            "staging_directory" not in manager_config and "staging_directory" not in pulsar_app_config
+        ):
+            pulsar_app_config["staging_directory"] = CONTAINER_STAGING_DIRECTORY
+
+        if self.amqp_key_prefix:
+            pulsar_app_config["amqp_key_prefix"] = self.amqp_key_prefix
+
+        if "monitor" not in manager_config:
+            manager_config["monitor"] = (
+                MonitorStyle.BACKGROUND.value
+                if wait_after_submission
+                else MonitorStyle.NONE.value
+            )
+        if "persistence_directory" not in pulsar_app_config:
+            pulsar_app_config["persistence_directory"] = os.path.join(
+                CONTAINER_STAGING_DIRECTORY, "persisted_data"
+            )
+        elif "manager" in pulsar_app_config and manager_name != "_default_":
+            log.warning(
+                "'manager' set in app config but client has non-default manager '%s', this will cause communication"
+                " failures, remove `manager` from app or client config to fix",
+                manager_name,
+            )
+
+        using_dependencies = container is None and dependencies_description is not None
+        if using_dependencies and "dependency_resolution" not in pulsar_app_config:
+            # Setup default dependency resolution for container above...
+            dependency_resolution = {
+                "cache": False,
+                "use": True,
+                "default_base_path": "/pulsar_dependencies",
+                "cache_dir": "/pulsar_dependencies/_cache",
+                "resolvers": [
+                    {  # TODO: add CVMFS resolution...
+                        "type": "conda",
+                        "auto_init": True,
+                        "auto_install": True,
+                        "prefix": "/pulsar_dependencies/conda",
+                    },
+                    {
+                        "type": "conda",
+                        "auto_init": True,
+                        "auto_install": True,
+                        "prefix": "/pulsar_dependencies/conda",
+                        "versionless": True,
+                    },
+                ],
+            }
+            pulsar_app_config["dependency_resolution"] = dependency_resolution
+        return pulsar_app_config
+
+    def _ensure_manager_config(self, pulsar_app_config, manager_name, manager_type):
+        if "manager" in pulsar_app_config:
+            manager_config = pulsar_app_config["manager"]
+        elif "managers" in pulsar_app_config:
+            managers_config = pulsar_app_config["managers"]
+            if manager_name not in managers_config:
+                managers_config[manager_name] = {}
+            manager_config = managers_config[manager_name]
+        else:
+            manager_config = {}
+            pulsar_app_config["manager"] = manager_config
+        if "type" not in manager_config:
+            manager_config["type"] = manager_type
+        return manager_config
+
 
 class MessagingClientManagerProtocol(ClientManagerProtocol):
     status_cache: Dict[str, Dict[str, Any]]
@@ -492,7 +576,7 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
         container_info=None,
         token_endpoint=None,
         pulsar_app_config=None,
-        staging_manifest=None
+        staging_manifest=None,
     ) -> Optional[ExternalId]:
         """
         """
@@ -514,48 +598,15 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
 
         manager_name = self.client_manager.manager_name
         manager_type = "coexecution" if container is not None else "unqueued"
-        pulsar_app_config = pulsar_app_config or {}
-        manager_config = self._ensure_manager_config(
-            pulsar_app_config, manager_name, manager_type,
+        pulsar_app_config = self.get_pulsar_app_config(
+            pulsar_app_config=pulsar_app_config,
+            container=container,
+            wait_after_submission=wait_after_submission,
+            manager_name=manager_name,
+            manager_type=manager_type,
+            dependencies_description=dependencies_description,
         )
 
-        if "staging_directory" not in manager_config and "staging_directory" not in pulsar_app_config:
-            pulsar_app_config["staging_directory"] = CONTAINER_STAGING_DIRECTORY
-
-        if self.amqp_key_prefix:
-            pulsar_app_config["amqp_key_prefix"] = self.amqp_key_prefix
-
-        if "monitor" not in manager_config:
-            manager_config["monitor"] = MonitorStyle.BACKGROUND.value if wait_after_submission else MonitorStyle.NONE.value
-        if "persistence_directory" not in pulsar_app_config:
-            pulsar_app_config["persistence_directory"] = os.path.join(CONTAINER_STAGING_DIRECTORY, "persisted_data")
-        elif "manager" in pulsar_app_config and manager_name != '_default_':
-            log.warning(
-                "'manager' set in app config but client has non-default manager '%s', this will cause communication"
-                " failures, remove `manager` from app or client config to fix", manager_name)
-
-        using_dependencies = container is None and dependencies_description is not None
-        if using_dependencies and "dependency_resolution" not in pulsar_app_config:
-            # Setup default dependency resolution for container above...
-            dependency_resolution = {
-                "cache": False,
-                "use": True,
-                "default_base_path": "/pulsar_dependencies",
-                "cache_dir": "/pulsar_dependencies/_cache",
-                "resolvers": [{  # TODO: add CVMFS resolution...
-                    "type": "conda",
-                    "auto_init": True,
-                    "auto_install": True,
-                    "prefix": '/pulsar_dependencies/conda',
-                }, {
-                    "type": "conda",
-                    "auto_init": True,
-                    "auto_install": True,
-                    "prefix": '/pulsar_dependencies/conda',
-                    "versionless": True,
-                }]
-            }
-            pulsar_app_config["dependency_resolution"] = dependency_resolution
         base64_message = to_base64_json(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
         pulsar_container_image = self.pulsar_container_image
@@ -606,21 +657,6 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
             manager_args.append(wait_arg)
         manager_args.extend(["--base64", base64_job, "--app_conf_base64", base64_app_conf])
         return manager_args
-
-    def _ensure_manager_config(self, pulsar_app_config, manager_name, manager_type):
-        if "manager" in pulsar_app_config:
-            manager_config = pulsar_app_config["manager"]
-        elif "managers" in pulsar_app_config:
-            managers_config = pulsar_app_config["managers"]
-            if manager_name not in managers_config:
-                managers_config[manager_name] = {}
-            manager_config = managers_config[manager_name]
-        else:
-            manager_config = {}
-            pulsar_app_config["manager"] = manager_config
-        if "type" not in manager_config:
-            manager_config["type"] = manager_type
-        return manager_config
 
     def _launch_containers(
         self,
