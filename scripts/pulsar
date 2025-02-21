@@ -116,8 +116,10 @@ then
         MODE="circusd"
     elif hash chaussette 2>/dev/null; then
         MODE="chaussette"
-    else
+    elif hash paster 2>/dev/null; then
         MODE="paster"
+    else
+        MODE="webless"
     fi
 fi
 
@@ -140,7 +142,6 @@ elif [ "$MODE" == "webless" ]; then
         pulsar-main
     else
         # Running locally.
-        PROJECT_DIRECTORY=$PULSAR_SCRIPTS_DIR/..
         cd $PROJECT_DIRECTORY
         export PYTHONPATH=.:$PYTHONPATH
         echo "Starting pulsar with command [python pulsar/main.py]"
