@@ -4,6 +4,7 @@ from json import loads
 
 from webob import exc
 
+from pulsar import __version__ as pulsar_version
 from pulsar.client.action_mapper import path_type
 from pulsar.client.job_directory import verify_is_in_directory
 from pulsar.manager_endpoint_util import (
@@ -222,6 +223,11 @@ def object_store_update_from_file(object_store, object_id, base_dir=None, extra_
 @PulsarController(path="/object_store_usage_percent", response_type='json')
 def object_store_get_store_usage_percent(object_store):
     return object_store.get_store_usage_percent()
+
+
+@PulsarController(path="/healthz", method="GET", response_type='json')
+def healthz():
+    return {'version': pulsar_version}
 
 
 class PulsarDataset:
