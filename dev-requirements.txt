@@ -21,7 +21,7 @@ flake8
 
 mypy<=1.0.1  # https://github.com/pydantic/pydantic/issues/5192
 types-paramiko
-types-setuptools
+types-pkg-resources
 types-PyYAML
 types-pycurl
 types-requests
