@@ -24,6 +24,14 @@ JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
 JOB_FILE_COMMAND_LINE = "command_line"
 CREATE_TMP_PATTERN = '''$([ ! -e '{0}/tmp' ] || mv '{0}/tmp' '{0}'/tmp.$(date +%Y%m%d-%H%M%S) ; mkdir '{0}/tmp'; echo '{0}/tmp')'''
+PREPARE_DIRS_TEMPLATE = """for dir in {working_directory} {outputs_directory} {configs_directory}; do
+    if [ -d "${{dir}}.orig" ]; then
+        rm -rf "$dir"; cp -R "${{dir}}.orig" "$dir"
+    else
+        cp -R "$dir" "${{dir}}.orig"
+    fi
+done
+"""
 
 
 class DirectoryBaseManager(BaseManager):
@@ -171,6 +179,13 @@ class DirectoryBaseManager(BaseManager):
             # Catch case where tmp_dir is a complex expression and not a boolean value
             return tmp_dir
 
+    def _prepare_dirs(self, job_id: str):
+        return PREPARE_DIRS_TEMPLATE.format(
+            working_directory=self.job_directory(job_id).working_directory(),
+            outputs_directory=self.job_directory(job_id).outputs_directory(),
+            configs_directory=self.job_directory(job_id).configs_directory(),
+        )
+
     def _job_template_env(self, job_id, command_line=None, env=[], setup_params=None):
         # TODO: Add option to ignore remote env.
         env = env + self.env_vars
@@ -188,6 +203,7 @@ class DirectoryBaseManager(BaseManager):
             'home_directory': self.job_directory(job_id).home_directory(),
             'job_id': job_id,
             'tmp_dir_creation_statement': self._tmp_dir(job_id),
+            'prepare_dirs_statement': self._prepare_dirs(job_id),
         }
         if command_line:
             job_template_env['command'] = command_line
