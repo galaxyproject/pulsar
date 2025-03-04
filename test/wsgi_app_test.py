@@ -3,6 +3,8 @@ import os
 import time
 from urllib.parse import quote
 
+from pulsar import __version__ as pulsar_version
+
 
 def test_standard_requests():
     """ Tests app controller methods. These tests should be
@@ -68,3 +70,8 @@ def test_standard_requests():
         clean_response = app.delete("/jobs/%s" % job_id)
         assert clean_response.body.decode("utf-8") == 'OK'
         assert os.listdir(staging_directory) == []
+
+        # test healthz endpoint
+        healthz_response = app.get("/healthz")
+        healthz_data = json.loads(healthz_response.body.decode("utf-8"))
+        assert healthz_data["version"] == pulsar_version
