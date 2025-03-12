@@ -6,6 +6,7 @@ from os.path import (
     basename,
     dirname,
     exists,
+    isdir,
     join,
     relpath,
 )
@@ -13,6 +14,7 @@ from re import (
     escape,
     findall,
 )
+from typing import Optional
 
 from ..action_mapper import (
     FileActionMapper,
@@ -235,8 +237,18 @@ class FileStager:
             self.arbitrary_files.update(unstructured_map)
 
     def __upload_tool_files(self):
-        for (referenced_tool_file, name) in self.referenced_tool_files:
-            self.transfer_tracker.handle_transfer_path(referenced_tool_file, path_type.TOOL, name=name)
+        for referenced_tool_file, name in self.referenced_tool_files:
+            if isdir(referenced_tool_file):
+                self.transfer_tracker.handle_transfer_directory(
+                    path_type.TOOL,
+                    directory=referenced_tool_file,
+                    mode=StageDirectoryType.WHOLE_DIRECTORY,
+                    rel_path_to=self.tool_dir,
+                )
+            else:
+                self.transfer_tracker.handle_transfer_path(
+                    referenced_tool_file, path_type.TOOL, name=name
+                )
 
     def __upload_job_directory_files(self):
         for job_directory_file in self.job_directory_files:
@@ -466,7 +478,14 @@ class TransferTracker:
         source = {"path": path}
         return self.handle_transfer_source(source, type, name=name, contents=contents)
 
-    def handle_transfer_directory(self, type, directory=None, action_source=None, mode: StageDirectoryType = StageDirectoryType.CONTENTS):
+    def handle_transfer_directory(
+        self,
+        type,
+        directory=None,
+        action_source=None,
+        mode: StageDirectoryType = StageDirectoryType.CONTENTS,
+        rel_path_to: Optional[str] = None,
+    ):
         # TODO: needs to happen else where if using remote object store staging
         # but we don't have the action type yet.
         if directory is None:
@@ -481,14 +500,21 @@ class TransferTracker:
                 self.__add_remote_staging_input(action, None, type)
                 return
 
-            directory = action_source['path']
+            directory = action_source["path"]
         else:
             assert action_source is None
 
         for directory_file_name in directory_files(directory):
             directory_file_path = join(directory, directory_file_name)
-            rel_path_to = directory if mode == StageDirectoryType.CONTENTS else dirname(directory)
-            remote_name = self.path_helper.remote_name(relpath(directory_file_path, rel_path_to))
+            if not rel_path_to:
+                rel_path_to = (
+                    directory
+                    if mode == StageDirectoryType.CONTENTS
+                    else dirname(directory)
+                )
+            remote_name = self.path_helper.remote_name(
+                relpath(directory_file_path, rel_path_to)
+            )
             self.handle_transfer_path(directory_file_path, type, name=remote_name)
 
     def handle_transfer_source(self, source, type, name=None, contents=None):
