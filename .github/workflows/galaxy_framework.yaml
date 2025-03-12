@@ -12,7 +12,7 @@ jobs:
         galaxy-branch: ['dev', 'master']
         metadata-strategy: ['directory']
         include:
-          - python-version: '3.8'
+          - python-version: '3.9'
             galaxy-branch: 'dev'
             metadata-strategy: 'extended'
     services:
