@@ -4,6 +4,9 @@ import json
 import logging
 import time
 
+from pulsar.client import ClientJobDescription, ClientOutputs, ClientInput
+from pulsar.client import submit_job as submit_client_job
+from pulsar.client.manager import build_client_manager
 from pulsar.client.util import from_base64_json
 from pulsar.main import (
     load_pulsar_app,
