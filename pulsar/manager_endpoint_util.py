@@ -38,8 +38,6 @@ def __job_complete_dict(complete_status, manager, job_id):
     return_code = manager.return_code(job_id)
     if return_code == PULSAR_UNKNOWN_RETURN_CODE:
         return_code = None
-    stdout_contents = unicodify(manager.stdout_contents(job_id))
-    stderr_contents = unicodify(manager.stderr_contents(job_id))
     job_stdout_contents = unicodify(manager.job_stdout_contents(job_id).decode("utf-8"))
     job_stderr_contents = unicodify(manager.job_stderr_contents(job_id).decode("utf-8"))
     job_directory = manager.job_directory(job_id)
@@ -48,8 +46,6 @@ def __job_complete_dict(complete_status, manager, job_id):
         complete="true",  # Is this still used or is it legacy.
         status=complete_status,
         returncode=return_code,
-        stdout=stdout_contents,
-        stderr=stderr_contents,
         job_stdout=job_stdout_contents,
         job_stderr=job_stderr_contents,
         working_directory=job_directory.working_directory(),
