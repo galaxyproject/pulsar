@@ -14,7 +14,7 @@
       </destination>
     </destinations>
     <tools>
-      <tool id="upload1" destination="local" />
+      <tool id="__DATA_FETCH__" destination="local" />
     </tools>
 </job_conf>
 

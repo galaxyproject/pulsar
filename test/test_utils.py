@@ -277,7 +277,7 @@ def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
             yield test_pulsar_server
 
 
-test_pulsar_server.__test__ = False
+test_pulsar_server.__test__ = False  # type:ignore[attr-defined]
 
 
 class RestartablePulsarAppProvider:
@@ -353,7 +353,7 @@ def test_pulsar_app(
                 pass
 
 
-test_pulsar_app.__test__ = False
+test_pulsar_app.__test__ = False  # type:ignore[attr-defined]
 
 
 @contextmanager
