@@ -6,9 +6,21 @@ History
 .. to_doc
 
 ---------------------
-0.15.7.dev0
+0.15.7 (2025-03-13)
 ---------------------
-
+* Fix transfer of remote directories (thanks to `@mvdbeek`_). `Pull Request 385`_
+* Add health check endpoint (thanks to `@nuwang`_). `Pull Request 382`_
+* Prepare dirs from Galaxy, to properly recover resubmitted jobs (thanks to
+  `@natefoo`_). `Pull Request 380`_
+* Replace obsolete package types-pkg-resources with types-setuptools (thanks
+  to `@nuwang`_). `Pull Request 383`_
+* Drop nose (thanks to `@neoformit`_). `Pull Request 333`_
+* Open tool file contents in `rb` (thanks to `@mvdbeek`_). `Pull Request 372`_
+* Do not attempt to complete pre- or post-process if jobs are cancelled in the
+  middle of either stage (thanks to `@natefoo`_). `Pull Request 365`_
+* Update job_managers.rst (thanks to `@peterg1t`_). `Pull Request 360`_
+* Send accept-encoding: identity to get correct content-length on head …
+  (thanks to `@mvdbeek`_). `Pull Request 361`_
 
 ---------------------
 0.15.6 (2024-01-15)
@@ -496,6 +508,15 @@ History
 
 
 .. github_links
+.. _Pull Request 385: https://github.com/galaxyproject/pulsar/pull/385
+.. _Pull Request 382: https://github.com/galaxyproject/pulsar/pull/382
+.. _Pull Request 380: https://github.com/galaxyproject/pulsar/pull/380
+.. _Pull Request 383: https://github.com/galaxyproject/pulsar/pull/383
+.. _Pull Request 333: https://github.com/galaxyproject/pulsar/pull/333
+.. _Pull Request 372: https://github.com/galaxyproject/pulsar/pull/372
+.. _Pull Request 365: https://github.com/galaxyproject/pulsar/pull/365
+.. _Pull Request 360: https://github.com/galaxyproject/pulsar/pull/360
+.. _Pull Request 361: https://github.com/galaxyproject/pulsar/pull/361
 
 .. _Pull Request 351: https://github.com/galaxyproject/pulsar/pull/351
 .. _Pull Request 338: https://github.com/galaxyproject/pulsar/pull/338
@@ -651,3 +672,5 @@ History
 .. _@nsoranzo: https://github.com/nsoranzo
 .. _@SergeyYakubov: https://github.com/SergeyYakubov
 .. _@cat-bro: https://github.com/cat-bro
+.. _@peterg1t: https://github.com/peterg1t
+.. _@neoformit: https://github.com/neoformit
