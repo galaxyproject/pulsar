@@ -24,7 +24,7 @@ class ToolBasedAuthorizationTestCase(TestCase):
 
     def test_valid_tool_file_passes(self):
         authorization = self.authorizer.get_authorization('tool1')
-        authorization.authorize_tool_file('tool1_wrapper.py', 'print \'Hello World!\'\n')
+        authorization.authorize_tool_file('tool1_wrapper.py', b'print \'Hello World!\'\n')
 
     def test_invalid_tool_file_fails(self):
         authorization = self.authorizer.get_authorization('tool1')
