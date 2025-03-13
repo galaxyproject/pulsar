@@ -6,6 +6,10 @@ History
 .. to_doc
 
 ---------------------
+0.15.8.dev0
+---------------------
+
+---------------------
 0.15.7 (2025-03-13)
 ---------------------
 * Fix transfer of remote directories (thanks to `@mvdbeek`_). `Pull Request 385`_
