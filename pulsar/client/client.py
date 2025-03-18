@@ -1,6 +1,9 @@
 import logging
 import os
+import tempfile
 from enum import Enum
+from pathlib import Path
+from textwrap import dedent
 from typing import (
     Any,
     Callable,
@@ -10,7 +13,15 @@ from typing import (
     Optional,
 )
 from typing_extensions import Protocol
+from urllib.parse import urlparse, urlunparse
+from xml.etree.ElementTree import (
+    Element,
+    fromstring,
+    SubElement,
+    tostring,
+)
 
+from pulsar.managers.util.arc import ensure_pyarc, pyarcrest, arc_state_to_pulsar_state
 from pulsar.managers.util.tes import (
     ensure_tes_client,
     TesClient,
@@ -68,8 +79,11 @@ echo 'running script';
 sh $path;
 echo 'ran script'"""
 
-
-PULSAR_CONTAINER_IMAGE = "galaxy/pulsar-pod-staging:0.15.0.0"
+PULSAR_CONTAINER_VERSION = "0.16.0"
+PULSAR_CONTAINER_IMAGE = f"galaxy/pulsar-pod-staging:{PULSAR_CONTAINER_VERSION}"
+PULSAR_SINGULARITY_IMAGE = (
+    f"https://github.com/galaxyproject/pulsar/releases/download/{PULSAR_CONTAINER_VERSION}/pulsar.sif"
+)
 CONTAINER_STAGING_DIRECTORY = "/pulsar_staging/"
 
 
@@ -561,6 +575,301 @@ class ExecutionType(str, Enum):
     PARALLEL = "parallel"
 
 
+class ARCLaunchMixin(BaseRemoteConfiguredJobClient):
+    """Execute containers sequentially using ARC."""
+
+    ensure_library_available = ensure_pyarc
+    execution_type = ExecutionType.SEQUENTIAL
+
+    default_tool_container_image: str = "docker://python:slim"
+
+    _arc_job_id: str
+    # Holds the ARC job id after launch, used to kill the job and to get status updates.
+
+    def launch(
+        self,
+        command_line,
+        dependencies_description=None,
+        env=None,
+        remote_staging=None,
+        job_config=None,
+        dynamic_file_sources=None,
+        container_info=None,
+        token_endpoint=None,
+        pulsar_app_config=None,
+        staging_manifest=None,
+    ) -> Optional[ExternalId]:
+        container = container_info["container_id"] if container_info else None
+        guest_ports = [int(p) for p in container_info["guest_ports"]] if container_info else None
+
+        # prepare auxiliary artifacts
+        auxiliary_artifacts_directory = Path(tempfile.mkdtemp(prefix="pulsar_arc_"))
+        input_manifest_path = auxiliary_artifacts_directory / "input_manifest.json"
+        staging_config_path = auxiliary_artifacts_directory / "staging_config.json"
+        with open(input_manifest_path, "w") as input_manifest_fh:
+            input_manifest_fh.write(json_dumps(staging_manifest))
+        with open(staging_config_path, mode="w") as staging_config_fh:
+            staging_config_fh.write(json_dumps(remote_staging))
+
+        # build Pulsar submit command
+        launch_params = self._build_setup_message(
+            command_line,
+            dependencies_description=dependencies_description,
+            env=env,
+            remote_staging=remote_staging,
+            job_config=job_config,
+            dynamic_file_sources=dynamic_file_sources,
+            token_endpoint=token_endpoint,
+        )
+        pulsar_app_config = self.get_pulsar_app_config(
+            pulsar_app_config=pulsar_app_config,
+            container=container,
+            wait_after_submission=False,
+            manager_name="_default_",
+            manager_type="unqueued",
+            dependencies_description=dependencies_description,
+        )
+        base64_message = to_base64_json(launch_params)
+        base64_app_conf = to_base64_json(pulsar_app_config)
+        pulsar_submit = CoexecutionContainerCommand(
+            self.pulsar_container_image,
+            "pulsar-submit",
+            [
+                "--base64",
+                base64_message,
+                "--app_conf_base64",
+                base64_app_conf,
+                "--no_wait",
+            ],
+            job_config["job_directory"],
+            None,
+        )
+
+        # build tool command
+        tool_container = CoexecutionContainerCommand(
+            container or self.default_tool_container_image,
+            "bash",
+            [f"{job_config['job_directory']}/command.sh"],
+            job_config["job_directory"],
+            guest_ports,
+        )
+
+        # build Pulsar output manifest command
+        output_manifest_path = "output_manifest.json"
+        output_manifest = CoexecutionContainerCommand(
+            self.pulsar_container_image,
+            "pulsar-create-output-manifest",
+            [
+                "--job-directory",
+                job_config["job_directory"],
+                "--staging-config-path",
+                staging_config_path.name,
+                "--output-manifest-path",
+                output_manifest_path,
+            ],
+            job_config["job_directory"],
+        )
+
+        # build ARC job
+        executable_path = Path(auxiliary_artifacts_directory) / "job.sh"
+        with open(executable_path, "wb") as executable_fh:
+            executable: bytes = self._generate_executable(
+                job_directory=job_config["job_directory"],
+                output_manifest_path=output_manifest_path,
+                persistence_directory=pulsar_app_config["persistence_directory"],
+                staging_directory=str(
+                    Path(pulsar_app_config["staging_directory"]) / Path(job_config["job_directory"]).name
+                ),
+                pulsar_submit_command=pulsar_submit,
+                tool_container_command=tool_container,
+                pulsar_manifest_command=output_manifest,
+            )
+            executable_fh.write(executable)
+        job_description: bytes = self._generate_job_description(
+            job_directory=job_config["job_directory"],
+            input_manifest=staging_manifest,
+            executable_path=executable_path,
+            staging_config_path=Path(staging_config_path),
+        )
+
+        # submit arc job
+        arc_endpoint = self.destination_params["arc_url"]
+        arc_oidc_token = self.destination_params["arc_oidc_token"]
+        arc_job_id = self._launch_arc_job(
+            arc_endpoint,
+            arc_oidc_token,
+            job_description.decode("utf-8"),
+        )
+        self._arc_job_id = arc_job_id.external_id
+
+        return arc_job_id
+
+    @staticmethod
+    def _generate_executable(
+        job_directory: str,
+        output_manifest_path: str,
+        persistence_directory: str,
+        staging_directory: str,
+        pulsar_submit_command: CoexecutionContainerCommand,
+        tool_container_command: CoexecutionContainerCommand,
+        pulsar_manifest_command: CoexecutionContainerCommand,
+    ) -> bytes:
+        return dedent(f"""
+            #!/bin/bash
+            set -e
+
+            # clear SLURM variables (isolate the job's environment from ARC's internal infrastructure)
+            # https://hpcc.umd.edu/hpcc/help/slurmenv.html
+            unset SLURM_CPUS_ON_NODE
+            unset SLURM_CPUS_PER_TASK
+            unset SLURM_JOB_ID
+            unset SLURM_JOBID
+            unset SLURM_JOB_NAME
+            unset SLURM_JOB_NODELIST
+            unset SLURM_JOB_NUM_NODES
+            unset SLURM_LOCALID
+            unset SLURM_NODEID
+            unset SLURM_NNODES
+            unset SLURM_NODELIST
+            unset SLURM_NTASKS
+            unset SLURM_SUBMIT_DIR
+            unset SLURM_SUBMIT_HOST
+            unset SLURM_TASKS_PER_NODE
+
+            mkdir -p job_directory
+            mkdir -p persistence_directory
+
+            singularity run \\
+                --no-mount bind-paths \\
+                --bind /grid:/grid \\
+                --bind "job_directory":{staging_directory} \\
+                --bind "persistence_directory":{persistence_directory} \\
+                --pwd {staging_directory} \\
+                {pulsar_submit_command.image} \\
+                {pulsar_submit_command.command} {" ".join(pulsar_submit_command.args)}
+
+            singularity run \\
+                --no-mount bind-paths \\
+                --bind /grid:/grid \\
+                --bind "job_directory":{job_directory} \\
+                --bind "job_directory":{staging_directory} \\
+                --bind "persistence_directory":{persistence_directory} \\
+                --pwd {tool_container_command.working_directory} \\
+                {tool_container_command.image} \\
+                {tool_container_command.command} {" ".join(tool_container_command.args)}
+
+            mv staging_config.json job_directory
+            singularity run \\
+                --no-mount bind-paths \\
+                --bind /grid:/grid \\
+                --bind "job_directory":{job_directory} \\
+                --bind "job_directory":{staging_directory} \\
+                --bind "persistence_directory":{persistence_directory} \\
+                --pwd {tool_container_command.working_directory} \\
+                {pulsar_manifest_command.image} \\
+                {pulsar_manifest_command.command} {" ".join(pulsar_manifest_command.args)}
+
+            cat job_directory/{output_manifest_path} | jq -r '.[] | "\(.from_path | sub("^{job_directory}/"; "job_directory/")) \(.url | capture("^(?<protocolurlhostport>[^:]+://[^/]+)(?<fileandmetadataoptions>/.*)") | "\(.protocolurlhostport);overwrite=yes\(.fileandmetadataoptions)" )"' > output.files
+        """).encode("utf-8")
+
+    def _generate_job_description(
+        self,
+        job_directory: str,
+        input_manifest: dict,
+        executable_path: Path,
+        staging_config_path: Path,
+    ) -> bytes:
+        # job_directory = Path(self.job_directory.job_directory)
+        # metadata_directory = Path(self.job_directory.metadata_directory)
+
+        activity_description = Element("ActivityDescription")
+        activity_description.set("xmlns", "http://www.eu-emi.eu/es/2010/12/adl")
+        activity_description.set("xmlns:emiestypes", "http://www.eu-emi.eu/es/2010/12/types")
+        activity_description.set("xmlns:nordugrid-adl", "http://www.nordugrid.org/es/2011/12/nordugrid-adl")
+
+        activity_identification = SubElement(activity_description, "ActivityIdentification")
+        activity_identification_name = SubElement(activity_identification, "Name")
+        activity_identification_name.text = f"Galaxy job {self.job_id}"
+
+        application = SubElement(activity_description, "Application")
+        application_executable = SubElement(application, "Executable")
+        application_executable_path = SubElement(application_executable, "Path")
+        application_executable_path.text = executable_path.name
+        application_output = SubElement(application, "Output")
+        application_output.text = "arc.out"
+        application_error = SubElement(application, "Error")
+        application_error.text = "arc.err"
+
+        # resources = SubElement(activity_description, "Resources")
+        # resources_cpu_time = SubElement(resources, "IndividualCPUTime")
+        # resources_cpu_time.text = self.cpu_time
+        # resources_memory = SubElement(resources, "IndividualPhysicalMemory")
+        # resources_memory.text = self.memory
+
+        data_staging = SubElement(activity_description, "DataStaging")
+        staging_config = SubElement(data_staging, "InputFile")
+        staging_config_name = SubElement(staging_config, "Name")
+        staging_config_name.text = staging_config_path.name
+        staging_config_uri = SubElement(staging_config, "URI")
+        staging_config_uri.text = f"file://{staging_config_path.absolute()}"
+        executable = SubElement(data_staging, "InputFile")
+        executable_name = SubElement(executable, "Name")
+        executable_name.text = executable_path.name
+        executable_uri = SubElement(executable, "URI")
+        executable_uri.text = f"file://{executable_path.absolute()}"
+        for input_ in input_manifest:
+            input_file = SubElement(data_staging, "InputFile")
+            name = SubElement(input_file, "Name")
+            name.text = str(Path("job_directory") / Path(input_["to_path"]).relative_to(job_directory))
+            source = SubElement(input_file, "Source")
+            uri = SubElement(source, "URI")
+            uri_parts = urlparse(input_["url"])
+            uri.text = urlunparse((
+                uri_parts.scheme,
+                f"{uri_parts.netloc};cache=copy;readonly=no",
+                uri_parts.path,
+                uri_parts.params,
+                uri_parts.query,
+                uri_parts.fragment
+            ))
+        output_file = SubElement(data_staging, "OutputFile")
+        output_file_name = SubElement(output_file, "Name")
+        output_file_name.text = f"@output.files"
+
+        return tostring(activity_description, encoding="UTF-8", method="xml")
+
+    @staticmethod
+    def _launch_arc_job(
+        arc_endpoint: str,
+        arc_oidc_token: str,
+        job_description: str,
+    ) -> ExternalId:
+        client = pyarcrest.arc.ARCRest.getClient(url=arc_endpoint, token=arc_oidc_token)
+        delegation_id = client.createDelegation()
+
+        results = client.createJobs(job_description, delegationID=delegation_id)[0].value
+        if isinstance(results, Exception):
+            raise results
+        arc_job_id, status = results
+
+        job_description_tree_root = fromstring(job_description)
+        inputs = {
+            node.find("{http://www.eu-emi.eu/es/2010/12/adl}Name").text:
+                node.find("{http://www.eu-emi.eu/es/2010/12/adl}URI").text
+            for node in job_description_tree_root.findall(
+                "./{http://www.eu-emi.eu/es/2010/12/adl}DataStaging/{http://www.eu-emi.eu/es/2010/12/adl}InputFile"
+            )
+            if node.find("{http://www.eu-emi.eu/es/2010/12/adl}URI") is not None and node.find(
+                "{http://www.eu-emi.eu/es/2010/12/adl}URI").text.startswith("file://")
+        }
+
+        upload_errors = client.uploadJobFiles([arc_job_id], [inputs])[0]
+        if upload_errors:  # input upload error
+            raise Exception("Error uploading job files to ARC")
+
+        return ExternalId(str(arc_job_id))
+
+
 class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
     execution_type: ExecutionType
     pulsar_container_image: str
@@ -791,6 +1100,63 @@ class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
             "status": tes_state_to_pulsar_status(tes_state),
             "complete": "true" if tes_state_is_complete(tes_state) else "false",  # Ancient John, what were you thinking?
         }
+
+
+class ARCPollingSequentialJobClient(BasePollingCoexecutionJobClient, ARCLaunchMixin):
+    """A client that (sequentially) executes containers in ARC and does not depend on AMQP."""
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
+        self.pulsar_container_image = destination_params.get("pulsar_container_image", PULSAR_SINGULARITY_IMAGE)
+
+    def get_status(self):
+        arc_endpoint = self.destination_params["arc_url"]
+        arc_oidc_token = self.destination_params["arc_oidc_token"]
+        arc_job_id = self._arc_job_id
+        # injected by `PulsarARCJobRunner` when creating the client from the job's state, or set when launching the job
+
+        arc_client = pyarcrest.arc.ARCRest.getClient(url=arc_endpoint, token=arc_oidc_token)
+
+        arc_state = arc_client.getJobsStatus([arc_job_id])[0].value
+        if isinstance(arc_state, (pyarcrest.errors.ARCHTTPError, pyarcrest.errors.NoValueInARCResult)):
+            pulsar_state = manager_status.LOST
+        else:
+            pulsar_state = arc_state_to_pulsar_state(arc_state)
+
+        return pulsar_state
+
+    def raw_check_complete(self):
+        pulsar_state = self.get_status()
+        return {
+            "status": pulsar_state,
+            "complete": "true" if manager_status.is_job_done(pulsar_state) else "false",
+            # ancient John, what were you thinking? 👀
+        }
+
+    def full_status(self):
+        return {
+            **self.raw_check_complete(),
+            "outputs_directory_contents": [],
+            # it needs to be defined, otherwise `PulsarOutputs.has_outputs` fails; it is ok that it is empty because
+            # ARC is responsible for staging the outputs (Galaxy does not have to collect any outputs)
+        }
+
+    def kill(self) -> None:
+        arc_endpoint = self.destination_params["arc_url"]
+        arc_oidc_token = self.destination_params["arc_oidc_token"]
+
+        job_id = self.job_id
+        arc_jobid = self._arc_job_id
+        # injected by `PulsarARCJobRunner` when creating the client from the job's state, or set when launching the job
+
+        client = pyarcrest.arc.ARCRest.getClient(url=arc_endpoint, token=arc_oidc_token)
+        try:
+            client.killJobs([arc_jobid])[0].value
+        except Exception as e:
+            raise Exception(f"Attempt to kill job with ARC id {arc_jobid} and Galaxy id {job_id} failed.") from e
+
+    def clean(self):
+        pass
 
 
 class TesPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesTesContainersMixin):

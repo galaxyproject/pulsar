@@ -480,7 +480,7 @@ def _run_direct(test_configuration, **kwds):
 def _update_options_for_app(options, app, **kwds):
     if kwds.get("local_setup", False):
         staging_directory = app.staging_directory
-        is_coexecution = kwds.get("k8s_enabled") or kwds.get("tes_url")
+        is_coexecution = kwds.get("k8s_enabled") or kwds.get("tes_url") or kwds.get("arc_enabled")
         if is_coexecution:
             # Update client to not require this - seems silly.
             options["jobs_directory"] = "/pulsar_staging"
