@@ -41,10 +41,13 @@ def ensure_tes_client() -> None:
 
 def tes_client_from_dict(destination_params: Dict[str, Any]) -> TesClient:
     # TODO: implement funnel's basic auth in pydantic-tes and expose it here.
-    tes_url = destination_params["tes_url"]
-    return TesClient(
-        url=tes_url,
-    )
+    tes_url = destination_params.get("tes_url")
+    token = destination_params.get("private_token")
+    headers = {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    return TesClient(url=tes_url, headers=headers)
 
 
 def tes_resources(destination_params: Dict[str, Any]) -> TesResources:
