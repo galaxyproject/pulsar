@@ -1,2 +1,3 @@
-include *.rst LICENSE
+include *.rst LICENSE requirements.txt
 include pulsar/managers/util/job_script/*.sh
+graft pulsar/scripts/cvmfs_data/
