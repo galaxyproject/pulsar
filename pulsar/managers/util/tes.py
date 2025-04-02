@@ -1,3 +1,4 @@
+import base64
 from typing import (
     Any,
     cast,
@@ -40,12 +41,19 @@ def ensure_tes_client() -> None:
 
 
 def tes_client_from_dict(destination_params: Dict[str, Any]) -> TesClient:
-    # TODO: implement funnel's basic auth in pydantic-tes and expose it here.
     tes_url = destination_params.get("tes_url")
-    token = destination_params.get("private_token")
+    auth_type = destination_params.get("auth", "none")  # Default to "none"
+
     headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+
+    if auth_type == "basic":
+        basic_auth = destination_params.get("basic_auth", {})
+        username = basic_auth.get("username")
+        password = basic_auth.get("password")
+        if username and password:
+            auth_string = f"{username}:{password}"
+            auth_base64 = base64.b64encode(auth_string.encode()).decode()
+            headers["Authorization"] = f"Basic {auth_base64}"
 
     return TesClient(url=tes_url, headers=headers)
 
