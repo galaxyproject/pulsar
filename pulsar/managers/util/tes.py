@@ -42,7 +42,7 @@ def ensure_tes_client() -> None:
 
 def tes_client_from_dict(destination_params: Dict[str, Any]) -> TesClient:
     tes_url = destination_params.get("tes_url")
-    auth_type = destination_params.get("auth", "none")  # Default to "none"
+    auth_type = destination_params.get("authorization", "none")  # Default to "none"
 
     headers = {}
 
