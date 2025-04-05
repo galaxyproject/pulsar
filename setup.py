@@ -107,7 +107,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'amqp': ['kombu'],
-        'web': ['Paste', 'PasteScript'],
+        'web': ['granian'],
         'galaxy_extended_metadata': ['galaxy-job-execution', 'galaxy-util[template]'],
     },
     license="Apache License 2.0",

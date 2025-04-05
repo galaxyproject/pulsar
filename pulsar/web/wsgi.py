@@ -1,6 +1,7 @@
 import atexit
 import inspect
 import logging
+import os
 
 import pulsar.web.routes
 from pulsar.core import PulsarApp
@@ -10,11 +11,14 @@ from pulsar.web.framework import RoutingApp
 log = logging.getLogger(__name__)
 
 
-def app_factory(global_conf, **local_conf):
+def app_factory(global_conf=None, **local_conf):
     """
     Returns the Pulsar WSGI application.
     """
-    configuration_file = global_conf.get("__file__", None)
+    if global_conf:
+        configuration_file = global_conf.get("__file__")
+    else:
+        configuration_file = os.environ.get("PULSAR_CONFIG_FILE")
     webapp = init_webapp(ini_path=configuration_file, local_conf=local_conf)
     return webapp
 
