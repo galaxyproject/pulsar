@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         tox-env: [py37-lint, py37-dist, py37-docs]
