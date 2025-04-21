@@ -83,7 +83,8 @@ PartitionName=debug Nodes=$hostname Default=YES MaxTime=INFINITE State=UP
 def main():
     template_params = {"hostname": gethostname(), "user": getuser()}
     config_contents = Template(SLURM_CONFIG_TEMPLATE).substitute(template_params)
-    open("/etc/slurm-llnl/slurm.conf", "w").write(config_contents)
+    with open("/etc/slurm.conf", "w") as slurm_conf:
+        slurm_conf.write(config_contents)
     call("slurmctld")
     call("slurmd")
 
