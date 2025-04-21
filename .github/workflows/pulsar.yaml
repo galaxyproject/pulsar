@@ -22,8 +22,6 @@ jobs:
     strategy:
       matrix:
         include:
-        - tox-env: py36-mypy
-          python: '3.6'
         - tox-env: py311-mypy
           python: '3.11'
     steps:
@@ -44,9 +42,9 @@ jobs:
       matrix:
         include:
         - tox-env: py36-test-ci
-          python: '3.6'
+          python: '3.7'
         - tox-env: py36-test-unit
-          python: '3.6'
+          python: '3.7'
         - tox-env: py311-test-ci
           python: '3.11'
         - tox-env: py311-test-unit
