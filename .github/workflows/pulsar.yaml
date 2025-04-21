@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v5
       with:
-        python-version: 3.7
+        python-version: '3.7'
     - name: Install tox
       run: pip install tox
     - name: Run lint
@@ -23,9 +23,9 @@ jobs:
       matrix:
         include:
         - tox-env: py36-mypy
-          python: 3.6
+          python: '3.6'
         - tox-env: py311-mypy
-          python: 3.11
+          python: '3.11'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v3
@@ -44,15 +44,15 @@ jobs:
       matrix:
         include:
         - tox-env: py36-test-ci
-          python: 3.6
+          python: '3.6'
         - tox-env: py36-test-unit
-          python: 3.6
+          python: '3.6'
         - tox-env: py311-test-ci
-          python: 3.11
+          python: '3.11'
         - tox-env: py311-test-unit
-          python: 3.11
+          python: '3.11'
         - tox-env: py39-install_wheel
-          python: 3.9
+          python: '3.9'
     services:
       job-files:
         image: galaxy/simple-job-files:latest
