@@ -18,7 +18,7 @@ jobs:
       run: tox -e ${{ matrix.tox-env }}
   mypy:
     name: MyPy
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         include:
@@ -37,7 +37,7 @@ jobs:
       run: tox -e ${{ matrix.tox-env }}
   test:
     name: Run Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         include:
