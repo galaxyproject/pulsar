@@ -67,6 +67,10 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Install tox
       run: pip install tox
+    - name: Allow passwordless sudo for create-munge-key
+      run: |
+        echo "$USER ALL=(ALL) NOPASSWD: /usr/sbin/create-munge-key" | sudo tee /etc/sudoers.d/munge
+        sudo chmod 0440 /etc/sudoers.d/munge
     - name: Run setup
       run: .ci/setup_tests.sh
     - name: Run tests
