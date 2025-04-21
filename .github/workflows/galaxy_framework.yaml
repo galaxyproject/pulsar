@@ -25,16 +25,16 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           path: 'pulsar'
       - name: Checkout tools repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: galaxyproject/galaxy
           ref: ${{ matrix.galaxy-branch }}
           path: galaxy
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Build Pulsar wheel and replace Galaxy's requirements.
