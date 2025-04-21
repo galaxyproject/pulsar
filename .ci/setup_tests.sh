@@ -5,7 +5,7 @@ set -v
 
 sudo add-apt-repository ppa:natefoo/slurm-drmaa -y
 sudo apt update
-sudo apt install -y libxml2-dev libxslt1-dev libcurl4-openssl-dev python-pycurl openssh-server
+sudo apt install -y libxml2-dev libxslt1-dev libcurl4-openssl-dev openssh-server
 #pip install -r requirements$REQUIREMENTS_SUFFIX.txt --use-mirrors || true
 #pip install -r dev-requirements.txt --use-mirrors || true
 #pip install coveralls  # Required fro coveralls reporting.
