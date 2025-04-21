@@ -14,7 +14,6 @@ sudo apt install -y libswitch-perl libgnutls28-dev # A missing dependency of slu
 
 # DEBIAN_FRONTEND=noninteractive sudo apt install htcondor ## htcondor installation
 
-sudo -n /usr/sbin/create-munge-key
 sudo service munge start
 sudo python scripts/configure_test_slurm.py
 echo "export DRMAA_LIBRARY_PATH=/usr/lib/slurm-drmaa/lib/libdrmaa.so" >> local_env.sh
