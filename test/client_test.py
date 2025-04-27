@@ -125,6 +125,10 @@ def test_launch():
     request_checker.assert_called()
 
 
+def test_sequential_local():
+    pass
+
+
 def __test_upload(upload_type):
     client = TestClient()
     (temp_fileno, temp_file_path) = tempfile.mkstemp()
