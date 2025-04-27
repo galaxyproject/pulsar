@@ -129,7 +129,7 @@ format:  ## Format Python code base
 	$(IN_VENV) isort .
 
 dist: clean-build clean-pyc
-	$(IN_VENV) python setup.py sdist bdist_wheel
+	$(IN_VENV) python -m build
 	ls -l dist
 
 _release-test-artifacts:
@@ -168,7 +168,7 @@ add-history:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/bootstrap_history.py $(ITEM)
 
 _dist-lib:
-	$(IN_VENV) PULSAR_GALAXY_LIB=1 python setup.py sdist bdist_wheel
+	$(IN_VENV) PULSAR_GALAXY_LIB=1 python -m build
 	ls -l dist
 
 dist-lib: clean-pyc clean-build _dist-lib
