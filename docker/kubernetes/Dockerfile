@@ -46,8 +46,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     bzip2 \
     virtualenv \
-    # needed for user switching in entrypoint.sh
-    gosu \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     && adduser --disabled-password --gecos '' pulsar \
@@ -68,9 +66,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends docker-ce-cli \
     && apt-get purge -y curl gnupg \
     && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/* \
-    && useradd -m -s /bin/bash dockeruser \
-    && usermod -aG dockeruser pulsar
+    && rm -rf /var/lib/apt/lists/*
 
 # -------------------------
 # Apptainer (Singularity) dependencies
@@ -97,11 +93,6 @@ WORKDIR /pulsar
 # Copy Pulsar virtualenv + configs
 COPY --chown=pulsar:pulsar --from=builder /pulsar .
 
-# Copy entrypoint script
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
 EXPOSE 8913
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD [".venv/bin/pulsar"]
