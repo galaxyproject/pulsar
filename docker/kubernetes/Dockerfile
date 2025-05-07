@@ -39,44 +39,44 @@ ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PULSAR_CONFIG_PRIVATE_TOKEN=change_me
 
+# -------------------------
+# Pulsar and common dependencies
+# -------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     bzip2 \
     virtualenv \
-    # needed for rootless docker
-    uidmap \
-    fuse \
-    iptables \
-    iproute2 \
-    dbus-user-session \
-    sudo \
-    curl \
-    squashfs-tools \
+    # needed for user switching in entrypoint.sh
     gosu \
+    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -m -s /bin/bash dockeruser \
     && adduser --disabled-password --gecos '' pulsar \
-    && usermod -aG dockeruser pulsar \
     && mkdir /pulsar \
     && chown pulsar:pulsar /pulsar
 
-WORKDIR /pulsar
-
-# Copy Pulsar virtualenv + configs
-COPY --chown=pulsar:pulsar --from=builder /pulsar .
-
-# Download upstream Docker static binaries (with rootless scripts)
-RUN curl -LO https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz \
-    && tar -xvzf docker-28.1.1.tgz \
-    && curl -LO https://download.docker.com/linux/static/stable/x86_64/docker-rootless-extras-28.1.1.tgz \
-    && tar -xvzf docker-rootless-extras-28.1.1.tgz \
-    && mv docker/* /usr/bin/ \
-    && mv docker-rootless-extras/* /usr/bin/ \
-    && chmod +x /usr/bin/dockerd* /usr/bin/rootless* \
-    && rm -rf docker docker-rootless-extras docker-28.1.1.tgz docker-rootless-extras-28.1.1.tgz
-
-# Install Apptainer (Singularity)
+# -------------------------
+# Docker client dependencies
+# -------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl gnupg lsb-release \
+    # needed for rootless docker
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
+      | tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends docker-ce-cli \
+    && apt-get purge -y curl gnupg \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -s /bin/bash dockeruser \
+    && usermod -aG dockeruser pulsar
+
+# -------------------------
+# Apptainer (Singularity) dependencies
+# -------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
     libseccomp-dev \
     pkg-config \
     squashfs-tools \
@@ -87,7 +87,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fuse-overlayfs \
     && curl -LO https://github.com/apptainer/apptainer/releases/download/v1.4.0/apptainer_1.4.0_amd64.deb \
     && apt-get install -y ./apptainer_1.4.0_amd64.deb \
-    && rm apptainer_1.4.0_amd64.deb
+    && rm apptainer_1.4.0_amd64.deb \
+    && apt-get purge -y curl \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /pulsar
+
+# Copy Pulsar virtualenv + configs
+COPY --chown=pulsar:pulsar --from=builder /pulsar .
 
 # Copy entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
