@@ -35,6 +35,8 @@ RUN .venv/bin/pulsar-config --host 0.0.0.0
 #======================================================
 FROM python:3.13-slim
 
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PULSAR_CONFIG_PRIVATE_TOKEN=change_me
@@ -43,9 +45,12 @@ ENV PULSAR_CONFIG_PRIVATE_TOKEN=change_me
 # Pulsar and common dependencies
 # -------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    locales \
     libcurl4-openssl-dev \
     bzip2 \
     virtualenv \
+    && echo "$LANG UTF-8" > /etc/locale.gen \
+    && locale-gen $LANG && update-locale LANG=$LANG \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     && adduser --disabled-password --gecos '' pulsar \
