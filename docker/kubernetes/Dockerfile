@@ -75,6 +75,20 @@ RUN curl -LO https://download.docker.com/linux/static/stable/x86_64/docker-28.1.
     && chmod +x /usr/bin/dockerd* /usr/bin/rootless* \
     && rm -rf docker docker-rootless-extras docker-28.1.1.tgz docker-rootless-extras-28.1.1.tgz
 
+# Install Apptainer (Singularity)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libseccomp-dev \
+    pkg-config \
+    squashfs-tools \
+    cryptsetup \
+    uidmap \
+    fuse2fs \
+    fuse3 \
+    fuse-overlayfs \
+    && curl -LO https://github.com/apptainer/apptainer/releases/download/v1.4.0/apptainer_1.4.0_amd64.deb \
+    && apt-get install -y ./apptainer_1.4.0_amd64.deb \
+    && rm apptainer_1.4.0_amd64.deb
+
 # Copy entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
