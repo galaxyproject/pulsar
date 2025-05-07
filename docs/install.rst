@@ -97,6 +97,32 @@ be called with an explicit URL using the argument
 ``--url=http://localhost:8913``. Likewise if a private token has been configured
 it can be supplied using ``--private_token=<token>``.
 
+From a Helm chart
+----------------------
+
+Pulsar can be deployed to a Kubernetes cluster using the `Pulsar Helm chart
+<https://github.com/galaxyproject/pulsar-helm>`_. Currently, the only supported
+method of authentication to Pulsar when deployed via Helm is using a private
+token. The token can be set in the ``values.yaml`` via ``api_key``.
+
+The Helm chart can be installed using the following commands::
+
+    $ git clone https://github.com/galaxyproject/pulsar-helm
+    $ cd pulsar-helm
+    $ helm install -n pulsar mypulsar .
+
+Pulsar will be available on port 80.
+
+Building a container image for Kubernetes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, the chart uses ``galaxy/pulsar-kubernetes`` on Docker Hub as the
+container image. To update or customize this image, use the Kubernetes-specific
+Dockerfile (``docker/kubernetes/Dockerfile``)::
+
+    $ cd docker/kubernetes
+    $ make all
+
 From Source
 ----------------------
 
