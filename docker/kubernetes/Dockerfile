@@ -98,6 +98,8 @@ WORKDIR /pulsar
 # Copy Pulsar virtualenv + configs
 COPY --chown=pulsar:pulsar --from=builder /pulsar .
 
+USER pulsar
+
 EXPOSE 8913
 
 CMD [".venv/bin/pulsar"]
