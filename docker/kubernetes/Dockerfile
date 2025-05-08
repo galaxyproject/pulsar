@@ -55,7 +55,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && adduser --disabled-password --gecos '' pulsar \
     && mkdir /pulsar \
-    && chown pulsar:pulsar /pulsar
+    && chown pulsar:pulsar /pulsar \
+    # use this same gid when starting dind container
+    && groupadd -g 11001 docker \
+    && usermod -aG docker pulsar
 
 # -------------------------
 # Docker client dependencies
