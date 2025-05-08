@@ -55,7 +55,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && adduser --disabled-password --gecos '' pulsar \
     && mkdir /pulsar \
-    && chown pulsar:pulsar /pulsar
+    && chown pulsar:pulsar /pulsar \
+    # use this same gid when starting dind container
+    && groupadd -g 11001 docker \
+    && usermod -aG docker pulsar
 
 # -------------------------
 # Docker client dependencies
@@ -87,8 +90,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fuse3 \
     fuse-overlayfs \
     && curl -LO https://github.com/apptainer/apptainer/releases/download/v1.4.0/apptainer_1.4.0_amd64.deb \
-    && apt-get install -y ./apptainer_1.4.0_amd64.deb \
-    && rm apptainer_1.4.0_amd64.deb \
+    && curl -LO https://github.com/apptainer/apptainer/releases/download/v1.4.0/apptainer-suid_1.4.0_amd64.deb \
+    && apt-get install -y ./apptainer_1.4.0_amd64.deb ./apptainer-suid_1.4.0_amd64.deb \
+    && rm apptainer_1.4.0_amd64.deb apptainer-suid_1.4.0_amd64.deb \
     && apt-get purge -y curl \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
@@ -97,6 +101,8 @@ WORKDIR /pulsar
 
 # Copy Pulsar virtualenv + configs
 COPY --chown=pulsar:pulsar --from=builder /pulsar .
+
+USER pulsar
 
 EXPOSE 8913
 
