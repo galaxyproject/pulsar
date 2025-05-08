@@ -90,8 +90,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fuse3 \
     fuse-overlayfs \
     && curl -LO https://github.com/apptainer/apptainer/releases/download/v1.4.0/apptainer_1.4.0_amd64.deb \
-    && apt-get install -y ./apptainer_1.4.0_amd64.deb \
-    && rm apptainer_1.4.0_amd64.deb \
+    && curl -LO https://github.com/apptainer/apptainer/releases/download/v1.4.0/apptainer-suid_1.4.0_amd64.deb \
+    && apt-get install -y ./apptainer_1.4.0_amd64.deb ./apptainer-suid_1.4.0_amd64.deb \
+    && rm apptainer_1.4.0_amd64.deb apptainer-suid_1.4.0_amd64.deb \
     && apt-get purge -y curl \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
