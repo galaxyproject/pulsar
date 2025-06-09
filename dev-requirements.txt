@@ -33,5 +33,5 @@ types-psutil
 sentry-sdk
 
 # For release
-wheel
+build
 twine
