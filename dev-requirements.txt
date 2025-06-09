@@ -1,6 +1,10 @@
 # Optional requirements used by test cases
 pycurl
-kombu
+# Pin importlib-metadata specifically for Python 3.7, old kombu requires entrypoint API
+importlib-metadata<5.0.0; python_version == '3.7'
+# kombu dropped support for 3.7 after 5.2.4
+kombu<=5.2.4; python_version == '3.7'
+kombu; python_version >= '3.8'
 pykube
 boto3
 
