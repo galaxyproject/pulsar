@@ -210,7 +210,7 @@ class FileStager:
             self.referenced_tool_files = [(join(self.tool_dir, x), x) for x in self.tool_directory_required_files.find_required_files(self.tool_dir)]
         else:
             # Was this following line only for interpreter, should we disable it of 16.04+ tools
-            self.referenced_tool_files = [(x, None) for x in self.job_inputs.find_referenced_subfiles(self.tool_dir)]
+            self.referenced_tool_files = [(x, relpath(x, self.tool_dir)) for x in self.job_inputs.find_referenced_subfiles(self.tool_dir)]
             # If the tool was created with a correct $__tool_directory__ find those files and transfer
             new_tool_directory = self.new_tool_directory
             if not new_tool_directory:
@@ -219,7 +219,7 @@ class FileStager:
             for potential_tool_file in self.job_inputs.find_referenced_subfiles(new_tool_directory):
                 local_file = potential_tool_file.replace(new_tool_directory, self.tool_dir)
                 if exists(local_file):
-                    self.referenced_tool_files.append((local_file, None))
+                    self.referenced_tool_files.append((local_file, relpath(local_file, self.tool_dir)))
 
     def __initialize_referenced_arbitrary_files(self):
         referenced_arbitrary_path_mappers = dict()
