@@ -6,8 +6,18 @@ History
 .. to_doc
 
 ---------------------
-0.15.8.dev0
+0.15.8 (2025-06-09)
 ---------------------
+* Add a deploy CI workflow (thanks to `@nsoranzo`_). `Pull Request 387`_
+* Fix staging location of legacy tool files (thanks to `@mvdbeek`_). `Pull
+  Request 398`_
+* Add procps so we can inspect running processes from within pulsar (thanks to
+  `@nuwang`_). `Pull Request 397`_
+* Share docker group between pulsar and dind (thanks to `@nuwang`_). `Pull
+  Request 396`_
+* Add dind and apptainer support (thanks to `@nuwang`_). `Pull Request 395`_
+* Docker image for kubernetes helm chart (thanks to `@nuwang`_). `Pull Request
+  378`_
 
 ---------------------
 0.15.7 (2025-03-13)
@@ -512,6 +522,12 @@ History
 
 
 .. github_links
+.. _Pull Request 387: https://github.com/galaxyproject/pulsar/pull/387
+.. _Pull Request 398: https://github.com/galaxyproject/pulsar/pull/398
+.. _Pull Request 397: https://github.com/galaxyproject/pulsar/pull/397
+.. _Pull Request 396: https://github.com/galaxyproject/pulsar/pull/396
+.. _Pull Request 395: https://github.com/galaxyproject/pulsar/pull/395
+.. _Pull Request 378: https://github.com/galaxyproject/pulsar/pull/378
 .. _Pull Request 385: https://github.com/galaxyproject/pulsar/pull/385
 .. _Pull Request 382: https://github.com/galaxyproject/pulsar/pull/382
 .. _Pull Request 380: https://github.com/galaxyproject/pulsar/pull/380

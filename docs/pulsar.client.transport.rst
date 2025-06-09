@@ -44,6 +44,14 @@ pulsar.client.transport.standard module
    :undoc-members:
    :show-inheritance:
 
+pulsar.client.transport.tus module
+----------------------------------
+
+.. automodule:: pulsar.client.transport.tus
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
