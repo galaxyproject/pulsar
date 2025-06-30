@@ -60,7 +60,7 @@ def _copy_and_close(object, output):
 @wraps(_b64encode)
 def b64encode(val, **kwargs):
     try:
-        return _b64encode(val, **kwargs)
+        return _b64encode(val, **kwargs).decode("utf-8")
     except TypeError:
         return _b64encode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
 

@@ -72,6 +72,9 @@ class ResultsCollector:
         self.__collect_other_working_directory_files()
         self.__collect_metadata_directory_files()
         self.__collect_job_directory_files()
+        # Give actions that require a final action, like those that write a manifest, to write out their content
+        self.__finalize_action_mapper()
+        # finalize collection here for executors that need this ?
         return self.exception_tracker.collection_failure_exceptions
 
     def __collect_working_directory_outputs(self):
@@ -133,6 +136,9 @@ class ResultsCollector:
             self.job_directory_contents,
             'output_jobdir',
         )
+
+    def __finalize_action_mapper(self):
+        self.action_mapper.finalize()
 
     def __realized_dynamic_file_source_references(self):
         references = {"filename": [], "extra_files": []}
