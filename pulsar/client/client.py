@@ -736,7 +736,7 @@ class ARCLaunchMixin(BaseRemoteConfiguredJobClient):
                 --bind "job_directory":{staging_directory} \\
                 --bind "persistence_directory":{persistence_directory} \\
                 --pwd {staging_directory} \\
-                {pulsar_submit_command.image} \\
+                https://github.com/kysrpex/galaxyproject-pulsar/releases/download/27ec4e75/galaxyproject-pulsar@27ec4e75.sif \\
                 {pulsar_submit_command.command} {" ".join(pulsar_submit_command.args)}
 
             # copy symlinks to the job directory
@@ -760,7 +760,7 @@ class ARCLaunchMixin(BaseRemoteConfiguredJobClient):
                 --bind "job_directory":{staging_directory} \\
                 --bind "persistence_directory":{persistence_directory} \\
                 --pwd {tool_container_command.working_directory} \\
-                {pulsar_manifest_command.image} \\
+                https://github.com/kysrpex/galaxyproject-pulsar/releases/download/27ec4e75/galaxyproject-pulsar@27ec4e75.sif \\
                 {pulsar_manifest_command.command} {" ".join(pulsar_manifest_command.args)}
 
             cat job_directory/{output_manifest_path} | jq -r '.[] | "\(.from_path | sub("^{job_directory}/"; "job_directory/")) \(.url | capture("^(?<protocolurlhostport>[^:]+://[^/]+)(?<fileandmetadataoptions>/.*)") | "\(.protocolurlhostport);overwrite=yes\(.fileandmetadataoptions)" )"' > output.files
