@@ -1,0 +1,48 @@
+@startuml
+
+!include plantuml_options.txt
+
+component galaxy as "galaxy" {
+
+}
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+cloud cluster as "Google Cloud Platform" {
+    queue api as "Google Batch v1 API" {
+        
+    }
+
+    frame pod as "Job" {
+
+        component staging as "pulsar Task" {
+        }
+
+        component tool as "biocontainer Task" {
+        }
+
+    }
+
+    note as stagingnote
+        Pulsar Tasks run with a batch_v1.AllocationPolicy.Disk of type "local-ssd"
+        that is used for Pulsar's staging directory and shared across pulsar stagings and
+        tool/biocontainer containers.
+    end note
+    pod ... stagingnote
+}
+
+galaxy --> disk
+galaxy --> api : create, delete, get (for status)
+api -[dashed]-> pod : [manages]
+staging --> galaxy : stage in and out
+@enduml

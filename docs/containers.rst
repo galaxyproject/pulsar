@@ -132,6 +132,22 @@ GA4GH TES
 
    GA4GH TES job execution with Conda dependencies for the tool and no message queue.
 
+Google Cloud Platform Batch
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. figure:: pulsar_gcp_coexecution_deployment.plantuml.svg
+
+   GA4GH TES job execution with a biocontainer for the tool and no message queue.
+
+.. figure:: pulsar_gcp_deployment.plantuml.svg
+
+   GA4GH TES job execution with Conda dependencies for the tool and no message queue.
+
+Pulsar job destination options to configure these scenarios:
+
+.. figure:: job_destination_parameters_gcp.png
+
+
 AWS Batch
 ~~~~~~~~~~
 
