@@ -31,6 +31,7 @@ types-pycurl
 types-requests
 types-psutil
 sentry-sdk
+types-google-cloud-ndb
 
 # For release
 build

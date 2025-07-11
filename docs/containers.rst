@@ -132,6 +132,164 @@ GA4GH TES
 
    GA4GH TES job execution with Conda dependencies for the tool and no message queue.
 
+A Galaxy job configuration (job_conf.yml) for using TES with Pulsar and RabbitMQ might look like:
+
+::
+
+   runners:
+      local:
+         load: galaxy.jobs.runners.local:LocalJobRunner  
+      pulsar_tes:
+         load: galaxy.jobs.runners.pulsar:PulsarTesJobRunner
+         # RabbitMQ URL from Galaxy server.
+         amqp_url: <amqp_url>
+         # If Pulsar needs to talk to Galaxy at a particular host and port, set that here.
+         #galaxy_url: <galaxy_url>  
+
+   execution:
+      default: pulsar_tes
+      environments:
+         local:
+            runner: local
+            local_slots: 1
+         pulsar_tes:
+            runner: pulsar_tes
+            # TES URL to use.
+            tes_url: <tes_url>
+            pulsar_app_config:
+               # This needs to be the RabbitMQ server, but this should be the host
+               # and port that your TES nodes would connect to the server via.
+               message_queue_url: <amqp_url>
+
+   tools:
+   - class: local
+     environment: local
+
+For testing on a Macbook with RabbitMQ installed via homebrew and Docker Desktop available
+and a Funnel with default configuration server running locally, a configuration might look like:
+
+::
+
+   runners:
+      local:
+         load: galaxy.jobs.runners.local:LocalJobRunner  
+      pulsar_tes:
+         load: galaxy.jobs.runners.pulsar:PulsarTesJobRunner
+         # RabbitMQ URL from Galaxy server.
+         amqp_url: amqp://guest:guest@localhost:5672//
+         # Communicate to Pulsar nodes that Galaxy should be accessed on the Docker
+         # host - the Macbook.
+         galaxy_url: http://host.docker.internal:8080/
+
+   execution:
+      default: pulsar_tes
+      environments:
+         local:
+            runner: local
+            local_slots: 1
+         pulsar_tes:
+            runner: pulsar_tes
+            # Funnel will run on 8000 by default.
+            tes_url: http://localhost:8000
+            pulsar_app_config:
+               message_queue_url: amqp://guest:guest@host.docker.internal:5672//
+
+   tools:
+   - class: local
+     environment: local
+
+
+Google Cloud Platform Batch
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. figure:: pulsar_gcp_coexecution_deployment.plantuml.svg
+
+   GA4GH TES job execution with a biocontainer for the tool and no message queue.
+
+.. figure:: pulsar_gcp_deployment.plantuml.svg
+
+   GA4GH TES job execution with Conda dependencies for the tool and no message queue.
+
+Pulsar job destination options to configure these scenarios:
+
+.. figure:: job_destination_parameters_gcp.png
+
+A Galaxy job configuration (job_conf.yml) for using GCP with Pulsar and RabbitMQ might look like:
+
+::
+
+   runners:
+      local:
+         load: galaxy.jobs.runners.local:LocalJobRunner  
+      pulsar_gcp:
+         load: galaxy.jobs.runners.pulsar:PulsarGcpBatchJobRunner
+         # RabbitMQ URL from Galaxy server.
+         amqp_url: <amqp_url>
+         # If Pulsar needs to talk to Galaxy at a particular host and port, set that here.
+         #galaxy_url: <galaxy_url>
+
+   execution:
+      default: pulsar_gcp
+      environments:
+         local:
+            runner: local
+            local_slots: 1
+         pulsar_gcp:
+            runner: pulsar_gcp
+            # GCP Project ID to use (required)
+            project_id: project-id-here
+            # GCP region or zone to use (optional)
+            #region: us-central1
+            # Max walltime to use in seconds (defaults to 60 * 60 * 24)
+            #walltime_limit: 216000
+            # GCP Credentials setup.
+            #credentials_file: ~/.config/gcloud/application_default_credentials.json
+            pulsar_app_config:
+               # RabbitMQ URL the execute nodes should use to connect to the AMQP server.
+               message_queue_url: <amqp_url>
+
+   tools:
+   - class: local
+     environment: local
+
+For testing these configurations - John setup a production-ish RabbitMQ server on 
+173.255.213.165 with user `john` and password `password` that is accessible from
+anywhere. John also opened the router ports to expose their Macbook and set Galaxy
+to bind to ``0.0.0.0`` using the `bind` option in the `gunicorn` section of `galaxy.yml`.
+
+The job configuration for this test setup looked something like:
+
+::
+
+   runners:
+      local:
+         load: galaxy.jobs.runners.local:LocalJobRunner  
+      pulsar_gcp:
+         load: galaxy.jobs.runners.pulsar:PulsarGcpBatchJobRunner
+         amqp_url: "amqp://john:password@173.255.213.165/"
+         # If Pulsar needs to talk to Galaxy at a particular host and port, set that here.
+         galaxy_url: http://71.162.7.202:8080/
+
+   execution:
+      default: pulsar_gcp
+      environments:
+         local:
+            runner: local
+            local_slots: 1
+         pulsar_gcp:
+            runner: pulsar_gcp
+            project_id: tonal-bloom-123435
+            region: us-central1
+            walltime_limit: 216000
+            pulsar_app_config:
+               # RabbitMQ URL the execute nodes should use to connect to the AMQP server.
+               message_queue_url: "amqp://john:password@173.255.213.165/"
+
+   tools:
+   - class: local
+     environment: local
+ 
+
 AWS Batch
 ~~~~~~~~~~
 

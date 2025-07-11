@@ -23,6 +23,8 @@ from .client import (
     BaseJobClient,
     InputCachingJobClient,
     JobClient,
+    GcpMessageCoexecutionJobClient,
+    GcpPollingCoexecutionJobClient,
     K8sMessageCoexecutionJobClient,
     K8sPollingCoexecutionJobClient,
     MessageCLIJobClient,
@@ -240,6 +242,8 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
             return K8sMessageCoexecutionJobClient(destination_params, job_id, self)
         elif destination_params.get("tes_url", False):
             return TesMessageCoexecutionJobClient(destination_params, job_id, self)
+        elif destination_params.get("project_id", False):
+            return GcpMessageCoexecutionJobClient(destination_params, job_id, self)
         else:
             return MessageJobClient(destination_params, job_id, self)
 
@@ -256,6 +260,8 @@ class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
             return K8sPollingCoexecutionJobClient(destination_params, job_id, self)
         elif destination_params.get("tes_url", False):
             return TesPollingCoexecutionJobClient(destination_params, job_id, self)
+        elif destination_params.get("project_id", False):
+            return GcpPollingCoexecutionJobClient(destination_params, job_id, self)
         else:
             raise Exception("Unknown client configuration")
 
@@ -268,7 +274,7 @@ def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
         return ClientManager(**kwargs)  # TODO: Consider more separation here.
     elif kwargs.get('amqp_url', None):
         return MessageQueueClientManager(**kwargs)
-    elif kwargs.get("k8s_enabled") or kwargs.get("tes_url"):
+    elif kwargs.get("k8s_enabled") or kwargs.get("tes_enabled") or kwargs.get("gcp_batch_enabled"):
         return PollingJobClientManager(**kwargs)
     else:
         return ClientManager(**kwargs)
