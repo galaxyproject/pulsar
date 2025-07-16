@@ -16,6 +16,7 @@ from re import (
 
 from ..action_mapper import (
     FileActionMapper,
+    JsonTransferAction,
     MessageAction,
     path_type,
 )
@@ -72,15 +73,19 @@ def submit_job(client, client_job_description, job_config=None):
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
 
-    # populate `to_path`
+    # generate staging manifest
     staging_manifest = []
-    for action in file_stager.action_mapper.actions:
-        if action.file_type not in ("output", "output_workdir"):
+    for action_description in remote_staging_actions:
+        action_dict = action_description["action"]
+        is_json_transfer_action = action_dict.get("action_type") == JsonTransferAction.action_type
+        is_not_output_action = action_description.get("type") not in ("output", "output_workdir")
+        if is_json_transfer_action and is_not_output_action:
+            file_type = action_description.get("type")
+            action = JsonTransferAction.from_dict(action_dict)
             name = basename(action.path)
-            path = file_stager.job_directory.calculate_path(name, action.file_type)
+            path = file_stager.job_directory.calculate_path(name, file_type)
             action.write_to_path(path)
-            staging_manifest.append(action.finalize())
-
+            staging_manifest.append(action.to_staging_manifest_entry())
     if staging_manifest:
         launch_kwds["staging_manifest"] = staging_manifest
 
