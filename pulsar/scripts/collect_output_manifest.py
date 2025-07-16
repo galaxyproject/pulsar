@@ -23,15 +23,14 @@ def collect_outputs(job_directory: str, staging_config_path: str, output_manifes
     with open(staging_config_path) as staging_fh:
         staging_config = json.load(staging_fh)
 
-    action_mapper, _ = _collect_outputs(
+    action_mapper, output_manifest, _ = _collect_outputs(
         job_directory_,
         staging_config=staging_config,
         action_executor=RetryActionExecutor(),
         was_cancelled=lambda: False
     )
-    new_manifest = action_mapper.finalize()
     with open(output_manifest_path, "w") as manifest_fh:
-        json.dump(new_manifest, manifest_fh)
+        json.dump(output_manifest, manifest_fh)
 
 
 def main():

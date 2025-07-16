@@ -17,7 +17,7 @@ def test_write_to_path_json():
         action.write_to_path(to_path)
         assert action.path == to_path
         assert action.url == url
-        assert action.finalize() == {"path": to_path, "url": url}
+        assert action.to_staging_manifest_entry() == {"to_path": to_path, "url": url}
 
 
 def test_write_from_file_json():
@@ -29,7 +29,7 @@ def test_write_from_file_json():
         action.write_from_path(from_path)
         assert action.path == to_path
         assert action.url == url
-        assert action.finalize() == {"path": to_path, "url": url}
+        assert action.to_staging_manifest_entry() == {"from_path": from_path, "url": url}
 
 
 def test_write_to_file():

@@ -3,12 +3,13 @@ import fnmatch
 from contextlib import contextmanager
 from json import loads
 from logging import getLogger
+from typing import Optional
 from os.path import (
     join,
     relpath,
 )
 
-from ..action_mapper import FileActionMapper
+from ..action_mapper import FileActionMapper, JsonTransferAction
 from ..staging import COMMAND_VERSION_FILENAME
 
 log = getLogger(__name__)
@@ -64,16 +65,17 @@ class ResultsCollector:
         self.working_directory_contents = pulsar_outputs.working_directory_contents or []
         self.metadata_directory_contents = pulsar_outputs.metadata_directory_contents or []
         self.job_directory_contents = pulsar_outputs.job_directory_contents or []
+        self.output_manifest: Optional[list] = None
 
     def collect(self):
+        self.output_manifest = []
+
         self.__collect_working_directory_outputs()
         self.__collect_outputs()
         self.__collect_version_file()
         self.__collect_other_working_directory_files()
         self.__collect_metadata_directory_files()
         self.__collect_job_directory_files()
-        # Give actions that require a final action, like those that write a manifest, to write out their content
-        self.__finalize_action_mapper()
         # finalize collection here for executors that need this ?
         return self.exception_tracker.collection_failure_exceptions
 
@@ -136,9 +138,6 @@ class ResultsCollector:
             self.job_directory_contents,
             'output_jobdir',
         )
-
-    def __finalize_action_mapper(self):
-        self.action_mapper.finalize()
 
     def __realized_dynamic_file_source_references(self):
         references = {"filename": [], "extra_files": []}
@@ -212,7 +211,10 @@ class ResultsCollector:
     def _collect_output(self, output_type, action, name):
         log.info("collecting output {} with action {}".format(name, action))
         try:
-            return self.output_collector.collect_output(self, output_type, action, name)
+            collect_result = self.output_collector.collect_output(self, output_type, action, name)
+            if isinstance(action, JsonTransferAction):
+                self.output_manifest.append(action.to_staging_manifest_entry())
+            return collect_result
         except Exception as e:
             if _allow_collect_failure(output_type):
                 log.warning(
