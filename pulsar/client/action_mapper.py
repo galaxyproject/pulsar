@@ -519,7 +519,7 @@ class JsonTransferAction(BaseAction):
     external system that can stage files in and out of the compute environment.
     """
     inject_url = True
-    whole_directory_transfer_supported = True
+    whole_directory_transfer_supported = False
     action_type = "json_transfer"
     staging = STAGING_ACTION_REMOTE
 
