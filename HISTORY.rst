@@ -6,6 +6,16 @@ History
 .. to_doc
 
 ---------------------
+0.15.8 (2025-07-17)
+---------------------
+* Support HTCondor in CLUSTER_SLOTS_STATEMENT.sh (thanks to `@kysrpex`_).
+  `Pull Request 405`_
+* BasicAuth for PulsarTesRunner (thanks to `@BorisYourich`_). `Pull Request
+  391`_
+* Move `get_pulsar_app_config()` and `_ensure_manager_config()`  (thanks to
+  `@jmchilton`_). `Pull Request 402`_
+
+---------------------
 0.15.8 (2025-06-09)
 ---------------------
 * Add a deploy CI workflow (thanks to `@nsoranzo`_). `Pull Request 387`_
@@ -522,6 +532,9 @@ History
 
 
 .. github_links
+.. _Pull Request 405: https://github.com/galaxyproject/pulsar/pull/405
+.. _Pull Request 391: https://github.com/galaxyproject/pulsar/pull/391
+.. _Pull Request 402: https://github.com/galaxyproject/pulsar/pull/402
 .. _Pull Request 387: https://github.com/galaxyproject/pulsar/pull/387
 .. _Pull Request 398: https://github.com/galaxyproject/pulsar/pull/398
 .. _Pull Request 397: https://github.com/galaxyproject/pulsar/pull/397
@@ -694,3 +707,6 @@ History
 .. _@cat-bro: https://github.com/cat-bro
 .. _@peterg1t: https://github.com/peterg1t
 .. _@neoformit: https://github.com/neoformit
+.. _@BorisYourich: https://github.com/BorisYourich
+.. _@kysrpex: https://github.com/kysrpex
+.. _@jmchilton: https://github.com/jmchilton
