@@ -82,7 +82,7 @@ def submit_job(client, client_job_description, job_config=None):
         if is_json_transfer_action and is_not_output_action:
             file_type = action_description.get("type")
             action = JsonTransferAction.from_dict(action_dict)
-            name = basename(action.path)
+            name = action_description["name"]
             path = file_stager.job_directory.calculate_path(name, file_type)
             action.write_to_path(path)
             staging_manifest.append(action.to_staging_manifest_entry())
