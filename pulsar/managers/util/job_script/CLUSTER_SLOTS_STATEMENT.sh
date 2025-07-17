@@ -26,6 +26,12 @@ elif [ -n "$LSB_DJOB_NUMPROC" ]; then
 elif [ -n "$GALAXY_SLOTS" ]; then
     # kubernetes runner injects GALAXY_SLOTS into environment
     GALAXY_SLOTS=$GALAXY_SLOTS
+elif [ -n "$PYTHON_CPU_COUNT" ]; then
+    # HTCondor sets several environment variables, including PYTHON_CPU_COUNT,
+    # to control how many threads jobs may spawn. A list is available in the
+    # HTCondor documentation https://htcondor.readthedocs.io/en/24.0
+    # /admin-manual/configuration-macros.html#STARTER_NUM_THREADS_ENV_VARS.
+    GALAXY_SLOTS="$PYTHON_CPU_COUNT"
 else
     GALAXY_SLOTS="1"
     unset GALAXY_SLOTS_CONFIGURED
