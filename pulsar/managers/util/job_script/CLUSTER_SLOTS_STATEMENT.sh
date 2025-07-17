@@ -27,16 +27,10 @@ elif [ -n "$GALAXY_SLOTS" ]; then
     # kubernetes runner injects GALAXY_SLOTS into environment
     GALAXY_SLOTS=$GALAXY_SLOTS
 elif [ -n "$PYTHON_CPU_COUNT" ]; then
-    # HTCondor sets a couple of environment variables read by various
-    # frameworks to control the number of threads they are allowed to use. A
-    # list can be found in the HTCondor docs (the list itself is configurable,
-    # as it is an HTCondor configuration macro).
-    #
-    # https://htcondor.readthedocs.io/en/24.0/admin-manual/
-    # configuration-macros.html#STARTER_NUM_THREADS_ENV_VARS
-    #
-    # Any of these variables can be used to set GALAXY_SLOTS. Set it using the
-    # variable PYTHON_CPU_COUNT (controls the amount of CPUs that Python sees).
+    # HTCondor sets several environment variables, including PYTHON_CPU_COUNT,
+    # to control how many threads jobs may spawn. A list is available in the
+    # HTCondor documentation https://htcondor.readthedocs.io/en/24.0
+    # /admin-manual/configuration-macros.html#STARTER_NUM_THREADS_ENV_VARS.
     GALAXY_SLOTS="$PYTHON_CPU_COUNT"
 else
     GALAXY_SLOTS="1"
