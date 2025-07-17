@@ -513,6 +513,51 @@ class RemoteTransferTusAction(BaseAction):
         tus_upload_file(self.url, pulsar_path)
 
 
+class JsonTransferAction(BaseAction):
+    """
+    This action indicates that the pulsar server should create a JSON manifest that can be used to stage files by an
+    external system that can stage files in and out of the compute environment.
+    """
+    inject_url = True
+    whole_directory_transfer_supported = False
+    action_type = "json_transfer"
+    staging = STAGING_ACTION_REMOTE
+
+    def __init__(self, source, file_lister=None, url=None, from_path=None, to_path=None):
+        super().__init__(source, file_lister)
+        self.url = url
+
+        self._from_path = from_path
+        self._to_path = to_path
+        # `from_path` and `to_path` are mutually exclusive, only one of them should be set
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return JsonTransferAction(
+            source=action_dict["source"],
+            url=action_dict["url"],
+            from_path=action_dict.get("from_path"),
+            to_path=action_dict.get("to_path")
+        )
+
+    def to_dict(self):
+        return self._extend_base_dict(**self.to_staging_manifest_entry())
+
+    def write_to_path(self, path):
+        self._from_path, self._to_path = None, path
+
+    def write_from_path(self, pulsar_path: str):
+        self._from_path, self._to_path = pulsar_path, None
+
+    def to_staging_manifest_entry(self):
+        staging_manifest_entry = dict(url=self.url)
+        if self._from_path:
+            staging_manifest_entry["from_path"] = self._from_path
+        if self._to_path:
+            staging_manifest_entry["to_path"] = self._to_path
+        return staging_manifest_entry
+
+
 class RemoteObjectStoreCopyAction(BaseAction):
     """
     """
@@ -664,6 +709,7 @@ class MessageAction:
 
 
 DICTIFIABLE_ACTION_CLASSES = [
+    JsonTransferAction,
     RemoteCopyAction,
     RemoteTransferAction,
     RemoteTransferTusAction,
@@ -844,6 +890,7 @@ DEFAULT_FILE_LISTER = FileLister(dict(depth=0))
 
 ACTION_CLASSES: List[Type[BaseAction]] = [
     NoneAction,
+    JsonTransferAction,
     RewriteAction,
     TransferAction,
     CopyAction,
@@ -859,6 +906,7 @@ actions = {clazz.action_type: clazz for clazz in ACTION_CLASSES}
 
 __all__ = (
     'FileActionMapper',
+    'JsonTransferAction',
     'path_type',
     'from_dict',
     'MessageAction',

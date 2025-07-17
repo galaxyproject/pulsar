@@ -237,7 +237,45 @@ def test_integration_cli_slurm(integration_test_configuration: IntegrationTestCo
     )
 
 
-# Test and Kubernetes tests without MQ
+# Tes, Kubernetes and ARC tests without MQ
+
+
+@integration_test
+@skip_unless_environ("ARC_URL")
+@skip_unless_environ("ARC_OIDC_TOKEN")
+def test_arc_polling_integration(external_queue_test_configuration: IntegrationTestConfiguration):
+    """
+    Integration test for the Advanced Resource Connector (polling client ``ARCPollingSequentialJobClient``).
+
+    One way to run this integration test is to set up the test machine so that it can be contacted by an ARC instance
+    running on an external server. To do so, first expose your Pulsar test file server to a network that the ARC server
+    can access. A simple way to do it is using localhost.run::
+
+        ssh -R 80:localhost:8095 localhost.run
+
+    It will generate a URL like this one ``https://99c68d2225e0ab.lhr.life``. Then configure the following environment
+    variables in the test environment::
+
+        ARC_URL=https://arc-galaxy-ce1.cern-test.uiocloud.no
+        ARC_OIDC_TOKEN=********************************.................................********************************
+        PULSAR_TEST_FILE_SERVER_HOST=127.0.0.1
+        PULSAR_TEST_FILE_SERVER_PORT=8095
+        PULSAR_TEST_INTERNAL_JOB_FILES_URL=https://99c68d2225e0ab.lhr.life/
+    """
+    arc_url = environ["ARC_URL"]
+    arc_oidc_token = environ["ARC_OIDC_TOKEN"]
+    external_queue_test_configuration.set_app_conf_props(arc_url=arc_url, arc_oidc_token=arc_oidc_token)
+    run_job(
+        external_queue_test_configuration,
+        private_token=None,
+        local_setup=True,
+        default_file_action="json_transfer",
+        inject_files_endpoint=True,
+        arc_url=arc_url,
+        arc_enabled=True,
+        arc_oidc_token=arc_oidc_token,
+        expecting_full_metadata=False,
+    )
 
 
 @integration_test
@@ -305,7 +343,7 @@ def test_coexecution_kubernetes_polling_integration(external_queue_test_configur
     )
 
 
-# Test and Kubernetes tests with MQ
+# Tes and Kubernetes tests with MQ
 
 
 # PULSAR_RABBIT_MQ_CONNECTION="amqp://guest:guest@localhost:5672"
@@ -480,7 +518,7 @@ def _run_direct(test_configuration, **kwds):
 def _update_options_for_app(options, app, **kwds):
     if kwds.get("local_setup", False):
         staging_directory = app.staging_directory
-        is_coexecution = kwds.get("k8s_enabled") or kwds.get("tes_url")
+        is_coexecution = kwds.get("k8s_enabled") or kwds.get("tes_url") or kwds.get("arc_enabled")
         if is_coexecution:
             # Update client to not require this - seems silly.
             options["jobs_directory"] = "/pulsar_staging"
