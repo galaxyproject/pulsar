@@ -251,12 +251,15 @@ class NullJobMetrics:
 
 
 @contextmanager
-def server_for_test_app(test_app):
+def server_for_test_app(test_app, host=None, port=None):
     app = test_app.app
-    create_kwds = {
-    }
-    if os.environ.get("PULSAR_TEST_FILE_SERVER_HOST"):
-        create_kwds["host"] = os.environ.get("PULSAR_TEST_FILE_SERVER_HOST")
+
+    create_kwds = {}
+    if host:
+        create_kwds["host"] = host
+    if port:
+        create_kwds["port"] = port
+
     server = StopableWSGIServer.create(app, **create_kwds)
     try:
         server.wait()
@@ -469,14 +472,16 @@ def files_server(directory=None):
         else:
             yield Bunch(application_url=external_url)
     else:
+        host = os.environ.get("PULSAR_TEST_FILE_SERVER_HOST")
+        port = os.environ.get("PULSAR_TEST_FILE_SERVER_PORT")
         if not directory:
             with temp_directory() as directory:
                 app = TestApp(JobFilesApp(directory))
-                with server_for_test_app(app) as server:
+                with server_for_test_app(app, host=host, port=port) as server:
                     yield server, directory
         else:
             app = TestApp(JobFilesApp(directory))
-            with server_for_test_app(app) as server:
+            with server_for_test_app(app, host=host, port=port) as server:
                 yield server
 
 

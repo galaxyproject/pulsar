@@ -450,7 +450,9 @@ def _run_in_app(test_configuration: IntegrationTestConfiguration, direct_interfa
         # server for Pulsar - webtest doesn't seem to like having two test
         # servers alive at same time.
         with files_server("/") as test_files_server:
-            files_endpoint = to_infrastructure_uri(test_files_server.application_url)
+            files_endpoint = to_infrastructure_uri(
+                environ.get("PULSAR_TEST_INTERNAL_JOB_FILES_URL", test_files_server.application_url)
+            )
             if direct_interface:
                 _run_direct(test_configuration, files_endpoint=files_endpoint, **kwds)
             else:
