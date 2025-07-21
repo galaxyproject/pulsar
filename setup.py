@@ -92,6 +92,7 @@ setup(
         pulsar-submit=pulsar.scripts.submit:main
         pulsar-finish=pulsar.scripts.finish:main
         pulsar-run=pulsar.scripts.run:main
+        pulsar-create-output-manifest=pulsar.scripts.collect_output_manifest:main
         _pulsar-conda-init=pulsar.scripts._conda_init:main
         _pulsar-configure-slurm=pulsar.scripts._configure_slurm:main
         _pulsar-configure-galaxy-cvmfs=pulsar.scripts._configure_galaxy_cvmfs:main
