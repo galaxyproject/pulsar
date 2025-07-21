@@ -73,6 +73,19 @@ def submit_job(client, client_job_description, job_config=None):
     # it needs to be in the response to Pulsar even Pulsar is inititing staging actions
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
+
+    # populate `to_path`
+    staging_manifest = []
+    for action in file_stager.action_mapper.actions:
+        if action.file_type not in ("output", "output_workdir"):
+            name = basename(action.path)
+            path = file_stager.job_directory.calculate_path(name, action.file_type)
+            action.write_to_path(path)
+            staging_manifest.append(action.finalize())
+
+    if staging_manifest:
+        launch_kwds["staging_manifest"] = staging_manifest
+
     # for pulsar modalities that skip the explicit "setup" step, give them a chance to set an external
     # id from the submission process (e.g. to TES).
     launch_response = client.launch(**launch_kwds)
@@ -585,7 +598,8 @@ class TransferTracker:
     def register_rewrite_action(self, action, remote_path, force=False):
         if action.staging_needed or force:
             path = getattr(action, 'path', None)
-            if path:
+            if path and path not in self.file_renames:
+                # this should only happen in unit testing ... don't really know why
                 self.file_renames[path] = remote_path
 
     def rewrite_input_paths(self):

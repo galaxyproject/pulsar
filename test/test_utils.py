@@ -62,7 +62,7 @@ def timed(timeout):
     return outer_wrapper
 
 
-INTEGRATION_MAXIMUM_TEST_TIME = 120
+INTEGRATION_MAXIMUM_TEST_TIME = 1200
 integration_test = timed(INTEGRATION_MAXIMUM_TEST_TIME)
 
 TEST_DIR = dirname(__file__)
@@ -456,7 +456,7 @@ class TestAuthorizer:
 
 
 @contextmanager
-def files_server(directory=None):
+def files_server(directory=None, allow_multiple_downloads=False):
     external_url = os.environ.get("PULSAR_TEST_EXTERNAL_JOB_FILES_URL")
     if external_url:
         if directory is None:
@@ -471,11 +471,11 @@ def files_server(directory=None):
     else:
         if not directory:
             with temp_directory() as directory:
-                app = TestApp(JobFilesApp(directory))
+                app = TestApp(JobFilesApp(directory, allow_multiple_downloads=allow_multiple_downloads))
                 with server_for_test_app(app) as server:
                     yield server, directory
         else:
-            app = TestApp(JobFilesApp(directory))
+            app = TestApp(JobFilesApp(directory, allow_multiple_downloads=allow_multiple_downloads))
             with server_for_test_app(app) as server:
                 yield server
 

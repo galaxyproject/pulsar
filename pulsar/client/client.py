@@ -168,7 +168,7 @@ class JobClient(BaseJobClient):
         self.job_manager_interface = job_manager_interface
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         Queue up the execution of the supplied `command_line` on the remote
         server. Called launch for historical reasons, should be renamed to
@@ -489,7 +489,7 @@ class BaseMessageJobClient(BaseRemoteConfiguredJobClient):
 class MessageJobClient(BaseMessageJobClient):
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -523,7 +523,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
         self.shell = shell
 
     def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
-               dynamic_file_sources=None, token_endpoint=None):
+               dynamic_file_sources=None, token_endpoint=None, staging_manifest=None):
         """
         """
         launch_params = self._build_setup_message(
@@ -561,6 +561,55 @@ class ExecutionType(str, Enum):
     PARALLEL = "parallel"
 
 
+class LocalSequentialLaunchMixin(BaseRemoteConfiguredJobClient):
+
+    def launch(
+        self,
+        command_line,
+        dependencies_description=None,
+        env=None,
+        remote_staging=None,
+        job_config=None,
+        dynamic_file_sources=None,
+        container_info=None,
+        token_endpoint=None,
+        pulsar_app_config=None,
+        staging_manifest=None
+    ) -> Optional[ExternalId]:
+        # 1. call staging script with staging manifest [handled by ARC]
+        # 2. call actual command_line
+        # 3. call script that does output collection (similar to __collect_outputs) and outputs staging manifest
+        # 4. stage outputs back using manifest [handled by ARC]
+        import importlib.resources
+        import tempfile
+        import subprocess
+        import sys
+        from pulsar import scripts
+        STAGING_SCRIPT = importlib.resources.path(scripts, "staging_arc.py")
+        MANIFEST_SCRIPT = importlib.resources.path(scripts, "collect_output_manifest.py")
+
+        with tempfile.NamedTemporaryFile(mode="w") as temp_fh:
+            temp_fh.write(json_dumps(staging_manifest))
+            temp_fh.flush()
+            staging_process = subprocess.run([sys.executable, STAGING_SCRIPT, "--json", temp_fh.name], capture_output=True)
+            assert staging_process.returncode == 0, staging_process.stderr.decode()
+        job_process = subprocess.run(command_line, shell=True, capture_output=True)
+        assert job_process.returncode == 0, job_process.stderr.decode()
+
+        job_directory = self.job_directory.job_directory
+
+        output_manifest_path = os.path.join(job_directory, "output_manifest.json")
+
+        with tempfile.NamedTemporaryFile(mode="w") as staging_config_fh:
+            staging_config_fh.write(json_dumps(remote_staging))
+            staging_config_fh.flush()
+
+            p = subprocess.run([sys.executable, MANIFEST_SCRIPT, "--job-directory", job_directory, "--staging-config-path", staging_config_fh.name, "--output-manifest-path", output_manifest_path])
+            assert p.returncode == 0
+
+        stage_out_process = subprocess.run([sys.executable, STAGING_SCRIPT, "--json", output_manifest_path], capture_output=True)
+        assert stage_out_process.returncode == 0, stage_out_process.stderr.decode()
+
 class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
     execution_type: ExecutionType
     pulsar_container_image: str
@@ -575,7 +624,8 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
         dynamic_file_sources=None,
         container_info=None,
         token_endpoint=None,
-        pulsar_app_config=None
+        pulsar_app_config=None,
+        staging_manifest=None
     ) -> Optional[ExternalId]:
         """
         """
@@ -790,6 +840,12 @@ class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
             "status": tes_state_to_pulsar_status(tes_state),
             "complete": "true" if tes_state_is_complete(tes_state) else "false",  # Ancient John, what were you thinking?
         }
+
+
+class LocalSequentialClient(BaseMessageCoexecutionJobClient, LocalSequentialLaunchMixin):
+
+    def __init__(self, destination_params, job_id, client_manager):
+        super().__init__(destination_params, job_id, client_manager)
 
 
 class TesPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesTesContainersMixin):

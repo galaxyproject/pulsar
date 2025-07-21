@@ -20,14 +20,14 @@ def postprocess(job_directory, action_executor, was_cancelled):
             staging_config = job_directory.load_metadata("launch_config").get("remote_staging", None)
         else:
             staging_config = None
-        collected = __collect_outputs(job_directory, staging_config, action_executor, was_cancelled)
+        file_action_mapper, collected = _collect_outputs(job_directory, staging_config, action_executor, was_cancelled)
         return collected
     finally:
         job_directory.write_file("postprocessed", "")
     return False
 
 
-def __collect_outputs(job_directory, staging_config, action_executor, was_cancelled):
+def _collect_outputs(job_directory, staging_config, action_executor, was_cancelled):
     collected = True
     if "action_mapper" in staging_config:
         file_action_mapper = action_mapper.FileActionMapper(config=staging_config["action_mapper"])
@@ -39,7 +39,7 @@ def __collect_outputs(job_directory, staging_config, action_executor, was_cancel
         if collection_failure_exceptions:
             log.warn("Failures collecting results %s" % collection_failure_exceptions)
             collected = False
-    return collected
+    return file_action_mapper, collected
 
 
 def realized_dynamic_file_sources(job_directory):
