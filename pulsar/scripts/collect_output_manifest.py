@@ -1,3 +1,10 @@
+"""Write a JSON manifest containing the paths to the job outputs and the Galaxy URLs where they should be sent.
+
+This script is used by Pulsar clients that delegate staging out files to an external system, such as the ARC (Advanced
+Resource Connector) client. It is called after the job has finished to create a manifest declaring which files should be
+staged out by the external system.
+"""
+
 import argparse
 import json
 
