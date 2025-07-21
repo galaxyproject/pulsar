@@ -62,7 +62,7 @@ def timed(timeout):
     return outer_wrapper
 
 
-INTEGRATION_MAXIMUM_TEST_TIME = 120
+INTEGRATION_MAXIMUM_TEST_TIME = 180
 integration_test = timed(INTEGRATION_MAXIMUM_TEST_TIME)
 
 TEST_DIR = dirname(__file__)

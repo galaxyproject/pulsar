@@ -18,6 +18,7 @@ from typing import Optional
 
 from ..action_mapper import (
     FileActionMapper,
+    JsonTransferAction,
     MessageAction,
     path_type,
 )
@@ -73,6 +74,23 @@ def submit_job(client, client_job_description, job_config=None):
     # it needs to be in the response to Pulsar even Pulsar is inititing staging actions
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
+
+    # generate staging manifest
+    staging_manifest = []
+    for action_description in remote_staging_actions:
+        action_dict = action_description["action"]
+        is_json_transfer_action = action_dict.get("action_type") == JsonTransferAction.action_type
+        is_not_output_action = action_description.get("type") not in ("output", "output_workdir")
+        if is_json_transfer_action and is_not_output_action:
+            file_type = action_description.get("type")
+            action = JsonTransferAction.from_dict(action_dict)
+            name = action_description["name"]
+            path = file_stager.job_directory.calculate_path(name, file_type)
+            action.write_to_path(path)
+            staging_manifest.append(action.to_staging_manifest_entry())
+    if staging_manifest:
+        launch_kwds["staging_manifest"] = staging_manifest
+
     # for pulsar modalities that skip the explicit "setup" step, give them a chance to set an external
     # id from the submission process (e.g. to TES).
     launch_response = client.launch(**launch_kwds)

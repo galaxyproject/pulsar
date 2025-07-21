@@ -501,6 +501,12 @@ def extract_client_options(options):
         client_options["k8s_enabled"] = options.k8s_enabled
     if hasattr(options, "tes_url"):
         client_options["tes_url"] = options.tes_url
+    if hasattr(options, "arc_enabled"):
+        client_options["arc_enabled"] = options.arc_enabled
+    if hasattr(options, "arc_url"):
+        client_options["arc_url"] = options.arc_url
+    if hasattr(options, "arc_oidc_token"):
+        client_options["arc_oidc_token"] = options.arc_oidc_token
     if hasattr(options, "container"):
         client_options["container"] = options.container
     return client_options
@@ -532,6 +538,8 @@ def client_manager_from_args(options):
         manager_args['tes_url'] = options.tes_url
     if getattr(options, "k8s_enabled", None):
         manager_args['k8s_enabled'] = options.k8s_enabled
+    if getattr(options, "arc_enabled", None):
+        manager_args['arc_enabled'] = options.arc_enabled
     cm = build_client_manager(**manager_args)
     return cm
 

@@ -4,6 +4,17 @@ from pulsar.client.action_mapper import (
 )
 
 
+def test_action_mapper_finalization():
+    client = _client("json_transfer")
+    mapper = FileActionMapper(client)
+    mapper.action({'path': '/opt/galaxy/tools/filters/catWrapper.py'}, 'input')
+    mapper.action({'path': '/the_file'}, 'input')
+    mapper_summary = mapper.finalize()
+    assert len(mapper_summary) == 2
+    assert mapper_summary[0]["path"] == '/opt/galaxy/tools/filters/catWrapper.py'
+    assert mapper_summary[1]["path"] == '/the_file'
+
+
 def test_endpoint_validation():
     client = _min_client("remote_transfer")
     mapper = FileActionMapper(client)
