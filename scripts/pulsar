@@ -117,7 +117,7 @@ then
     elif hash chaussette 2>/dev/null; then
         MODE="chaussette"
     else
-        MODE="paster"
+        MODE="granian"
     fi
 fi
 
@@ -129,9 +129,9 @@ elif [ "$MODE" == "circusd" ]; then
 elif [ "$MODE" == "chaussette" ]; then
     echo "Attempting to use chaussette instead of paster, you must specify port on command-line (--port 8913)."
     chaussette "paste:$PULSAR_CONFIG_FILE" "$@"
-elif [ "$MODE" == "paster" ]; then
-    echo "Starting pulsar with command [paster server \"$PULSAR_CONFIG_FILE\" \"$@\"]"
-    paster serve "$PULSAR_CONFIG_FILE" "$@"
+elif [ "$MODE" == "granian" ]; then
+    echo "Starting pulsar with command [PULSAR_CONFIG_FILE=\"$PULSAR_CONFIG_FILE\" granian --access-log --interface wsgi --factory "pulsar.web.wsgi:app_factory" \"$PULSAR_CONFIG_FILE\" \"$@\"]"
+    PULSAR_CONFIG_FILE="$PULSAR_CONFIG_FILE" granian --access-log --interface wsgi --factory "pulsar.web.wsgi:app_factory" "$@"
 elif [ "$MODE" == "webless" ]; then
     if hash pulsar-main 2>/dev/null; then
         # Running from pip install since
