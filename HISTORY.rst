@@ -6,7 +6,16 @@ History
 .. to_doc
 
 ---------------------
-0.15.8 (2025-07-17)
+0.15.10.dev0
+---------------------
+
+* Implement GCP Batch co-execution job runner.
+  `Pull Request 404`_
+* Customizable Pulsar test file server port and files endpoint
+  (thanks to `@kysrpex`_). `Pull Request 406`_
+
+---------------------
+0.15.9 (2025-07-17)
 ---------------------
 * Support HTCondor in CLUSTER_SLOTS_STATEMENT.sh (thanks to `@kysrpex`_).
   `Pull Request 405`_
@@ -532,6 +541,8 @@ History
 
 
 .. github_links
+.. _Pull Request 404: https://github.com/galaxyproject/pulsar/pull/404
+.. _Pull Request 406: https://github.com/galaxyproject/pulsar/pull/406
 .. _Pull Request 405: https://github.com/galaxyproject/pulsar/pull/405
 .. _Pull Request 391: https://github.com/galaxyproject/pulsar/pull/391
 .. _Pull Request 402: https://github.com/galaxyproject/pulsar/pull/402
