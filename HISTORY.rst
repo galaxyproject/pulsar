@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.15.10.dev0
+0.15.10 (2025-09-04)
 ---------------------
 
 * Implement GCP Batch co-execution job runner.
