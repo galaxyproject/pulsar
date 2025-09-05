@@ -4,8 +4,16 @@ Developing
 
 This section contains documentation for maintainers of Pulsar.
 
-Release Checklist
------------------
+Release Process (Preferred)
+---------------------------
+
+Github will automatically create releases based on tags. Just make sure the version
+and changelog are updated (``make open-docs`` and review changelog).
+
+Release Process (Manual)
+---------------------------
+
+**Don't do this anymore**, Github will automatically create releases based on tags.
 
 This release checklist is based on the `Pocoo Release Management Workflow
 <http://www.pocoo.org/internal/release-management/>`_.
@@ -31,7 +39,6 @@ are fine.
 
 
 * Review ``git status`` for missing files.
-* Verify the latest Travis CI builds pass.
 * ``make open-docs`` and review changelog.
 * Ensure the target release is set correctly in ``pulsar/__init__.py``
   (``version`` will be a ``devN`` variant of target release).
