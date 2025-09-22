@@ -9,7 +9,7 @@ jobs:
         tox-env: [py37-lint, py37-docs]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: '3.7'
     - name: Install tox
@@ -26,7 +26,7 @@ jobs:
           python: '3.11'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
     - name: Install tox
@@ -62,7 +62,7 @@ jobs:
           - '/tmp:/tmp:rw'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
     - name: Install tox
@@ -88,7 +88,7 @@ jobs:
   #         python: 3.7
   #   steps:
   #   - uses: actions/checkout@v2
-  #   - uses: actions/setup-python@v3
+  #   - uses: actions/setup-python@v6
   #     with:
   #       python-version: ${{ matrix.python }}
   #   - name: Set up Go 1.x
