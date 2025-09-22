@@ -79,20 +79,35 @@ class ResultsCollector:
         # Fetch explicit working directory outputs.
         for source_file, output_file in self.client_outputs.work_dir_outputs:
             name = relpath(source_file, working_directory)
-            if name not in self.working_directory_contents:
-                # Could be a glob
-                matching = fnmatch.filter(self.working_directory_contents, name)
-                if matching:
-                    name = matching[0]
-                    source_file = join(working_directory, name)
-            pulsar = self.pulsar_outputs.path_helper.remote_name(name)
-            if self._attempt_collect_output('output_workdir', path=output_file, name=pulsar):
-                self.downloaded_working_directory_files.append(pulsar)
-            # Remove from full output_files list so don't try to download directly.
-            try:
-                self.output_files.remove(output_file)
-            except ValueError:
-                raise Exception("Failed to remove {} from {}".format(output_file, self.output_files))
+
+            # Check if this represents a directory by looking for files under this path in remote contents
+            directory_pattern = name + "/"
+            directory_files = [f for f in self.working_directory_contents if f.startswith(directory_pattern)]
+
+            if directory_files:
+                # Download all files in the directory
+                for remote_file_name in directory_files:
+                    # Calculate local output path relative to the output_file directory
+                    relative_path_in_dir = relpath(remote_file_name, name)
+                    local_output_path = join(output_file, relative_path_in_dir)
+                    pulsar = self.pulsar_outputs.path_helper.remote_name(remote_file_name)
+                    if self._attempt_collect_output('output_workdir', path=local_output_path, name=pulsar):
+                        self.downloaded_working_directory_files.append((pulsar, local_output_path))
+            else:
+                if name not in self.working_directory_contents:
+                    # Could be a glob
+                    matching = fnmatch.filter(self.working_directory_contents, name)
+                    if matching:
+                        name = matching[0]
+                        source_file = join(working_directory, name)
+                pulsar = self.pulsar_outputs.path_helper.remote_name(name)
+                if self._attempt_collect_output('output_workdir', path=output_file, name=pulsar):
+                    self.downloaded_working_directory_files.append((pulsar, output_file))
+                # Remove from full output_files list so don't try to download directly.
+                try:
+                    self.output_files.remove(output_file)
+                except ValueError:
+                    raise Exception("Failed to remove {} from {}".format(output_file, self.output_files))
 
     def __collect_outputs(self):
         # Legacy Pulsar not returning list of files, iterate over the list of
@@ -178,18 +193,18 @@ class ResultsCollector:
         # Fetch remaining working directory outputs of interest.
         for name in contents:
             collect = False
-            if name in self.downloaded_working_directory_files:
-                continue
             if self.client_outputs.dynamic_match(name):
                 collect = True
             elif name in dynamic_file_source_references["filename"] or any(name.startswith(r) for r in dynamic_file_source_references["extra_files"]):
                 collect = True
 
             if collect:
-                log.debug("collecting dynamic {} file {}".format(output_type, name))
                 output_file = join(directory, self.pulsar_outputs.path_helper.local_name(name))
+                if (name, output_file) in self.downloaded_working_directory_files:
+                    continue
+                log.debug("collecting dynamic {} file {}".format(output_type, name))
                 if self._attempt_collect_output(output_type=output_type, path=output_file, name=name):
-                    self.downloaded_working_directory_files.append(name)
+                    self.downloaded_working_directory_files.append((name, output_file))
 
     def _attempt_collect_output(self, output_type, path, name=None):
         # path is final path on galaxy server (client)
