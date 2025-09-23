@@ -25,11 +25,11 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: 'pulsar'
       - name: Checkout tools repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: galaxyproject/galaxy
           ref: ${{ matrix.galaxy-branch }}

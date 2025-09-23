@@ -8,7 +8,7 @@ jobs:
       matrix:
         tox-env: [py37-lint, py37-docs]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - uses: actions/setup-python@v6
       with:
         python-version: '3.7'
@@ -25,7 +25,7 @@ jobs:
         - tox-env: py311-mypy
           python: '3.11'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
@@ -61,7 +61,7 @@ jobs:
         volumes:
           - '/tmp:/tmp:rw'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
@@ -87,7 +87,7 @@ jobs:
   #       - tox-env: py37-test-funnel
   #         python: 3.7
   #   steps:
-  #   - uses: actions/checkout@v2
+  #   - uses: actions/checkout@v5
   #   - uses: actions/setup-python@v6
   #     with:
   #       python-version: ${{ matrix.python }}
