@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.15.11.dev0
+0.15.11 (2025-09-30)
 ---------------------
 
 * Support collecting dirs via ``from_work_dir`` (thanks to `@mvdbeek`_). `Pull Request 410`_
