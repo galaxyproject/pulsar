@@ -9,6 +9,11 @@ History
 0.15.11.dev0
 ---------------------
 
+* Support collecting dirs via ``from_work_dir`` (thanks to `@mvdbeek`_). `Pull Request 410`_
+* Enable dependabot version updates for GitHub actions (thanks to
+  `@nsoranzo`_). `Pull Request 411`_
+* Update release information docs. `Pull Request 409`_
+
 ---------------------
 0.15.10 (2025-09-04)
 ---------------------
@@ -545,6 +550,9 @@ History
 
 
 .. github_links
+.. _Pull Request 411: https://github.com/galaxyproject/pulsar/pull/411
+.. _Pull Request 409: https://github.com/galaxyproject/pulsar/pull/409
+.. _Pull Request 410: https://github.com/galaxyproject/pulsar/pull/410
 .. _Pull Request 404: https://github.com/galaxyproject/pulsar/pull/404
 .. _Pull Request 406: https://github.com/galaxyproject/pulsar/pull/406
 .. _Pull Request 405: https://github.com/galaxyproject/pulsar/pull/405
