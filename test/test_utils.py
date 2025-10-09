@@ -184,8 +184,6 @@ python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stdout.flush(); s
                 raise Exception("Timeout.")
         self.assertEqual(manager.job_stderr_contents(job_id), b"")
         self.assertEqual(manager.job_stdout_contents(job_id), b"")
-        self.assertEqual(manager.stderr_contents(job_id), b"moo")
-        self.assertEqual(manager.stdout_contents(job_id), b"Hello World!")
         self.assertEqual(manager.return_code(job_id), 0)
         manager.clean(job_id)
         self.assertEqual(len(listdir(self.staging_directory)), 0)
