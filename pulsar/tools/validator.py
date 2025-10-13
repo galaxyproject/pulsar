@@ -11,7 +11,7 @@ from galaxy.util import in_directory
 class ExpressionValidator:
 
     def __init__(self, xml_el):
-        if type(xml_el) == str:
+        if isinstance(xml_el, str):
             xml_el = fromstring(xml_el)
         self.xml_el = xml_el
 
