@@ -258,7 +258,8 @@ class Command:
         else:
             return ' ' * (length - len(s)) + s
 
-    def _standard_parser(cls, verbose=True,
+    @classmethod
+    def standard_parser(cls, verbose=True,
                         interactive=False,
                         no_interactive=False,
                         simulate=False,
@@ -307,8 +308,6 @@ class Command:
                               action="store_true",
                               help="Overwrite files (warnings will be emitted for non-matching files otherwise)")
         return parser
-
-    standard_parser = classmethod(_standard_parser)
 
     def quote_first_command_arg(self, arg):
         """

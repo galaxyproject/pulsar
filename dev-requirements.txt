@@ -23,7 +23,7 @@ sphinxcontrib-apidoc
 pyflakes
 flake8
 
-mypy<=1.0.1  # https://github.com/pydantic/pydantic/issues/5192
+mypy
 types-paramiko
 types-setuptools
 types-PyYAML

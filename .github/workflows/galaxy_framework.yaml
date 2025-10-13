@@ -28,23 +28,21 @@ jobs:
       - uses: actions/checkout@v5
         with:
           path: 'pulsar'
+          persist-credentials: false
       - name: Checkout tools repo
         uses: actions/checkout@v5
         with:
           repository: galaxyproject/galaxy
           ref: ${{ matrix.galaxy-branch }}
           path: galaxy
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
       - name: Build Pulsar wheel and replace Galaxy's requirements.
         run: python tools/replace_galaxy_requirements_for_ci.py
         working-directory: 'pulsar'
-      - name: Cache pip dir
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy/requirements.txt') }}
       - name: Run tests
         run: ./run_tests.sh --framework
         working-directory: 'galaxy'

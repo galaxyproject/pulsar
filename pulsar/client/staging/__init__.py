@@ -7,10 +7,17 @@ from os.path import (
     exists,
     join,
 )
+from typing import (
+    TYPE_CHECKING,
+    Union,
+)
 
 from galaxy.util.bunch import Bunch
 
 from ..util import PathHelper
+
+if TYPE_CHECKING:
+    from galaxy.tool_util.parser.interface import RequiredFiles
 
 COMMAND_VERSION_FILENAME = "COMMAND_VERSION"
 DEFAULT_DYNAMIC_COLLECTION_PATTERN = [
@@ -51,6 +58,8 @@ class ClientJobDescription:
     command_line : str
         The local command line to execute, this will be rewritten for
         the remote server.
+    tool :
+        The Galaxy tool to execute.
     config_files : list
         List of Galaxy 'configfile's produced for this job. These will
         be rewritten and sent to remote server.
@@ -60,9 +69,6 @@ class ClientJobDescription:
     client_outputs : ClientOutputs
         Description of outputs produced by job (at least output files along
         with optional version string and working directory outputs.
-    tool_dir : str
-        Directory containing tool to execute (if a wrapper is used, it will
-        be transferred to remote server).
     working_directory : str
         Local path created by Galaxy for running this job (job_wrapper.tool_working_directory).
     metadata_directory : str
@@ -72,8 +78,6 @@ class ClientJobDescription:
         tool dependency context for remote depenency resolution.
     env: list
         List of dict object describing environment variables to populate.
-    version_file : str
-        Path to version file expected on the client server
     arbitrary_files : dict()
         Additional non-input, non-tool, non-config, non-working directory files
         to transfer before staging job. This is most likely data indices but
@@ -99,7 +103,7 @@ class ClientJobDescription:
         env=[],
         arbitrary_files=None,
         job_directory_files=None,
-        tool_directory_required_files=None,
+        tool_directory_required_files: Union["RequiredFiles", None] = None,
         rewrite_paths=True,
         touch_outputs=None,
         container=None,
