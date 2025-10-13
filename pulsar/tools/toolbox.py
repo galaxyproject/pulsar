@@ -4,6 +4,10 @@ from os.path import (
     dirname,
     join,
 )
+from typing import (
+    List,
+    Union,
+)
 from xml.etree import ElementTree
 
 from pulsar.tools.validator import ExpressionValidator
@@ -19,8 +23,8 @@ class ToolBox:
     to support simple, non-toolshed based tool setups.
     """
 
-    def __init__(self, path_string):
-        self.tool_configs = []
+    def __init__(self, path_string) -> None:
+        self.tool_configs: List[Union[SimpleToolConfig, ToolShedToolConfig]] = []
         paths = [path.strip() for path in path_string.split(",")]
         for path in paths:
             toolbox_tree = ElementTree.parse(path)
@@ -41,17 +45,17 @@ class ToolBox:
             except Exception:
                 log.exception('Failed to load tool.')
 
-    def get_tool(self, id):
+    def get_tool(self, id) -> Union["SimpleToolConfig", "ToolShedToolConfig"]:
         # Need to handle multiple tools per id someday, but
         # starting simple.
         tools = self.__find_tools_by_id(id)
         if not tools:
             raise KeyError("Failed to find tool with id '%s'" % id)
         if len(tools) > 1:
-            log.warn("Found multiple tools with id '%s', returning first." % id)
+            log.warning("Found multiple tools with id '%s', returning first.", id)
         return tools[0]
 
-    def __find_tools_by_id(self, id):
+    def __find_tools_by_id(self, id) -> List[Union["SimpleToolConfig", "ToolShedToolConfig"]]:
         return [tool for tool in self.tool_configs if tool.id == id]
 
 

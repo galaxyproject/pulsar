@@ -14,7 +14,10 @@ from re import (
     escape,
     findall,
 )
-from typing import Optional
+from typing import (
+    Optional,
+    TYPE_CHECKING,
+)
 
 from ..action_mapper import (
     FileActionMapper,
@@ -32,10 +35,13 @@ from ..util import (
     PathHelper,
 )
 
+if TYPE_CHECKING:
+    from ..staging import ClientJobDescription
+
 log = getLogger(__name__)
 
 
-def submit_job(client, client_job_description, job_config=None):
+def submit_job(client, client_job_description: "ClientJobDescription", job_config=None):
     """
     """
     file_stager = FileStager(client, client_job_description, job_config)
@@ -99,7 +105,7 @@ class FileStager:
         Description of client view of job to stage and execute remotely.
     """
 
-    def __init__(self, client, client_job_description, job_config):
+    def __init__(self, client, client_job_description: "ClientJobDescription", job_config):
         """
         """
         self.client = client

@@ -79,7 +79,7 @@ class TempDirectoryTestCase(TestCase):
         rmtree(self.temp_directory)
 
 
-def get_test_toolbox():
+def get_test_toolbox() -> ToolBox:
     toolbox_path = join(dirname(__file__), pardir, "test_data", "test_shed_toolbox.xml")
     toolbox = ToolBox(toolbox_path)
     return toolbox
