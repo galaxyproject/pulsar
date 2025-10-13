@@ -6,14 +6,15 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        tox-env: [py37-lint, py37-docs]
+        python-version: ['3.7']
+        tox-env: [lint, docs]
     steps:
     - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - uses: actions/setup-python@v6
       with:
-        python-version: '3.7'
+        python-version: ${{ matrix.python-version }}
         cache: pip
     - name: Install tox
       run: pip install tox
@@ -21,19 +22,18 @@ jobs:
       run: tox -e ${{ matrix.tox-env }}
   mypy:
     name: MyPy
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-        - tox-env: py311-mypy
-          python: '3.11'
+        tox-env: [mypy]
+        python-version: ['3.14']
     steps:
     - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - uses: actions/setup-python@v6
       with:
-        python-version: ${{ matrix.python }}
+        python-version: ${{ matrix.python-version }}
         cache: pip
     - name: Install tox
       run: pip install tox
@@ -46,17 +46,11 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
+        tox-env: [test-ci, test-unit]
+        python-version: ['3.7', '3.11']
         include:
-        - tox-env: py37-test-ci
-          python: '3.7'
-        - tox-env: py37-test-unit
-          python: '3.7'
-        - tox-env: py311-test-ci
-          python: '3.11'
-        - tox-env: py311-test-unit
-          python: '3.11'
-        - tox-env: py39-install_wheel
-          python: '3.9'
+        - tox-env: install_wheel
+          python-version: '3.9'
     services:
       job-files:
         image: galaxy/simple-job-files:latest
@@ -72,7 +66,7 @@ jobs:
         persist-credentials: false
     - uses: actions/setup-python@v6
       with:
-        python-version: ${{ matrix.python }}
+        python-version: ${{ matrix.python-version }}
         cache: pip
     - name: Install tox
       run: pip install tox
@@ -93,15 +87,15 @@ jobs:
   #   strategy:
   #     matrix:
   #       include:
-  #       - tox-env: py37-test-funnel
-  #         python: 3.7
+  #       - tox-env: test-funnel
+  #         python-version: 3.7
   #   steps:
   #   - uses: actions/checkout@v5
   #     with:
   #       persist-credentials: false
   #   - uses: actions/setup-python@v6
   #     with:
-  #       python-version: ${{ matrix.python }}
+  #       python-version: ${{ matrix.python-version }}
   #       cache: pip
   #   - name: Set up Go 1.x
   #     uses: actions/setup-go@v2
