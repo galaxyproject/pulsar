@@ -14,7 +14,9 @@ from queue import Queue
 from typing import (
     Any,
     Dict,
+    Optional,
     Type,
+    TYPE_CHECKING,
 )
 
 from typing_extensions import Protocol
@@ -44,6 +46,9 @@ from .transport import get_transport
 from .transport.proxy import ProxyTransport
 from .util import TransferEventManager
 
+if TYPE_CHECKING:
+    from pulsar.managers import ManagerInterface
+
 log = getLogger(__name__)
 
 DEFAULT_TRANSFER_THREADS = 2
@@ -68,12 +73,11 @@ class ClientManager(ClientManagerInterface):
     job_manager_interface_class: Type[PulsarInterface]
     client_class: Type[BaseJobClient]
 
-    def __init__(self, **kwds: Dict[str, Any]):
+    def __init__(self, job_manager: Optional["ManagerInterface"] = None, **kwds: Dict[str, Any]):
         """Build a HTTP client or a local client that talks directly to a job manger."""
-        if 'pulsar_app' in kwds or 'job_manager' in kwds:
+        if 'pulsar_app' in kwds or job_manager:
             self.job_manager_interface_class = LocalPulsarInterface
             pulsar_app = kwds.get('pulsar_app', None)
-            job_manager = kwds.get('job_manager', None)
             file_cache = kwds.get('file_cache', None)
             self.job_manager_interface_args = dict(
                 job_manager=job_manager,
@@ -126,9 +130,9 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
     status_cache: Dict[str, Any]
     ack_consumer_threads: Dict[str, threading.Thread]
 
-    def __init__(self, **kwds: Dict[str, Any]):
+    def __init__(self, amqp_url: str, **kwds: Dict[str, Any]):
         super().__init__(**kwds)
-        self.url = kwds.get('amqp_url')
+        self.url = amqp_url
         self.amqp_key_prefix = kwds.get("amqp_key_prefix", None)
         self.exchange = get_exchange(self.url, self.manager_name, kwds)
         self.status_cache = {}
@@ -259,18 +263,11 @@ class ProxyClientManager(BaseRemoteConfiguredJobClientManager):
     """
     status_cache: Dict[str, Any]
 
-    def __init__(self, **kwds: Dict[str, Any]):
+    def __init__(self, proxy_url: str, proxy_username: str, proxy_password: str, **kwds: Dict[str, Any]):
         super().__init__(**kwds)
 
-        # Extract proxy configuration
-        proxy_url = kwds.get('proxy_url')
         if not proxy_url:
             raise Exception("proxy_url is required for ProxyClientManager")
-
-        proxy_username = kwds.get('proxy_username', 'admin')
-        proxy_password = kwds.get('proxy_password')
-        if not proxy_password:
-            raise Exception("proxy_password is required for ProxyClientManager")
 
         # Initialize proxy transport
         self.proxy_transport = ProxyTransport(proxy_url, proxy_username, proxy_password)
@@ -386,14 +383,25 @@ class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
         pass
 
 
-def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
-    if 'job_manager' in kwargs:
-        return ClientManager(**kwargs)  # TODO: Consider more separation here.
-    elif kwargs.get('proxy_url', None):
-        return ProxyClientManager(**kwargs)
-    elif kwargs.get('amqp_url', None):
-        return MessageQueueClientManager(**kwargs)
-    elif kwargs.get("k8s_enabled") or kwargs.get("tes_enabled") or kwargs.get("gcp_batch_enabled"):
+def build_client_manager(
+    job_manager: Optional["ManagerInterface"] = None,
+    proxy_url: Optional[str] = None,
+    proxy_username: Optional[str] = None,
+    proxy_password: Optional[str] = None,
+    amqp_url: Optional[str] = None,
+    k8s_enabled: Optional[bool] = None,
+    tes_enabled: Optional[bool] = None,
+    gcp_batch_enabled: Optional[bool] = None,
+    **kwargs
+) -> ClientManagerInterface:
+    if job_manager:
+        return ClientManager(job_manager=job_manager, **kwargs)  # TODO: Consider more separation here.
+    elif proxy_url:
+        assert proxy_password and proxy_username, "proxy_url set, but proxy_username and proxy_password must also be set"
+        return ProxyClientManager(proxy_url=proxy_url, proxy_username=proxy_username, proxy_password=proxy_password, **kwargs)
+    elif amqp_url:
+        return MessageQueueClientManager(amqp_url=amqp_url, **kwargs)
+    elif k8s_enabled or tes_enabled or gcp_batch_enabled:
         return PollingJobClientManager(**kwargs)
     else:
         return ClientManager(**kwargs)

@@ -5,7 +5,7 @@ Handles token acquisition, caching, and automatic refresh.
 """
 import logging
 import threading
-from typing import Optional
+from typing import cast, Optional
 from datetime import datetime, timedelta
 
 import requests
@@ -52,12 +52,12 @@ class ProxyAuthManager:
         """
         with self._lock:
             if self._is_token_valid():
-                return self._token
+                return cast(str, self._token)
 
             # Need to authenticate or refresh
             log.debug("Authenticating with pulsar-proxy at %s", self.proxy_url)
             self._authenticate()
-            return self._token
+            return cast(str, self._token)
 
     def _is_token_valid(self) -> bool:
         """Check if current token is valid and not expiring soon.

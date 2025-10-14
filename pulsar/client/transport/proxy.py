@@ -77,7 +77,7 @@ class ProxyTransport:
         """
         url = f"{self.proxy_url}/api/v1/messages"
 
-        message_data = {
+        message_data: Dict[str, Any] = {
             'topic': topic,
             'payload': payload
         }
