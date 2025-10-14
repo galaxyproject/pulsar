@@ -7,6 +7,7 @@ specific actions.
 
 import functools
 import threading
+import time
 from logging import getLogger
 from os import getenv
 from queue import Queue
@@ -40,6 +41,7 @@ from .server_interface import (
     PulsarInterface,
 )
 from .transport import get_transport
+from .transport.proxy import ProxyTransport
 from .util import TransferEventManager
 
 log = getLogger(__name__)
@@ -248,6 +250,121 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
             return MessageJobClient(destination_params, job_id, self)
 
 
+class ProxyClientManager(BaseRemoteConfiguredJobClientManager):
+    """Client manager that communicates with Pulsar via pulsar-proxy.
+
+    This manager uses HTTP-based long-polling to receive status updates from
+    Pulsar through the proxy, while posting control messages (setup, status
+    requests, kill) to the proxy for Pulsar to consume.
+    """
+    status_cache: Dict[str, Any]
+
+    def __init__(self, **kwds: Dict[str, Any]):
+        super().__init__(**kwds)
+
+        # Extract proxy configuration
+        proxy_url = kwds.get('proxy_url')
+        if not proxy_url:
+            raise Exception("proxy_url is required for ProxyClientManager")
+
+        proxy_username = kwds.get('proxy_username', 'admin')
+        proxy_password = kwds.get('proxy_password')
+        if not proxy_password:
+            raise Exception("proxy_password is required for ProxyClientManager")
+
+        # Initialize proxy transport
+        self.proxy_transport = ProxyTransport(proxy_url, proxy_username, proxy_password)
+        self.status_cache = {}
+        self.callback_lock = threading.Lock()
+        self.callback_thread = None
+        self.active = True
+
+    def callback_wrapper(self, callback, message_data):
+        """Process status update messages from the proxy."""
+        if not self.active:
+            log.debug("Obtained update message for inactive client manager, ignoring.")
+            return
+
+        try:
+            payload = message_data.get('payload', {})
+            if "job_id" in payload:
+                job_id = payload["job_id"]
+                self.status_cache[job_id] = payload
+            log.debug("Handling asynchronous status update from Pulsar via proxy.")
+            callback(payload)
+        except Exception:
+            log.exception("Failure processing job status update message.")
+        except BaseException as e:
+            log.exception("Failure processing job status update message - BaseException type %s" % type(e))
+
+    def status_consumer(self, callback_wrapper):
+        """Long-poll the proxy for status update messages."""
+        manager_name = self.manager_name
+        topic = f"job_status_update_{manager_name}" if manager_name != "_default_" else "job_status_update"
+
+        log.info("Starting proxy status consumer for topic '%s'", topic)
+
+        while self.active:
+            try:
+                # Long poll for status updates (30 second timeout)
+                messages = self.proxy_transport.long_poll([topic], timeout=30)
+
+                for message in messages:
+                    callback_wrapper(message)
+
+            except Exception:
+                if self.active:
+                    log.exception("Exception while polling for status updates from proxy, will retry.")
+                    # Brief sleep before retrying to avoid tight loop on persistent errors
+                    time.sleep(5)
+                else:
+                    log.debug("Exception during shutdown, ignoring.")
+                    break
+
+        log.debug("Leaving Pulsar client proxy status consumer, no additional updates will be processed.")
+
+    def ensure_has_status_update_callback(self, callback):
+        """Start a thread to poll for status updates if not already running."""
+        with self.callback_lock:
+            if self.callback_thread is not None:
+                return
+
+            callback_wrapper = functools.partial(self.callback_wrapper, callback)
+            run = functools.partial(self.status_consumer, callback_wrapper)
+            thread = threading.Thread(
+                name="pulsar_client_%s_proxy_status_consumer" % self.manager_name,
+                target=run
+            )
+            thread.daemon = False  # Don't interrupt processing
+            thread.start()
+            self.callback_thread = thread
+
+    def shutdown(self, ensure_cleanup: bool = False):
+        """Shutdown the client manager and cleanup resources."""
+        self.active = False
+        if ensure_cleanup:
+            if self.callback_thread is not None:
+                self.callback_thread.join()
+        # Close proxy transport
+        if hasattr(self, 'proxy_transport'):
+            self.proxy_transport.close()
+
+    def __nonzero__(self):
+        return self.active
+
+    __bool__ = __nonzero__  # Both needed Py2 v 3
+
+    def get_client(self, destination_params, job_id, **kwargs):
+        """Create a ProxyJobClient for the given job."""
+        from .client import ProxyJobClient
+
+        if job_id is None:
+            raise Exception("Cannot generate Pulsar client for empty job_id.")
+        destination_params = _parse_destination_params(destination_params)
+        destination_params.update(**kwargs)
+        return ProxyJobClient(destination_params, job_id, self)
+
+
 class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
 
     def get_client(self, destination_params, job_id, **kwargs):
@@ -272,6 +389,8 @@ class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
 def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
     if 'job_manager' in kwargs:
         return ClientManager(**kwargs)  # TODO: Consider more separation here.
+    elif kwargs.get('proxy_url', None):
+        return ProxyClientManager(**kwargs)
     elif kwargs.get('amqp_url', None):
         return MessageQueueClientManager(**kwargs)
     elif kwargs.get("k8s_enabled") or kwargs.get("tes_enabled") or kwargs.get("gcp_batch_enabled"):
