@@ -32,6 +32,7 @@ from .client import (
     K8sPollingCoexecutionJobClient,
     MessageCLIJobClient,
     MessageJobClient,
+    RelayJobClient,
     TesMessageCoexecutionJobClient,
     TesPollingCoexecutionJobClient,
 )
@@ -43,7 +44,7 @@ from .server_interface import (
     PulsarInterface,
 )
 from .transport import get_transport
-from .transport.proxy import ProxyTransport
+from .transport.relay import RelayTransport
 from .util import TransferEventManager
 
 if TYPE_CHECKING:
@@ -254,30 +255,30 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
             return MessageJobClient(destination_params, job_id, self)
 
 
-class ProxyClientManager(BaseRemoteConfiguredJobClientManager):
-    """Client manager that communicates with Pulsar via pulsar-proxy.
+class RelayClientManager(BaseRemoteConfiguredJobClientManager):
+    """Client manager that communicates with Pulsar via pulsar-relay.
 
     This manager uses HTTP-based long-polling to receive status updates from
-    Pulsar through the proxy, while posting control messages (setup, status
-    requests, kill) to the proxy for Pulsar to consume.
+    Pulsar through the relay, while posting control messages (setup, status
+    requests, kill) to the relay for Pulsar to consume.
     """
     status_cache: Dict[str, Any]
 
-    def __init__(self, proxy_url: str, proxy_username: str, proxy_password: str, **kwds: Dict[str, Any]):
+    def __init__(self, relay_url: str, relay_username: str, relay_password: str, **kwds: Dict[str, Any]):
         super().__init__(**kwds)
 
-        if not proxy_url:
-            raise Exception("proxy_url is required for ProxyClientManager")
+        if not relay_url:
+            raise Exception("relay_url is required for RelayClientManager")
 
-        # Initialize proxy transport
-        self.proxy_transport = ProxyTransport(proxy_url, proxy_username, proxy_password)
+        # Initialize relay transport
+        self.relay_transport = RelayTransport(relay_url, relay_username, relay_password)
         self.status_cache = {}
         self.callback_lock = threading.Lock()
         self.callback_thread = None
         self.active = True
 
     def callback_wrapper(self, callback, message_data):
-        """Process status update messages from the proxy."""
+        """Process status update messages from the relay."""
         if not self.active:
             log.debug("Obtained update message for inactive client manager, ignoring.")
             return
@@ -287,7 +288,7 @@ class ProxyClientManager(BaseRemoteConfiguredJobClientManager):
             if "job_id" in payload:
                 job_id = payload["job_id"]
                 self.status_cache[job_id] = payload
-            log.debug("Handling asynchronous status update from Pulsar via proxy.")
+            log.debug("Handling asynchronous status update from Pulsar via relay.")
             callback(payload)
         except Exception:
             log.exception("Failure processing job status update message.")
@@ -295,30 +296,30 @@ class ProxyClientManager(BaseRemoteConfiguredJobClientManager):
             log.exception("Failure processing job status update message - BaseException type %s" % type(e))
 
     def status_consumer(self, callback_wrapper):
-        """Long-poll the proxy for status update messages."""
+        """Long-poll the relay for status update messages."""
         manager_name = self.manager_name
         topic = f"job_status_update_{manager_name}" if manager_name != "_default_" else "job_status_update"
 
-        log.info("Starting proxy status consumer for topic '%s'", topic)
+        log.info("Starting relay status consumer for topic '%s'", topic)
 
         while self.active:
             try:
                 # Long poll for status updates (30 second timeout)
-                messages = self.proxy_transport.long_poll([topic], timeout=30)
+                messages = self.relay_transport.long_poll([topic], timeout=30)
 
                 for message in messages:
                     callback_wrapper(message)
 
             except Exception:
                 if self.active:
-                    log.exception("Exception while polling for status updates from proxy, will retry.")
+                    log.exception("Exception while polling for status updates from relay, will retry.")
                     # Brief sleep before retrying to avoid tight loop on persistent errors
                     time.sleep(5)
                 else:
                     log.debug("Exception during shutdown, ignoring.")
                     break
 
-        log.debug("Leaving Pulsar client proxy status consumer, no additional updates will be processed.")
+        log.debug("Leaving Pulsar client relay status consumer, no additional updates will be processed.")
 
     def ensure_has_status_update_callback(self, callback):
         """Start a thread to poll for status updates if not already running."""
@@ -329,7 +330,7 @@ class ProxyClientManager(BaseRemoteConfiguredJobClientManager):
             callback_wrapper = functools.partial(self.callback_wrapper, callback)
             run = functools.partial(self.status_consumer, callback_wrapper)
             thread = threading.Thread(
-                name="pulsar_client_%s_proxy_status_consumer" % self.manager_name,
+                name="pulsar_client_%s_relay_status_consumer" % self.manager_name,
                 target=run
             )
             thread.daemon = False  # Don't interrupt processing
@@ -342,9 +343,9 @@ class ProxyClientManager(BaseRemoteConfiguredJobClientManager):
         if ensure_cleanup:
             if self.callback_thread is not None:
                 self.callback_thread.join()
-        # Close proxy transport
-        if hasattr(self, 'proxy_transport'):
-            self.proxy_transport.close()
+        # Close relay transport
+        if hasattr(self, 'relay_transport'):
+            self.relay_transport.close()
 
     def __nonzero__(self):
         return self.active
@@ -352,14 +353,12 @@ class ProxyClientManager(BaseRemoteConfiguredJobClientManager):
     __bool__ = __nonzero__  # Both needed Py2 v 3
 
     def get_client(self, destination_params, job_id, **kwargs):
-        """Create a ProxyJobClient for the given job."""
-        from .client import ProxyJobClient
-
+        """Create a RelayJobClient for the given job."""
         if job_id is None:
             raise Exception("Cannot generate Pulsar client for empty job_id.")
         destination_params = _parse_destination_params(destination_params)
         destination_params.update(**kwargs)
-        return ProxyJobClient(destination_params, job_id, self)
+        return RelayJobClient(destination_params, job_id, self)
 
 
 class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
@@ -385,9 +384,9 @@ class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
 
 def build_client_manager(
     job_manager: Optional["ManagerInterface"] = None,
-    proxy_url: Optional[str] = None,
-    proxy_username: Optional[str] = None,
-    proxy_password: Optional[str] = None,
+    relay_url: Optional[str] = None,
+    relay_username: Optional[str] = None,
+    relay_password: Optional[str] = None,
     amqp_url: Optional[str] = None,
     k8s_enabled: Optional[bool] = None,
     tes_enabled: Optional[bool] = None,
@@ -396,9 +395,9 @@ def build_client_manager(
 ) -> ClientManagerInterface:
     if job_manager:
         return ClientManager(job_manager=job_manager, **kwargs)  # TODO: Consider more separation here.
-    elif proxy_url:
-        assert proxy_password and proxy_username, "proxy_url set, but proxy_username and proxy_password must also be set"
-        return ProxyClientManager(proxy_url=proxy_url, proxy_username=proxy_username, proxy_password=proxy_password, **kwargs)
+    elif relay_url:
+        assert relay_password and relay_username, "relay_url set, but relay_username and relay_password must also be set"
+        return RelayClientManager(relay_url=relay_url, relay_username=relay_username, relay_password=relay_password, **kwargs)
     elif amqp_url:
         return MessageQueueClientManager(amqp_url=amqp_url, **kwargs)
     elif k8s_enabled or tes_enabled or gcp_batch_enabled:

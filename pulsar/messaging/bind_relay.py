@@ -1,7 +1,7 @@
-"""Pulsar server-side integration with pulsar-proxy.
+"""Pulsar server-side integration with pulsar-relay.
 
 This module provides functionality to bind Pulsar job managers to the
-pulsar-proxy, allowing them to receive control messages (setup, status
+pulsar-relay, allowing them to receive control messages (setup, status
 requests, kill) and publish status updates.
 """
 import functools
@@ -10,52 +10,32 @@ import threading
 import time
 
 from pulsar import manager_endpoint_util
-from pulsar.client.transport.proxy import ProxyTransport
-from .proxy_state import ProxyState
+from pulsar.client.transport.relay import RelayTransport
+from .relay_state import RelayState
 
 log = logging.getLogger(__name__)
 
 
-def bind_app(app, proxy_url, conf=None):
-    """Bind all managers in the Pulsar app to the proxy.
-
-    Args:
-        app: Pulsar application instance
-        proxy_url: URL of the pulsar-proxy server
-        conf: Optional configuration dictionary
-
-    Returns:
-        ProxyState object for managing consumer lifecycle
-    """
-    conf = conf or {}
-    proxy_state = ProxyState()
-
-    for manager in app.managers.values():
-        bind_manager_to_proxy(manager, proxy_state, proxy_url, conf)
-
-    return proxy_state
-
-
-def bind_manager_to_proxy(manager, proxy_state, proxy_url, conf):
-    """Bind a specific manager to the proxy.
+def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf):
+    """Bind a specific manager to the relay.
 
     Args:
         manager: Pulsar job manager instance
-        proxy_state: ProxyState for managing consumer threads
-        proxy_url: URL of the pulsar-proxy server
-        conf: Configuration dictionary with proxy credentials
+        relay_state: RelayState for managing consumer threads
+        relay_url: URL of the pulsar-relay server
+        conf: Configuration dictionary with relay credentials
     """
     manager_name = manager.name
-    log.info("bind_manager_to_proxy called for proxy [%s] and manager [%s]", proxy_url, manager_name)
+    log.info("bind_manager_to_relay called for relay [%s] and manager [%s]", relay_url, manager_name)
 
-    # Extract proxy credentials
+    # Extract relay credentials
     username = conf.get('message_queue_username', 'admin')
     password = conf.get('message_queue_password')
     if not password:
-        raise Exception("message_queue_password is required for proxy communication")
+        raise Exception("message_queue_password is required for relay communication")
 
-    # Create proxy transport
-    proxy_transport = ProxyTransport(proxy_url, username, password)
+    # Create relay transport
+    relay_transport = RelayTransport(relay_url, username, password)
 
     # Define message handlers
     process_setup_messages = functools.partial(__process_setup_message, manager)
@@ -70,12 +50,12 @@ def bind_manager_to_proxy(manager, proxy_state, proxy_url, conf):
 
     # Start consumer threads if message_queue_consume is enabled
     if conf.get("message_queue_consume", True):
-        log.info("Starting proxy consumer threads for manager '%s'", manager_name)
+        log.info("Starting relay consumer threads for manager '%s'", manager_name)
 
         # Single consumer thread for all control messages
         consumer_thread = start_consumer(
-            proxy_transport,
-            proxy_state,
+            relay_transport,
+            relay_state,
             [setup_topic, status_request_topic, kill_topic],
             {
                 setup_topic: process_setup_messages,
@@ -84,33 +64,32 @@ def bind_manager_to_proxy(manager, proxy_state, proxy_url, conf):
             }
         )
 
-        if hasattr(proxy_state, "threads"):
-            proxy_state.threads.append(consumer_thread)
+        relay_state.threads.append(consumer_thread)
 
-    # Bind status change callback to publish status updates to proxy
+    # Bind status change callback to publish status updates to relay
     if conf.get("message_queue_publish", True):
         log.info("Binding status change callback for manager '%s'", manager_name)
 
         def bind_on_status_change(new_status, job_id):
             job_id = job_id or 'unknown'
             try:
-                message = "Publishing Pulsar state change with status %s for job_id %s via proxy"
+                message = "Publishing Pulsar state change with status %s for job_id %s via relay"
                 log.debug(message, new_status, job_id)
                 payload = manager_endpoint_util.full_status(manager, new_status, job_id)
-                proxy_transport.post_message(status_update_topic, payload)
+                relay_transport.post_message(status_update_topic, payload)
             except Exception:
-                log.exception("Failure to publish Pulsar state change for job_id %s via proxy." % job_id)
+                log.exception("Failure to publish Pulsar state change for job_id %s via relay." % job_id)
                 raise
 
         manager.set_state_change_callback(bind_on_status_change)
 
 
-def start_consumer(proxy_transport, proxy_state, topics, handlers):
+def start_consumer(relay_transport, relay_state: RelayState, topics, handlers):
     """Start a consumer thread that polls for messages.
 
     Args:
-        proxy_transport: ProxyTransport instance
-        proxy_state: ProxyState for checking if consumer should continue
+        relay_transport: RelayTransport instance
+        relay_state: RelayState for checking if consumer should continue
         topics: List of topics to subscribe to
         handlers: Dict mapping topics to handler functions
 
@@ -118,12 +97,12 @@ def start_consumer(proxy_transport, proxy_state, topics, handlers):
         Thread object
     """
     def consume():
-        log.info("Starting proxy consumer for topics: %s", topics)
+        log.info("Starting relay consumer for topics: %s", topics)
 
-        while proxy_state.active:
+        while relay_state.active:
             try:
                 # Long poll for messages (30 second timeout)
-                messages = proxy_transport.long_poll(topics, timeout=30)
+                messages = relay_transport.long_poll(topics, timeout=30)
 
                 for message in messages:
                     topic = message.get('topic')
@@ -140,18 +119,18 @@ def start_consumer(proxy_transport, proxy_state, topics, handlers):
                         log.warning("No handler found for topic '%s'", topic)
 
             except Exception:
-                if proxy_state.active:
-                    log.exception("Exception while polling proxy, will retry after delay.")
+                if relay_state.active:
+                    log.exception("Exception while polling relay, will retry after delay.")
                     # Brief sleep before retrying
                     time.sleep(5)
                 else:
                     log.debug("Exception during shutdown, stopping consumer.")
                     break
 
-        log.info("Finished consuming proxy messages - no more messages will be processed.")
+        log.info("Finished consuming relay messages - no more messages will be processed.")
 
     thread = threading.Thread(
-        name="proxy-consumer-%s" % "-".join(topics),
+        name="relay-consumer-%s" % "-".join(topics),
         target=consume
     )
     thread.daemon = True

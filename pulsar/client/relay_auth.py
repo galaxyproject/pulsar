@@ -1,5 +1,5 @@
 """
-JWT authentication manager for pulsar-proxy.
+JWT authentication manager for pulsar-relay.
 
 Handles token acquisition, caching, and automatic refresh.
 """
@@ -13,8 +13,8 @@ import requests
 log = logging.getLogger(__name__)
 
 
-class ProxyAuthManager:
-    """Manages JWT authentication tokens for pulsar-proxy communication.
+class RelayAuthManager:
+    """Manages JWT authentication tokens for pulsar-relay communication.
 
     Features:
     - Thread-safe token caching
@@ -22,15 +22,15 @@ class ProxyAuthManager:
     - Lazy authentication (only authenticates when needed)
     """
 
-    def __init__(self, proxy_url: str, username: str, password: str):
+    def __init__(self, relay_url: str, username: str, password: str):
         """Initialize the authentication manager.
 
         Args:
-            proxy_url: Base URL of the pulsar-proxy server
+            relay_url: Base URL of the pulsar-relay server
             username: Username for authentication
             password: Password for authentication
         """
-        self.proxy_url = proxy_url.rstrip('/')
+        self.relay_url = relay_url.rstrip('/')
         self.username = username
         self.password = password
 
@@ -55,7 +55,7 @@ class ProxyAuthManager:
                 return cast(str, self._token)
 
             # Need to authenticate or refresh
-            log.debug("Authenticating with pulsar-proxy at %s", self.proxy_url)
+            log.debug("Authenticating with pulsar-relay at %s", self.relay_url)
             self._authenticate()
             return cast(str, self._token)
 
@@ -79,7 +79,7 @@ class ProxyAuthManager:
             Exception: If authentication fails
         """
 
-        auth_url = f"{self.proxy_url}/auth/login"
+        auth_url = f"{self.relay_url}/auth/login"
 
         try:
             response = requests.post(
@@ -101,15 +101,15 @@ class ProxyAuthManager:
             # Calculate expiry time
             self._token_expiry = datetime.now() + timedelta(seconds=expires_in)
 
-            log.info("Successfully authenticated with pulsar-proxy, token expires in %d seconds", expires_in)
+            log.info("Successfully authenticated with pulsar-relay, token expires in %d seconds", expires_in)
 
         except requests.RequestException as e:
-            log.error("Failed to authenticate with pulsar-proxy: %s", e)
-            raise Exception(f"Pulsar-proxy authentication failed: {e}")
+            log.error("Failed to authenticate with pulsar-relay: %s", e)
+            raise Exception(f"pulsar-relay authentication failed: {e}")
 
     def invalidate(self) -> None:
         """Invalidate the current token, forcing re-authentication on next request."""
         with self._lock:
             self._token = None
             self._token_expiry = None
-            log.debug("Invalidated pulsar-proxy authentication token")
+            log.debug("Invalidated pulsar-relay authentication token")

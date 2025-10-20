@@ -1,26 +1,26 @@
 """
-HTTP transport for communicating with pulsar-proxy.
+HTTP transport for communicating with pulsar-relay.
 
 Provides methods for posting messages, long-polling, and managing
-authentication with the proxy server.
+authentication with the relay server.
 """
 import logging
 from typing import Any, Dict, List, Optional
 
 import requests
 
-from ..proxy_auth import ProxyAuthManager
+from ..relay_auth import RelayAuthManager
 
 log = logging.getLogger(__name__)
 
 
-class ProxyTransportError(Exception):
-    """Raised when communication with pulsar-proxy fails."""
+class RelayTransportError(Exception):
+    """Raised when communication with pulsar-relay fails."""
     pass
 
 
-class ProxyTransport:
-    """HTTP transport for pulsar-proxy communication.
+class RelayTransport:
+    """HTTP transport for pulsar-relay communication.
 
     Handles:
     - Message publishing (single and bulk)
@@ -28,17 +28,17 @@ class ProxyTransport:
     - Automatic authentication and retry
     """
 
-    def __init__(self, proxy_url: str, username: str, password: str, timeout: int = 30):
-        """Initialize the proxy transport.
+    def __init__(self, relay_url: str, username: str, password: str, timeout: int = 30):
+        """Initialize the relay transport.
 
         Args:
-            proxy_url: Base URL of the pulsar-proxy server
+            relay_url: Base URL of the pulsar-relay server
             username: Username for authentication
             password: Password for authentication
             timeout: Default request timeout in seconds
         """
-        self.proxy_url = proxy_url.rstrip('/')
-        self.auth_manager = ProxyAuthManager(proxy_url, username, password)
+        self.relay_url = relay_url.rstrip('/')
+        self.auth_manager = RelayAuthManager(relay_url, username, password)
         self.timeout = timeout
         self.session = requests.Session()
 
@@ -61,7 +61,7 @@ class ProxyTransport:
         ttl: Optional[int] = None,
         metadata: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
-        """Post a single message to the proxy.
+        """Post a single message to the relay.
 
         Args:
             topic: Topic name to publish to
@@ -73,9 +73,9 @@ class ProxyTransport:
             Response dictionary with message_id, topic, and timestamp
 
         Raises:
-            ProxyTransportError: If the request fails
+            RelayTransportError: If the request fails
         """
-        url = f"{self.proxy_url}/api/v1/messages"
+        url = f"{self.relay_url}/api/v1/messages"
 
         message_data: Dict[str, Any] = {
             'topic': topic,
@@ -115,7 +115,7 @@ class ProxyTransport:
 
         except requests.RequestException as e:
             log.error("Failed to post message to topic '%s': %s", topic, e)
-            raise ProxyTransportError(f"Failed to post message: {e}")
+            raise RelayTransportError(f"Failed to post message: {e}")
 
     def post_bulk_messages(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Post multiple messages in a single request.
@@ -127,9 +127,9 @@ class ProxyTransport:
             Response dictionary with results and summary
 
         Raises:
-            ProxyTransportError: If the request fails
+            RelayTransportError: If the request fails
         """
-        url = f"{self.proxy_url}/api/v1/messages/bulk"
+        url = f"{self.relay_url}/api/v1/messages/bulk"
 
         request_data = {'messages': messages}
 
@@ -158,7 +158,7 @@ class ProxyTransport:
 
         except requests.RequestException as e:
             log.error("Failed to post bulk messages: %s", e)
-            raise ProxyTransportError(f"Failed to post bulk messages: {e}")
+            raise RelayTransportError(f"Failed to post bulk messages: {e}")
 
     def long_poll(
         self,
@@ -179,9 +179,9 @@ class ProxyTransport:
             List of message dictionaries
 
         Raises:
-            ProxyTransportError: If the request fails
+            RelayTransportError: If the request fails
         """
-        url = f"{self.proxy_url}/messages/poll"
+        url = f"{self.relay_url}/messages/poll"
 
         poll_data = {
             'topics': topics,
@@ -224,7 +224,7 @@ class ProxyTransport:
 
         except requests.RequestException as e:
             log.error("Failed to long poll: %s", e)
-            raise ProxyTransportError(f"Failed to long poll: {e}")
+            raise RelayTransportError(f"Failed to long poll: {e}")
 
     def close(self):
         """Close the transport and cleanup resources."""

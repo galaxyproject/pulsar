@@ -7,9 +7,9 @@ import logging
 
 from ..messaging import (
     bind_amqp,
-    bind_proxy,
+    bind_relay,
 )
-from ..messaging.proxy_state import ProxyState
+from .relay_state import RelayState
 
 log = logging.getLogger(__name__)
 
@@ -17,15 +17,15 @@ log = logging.getLogger(__name__)
 def bind_app(app, queue_id, conf=None):
     connection_string = __id_to_connection_string(app, queue_id)
 
-    # Check if this is a proxy connection
+    # Check if this is a relay connection
     if connection_string and connection_string.startswith('http://') or connection_string.startswith('https://'):
-        proxy_url = connection_string
-        log.info("Detected proxy connection string, binding to pulsar-proxy at %s", proxy_url)
+        relay_url = connection_string
+        log.info("Detected relay connection string, binding to pulsar-relay at %s", relay_url)
 
-        proxy_state = ProxyState()
+        relay_state = RelayState()
         for manager in app.managers.values():
-            bind_proxy.bind_manager_to_proxy(manager, proxy_state, proxy_url, conf or {})
-        return proxy_state
+            bind_relay.bind_manager_to_relay(manager, relay_state, relay_url, conf or {})
+        return relay_state
     else:
         # Use AMQP binding
         queue_state = QueueState()

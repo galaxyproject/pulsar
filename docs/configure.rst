@@ -222,10 +222,10 @@ In the event that the connection to the AMQP server is lost during message
 publish, the Pulsar server can retry the connection, governed by the
 ``amqp_publish*`` options documented in `app.yml.sample`_.
 
-Message Queue (Pulsar-Proxy)
+Message Queue (pulsar-relay)
 -----------------------------
 
-Pulsar can also communicate with Galaxy via **pulsar-proxy**, an HTTP-based
+Pulsar can also communicate with Galaxy via **pulsar-relay**, an HTTP-based
 message proxy. This mode is similar to the AMQP message queue mode but uses
 HTTP long-polling instead of a message broker like RabbitMQ. This is ideal when:
 
@@ -249,7 +249,7 @@ In this mode:
 
 ::
 
-    Galaxy ──POST messages──> pulsar-proxy ──poll──> Pulsar Server
+    Galaxy ──POST messages──> pulsar-relay ──poll──> Pulsar Server
                                                            │
                                                            │
     Galaxy <────────direct HTTP for file transfers─────────┘
@@ -257,7 +257,7 @@ In this mode:
 Pulsar Configuration
 ````````````````````
 
-To configure Pulsar to use pulsar-proxy, set the ``message_queue_url`` in
+To configure Pulsar to use pulsar-relay, set the ``message_queue_url`` in
 ``app.yml`` with a ``http://`` or ``https://`` prefix::
 
     message_queue_url: http://proxy-server.example.org:9000
@@ -269,7 +269,7 @@ of AMQP.
 
 .. note::
 
-    Unlike AMQP mode, the pulsar-proxy mode does **not** require the ``kombu``
+    Unlike AMQP mode, the pulsar-relay mode does **not** require the ``kombu``
     Python dependency. It only requires the ``requests`` library, which is a
     standard dependency of Pulsar.
 
@@ -289,9 +289,9 @@ with proxy parameters::
 
 
     execution:
-      default: pulsar_proxy
+      default: pulsar_relay
       environments:
-        pulsar_proxy:
+        pulsar_relay:
           runner: pulsar
           # Galaxy's URL (for Pulsar to reach back for file transfers)
           url: http://galaxy-server.example.org:8080
@@ -302,7 +302,7 @@ with proxy parameters::
 Authentication
 ``````````````
 
-The pulsar-proxy uses JWT (JSON Web Token) authentication. Galaxy and Pulsar
+The pulsar-relay uses JWT (JSON Web Token) authentication. Galaxy and Pulsar
 authenticate with the proxy using the username and password provided in the
 configuration. Tokens are automatically managed and refreshed as needed.
 
@@ -385,7 +385,7 @@ Comparison with AMQP Mode
 ``````````````````````````
 
 +------------------------+---------------------------+-------------------------+
-| Feature                | AMQP (RabbitMQ)           | Pulsar-Proxy            |
+| Feature                | AMQP (RabbitMQ)           | pulsar-relay            |
 +========================+===========================+=========================+
 | Protocol               | AMQP over TCP             | HTTP/HTTPS              |
 +------------------------+---------------------------+-------------------------+
@@ -402,9 +402,9 @@ Comparison with AMQP Mode
 | Firewall Friendly      | Moderate                  | High (standard HTTP)    |
 +------------------------+---------------------------+-------------------------+
 
-For more information on deploying pulsar-proxy, see the `pulsar-proxy documentation`_.
+For more information on deploying pulsar-relay, see the `pulsar-relay documentation`_.
 
-.. _pulsar-proxy documentation: https://github.com/galaxyproject/pulsar-proxy
+.. _pulsar-relay documentation: https://github.com/galaxyproject/pulsar-relay
 
 Caching (Experimental)
 ----------------------

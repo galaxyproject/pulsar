@@ -1,24 +1,24 @@
-"""State management for pulsar-proxy message consumers.
+"""State management for pulsar-relay message consumers.
 
-Similar to QueueState for AMQP, this manages the lifecycle of proxy
+Similar to QueueState for AMQP, this manages the lifecycle of relay
 consumer threads on the Pulsar server side.
 """
 
 
-class ProxyState:
-    """Manages state for pulsar-proxy message consumers.
+class RelayState:
+    """Manages state for pulsar-relay message consumers.
 
     This object is passed to consumer loops and used to signal when
     they should stop processing messages.
     """
 
     def __init__(self):
-        """Initialize proxy state."""
+        """Initialize relay state."""
         self.active = True
         self.threads = []
 
     def deactivate(self):
-        """Mark the proxy state as inactive, signaling consumers to stop."""
+        """Mark the relay state as inactive, signaling consumers to stop."""
         self.active = False
 
     def join(self, timeout=None):
@@ -33,4 +33,4 @@ class ProxyState:
         for t in self.threads:
             t.join(timeout)
             if t.is_alive():
-                log.warning("Failed to join proxy consumer thread [%s].", t)
+                log.warning("Failed to join relay consumer thread [%s].", t)
