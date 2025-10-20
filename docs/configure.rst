@@ -225,9 +225,9 @@ publish, the Pulsar server can retry the connection, governed by the
 Message Queue (pulsar-relay)
 -----------------------------
 
-Pulsar can also communicate with Galaxy via **pulsar-relay**, an HTTP-based
-message proxy. This mode is similar to the AMQP message queue mode but uses
-HTTP long-polling instead of a message broker like RabbitMQ. This is ideal when:
+Pulsar can also communicate with Galaxy via an experimental **pulsar-relay** server,
+an HTTP-based message proxy. This mode is similar to the AMQP message queue mode but uses
+HTTP long-polling instead of a message broker like RabbitMQ. This can help when:
 
 * Galaxy cannot directly reach Pulsar (e.g., due to firewall restrictions)
 * You want to avoid deploying and managing a RabbitMQ server
@@ -284,7 +284,7 @@ with proxy parameters::
         load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
         # Proxy connection
         proxy_url: http://proxy-server.example.org:9000
-        proxy_username: admin
+        proxy_username: your_username
         proxy_password: your_secure_password
 
 
