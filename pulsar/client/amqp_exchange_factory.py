@@ -15,6 +15,8 @@ def get_exchange(url, manager_name, params):
     )
     if params.get('amqp_acknowledge', False):
         exchange_kwds.update(parse_ack_kwds(params, manager_name))
+    if params.get("amqp_heartbeat") is not None:
+        exchange_kwds["heartbeat"] = params.get("amqp_heartbeat")
     timeout = params.get('amqp_consumer_timeout', False)
     if timeout is not False:
         exchange_kwds['timeout'] = timeout
