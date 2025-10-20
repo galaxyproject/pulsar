@@ -36,14 +36,12 @@ from ..util import (
 )
 
 if TYPE_CHECKING:
-    from ..staging import ClientJobDescription
+    from pulsar.client.staging import ClientJobDescription
 
 log = getLogger(__name__)
 
 
 def submit_job(client, client_job_description: "ClientJobDescription", job_config=None):
-    """
-    """
     file_stager = FileStager(client, client_job_description, job_config)
     rebuilt_command_line = file_stager.get_command_line()
     job_id = file_stager.job_id

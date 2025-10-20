@@ -113,7 +113,7 @@ You can consult the `Kombu documentation
 even more information.
 
 User Authentication/Authorization
-`````````````
+`````````````````````````````````
 
 You can configure Pulsar to authenticate user during request processing and check
 if this user is allowed to run a job.

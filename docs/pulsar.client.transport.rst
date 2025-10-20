@@ -20,6 +20,14 @@ pulsar.client.transport.poster module
    :undoc-members:
    :show-inheritance:
 
+pulsar.client.transport.relay module
+------------------------------------
+
+.. automodule:: pulsar.client.transport.relay
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pulsar.client.transport.requests module
 ---------------------------------------
 
