@@ -337,6 +337,10 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
             thread.start()
             self.callback_thread = thread
 
+    def ensure_has_ack_consumers(self):
+        """No-op for relay client manager, as acknowledgements are handled via HTTP."""
+        pass
+
     def shutdown(self, ensure_cleanup: bool = False):
         """Shutdown the client manager and cleanup resources."""
         self.active = False
