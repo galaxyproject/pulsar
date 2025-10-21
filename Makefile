@@ -112,7 +112,7 @@ docs: ready-docs
 
 lint-docs: ready-docs
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; ! (make -C docs html 2>&1 | grep -v 'nonlocal image URI found\|included in any toctree' | grep WARNING)
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; ! (make -C docs html 2>&1 | grep -v 'more than one target found\|nonlocal image URI found\|included in any toctree' | grep WARNING)
 
 _open-docs:
 	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html

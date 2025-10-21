@@ -39,6 +39,14 @@ pulsar.managers.util.external module
    :undoc-members:
    :show-inheritance:
 
+pulsar.managers.util.gcp\_util module
+-------------------------------------
+
+.. automodule:: pulsar.managers.util.gcp_util
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pulsar.managers.util.kill module
 --------------------------------
 

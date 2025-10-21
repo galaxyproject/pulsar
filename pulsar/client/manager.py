@@ -7,13 +7,16 @@ specific actions.
 
 import functools
 import threading
+import time
 from logging import getLogger
 from os import getenv
 from queue import Queue
 from typing import (
     Any,
     Dict,
+    Optional,
     Type,
+    TYPE_CHECKING,
 )
 
 from typing_extensions import Protocol
@@ -29,6 +32,7 @@ from .client import (
     K8sPollingCoexecutionJobClient,
     MessageCLIJobClient,
     MessageJobClient,
+    RelayJobClient,
     TesMessageCoexecutionJobClient,
     TesPollingCoexecutionJobClient,
 )
@@ -40,7 +44,11 @@ from .server_interface import (
     PulsarInterface,
 )
 from .transport import get_transport
+from .transport.relay import RelayTransport
 from .util import TransferEventManager
+
+if TYPE_CHECKING:
+    from pulsar.managers import ManagerInterface
 
 log = getLogger(__name__)
 
@@ -66,12 +74,11 @@ class ClientManager(ClientManagerInterface):
     job_manager_interface_class: Type[PulsarInterface]
     client_class: Type[BaseJobClient]
 
-    def __init__(self, **kwds: Dict[str, Any]):
+    def __init__(self, job_manager: Optional["ManagerInterface"] = None, **kwds: Dict[str, Any]):
         """Build a HTTP client or a local client that talks directly to a job manger."""
-        if 'pulsar_app' in kwds or 'job_manager' in kwds:
+        if 'pulsar_app' in kwds or job_manager:
             self.job_manager_interface_class = LocalPulsarInterface
             pulsar_app = kwds.get('pulsar_app', None)
-            job_manager = kwds.get('job_manager', None)
             file_cache = kwds.get('file_cache', None)
             self.job_manager_interface_args = dict(
                 job_manager=job_manager,
@@ -124,9 +131,9 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
     status_cache: Dict[str, Any]
     ack_consumer_threads: Dict[str, threading.Thread]
 
-    def __init__(self, **kwds: Dict[str, Any]):
+    def __init__(self, amqp_url: str, **kwds: Dict[str, Any]):
         super().__init__(**kwds)
-        self.url = kwds.get('amqp_url')
+        self.url = amqp_url
         self.amqp_key_prefix = kwds.get("amqp_key_prefix", None)
         self.exchange = get_exchange(self.url, self.manager_name, kwds)
         self.status_cache = {}
@@ -248,6 +255,116 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
             return MessageJobClient(destination_params, job_id, self)
 
 
+class RelayClientManager(BaseRemoteConfiguredJobClientManager):
+    """Client manager that communicates with Pulsar via pulsar-relay.
+
+    This manager uses HTTP-based long-polling to receive status updates from
+    Pulsar through the relay, while posting control messages (setup, status
+    requests, kill) to the relay for Pulsar to consume.
+    """
+    status_cache: Dict[str, Any]
+
+    def __init__(self, relay_url: str, relay_username: str, relay_password: str, **kwds: Dict[str, Any]):
+        super().__init__(**kwds)
+
+        if not relay_url:
+            raise Exception("relay_url is required for RelayClientManager")
+
+        # Initialize relay transport
+        self.relay_transport = RelayTransport(relay_url, relay_username, relay_password)
+        self.status_cache = {}
+        self.callback_lock = threading.Lock()
+        self.callback_thread = None
+        self.active = True
+
+    def callback_wrapper(self, callback, message_data):
+        """Process status update messages from the relay."""
+        if not self.active:
+            log.debug("Obtained update message for inactive client manager, ignoring.")
+            return
+
+        try:
+            payload = message_data.get('payload', {})
+            if "job_id" in payload:
+                job_id = payload["job_id"]
+                self.status_cache[job_id] = payload
+            log.debug("Handling asynchronous status update from Pulsar via relay.")
+            callback(payload)
+        except Exception:
+            log.exception("Failure processing job status update message.")
+        except BaseException as e:
+            log.exception("Failure processing job status update message - BaseException type %s" % type(e))
+
+    def status_consumer(self, callback_wrapper):
+        """Long-poll the relay for status update messages."""
+        manager_name = self.manager_name
+        topic = f"job_status_update_{manager_name}" if manager_name != "_default_" else "job_status_update"
+
+        log.info("Starting relay status consumer for topic '%s'", topic)
+
+        while self.active:
+            try:
+                # Long poll for status updates (30 second timeout)
+                messages = self.relay_transport.long_poll([topic], timeout=30)
+
+                for message in messages:
+                    callback_wrapper(message)
+
+            except Exception:
+                if self.active:
+                    log.exception("Exception while polling for status updates from relay, will retry.")
+                    # Brief sleep before retrying to avoid tight loop on persistent errors
+                    time.sleep(5)
+                else:
+                    log.debug("Exception during shutdown, ignoring.")
+                    break
+
+        log.debug("Leaving Pulsar client relay status consumer, no additional updates will be processed.")
+
+    def ensure_has_status_update_callback(self, callback):
+        """Start a thread to poll for status updates if not already running."""
+        with self.callback_lock:
+            if self.callback_thread is not None:
+                return
+
+            callback_wrapper = functools.partial(self.callback_wrapper, callback)
+            run = functools.partial(self.status_consumer, callback_wrapper)
+            thread = threading.Thread(
+                name="pulsar_client_%s_relay_status_consumer" % self.manager_name,
+                target=run
+            )
+            thread.daemon = False  # Don't interrupt processing
+            thread.start()
+            self.callback_thread = thread
+
+    def ensure_has_ack_consumers(self):
+        """No-op for relay client manager, as acknowledgements are handled via HTTP."""
+        pass
+
+    def shutdown(self, ensure_cleanup: bool = False):
+        """Shutdown the client manager and cleanup resources."""
+        self.active = False
+        if ensure_cleanup:
+            if self.callback_thread is not None:
+                self.callback_thread.join()
+        # Close relay transport
+        if hasattr(self, 'relay_transport'):
+            self.relay_transport.close()
+
+    def __nonzero__(self):
+        return self.active
+
+    __bool__ = __nonzero__  # Both needed Py2 v 3
+
+    def get_client(self, destination_params, job_id, **kwargs):
+        """Create a RelayJobClient for the given job."""
+        if job_id is None:
+            raise Exception("Cannot generate Pulsar client for empty job_id.")
+        destination_params = _parse_destination_params(destination_params)
+        destination_params.update(**kwargs)
+        return RelayJobClient(destination_params, job_id, self)
+
+
 class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
 
     def get_client(self, destination_params, job_id, **kwargs):
@@ -269,12 +386,25 @@ class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
         pass
 
 
-def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
-    if 'job_manager' in kwargs:
-        return ClientManager(**kwargs)  # TODO: Consider more separation here.
-    elif kwargs.get('amqp_url', None):
-        return MessageQueueClientManager(**kwargs)
-    elif kwargs.get("k8s_enabled") or kwargs.get("tes_enabled") or kwargs.get("gcp_batch_enabled"):
+def build_client_manager(
+    job_manager: Optional["ManagerInterface"] = None,
+    relay_url: Optional[str] = None,
+    relay_username: Optional[str] = None,
+    relay_password: Optional[str] = None,
+    amqp_url: Optional[str] = None,
+    k8s_enabled: Optional[bool] = None,
+    tes_enabled: Optional[bool] = None,
+    gcp_batch_enabled: Optional[bool] = None,
+    **kwargs
+) -> ClientManagerInterface:
+    if job_manager:
+        return ClientManager(job_manager=job_manager, **kwargs)  # TODO: Consider more separation here.
+    elif relay_url:
+        assert relay_password and relay_username, "relay_url set, but relay_username and relay_password must also be set"
+        return RelayClientManager(relay_url=relay_url, relay_username=relay_username, relay_password=relay_password, **kwargs)
+    elif amqp_url:
+        return MessageQueueClientManager(amqp_url=amqp_url, **kwargs)
+    elif k8s_enabled or tes_enabled or gcp_batch_enabled:
         return PollingJobClientManager(**kwargs)
     else:
         return ClientManager(**kwargs)

@@ -568,6 +568,78 @@ class MessageCLIJobClient(BaseMessageJobClient):
         pass
 
 
+class RelayJobClient(BaseMessageJobClient):
+    """Client that communicates with Pulsar via pulsar-relay.
+
+    This client posts control messages (setup, status, kill) to the relay,
+    which are then consumed by the Pulsar server. File transfers happen
+    directly between Pulsar and Galaxy via HTTP.
+    """
+
+    def launch(self, command_line, dependencies_description=None, env=None, remote_staging=None, job_config=None,
+               dynamic_file_sources=None, token_endpoint=None):
+        """Submit a job by posting a setup message to the relay.
+
+        Args:
+            command_line: Command to execute on Pulsar
+            dependencies_description: Tool dependencies
+            env: Environment variables
+            remote_staging: Remote staging configuration
+            job_config: Job configuration
+            dynamic_file_sources: Dynamic file sources
+            token_endpoint: Token endpoint for file access
+
+        Returns:
+            None (async operation)
+        """
+        launch_params = self._build_setup_message(
+            command_line,
+            dependencies_description=dependencies_description,
+            env=env,
+            remote_staging=remote_staging,
+            job_config=job_config,
+            dynamic_file_sources=dynamic_file_sources,
+            token_endpoint=token_endpoint,
+        )
+
+        # Determine topic name based on manager
+        manager_name = self.client_manager.manager_name
+        topic = f"job_setup_{manager_name}" if manager_name != "_default_" else "job_setup"
+
+        # Post message to relay
+        self.client_manager.relay_transport.post_message(topic, launch_params)
+        log.info("Job %s published to relay topic '%s'", self.job_id, topic)
+        return None
+
+    def get_status(self):
+        """Request job status by posting a status request message to the relay.
+
+        Returns:
+            Cached status if available, None otherwise
+        """
+        manager_name = self.client_manager.manager_name
+        topic = f"job_status_request_{manager_name}" if manager_name != "_default_" else "job_status_request"
+
+        status_params = {
+            'job_id': self.job_id,
+        }
+
+        self.client_manager.relay_transport.post_message(topic, status_params)
+        log.debug("Job status request for %s published to relay topic '%s'", self.job_id, topic)
+
+        # Return cached status if available
+        return self.client_manager.status_cache.get(self.job_id, {}).get('status', None)
+
+    def kill(self):
+        """Kill a job by posting a kill message to the relay."""
+        manager_name = self.client_manager.manager_name
+        topic = f"job_kill_{manager_name}" if manager_name != "_default_" else "job_kill"
+
+        kill_params = {'job_id': self.job_id}
+        self.client_manager.relay_transport.post_message(topic, kill_params)
+        log.info("Job kill request for %s published to relay topic '%s'", self.job_id, topic)
+
+
 class ExecutionType(str, Enum):
     # containers run one after each other with similar configuration
     # like in TES or AWS Batch

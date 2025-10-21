@@ -113,7 +113,7 @@ You can consult the `Kombu documentation
 even more information.
 
 User Authentication/Authorization
-`````````````
+`````````````````````````````````
 
 You can configure Pulsar to authenticate user during request processing and check
 if this user is allowed to run a job.
@@ -221,6 +221,190 @@ been acknowledged, using the ``amqp_ack*`` options documented in
 In the event that the connection to the AMQP server is lost during message
 publish, the Pulsar server can retry the connection, governed by the
 ``amqp_publish*`` options documented in `app.yml.sample`_.
+
+Message Queue (pulsar-relay)
+-----------------------------
+
+Pulsar can also communicate with Galaxy via an experimental **pulsar-relay** server,
+an HTTP-based message proxy. This mode is similar to the AMQP message queue mode but uses
+HTTP long-polling instead of a message broker like RabbitMQ. This can help when:
+
+* Galaxy cannot directly reach Pulsar (e.g., due to firewall restrictions)
+* You want to avoid deploying and managing a RabbitMQ server
+* You prefer HTTP-based communication for simplicity and observability
+
+Architecture
+````````````
+
+In this mode:
+
+1. **Galaxy → Pulsar**: Galaxy posts control messages (job setup, status requests,
+   kill commands) to the proxy via HTTP POST
+2. **Pulsar → Galaxy**: Pulsar polls the proxy via HTTP long-polling to receive
+   these messages
+3. **Pulsar → Galaxy**: Pulsar posts status updates to the proxy
+4. **Galaxy → Pulsar**: Galaxy polls the proxy to receive status updates
+5. **File Transfers**: Pulsar transfers files directly to/from Galaxy via HTTP
+   (not through the proxy)
+
+::
+
+    Galaxy ──POST messages──> pulsar-relay ──poll──> Pulsar Server
+                                                           │
+                                                           │
+    Galaxy <────────direct HTTP for file transfers─────────┘
+
+Pulsar Configuration
+````````````````````
+
+To configure Pulsar to use pulsar-relay, set the ``message_queue_url`` in
+``app.yml`` with a ``http://`` or ``https://`` prefix::
+
+    message_queue_url: http://proxy-server.example.org:9000
+    message_queue_username: admin
+    message_queue_password: your_secure_password
+
+The ``http://`` / ``https://`` prefix tells Pulsar to use the proxy communication mode instead
+of AMQP.
+
+.. note::
+
+    Unlike AMQP mode, the pulsar-relay mode does **not** require the ``kombu``
+    Python dependency. It only requires the ``requests`` library, which is a
+    standard dependency of Pulsar.
+
+Galaxy Configuration
+````````````````````
+
+In Galaxy's job configuration (``job_conf.yml``), configure a Pulsar destination
+with proxy parameters::
+
+    runners:
+      pulsar:
+        load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+        # Proxy connection
+        proxy_url: http://proxy-server.example.org:9000
+        proxy_username: your_username
+        proxy_password: your_secure_password
+
+
+    execution:
+      default: pulsar_relay
+      environments:
+        pulsar_relay:
+          runner: pulsar
+          # Galaxy's URL (for Pulsar to reach back for file transfers)
+          url: http://galaxy-server.example.org:8080
+          # Remote job staging directory
+          jobs_directory: /data/pulsar/staging
+
+
+Authentication
+``````````````
+
+The pulsar-relay uses JWT (JSON Web Token) authentication. Galaxy and Pulsar
+authenticate with the proxy using the username and password provided in the
+configuration. Tokens are automatically managed and refreshed as needed.
+
+.. tip::
+
+    In production, always use HTTPS for the proxy URL to encrypt credentials
+    and message content during transit::
+
+        message_queue_url: https://proxy-server.example.org:443
+
+Security Considerations
+```````````````````````
+
+* **Use HTTPS**: Always use HTTPS for the proxy URL in production
+* **Strong Passwords**: Use strong, unique passwords for proxy authentication
+* **Network Isolation**: Deploy the proxy in a DMZ accessible to both Galaxy
+  and Pulsar
+* **Firewall Rules**:
+    * Galaxy → Proxy: Allow outbound HTTPS
+    * Pulsar → Proxy: Allow outbound HTTPS
+    * Pulsar → Galaxy: Allow outbound HTTP/HTTPS for file transfers
+
+Multiple Pulsar Instances
+``````````````````````````
+
+You can deploy multiple Pulsar instances with different managers, all using the
+same proxy. Messages are routed by topic names that include the manager name.
+
+For example, configure two Pulsar servers:
+
+**Pulsar Server 1** (``app.yml``)::
+
+    message_queue_url: http://proxy-server:9000
+    message_queue_username: admin
+    message_queue_password: password
+    managers:
+      cluster_a:
+        type: queued_slurm
+
+**Pulsar Server 2** (``app.yml``)::
+
+    message_queue_url: http://proxy-server:9000
+    message_queue_username: admin
+    message_queue_password: password
+    managers:
+      cluster_b:
+        type: queued_condor
+
+In Galaxy's job configuration, route jobs to specific clusters using the
+``manager`` parameter::
+
+    execution:
+      environments:
+        cluster_a_jobs:
+          runner: pulsar
+          proxy_url: http://proxy-server:9000
+          manager: cluster_a
+          # ... other settings
+
+        cluster_b_jobs:
+          runner: pulsar
+          proxy_url: http://proxy-server:9000
+          manager: cluster_b
+          # ... other settings
+
+Topic Naming
+````````````
+
+Messages are organized by topic with automatic naming based on the manager name:
+
+* Job setup: ``job_setup_{manager_name}`` or ``job_setup`` (for default manager)
+* Status requests: ``job_status_request_{manager_name}``
+* Kill commands: ``job_kill_{manager_name}``
+* Status updates: ``job_status_update_{manager_name}``
+
+This allows multiple Pulsar instances to share the same proxy without message
+conflicts.
+
+Comparison with AMQP Mode
+``````````````````````````
+
++------------------------+---------------------------+-------------------------+
+| Feature                | AMQP (RabbitMQ)           | pulsar-relay            |
++========================+===========================+=========================+
+| Protocol               | AMQP over TCP             | HTTP/HTTPS              |
++------------------------+---------------------------+-------------------------+
+| Dependencies           | kombu, RabbitMQ server    | requests (built-in)     |
++------------------------+---------------------------+-------------------------+
+| Deployment Complexity  | Moderate (broker setup)   | Simple (HTTP service)   |
++------------------------+---------------------------+-------------------------+
+| Message Delivery       | Push-based                | Long-polling            |
++------------------------+---------------------------+-------------------------+
+| Observability          | Queue monitoring tools    | HTTP access logs        |
++------------------------+---------------------------+-------------------------+
+| SSL/TLS                | Via AMQPS                 | Via HTTPS               |
++------------------------+---------------------------+-------------------------+
+| Firewall Friendly      | Moderate                  | High (standard HTTP)    |
++------------------------+---------------------------+-------------------------+
+
+For more information on deploying pulsar-relay, see the `pulsar-relay documentation`_.
+
+.. _pulsar-relay documentation: https://github.com/galaxyproject/pulsar-relay
 
 Caching (Experimental)
 ----------------------
