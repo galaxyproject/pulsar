@@ -226,7 +226,7 @@ Message Queue (pulsar-relay)
 -----------------------------
 
 Pulsar can also communicate with Galaxy via an experimental **pulsar-relay** server,
-an HTTP-based message proxy. This mode is similar to the AMQP message queue mode but uses
+an HTTP-based message relay. This mode is similar to the AMQP message queue mode but uses
 HTTP long-polling instead of a message broker like RabbitMQ. This can help when:
 
 * Galaxy cannot directly reach Pulsar (e.g., due to firewall restrictions)
@@ -238,14 +238,14 @@ Architecture
 
 In this mode:
 
-1. **Galaxy → Pulsar**: Galaxy posts control messages (job setup, status requests,
-   kill commands) to the proxy via HTTP POST
-2. **Pulsar → Galaxy**: Pulsar polls the proxy via HTTP long-polling to receive
+1. **Galaxy → Relay**: Galaxy posts control messages (job setup, status requests,
+   kill commands) to the relay via HTTP POST
+2. **Relay → Galaxy**: Pulsar polls the relay via HTTP long-polling to receive
    these messages
-3. **Pulsar → Galaxy**: Pulsar posts status updates to the proxy
-4. **Galaxy → Pulsar**: Galaxy polls the proxy to receive status updates
+3. **Pulsar → Relay**: Pulsar posts status updates to the relay
+4. **Relay → Galaxy**: Galaxy polls the relay to receive status updates
 5. **File Transfers**: Pulsar transfers files directly to/from Galaxy via HTTP
-   (not through the proxy)
+   (not through the relay)
 
 ::
 
