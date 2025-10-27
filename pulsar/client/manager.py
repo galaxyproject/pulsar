@@ -264,7 +264,7 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
     """
     status_cache: Dict[str, Any]
 
-    def __init__(self, relay_url: str, relay_username: str, relay_password: str, **kwds: Dict[str, Any]):
+    def __init__(self, relay_url: str, relay_username: str, relay_password: str, relay_topic_prefix: str = '', **kwds: Dict[str, Any]):
         super().__init__(**kwds)
 
         if not relay_url:
@@ -272,6 +272,7 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
 
         # Initialize relay transport
         self.relay_transport = RelayTransport(relay_url, relay_username, relay_password)
+        self.relay_topic_prefix = relay_topic_prefix
         self.status_cache = {}
         self.callback_lock = threading.Lock()
         self.callback_thread = None
@@ -298,7 +299,7 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
     def status_consumer(self, callback_wrapper):
         """Long-poll the relay for status update messages."""
         manager_name = self.manager_name
-        topic = f"job_status_update_{manager_name}" if manager_name != "_default_" else "job_status_update"
+        topic = self._make_topic_name("job_status_update", manager_name)
 
         log.info("Starting relay status consumer for topic '%s'", topic)
 
@@ -340,6 +341,31 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
     def ensure_has_ack_consumers(self):
         """No-op for relay client manager, as acknowledgements are handled via HTTP."""
         pass
+
+    def _make_topic_name(self, base_topic: str, manager_name: str) -> str:
+        """Create a topic name with optional prefix and manager suffix.
+
+        Args:
+            base_topic: Base topic name (e.g., 'job_setup', 'job_status_update')
+            manager_name: Manager name (e.g., '_default_', 'cluster_a')
+
+        Returns:
+            Fully qualified topic name
+        """
+        parts = []
+
+        # Add prefix if provided
+        if self.relay_topic_prefix:
+            parts.append(self.relay_topic_prefix)
+
+        # Add base topic
+        parts.append(base_topic)
+
+        # Add manager name if not default
+        if manager_name != "_default_":
+            parts.append(manager_name)
+
+        return "_".join(parts)
 
     def shutdown(self, ensure_cleanup: bool = False):
         """Shutdown the client manager and cleanup resources."""
@@ -391,6 +417,7 @@ def build_client_manager(
     relay_url: Optional[str] = None,
     relay_username: Optional[str] = None,
     relay_password: Optional[str] = None,
+    relay_topic_prefix: Optional[str] = None,
     amqp_url: Optional[str] = None,
     k8s_enabled: Optional[bool] = None,
     tes_enabled: Optional[bool] = None,
@@ -401,7 +428,13 @@ def build_client_manager(
         return ClientManager(job_manager=job_manager, **kwargs)  # TODO: Consider more separation here.
     elif relay_url:
         assert relay_password and relay_username, "relay_url set, but relay_username and relay_password must also be set"
-        return RelayClientManager(relay_url=relay_url, relay_username=relay_username, relay_password=relay_password, **kwargs)
+        return RelayClientManager(
+            relay_url=relay_url,
+            relay_username=relay_username,
+            relay_password=relay_password,
+            relay_topic_prefix=relay_topic_prefix or '',
+            **kwargs
+        )
     elif amqp_url:
         return MessageQueueClientManager(amqp_url=amqp_url, **kwargs)
     elif k8s_enabled or tes_enabled or gcp_batch_enabled:
