@@ -267,6 +267,16 @@ To configure Pulsar to use pulsar-relay, set the ``message_queue_url`` in
 The ``http://`` / ``https://`` prefix tells Pulsar to use the proxy communication mode instead
 of AMQP.
 
+**Optional Topic Prefix**
+
+You can optionally set a ``relay_topic_prefix`` to namespace your topics. This is useful
+when multiple independent Galaxy/Pulsar instance pairs share the same relay::
+
+    message_queue_url: http://proxy-server.example.org:9000
+    message_queue_username: admin
+    message_queue_password: your_secure_password
+    relay_topic_prefix: production
+
 .. note::
 
     Unlike AMQP mode, the pulsar-relay mode does **not** require the ``kombu``
@@ -286,6 +296,8 @@ with proxy parameters::
         proxy_url: http://proxy-server.example.org:9000
         proxy_username: your_username
         proxy_password: your_secure_password
+        # Optional topic prefix (must match Pulsar configuration)
+        # relay_topic_prefix: production
 
 
     execution:
@@ -297,6 +309,11 @@ with proxy parameters::
           url: http://galaxy-server.example.org:8080
           # Remote job staging directory
           jobs_directory: /data/pulsar/staging
+
+.. note::
+
+    The ``relay_topic_prefix`` must match on both Galaxy and Pulsar sides.
+    If set on one side but not the other, messages will not be routed correctly.
 
 
 Authentication
@@ -368,18 +385,105 @@ In Galaxy's job configuration, route jobs to specific clusters using the
           manager: cluster_b
           # ... other settings
 
+Multiple Galaxy/Pulsar Instance Pairs
+``````````````````````````````````````
+
+You can have multiple independent Galaxy and Pulsar instance pairs all sharing
+the same relay by using different topic prefixes. This is useful for:
+
+* Running separate production and staging environments
+* Supporting multiple research groups with isolated instances
+* Multi-tenant deployments
+
+**Example: Production and Staging Environments**
+
+**Production Pulsar** (``app.yml``)::
+
+    message_queue_url: https://shared-relay:9000
+    message_queue_username: admin
+    message_queue_password: password
+    relay_topic_prefix: production
+    managers:
+      cluster_a:
+        type: queued_slurm
+
+**Staging Pulsar** (``app.yml``)::
+
+    message_queue_url: https://shared-relay:9000
+    message_queue_username: admin
+    message_queue_password: password
+    relay_topic_prefix: staging
+    managers:
+      cluster_a:
+        type: queued_slurm
+
+**Production Galaxy** (``job_conf.yml``)::
+
+    runners:
+      pulsar:
+        load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+        proxy_url: https://shared-relay:9000
+        proxy_username: admin
+        proxy_password: password
+        relay_topic_prefix: production
+
+    execution:
+      environments:
+        pulsar_jobs:
+          runner: pulsar
+          manager: cluster_a
+          # ... other settings
+
+**Staging Galaxy** (``job_conf.yml``)::
+
+    runners:
+      pulsar:
+        load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+        proxy_url: https://shared-relay:9000
+        proxy_username: admin
+        proxy_password: password
+        relay_topic_prefix: staging
+
+    execution:
+      environments:
+        pulsar_jobs:
+          runner: pulsar
+          manager: cluster_a
+          # ... other settings
+
+In this setup, the topics will be completely isolated:
+
+* **Production**: ``production_job_setup_cluster_a``, ``production_job_status_update_cluster_a``
+* **Staging**: ``staging_job_setup_cluster_a``, ``staging_job_status_update_cluster_a``
+
 Topic Naming
 ````````````
 
-Messages are organized by topic with automatic naming based on the manager name:
+Messages are organized by topic with automatic naming based on the optional prefix
+and manager name:
 
-* Job setup: ``job_setup_{manager_name}`` or ``job_setup`` (for default manager)
-* Status requests: ``job_status_request_{manager_name}``
-* Kill commands: ``job_kill_{manager_name}``
-* Status updates: ``job_status_update_{manager_name}``
+* Job setup: ``job_setup`` (default manager, no prefix)
+* Job setup: ``job_setup_{manager_name}`` (named manager, no prefix)
+* Job setup: ``{prefix}_job_setup`` (default manager, with prefix)
+* Job setup: ``{prefix}_job_setup_{manager_name}`` (named manager, with prefix)
 
-This allows multiple Pulsar instances to share the same proxy without message
-conflicts.
+The same pattern applies to other message types:
+
+* Status requests: ``job_status_request``, ``job_status_request_{manager_name}``
+* Kill commands: ``job_kill``, ``job_kill_{manager_name}``
+* Status updates: ``job_status_update``, ``job_status_update_{manager_name}``
+
+When a ``relay_topic_prefix`` is configured, it is prepended to all topic names:
+
+* ``production_job_setup``
+* ``production_job_setup_cluster_a``
+* ``production_job_status_update_cluster_a``
+
+This allows:
+
+* Multiple Pulsar instances to share the same relay (using different manager names)
+* Multiple independent Galaxy/Pulsar instance pairs to share the same relay
+  (using different topic prefixes)
 
 Comparison with AMQP Mode
 ``````````````````````````
