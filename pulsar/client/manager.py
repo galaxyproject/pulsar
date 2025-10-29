@@ -7,7 +7,6 @@ specific actions.
 
 import functools
 import threading
-import time
 from logging import getLogger
 from os import getenv
 from queue import Queue
@@ -277,6 +276,7 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
         self.callback_lock = threading.Lock()
         self.callback_thread = None
         self.active = True
+        self.shutdown_event = threading.Event()
 
     def callback_wrapper(self, callback, message_data):
         """Process status update messages from the relay."""
@@ -315,12 +315,14 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
                 if self.active:
                     log.exception("Exception while polling for status updates from relay, will retry.")
                     # Brief sleep before retrying to avoid tight loop on persistent errors
-                    time.sleep(5)
+                    # Use wait() instead of sleep() to allow immediate interruption on shutdown
+                    if self.shutdown_event.wait(timeout=5):
+                        break
                 else:
                     log.debug("Exception during shutdown, ignoring.")
                     break
 
-        log.debug("Leaving Pulsar client relay status consumer, no additional updates will be processed.")
+        log.info("Done consuming relay status updates for topic %s", topic)
 
     def ensure_has_status_update_callback(self, callback):
         """Start a thread to poll for status updates if not already running."""
@@ -334,7 +336,10 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
                 name="pulsar_client_%s_relay_status_consumer" % self.manager_name,
                 target=run
             )
-            thread.daemon = False  # Don't interrupt processing
+            # Make daemon so Python can exit even if thread is blocked in HTTP request.
+            # Unlike MessageQueueClientManager which uses AMQP connections that can be
+            # interrupted cleanly, HTTP long-poll requests block until timeout.
+            thread.daemon = True
             thread.start()
             self.callback_thread = thread
 
@@ -370,6 +375,8 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
     def shutdown(self, ensure_cleanup: bool = False):
         """Shutdown the client manager and cleanup resources."""
         self.active = False
+        # Signal the shutdown event to interrupt any waiting threads
+        self.shutdown_event.set()
         if ensure_cleanup:
             if self.callback_thread is not None:
                 self.callback_thread.join()
