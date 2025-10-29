@@ -83,6 +83,18 @@
 ## Python library is available and start the Pulsar normally.
 #message_queue_url: amqp://guest:guest@localhost:5672//
 
+## Alternatively, use pulsar-relay (experimental) with HTTP/HTTPS instead of AMQP.
+## This does not require kombu or RabbitMQ.
+#message_queue_url: https://relay-server.example.org:9000
+#message_queue_username: admin
+#message_queue_password: changeme
+
+## Optional topic prefix for relay messages. This allows multiple independent
+## Galaxy/Pulsar instance pairs to share the same relay server by using different
+## prefixes (e.g., "production", "staging"). Must match the relay_topic_prefix
+## configured in Galaxy's job_conf.yml if set.
+#relay_topic_prefix: production
+
 ## Pulsar loops over waiting for queue messages for a short time before checking
 ## to see if it has been instructed to shut down. By default this is 0.2
 ## seconds. This value is used as the value of the 'timeout' parameter to
