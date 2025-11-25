@@ -78,7 +78,6 @@ setup(
         'pulsar.user_auth',
         'pulsar.user_auth.methods',
         'pulsar.util',
-        'pulsar.util.pastescript',
         'pulsar.web',
     ],
     entry_points='''
