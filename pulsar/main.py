@@ -200,8 +200,19 @@ def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, loc
     """
     """
     if ini_path and local_conf is None:
-        from pulsar.util.pastescript.loadwsgi import ConfigLoader
-        local_conf = ConfigLoader(ini_path).app_context(app_name).config()
+        # Simple ini parsing without loadwsgi dependencies
+        ini_path_abs = os.path.abspath(ini_path)
+        defaults = {
+            'here': os.path.dirname(ini_path_abs),
+            '__file__': ini_path_abs
+        }
+        config = configparser.ConfigParser(defaults=defaults)
+        config.read(ini_path)
+        section_name = f"app:{app_name}"
+        if config.has_section(section_name):
+            local_conf = dict(config.items(section_name))
+        else:
+            local_conf = {}
     local_conf = local_conf or {}
     local_conf['config_dir'] = config_dir
     if app_conf_path is None and "app_config" in local_conf:
