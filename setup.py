@@ -78,7 +78,6 @@ setup(
         'pulsar.user_auth',
         'pulsar.user_auth.methods',
         'pulsar.util',
-        'pulsar.util.pastescript',
         'pulsar.web',
     ],
     entry_points='''
@@ -117,7 +116,6 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Environment :: Console',
-        'License :: OSI Approved :: Apache Software License',
         'Operating System :: POSIX',
         'Operating System :: Microsoft :: Windows',
         'Natural Language :: English',
