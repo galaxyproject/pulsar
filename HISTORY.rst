@@ -6,6 +6,15 @@ History
 .. to_doc
 
 ---------------------
+0.15.12 (2025-11-28)
+---------------------
+
+* Avoid pastescript for config file parsing (thanks to `@mvdbeek`_). `Pull Request 426`_
+* Fix relay docs (thanks to `@mvdbeek`_). `Pull Request 420`_
+* Add pulsar relay mode (thanks to `@mvdbeek`_). `Pull Request 419`_
+* CI improvements and type annotations (thanks to `@nsoranzo`_). `Pull Request 418`_
+
+---------------------
 0.15.11 (2025-09-30)
 ---------------------
 
@@ -550,6 +559,10 @@ History
 
 
 .. github_links
+.. _Pull Request 426: https://github.com/galaxyproject/pulsar/pull/426
+.. _Pull Request 420: https://github.com/galaxyproject/pulsar/pull/420
+.. _Pull Request 419: https://github.com/galaxyproject/pulsar/pull/419
+.. _Pull Request 418: https://github.com/galaxyproject/pulsar/pull/418
 .. _Pull Request 411: https://github.com/galaxyproject/pulsar/pull/411
 .. _Pull Request 409: https://github.com/galaxyproject/pulsar/pull/409
 .. _Pull Request 410: https://github.com/galaxyproject/pulsar/pull/410

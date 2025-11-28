@@ -9,29 +9,29 @@ pulsar.tools.authorization module
 
 .. automodule:: pulsar.tools.authorization
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pulsar.tools.toolbox module
 ---------------------------
 
 .. automodule:: pulsar.tools.toolbox
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pulsar.tools.validator module
 -----------------------------
 
 .. automodule:: pulsar.tools.validator
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.tools
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

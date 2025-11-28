@@ -9,21 +9,21 @@ pulsar.managers.staging.post module
 
 .. automodule:: pulsar.managers.staging.post
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pulsar.managers.staging.pre module
 ----------------------------------
 
 .. automodule:: pulsar.managers.staging.pre
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.managers.staging
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

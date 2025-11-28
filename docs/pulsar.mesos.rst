@@ -9,13 +9,13 @@ pulsar.mesos.framework module
 
 .. automodule:: pulsar.mesos.framework
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.mesos
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

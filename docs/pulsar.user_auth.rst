@@ -17,13 +17,13 @@ pulsar.user\_auth.manager module
 
 .. automodule:: pulsar.user_auth.manager
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.user_auth
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

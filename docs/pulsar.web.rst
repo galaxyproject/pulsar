@@ -9,29 +9,29 @@ pulsar.web.framework module
 
 .. automodule:: pulsar.web.framework
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pulsar.web.routes module
 ------------------------
 
 .. automodule:: pulsar.web.routes
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pulsar.web.wsgi module
 ----------------------
 
 .. automodule:: pulsar.web.wsgi
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.web
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
