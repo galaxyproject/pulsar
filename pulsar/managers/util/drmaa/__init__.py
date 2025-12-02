@@ -11,11 +11,17 @@ except OSError as e:
     LOAD_ERROR_MESSAGE = "OSError - problem loading shared library [%s]." % e
     Session = None
 except ImportError as e:
-    LOAD_ERROR_MESSAGE = "ImportError - problem importing library (`pip install drmaa` may fix this) [%s]." % e
+    LOAD_ERROR_MESSAGE = (
+        "ImportError - problem importing library (`pip install drmaa` may fix this) [%s]."
+        % e
+    )
     # Will not be able to use DRMAA
     Session = None
 except RuntimeError as e:
-    LOAD_ERROR_MESSAGE = "RuntimeError - problem importing library (setting DRMAA_LIBRARY_PATH may fix this) [%s]." % e
+    LOAD_ERROR_MESSAGE = (
+        "RuntimeError - problem importing library (setting DRMAA_LIBRARY_PATH may fix this) [%s]."
+        % e
+    )
     Session = None
 
 NO_DRMAA_MESSAGE = "Attempt to use DRMAA, but DRMAA Python library cannot be loaded. "
@@ -27,6 +33,7 @@ class DrmaaSessionFactory:
     """
     Abstraction used to production DrmaaSession wrappers.
     """
+
     def __init__(self):
         self.session_constructor = Session
 
@@ -41,6 +48,7 @@ class DrmaaSession:
     """
     Abstraction around `drmaa` module `Session` objects.
     """
+
     session_lock = threading.Lock()
     session_count = 0
     session = None
@@ -49,8 +57,13 @@ class DrmaaSession:
         with self._session_lock():
             if DrmaaSession.session is None:
                 if DrmaaSession.session_count != 0:
-                    log.warn("DrmaaSession.session is None but session_count is non-zero - logic error occurred.")
-                log.debug("Initializing DRMAA session from thread %s", threading.current_thread().name)
+                    log.warn(
+                        "DrmaaSession.session is None but session_count is non-zero - logic error occurred."
+                    )
+                log.debug(
+                    "Initializing DRMAA session from thread %s",
+                    threading.current_thread().name,
+                )
                 DrmaaSession.session = session_constructor()
                 DrmaaSession.session.initialize()
             DrmaaSession.session_count += 1
@@ -76,7 +89,9 @@ class DrmaaSession:
 
     def kill(self, external_job_id):
         with DrmaaSession.session_lock:
-            return DrmaaSession.session.control(str(external_job_id), JobControlAction.TERMINATE)
+            return DrmaaSession.session.control(
+                str(external_job_id), JobControlAction.TERMINATE
+            )
 
     def job_status(self, external_job_id):
         return DrmaaSession.session.jobStatus(str(external_job_id))
@@ -84,17 +99,21 @@ class DrmaaSession:
     def close(self):
         with self._session_lock():
             if DrmaaSession.session_count == 0:
-                log.warn("close() called with zero active session counted - logic error.")
+                log.warn(
+                    "close() called with zero active session counted - logic error."
+                )
                 return
 
             DrmaaSession.session_count -= 1
             if DrmaaSession.session_count == 0:
                 if DrmaaSession.session is None:
-                    log.warn("close() called with a non-zero session count but no session is defined.")
+                    log.warn(
+                        "close() called with a non-zero session count but no session is defined."
+                    )
                     return
 
                 DrmaaSession.session.exit()
                 DrmaaSession.session = None
 
 
-__all__ = ['DrmaaSessionFactory']
+__all__ = ["DrmaaSessionFactory"]

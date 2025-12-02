@@ -7,6 +7,17 @@ from .test_utils import temp_directory
 from .test_utils import minimal_app_for_managers
 
 
+def test_load_manager_modules():
+    modules = manager_factory._load_manager_modules()
+    assert len(modules) == 10
+
+
+def test_get_managers_dict():
+    managers_dict = manager_factory._get_managers_dict()
+    # 1 less than manager_modules (because status does not contain a manager)
+    assert len(managers_dict) == 9
+
+
 def test_default():
     # By defualt create single queue python manager with name _default_
     with __test_managers({}) as managers:
