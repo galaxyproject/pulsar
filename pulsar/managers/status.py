@@ -1,3 +1,5 @@
+from typing_extensions import Literal
+
 # TODO: Make objects.
 
 # Job is staging about will be queued shortly.
@@ -19,9 +21,20 @@ POSTPROCESSING = "postprocessing"
 # cannot determine a state for it.
 LOST = "lost"
 
+StateLiteral = Literal[
+    "preprocessing",
+    "queued",
+    "running",
+    "complete",
+    "cancelled",
+    "failed",
+    "postprocessing",
+    "lost",
+]
 
-def is_job_done(status):
-    """ Does the supplied status correspond to a finished
+
+def is_job_done(status: StateLiteral) -> bool:
+    """Does the supplied status correspond to a finished
     job (done processing).
     """
     return status in [COMPLETE, CANCELLED, FAILED, LOST]

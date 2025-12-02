@@ -1,12 +1,24 @@
 from getpass import getuser
 from json import dumps
 from logging import getLogger
+from typing import (
+    Dict,
+    List,
+    Optional,
+    TYPE_CHECKING,
+)
 
 from galaxy.util import which
 
 from .base.base_drmaa import BaseDrmaaManager
 from .util.sudo import sudo_popen
 from ..managers import status
+
+if TYPE_CHECKING:
+    from galaxy.tool_util.deps.dependencies import DependenciesDescription
+
+    from pulsar.core import PulsarApp
+    from pulsar.managers.status import StateLiteral
 
 log = getLogger(__name__)
 
@@ -19,18 +31,33 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
     """
     DRMAA backed queue manager.
     """
+
     manager_type = "queued_external_drmaa"
 
-    def __init__(self, name, app, **kwds):
+    def __init__(self, name: str, app: "PulsarApp", **kwds):
         super().__init__(name, app, **kwds)
-        self.chown_working_directory_script = _handle_default(kwds.get('chown_working_directory_script', None), "chown_working_directory")
-        self.drmaa_kill_script = _handle_default(kwds.get('drmaa_kill_script', None), "drmaa_kill")
-        self.drmaa_launch_script = _handle_default(kwds.get('drmaa_launch_script', None), "drmaa_launch")
-        self.production = str(kwds.get('production', "true")).lower() != "false"
-        self.reclaimed = {}
-        self.user_map: dict[str, str] = {}
+        self.chown_working_directory_script = _handle_default(
+            kwds.get("chown_working_directory_script", None), "chown_working_directory"
+        )
+        self.drmaa_kill_script = _handle_default(
+            kwds.get("drmaa_kill_script", None), "drmaa_kill"
+        )
+        self.drmaa_launch_script = _handle_default(
+            kwds.get("drmaa_launch_script", None), "drmaa_launch"
+        )
+        self.production = str(kwds.get("production", "true")).lower() != "false"
+        self.reclaimed: Dict[str, bool] = {}
+        self.user_map: Dict[str, str] = {}
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
+    def launch(
+        self,
+        job_id: str,
+        command_line: str,
+        submit_params: Dict[str, str] = {},
+        dependencies_description: Optional["DependenciesDescription"] = None,
+        env: List[Dict[str, str]] = [],
+        setup_params: Optional[Dict[str, str]] = None,
+    ) -> None:
         self._check_execution_with_tool_file(job_id, command_line)
         attributes = self._build_template_attributes(
             job_id,
@@ -40,9 +67,9 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
             submit_params=submit_params,
             setup_params=setup_params,
         )
-        print(open(attributes['remoteCommand']).read())
-        job_attributes_file = self._write_job_file(job_id, 'jt.json', dumps(attributes))
-        user = submit_params.get('user', None)
+        print(open(attributes["remoteCommand"]).read())
+        job_attributes_file = self._write_job_file(job_id, "jt.json", dumps(attributes))
+        user = submit_params.get("user", None)
         log.info("Submit as user %s" % user)
         if not user:
             raise Exception("Must specify user submit parameter with this manager.")
@@ -51,11 +78,11 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         self.user_map[external_id] = user
         self._register_external_id(job_id, external_id)
 
-    def _kill_external(self, external_id):
+    def _kill_external(self, external_id: str) -> None:
         user = self.user_map[external_id]
         self.__sudo(self.drmaa_kill_script, "--external_id", external_id, user=user)
 
-    def get_status(self, job_id):
+    def get_status(self, job_id: str) -> "StateLiteral":
         external_id = self._external_id(job_id)
         if not external_id:
             raise KeyError("Failed to find external id for job_id %s" % job_id)
@@ -66,10 +93,15 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
             self.__change_ownership(job_id, getuser())
         return external_status
 
-    def __launch(self, job_attributes, user) -> str:
-        return self.__sudo(self.drmaa_launch_script, "--job_attributes", str(job_attributes), user=user)
+    def __launch(self, job_attributes_file: str, user: str) -> str:
+        return self.__sudo(
+            self.drmaa_launch_script,
+            "--job_attributes",
+            str(job_attributes_file),
+            user=user,
+        )
 
-    def __change_ownership(self, job_id, username):
+    def __change_ownership(self, job_id: str, username: str) -> None:
         cmds = [self.chown_working_directory_script, "--user", str(username)]
         if self.production:
             cmds.extend(["--job_id", job_id])
@@ -89,13 +121,14 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
 
     def _deactivate_job(self, job_id: str) -> None:
         external_id = self._external_id(job_id)
-        del self.user_map[external_id]
+        if external_id is not None:
+            del self.user_map[external_id]
         self.reclaimed.pop(job_id, None)
         super()._deactivate_job(job_id)
 
 
-def _handle_default(value, script_name):
-    """ There are two potential variants of these scripts,
+def _handle_default(value: Optional[str], script_name: str) -> str:
+    """There are two potential variants of these scripts,
     the Bash scripts that are meant to be run within PULSAR_ROOT
     for older-style installs and the binaries created by setup.py
     as part of a proper pulsar installation.

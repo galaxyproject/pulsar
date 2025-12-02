@@ -1,11 +1,28 @@
 import os.path
 from contextlib import contextmanager
+from inspect import isabstract
 
 from pulsar import manager_factory
+from pulsar.managers.queued_condor import CondorQueueManager
 from .test_utils import (
     minimal_app_for_managers,
     temp_directory,
 )
+
+
+def test_load_manager_modules():
+    modules = manager_factory._load_manager_modules()
+    assert len(modules) == 10
+
+
+def test_get_managers_dict():
+    managers_dict = manager_factory._get_managers_dict()
+    # 1 less than manager_modules (because status does not contain a manager)
+    assert len(managers_dict) == 9
+
+
+def test_condor_manager_is_concrete():
+    assert not isabstract(CondorQueueManager)
 
 
 def test_default():
