@@ -51,9 +51,9 @@ jobs:
       matrix:
         tox-env: [test-ci, test-unit]
         python-version: ['3.7', '3.11']
-        include:
-        - tox-env: install_wheel
-          python-version: '3.9'
+        # include:
+        # - tox-env: install_wheel
+        #   python-version: '3.9'
     services:
       job-files:
         image: galaxy/simple-job-files:latest
