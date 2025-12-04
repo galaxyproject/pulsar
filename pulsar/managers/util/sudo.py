@@ -11,7 +11,7 @@ SUDO_USER_ARG = "-u"
 log = logging.getLogger(__name__)
 
 
-def sudo_popen(*args, **kwargs):
+def sudo_popen(*args, **kwargs) -> Popen:
     """
     Helper method for building and executing Popen command. This is potentially
     sensetive code so should probably be centralized.
@@ -21,6 +21,8 @@ def sudo_popen(*args, **kwargs):
     if user:
         full_command.extend([SUDO_USER_ARG, user])
     full_command.extend(args)
-    log.info(f"About to execute the following sudo command - [{' '.join(full_command)}]")
+    log.info(
+        f"About to execute the following sudo command - [{' '.join(full_command)}]"
+    )
     p = Popen(full_command, shell=False, stdout=PIPE, stderr=PIPE)
     return p

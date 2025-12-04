@@ -8,7 +8,9 @@ log = getLogger(__name__)
 
 class OpenPBS(Torque):
 
-    ERROR_MESSAGE_UNRECOGNIZED_ARG = "Unrecognized long argument passed to OpenPBS CLI plugin: %s"
+    ERROR_MESSAGE_UNRECOGNIZED_ARG = (
+        "Unrecognized long argument passed to OpenPBS CLI plugin: %s"
+    )
 
     def get_status(self, job_ids=None):
         return "qstat -f -F json"
@@ -20,7 +22,9 @@ class OpenPBS(Torque):
         try:
             data = json.loads(status)
         except Exception:
-            log.warning(f"No valid qstat JSON return from `qstat -f -F json`, got the following: {status}")
+            log.warning(
+                f"No valid qstat JSON return from `qstat -f -F json`, got the following: {status}"
+            )
         rval = {}
         for job_id, job in data.get("Jobs", {}).items():
             if job_id in job_ids:
