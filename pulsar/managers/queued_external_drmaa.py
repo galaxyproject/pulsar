@@ -90,6 +90,13 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         assert p.returncode == 0, "{}, {}".format(stdout, stderr)
         return stdout
 
+    def _deactivate_job(self, job_id: str) -> None:
+        external_id = self._external_id(job_id)
+        del self.user_map[external_id]
+        if job_id in self.reclaimed:
+            del self.reclaimed[job_id]
+        super()._deactivate_job(job_id)
+
 
 def _handle_default(value, script_name):
     """ There are two potential variants of these scripts,
