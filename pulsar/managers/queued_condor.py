@@ -15,10 +15,6 @@ from ..managers import status
 log = getLogger(__name__)
 
 
-# TODO:
-#  - user_log_sizes and state_cache never expire
-#    elements never expire. This is a small memory
-#    leak that should be fixed.
 class CondorQueueManager(ExternalBaseManager):
     """
     Job manager backend that plugs into Condor.
@@ -92,3 +88,9 @@ class CondorQueueManager(ExternalBaseManager):
         self.user_log_sizes[external_id] = log_size
         self.state_cache[external_id] = state
         return state
+
+    def _deactivate_job(self, job_id: str) -> None:
+        external_id = self._external_id(job_id)
+        self.user_log_sizes.pop(external_id, None)
+        self.state_cache.pop(external_id, None)
+        super()._deactivate_job(job_id)
