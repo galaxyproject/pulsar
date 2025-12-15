@@ -16,7 +16,7 @@ jobs:
           python3 -m pip install build twine
       - name: Create and check sdist and wheel packages
         run: make dist-all
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: packages
           path: dist/
