@@ -93,8 +93,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
     def _deactivate_job(self, job_id: str) -> None:
         external_id = self._external_id(job_id)
         del self.user_map[external_id]
-        if job_id in self.reclaimed:
-            del self.reclaimed[job_id]
+        self.reclaimed.pop(job_id, None)
         super()._deactivate_job(job_id)
 
 

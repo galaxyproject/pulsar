@@ -91,8 +91,6 @@ class CondorQueueManager(ExternalBaseManager):
 
     def _deactivate_job(self, job_id: str) -> None:
         external_id = self._external_id(job_id)
-        if external_id in self.user_log_sizes:
-            del self.user_log_sizes[external_id]
-        if external_id in self.state_cache:
-            del self.state_cache[external_id]
+        self.user_log_sizes.pop(external_id, None)
+        self.state_cache.pop(external_id, None)
         super()._deactivate_job(job_id)
