@@ -49,7 +49,7 @@ jobs:
         env:
           GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml
           GALAXY_CONFIG_OVERRIDE_METADATA_STRATEGY: ${{ matrix.metadata-strategy }}
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: Framework test results (${{ matrix.galaxy-branch }} ${{ matrix.metadata-strategy  }} ${{ matrix.python-version }})
           path: 'galaxy/run_framework_tests.html'
