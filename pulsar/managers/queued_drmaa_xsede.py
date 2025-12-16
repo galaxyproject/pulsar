@@ -5,8 +5,12 @@ from subprocess import (
     PIPE,
     Popen,
 )
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from .queued_drmaa import DrmaaQueueManager
+
+if TYPE_CHECKING:
+    from galaxy.tools.deps.dependencies import DependencyDescription
 
 log = logging.getLogger(__name__)
 
@@ -19,9 +23,18 @@ class XsedeDrmaaQueueManager(DrmaaQueueManager):
     TODO: A generalized callback framework for executing things at various
     points in the job lifecycle.
     """
+
     manager_type = "queued_drmaa_xsede"
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
+    def launch(
+        self,
+        job_id: str,
+        command_line: str,
+        submit_params: Dict[str, str] = {},
+        dependencies_description: Optional["DependencyDescription"] = None,
+        env: List[Dict[str, str]] = [],
+        setup_params: Optional[Dict[str, str]] = None,
+    ) -> None:
         super().launch(
             job_id,
             command_line,
@@ -31,22 +44,23 @@ class XsedeDrmaaQueueManager(DrmaaQueueManager):
             setup_params=setup_params,
         )
         try:
-            check_call([
-                'gateway_submit_attributes',
-                '-gateway_user',
-                submit_params.get('user_email', 'unknown@galaxyproject.org'),
-                '-submit_time',
-                check_output(['date', '+%F %T %:z']).strip(),
-                '-jobid',
-                self._external_ids[job_id]
-            ])
+            check_call(
+                [
+                    "gateway_submit_attributes",
+                    "-gateway_user",
+                    submit_params.get("user_email", "unknown@galaxyproject.org"),
+                    "-submit_time",
+                    check_output(["date", "+%F %T %:z"]).strip(),
+                    "-jobid",
+                    self._external_ids[job_id],
+                ]
+            )
         except (OSError, CalledProcessError):
-            log.exception('Failed to call gateway_submit_attributes:')
+            log.exception("Failed to call gateway_submit_attributes:")
 
 
-def check_output(args):
-    """Pipe-safe (and 2.6 compatible) version of subprocess.check_output
-    """
+def check_output(args: List[str]) -> bytes:
+    """Pipe-safe (and 2.6 compatible) version of subprocess.check_output"""
     proc = Popen(args, stdout=PIPE)
     out = proc.communicate()[0]
     if proc.returncode:

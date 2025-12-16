@@ -34,7 +34,9 @@ def ensure_tes_client() -> None:
 
 
 def tes_galaxy_instance_id(destination_params: Dict[str, Any]) -> Optional[str]:
-    return destination_params.get("galaxy_instance_id") or destination_params.get("tes_galaxy_instance_id")
+    return destination_params.get("galaxy_instance_id") or destination_params.get(
+        "tes_galaxy_instance_id"
+    )
 
 
 __all__ = (
