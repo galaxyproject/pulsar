@@ -604,7 +604,7 @@ class RelayJobClient(BaseMessageJobClient):
 
         # Determine topic name based on manager
         manager_name = self.client_manager.manager_name
-        topic = f"job_setup_{manager_name}" if manager_name != "_default_" else "job_setup"
+        topic = self.client_manager._make_topic_name("job_setup", manager_name)
 
         # Post message to relay
         self.client_manager.relay_transport.post_message(topic, launch_params)
@@ -618,7 +618,7 @@ class RelayJobClient(BaseMessageJobClient):
             Cached status if available, None otherwise
         """
         manager_name = self.client_manager.manager_name
-        topic = f"job_status_request_{manager_name}" if manager_name != "_default_" else "job_status_request"
+        topic = self.client_manager._make_topic_name("job_status_request", manager_name)
 
         status_params = {
             'job_id': self.job_id,
@@ -633,7 +633,7 @@ class RelayJobClient(BaseMessageJobClient):
     def kill(self):
         """Kill a job by posting a kill message to the relay."""
         manager_name = self.client_manager.manager_name
-        topic = f"job_kill_{manager_name}" if manager_name != "_default_" else "job_kill"
+        topic = self.client_manager._make_topic_name("job_kill", manager_name)
 
         kill_params = {'job_id': self.job_id}
         self.client_manager.relay_transport.post_message(topic, kill_params)

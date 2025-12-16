@@ -34,6 +34,9 @@ def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf):
     if not password:
         raise Exception("message_queue_password is required for relay communication")
 
+    # Extract optional relay topic prefix
+    relay_topic_prefix = conf.get('relay_topic_prefix', '')
+
     # Create relay transport
     relay_transport = RelayTransport(relay_url, username, password)
 
@@ -42,11 +45,11 @@ def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf):
     process_kill_messages = functools.partial(__process_kill_message, manager)
     process_status_messages = functools.partial(__process_status_message, manager)
 
-    # Determine topics based on manager name
-    setup_topic = f"job_setup_{manager_name}" if manager_name != "_default_" else "job_setup"
-    status_request_topic = f"job_status_request_{manager_name}" if manager_name != "_default_" else "job_status_request"
-    kill_topic = f"job_kill_{manager_name}" if manager_name != "_default_" else "job_kill"
-    status_update_topic = f"job_status_update_{manager_name}" if manager_name != "_default_" else "job_status_update"
+    # Determine topics based on manager name and optional prefix
+    setup_topic = __make_topic_name(relay_topic_prefix, "job_setup", manager_name)
+    status_request_topic = __make_topic_name(relay_topic_prefix, "job_status_request", manager_name)
+    kill_topic = __make_topic_name(relay_topic_prefix, "job_kill", manager_name)
+    status_update_topic = __make_topic_name(relay_topic_prefix, "job_status_update", manager_name)
 
     # Start consumer threads if message_queue_consume is enabled
     if conf.get("message_queue_consume", True):
@@ -206,3 +209,36 @@ def __client_job_id_from_body(body):
     """
     job_id = body.get("job_id", None)
     return job_id
+
+
+def __make_topic_name(prefix, base_topic, manager_name):
+    """Create a topic name with optional prefix and manager suffix.
+
+    Args:
+        prefix: Optional prefix string (e.g., 'galaxy1', 'prod')
+        base_topic: Base topic name (e.g., 'job_setup', 'job_status_update')
+        manager_name: Manager name (e.g., '_default_', 'cluster_a')
+
+    Returns:
+        Fully qualified topic name
+
+    Examples:
+        __make_topic_name('', 'job_setup', '_default_') -> 'job_setup'
+        __make_topic_name('', 'job_setup', 'cluster_a') -> 'job_setup_cluster_a'
+        __make_topic_name('prod', 'job_setup', '_default_') -> 'prod_job_setup'
+        __make_topic_name('prod', 'job_setup', 'cluster_a') -> 'prod_job_setup_cluster_a'
+    """
+    parts = []
+
+    # Add prefix if provided
+    if prefix:
+        parts.append(prefix)
+
+    # Add base topic
+    parts.append(base_topic)
+
+    # Add manager name if not default
+    if manager_name != "_default_":
+        parts.append(manager_name)
+
+    return "_".join(parts)

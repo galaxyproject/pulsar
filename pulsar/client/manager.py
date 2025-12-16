@@ -7,7 +7,6 @@ specific actions.
 
 import functools
 import threading
-import time
 from logging import getLogger
 from os import getenv
 from queue import Queue
@@ -264,7 +263,7 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
     """
     status_cache: Dict[str, Any]
 
-    def __init__(self, relay_url: str, relay_username: str, relay_password: str, **kwds: Dict[str, Any]):
+    def __init__(self, relay_url: str, relay_username: str, relay_password: str, relay_topic_prefix: str = '', **kwds: Dict[str, Any]):
         super().__init__(**kwds)
 
         if not relay_url:
@@ -272,10 +271,12 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
 
         # Initialize relay transport
         self.relay_transport = RelayTransport(relay_url, relay_username, relay_password)
+        self.relay_topic_prefix = relay_topic_prefix
         self.status_cache = {}
         self.callback_lock = threading.Lock()
         self.callback_thread = None
         self.active = True
+        self.shutdown_event = threading.Event()
 
     def callback_wrapper(self, callback, message_data):
         """Process status update messages from the relay."""
@@ -298,7 +299,7 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
     def status_consumer(self, callback_wrapper):
         """Long-poll the relay for status update messages."""
         manager_name = self.manager_name
-        topic = f"job_status_update_{manager_name}" if manager_name != "_default_" else "job_status_update"
+        topic = self._make_topic_name("job_status_update", manager_name)
 
         log.info("Starting relay status consumer for topic '%s'", topic)
 
@@ -314,12 +315,14 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
                 if self.active:
                     log.exception("Exception while polling for status updates from relay, will retry.")
                     # Brief sleep before retrying to avoid tight loop on persistent errors
-                    time.sleep(5)
+                    # Use wait() instead of sleep() to allow immediate interruption on shutdown
+                    if self.shutdown_event.wait(timeout=5):
+                        break
                 else:
                     log.debug("Exception during shutdown, ignoring.")
                     break
 
-        log.debug("Leaving Pulsar client relay status consumer, no additional updates will be processed.")
+        log.info("Done consuming relay status updates for topic %s", topic)
 
     def ensure_has_status_update_callback(self, callback):
         """Start a thread to poll for status updates if not already running."""
@@ -333,7 +336,10 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
                 name="pulsar_client_%s_relay_status_consumer" % self.manager_name,
                 target=run
             )
-            thread.daemon = False  # Don't interrupt processing
+            # Make daemon so Python can exit even if thread is blocked in HTTP request.
+            # Unlike MessageQueueClientManager which uses AMQP connections that can be
+            # interrupted cleanly, HTTP long-poll requests block until timeout.
+            thread.daemon = True
             thread.start()
             self.callback_thread = thread
 
@@ -341,9 +347,36 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
         """No-op for relay client manager, as acknowledgements are handled via HTTP."""
         pass
 
+    def _make_topic_name(self, base_topic: str, manager_name: str) -> str:
+        """Create a topic name with optional prefix and manager suffix.
+
+        Args:
+            base_topic: Base topic name (e.g., 'job_setup', 'job_status_update')
+            manager_name: Manager name (e.g., '_default_', 'cluster_a')
+
+        Returns:
+            Fully qualified topic name
+        """
+        parts = []
+
+        # Add prefix if provided
+        if self.relay_topic_prefix:
+            parts.append(self.relay_topic_prefix)
+
+        # Add base topic
+        parts.append(base_topic)
+
+        # Add manager name if not default
+        if manager_name != "_default_":
+            parts.append(manager_name)
+
+        return "_".join(parts)
+
     def shutdown(self, ensure_cleanup: bool = False):
         """Shutdown the client manager and cleanup resources."""
         self.active = False
+        # Signal the shutdown event to interrupt any waiting threads
+        self.shutdown_event.set()
         if ensure_cleanup:
             if self.callback_thread is not None:
                 self.callback_thread.join()
@@ -391,6 +424,7 @@ def build_client_manager(
     relay_url: Optional[str] = None,
     relay_username: Optional[str] = None,
     relay_password: Optional[str] = None,
+    relay_topic_prefix: Optional[str] = None,
     amqp_url: Optional[str] = None,
     k8s_enabled: Optional[bool] = None,
     tes_enabled: Optional[bool] = None,
@@ -401,7 +435,13 @@ def build_client_manager(
         return ClientManager(job_manager=job_manager, **kwargs)  # TODO: Consider more separation here.
     elif relay_url:
         assert relay_password and relay_username, "relay_url set, but relay_username and relay_password must also be set"
-        return RelayClientManager(relay_url=relay_url, relay_username=relay_username, relay_password=relay_password, **kwargs)
+        return RelayClientManager(
+            relay_url=relay_url,
+            relay_username=relay_username,
+            relay_password=relay_password,
+            relay_topic_prefix=relay_topic_prefix or '',
+            **kwargs
+        )
     elif amqp_url:
         return MessageQueueClientManager(amqp_url=amqp_url, **kwargs)
     elif k8s_enabled or tes_enabled or gcp_batch_enabled:
