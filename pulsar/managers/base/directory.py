@@ -15,8 +15,6 @@ log = logging.getLogger(__name__)
 # should be able to replace metadata backing with non-file stuff now that
 # the abstractions are fairly well utilized.
 JOB_FILE_RETURN_CODE = "return_code"
-TOOL_FILE_STANDARD_OUTPUT = os.path.join("metadata", "tool_stdout")
-TOOL_FILE_STANDARD_ERROR = os.path.join("metadata", "tool_stderr")
 JOB_FILE_STANDARD_OUTPUT = os.path.join("metadata", "job_stdout")
 JOB_FILE_STANDARD_ERROR = os.path.join("metadata", "job_stderr")
 JOB_FILE_TOOL_ID = "tool_id"
@@ -43,20 +41,6 @@ class DirectoryBaseManager(BaseManager):
         return_code_str = self._read_job_file(job_id, JOB_FILE_RETURN_CODE, default=PULSAR_UNKNOWN_RETURN_CODE)
         return int(return_code_str) if return_code_str and return_code_str != PULSAR_UNKNOWN_RETURN_CODE else return_code_str
 
-    def stdout_contents(self, job_id):
-        try:
-            return self._read_job_file(job_id, TOOL_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size)
-        except FileNotFoundError:
-            # Could be old job finishing up, drop in 2024?
-            return self._read_job_file(job_id, "tool_stdout", size=self.maximum_stream_size, default=b"")
-
-    def stderr_contents(self, job_id):
-        try:
-            return self._read_job_file(job_id, TOOL_FILE_STANDARD_ERROR, size=self.maximum_stream_size)
-        except FileNotFoundError:
-            # Could be old job finishing up, drop in 2024?
-            return self._read_job_file(job_id, "tool_stderr", size=self.maximum_stream_size, default=b"")
-
     def job_stdout_contents(self, job_id):
         return self._read_job_file(job_id, JOB_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size, default=b"")
 
@@ -70,12 +54,6 @@ class DirectoryBaseManager(BaseManager):
             import json
             command_line = json.loads(command_line)
         return command_line
-
-    def _tool_stdout_path(self, job_id):
-        return self._job_file(job_id, TOOL_FILE_STANDARD_OUTPUT)
-
-    def _tool_stderr_path(self, job_id):
-        return self._job_file(job_id, TOOL_FILE_STANDARD_ERROR)
 
     def _job_stdout_path(self, job_id):
         return self._job_file(job_id, JOB_FILE_STANDARD_OUTPUT)
