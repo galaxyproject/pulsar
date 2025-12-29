@@ -7,11 +7,13 @@ from os.path import (
     exists,
     join,
 )
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Union,
 )
 
+from galaxy.tool_util.parser.output_collection_def import dataset_collection_description
 from galaxy.util.bunch import Bunch
 
 from ..util import PathHelper
@@ -216,6 +218,7 @@ class ClientOutputs:
         metadata_directory=None,
         job_directory=None,
         dynamic_file_sources=None,
+        dataset_collector_descriptions=None,
     ):
         self.working_directory = working_directory
         self.metadata_directory = metadata_directory
@@ -225,6 +228,7 @@ class ClientOutputs:
         self.dynamic_outputs = dynamic_outputs or DEFAULT_DYNAMIC_COLLECTION_PATTERN
         self.job_directory = job_directory
         self.dynamic_file_sources = dynamic_file_sources
+        self.dataset_collector_descriptions = dataset_collector_descriptions or []
         self.__dynamic_patterns = list(map(re.compile, self.dynamic_outputs))
 
     def to_dict(self):
@@ -237,6 +241,7 @@ class ClientOutputs:
             version_file=self.version_file,
             dynamic_outputs=self.dynamic_outputs,
             dynamic_file_sources=self.dynamic_file_sources,
+            dataset_collector_descriptions=self.dataset_collector_descriptions,
         )
 
     @staticmethod
@@ -250,10 +255,50 @@ class ClientOutputs:
             dynamic_outputs=config_dict.get('dynamic_outputs'),
             dynamic_file_sources=config_dict.get('dynamic_file_sources'),
             job_directory=config_dict.get('job_directory'),
+            dataset_collector_descriptions=config_dict.get('dataset_collector_descriptions'),
         )
 
     def dynamic_match(self, filename):
-        return any(map(lambda pattern: pattern.match(filename), self.__dynamic_patterns))
+
+        # First try matching with dataset collectors if available (supports directory, recurse, match_relative_path)
+        if self.dataset_collector_descriptions:
+            filename_path = Path(filename)
+
+            for desc_dict in self.dataset_collector_descriptions:
+                desc = dataset_collection_description(**desc_dict)
+                directory = desc.directory
+
+                if directory:
+                    directory_path = Path(directory)
+
+                    # Check if filename is within the specified directory
+                    try:
+                        relative_path = filename_path.resolve().relative_to(directory_path.resolve())
+                    except ValueError:
+                        # filename is not within directory, continue to next collector
+                        continue
+
+                    # Determine what to match against the pattern
+                    if desc.match_relative_path:
+                        # For match_relative_path, include parent directories in the match
+                        match_string = str(relative_path)
+                    else:
+                        # Otherwise, just match the final component (filename)
+                        match_string = relative_path.name if len(relative_path.parts) == 1 else str(relative_path)
+
+                    # Match against the pattern
+                    if re.match(desc.pattern, match_string):
+                        return True
+                else:
+                    # No directory restriction, match directly against filename
+                    if re.match(desc.pattern, filename):
+                        return True
+
+        # Collect DEFAULT_DYNAMIC_COLLECTION_PATTERN and provided_metadata_file patterns
+        for pattern in self.__dynamic_patterns:
+            if pattern.match(filename):
+                return True
+        return False
 
 
 class PulsarOutputs:
