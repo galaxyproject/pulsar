@@ -3,14 +3,15 @@ Tests for the relay transport implementation.
 
 Tests retry logic and message ID tracking functionality.
 """
+from unittest import TestCase
 from unittest.mock import Mock, patch
-import pytest
+
 import requests
 
 from pulsar.client.transport.relay import RelayTransport, RelayTransportError
 
 
-class TestRetryLogic:
+class TestRetryLogic(TestCase):
     """Test retry logic with exponential backoff."""
 
     @patch('pulsar.client.transport.relay.time.sleep')
@@ -94,7 +95,7 @@ class TestRetryLogic:
 
         transport.session.post = Mock(return_value=mock_400)
 
-        with pytest.raises(RelayTransportError):
+        with self.assertRaises(RelayTransportError):
             transport.post_message('test-topic', {'data': 'test'})
 
         # Should only be called once (no retries for 4xx)
