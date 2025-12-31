@@ -240,7 +240,7 @@ In this mode:
 
 1. **Galaxy → Relay**: Galaxy posts control messages (job setup, status requests,
    kill commands) to the relay via HTTP POST
-2. **Relay → Galaxy**: Pulsar polls the relay via HTTP long-polling to receive
+2. **Relay → Pulsar**: Pulsar polls the relay via HTTP long-polling to receive
    these messages
 3. **Pulsar → Relay**: Pulsar posts status updates to the relay
 4. **Relay → Galaxy**: Galaxy polls the relay to receive status updates
@@ -264,7 +264,7 @@ To configure Pulsar to use pulsar-relay, set the ``message_queue_url`` in
     message_queue_username: admin
     message_queue_password: your_secure_password
 
-The ``http://`` / ``https://`` prefix tells Pulsar to use the proxy communication mode instead
+The ``http://`` / ``https://`` prefix tells Pulsar to use the relay communication mode instead
 of AMQP.
 
 **Optional Topic Prefix**
@@ -320,12 +320,12 @@ Authentication
 ``````````````
 
 The pulsar-relay uses JWT (JSON Web Token) authentication. Galaxy and Pulsar
-authenticate with the proxy using the username and password provided in the
+authenticate with the relay using the username and password provided in the
 configuration. Tokens are automatically managed and refreshed as needed.
 
 .. tip::
 
-    In production, always use HTTPS for the proxy URL to encrypt credentials
+    In production, always use HTTPS for the relay URL to encrypt credentials
     and message content during transit::
 
         message_queue_url: https://proxy-server.example.org:443
@@ -333,20 +333,20 @@ configuration. Tokens are automatically managed and refreshed as needed.
 Security Considerations
 ```````````````````````
 
-* **Use HTTPS**: Always use HTTPS for the proxy URL in production
-* **Strong Passwords**: Use strong, unique passwords for proxy authentication
-* **Network Isolation**: Deploy the proxy in a DMZ accessible to both Galaxy
+* **Use HTTPS**: Always use HTTPS for the relay URL in production
+* **Strong Passwords**: Use strong, unique passwords for relay authentication
+* **Network Isolation**: Deploy the relay in a DMZ accessible to both Galaxy
   and Pulsar
 * **Firewall Rules**:
-    * Galaxy → Proxy: Allow outbound HTTPS
-    * Pulsar → Proxy: Allow outbound HTTPS
+    * Galaxy → Relay: Allow outbound HTTPS
+    * Pulsar → Relay: Allow outbound HTTPS
     * Pulsar → Galaxy: Allow outbound HTTP/HTTPS for file transfers
 
 Multiple Pulsar Instances
 ``````````````````````````
 
 You can deploy multiple Pulsar instances with different managers, all using the
-same proxy. Messages are routed by topic names that include the manager name.
+same relay. Messages are routed by topic names that include the manager name.
 
 For example, configure two Pulsar servers:
 
@@ -508,7 +508,7 @@ Comparison with AMQP Mode
 
 For more information on deploying pulsar-relay, see the `pulsar-relay documentation`_.
 
-.. _pulsar-relay documentation: https://github.com/galaxyproject/pulsar-relay
+.. _pulsar-relay documentation: https://github.com/mvdbeek/pulsar-relay
 
 Caching (Experimental)
 ----------------------
