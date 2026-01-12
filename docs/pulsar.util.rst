@@ -6,5 +6,5 @@ Module contents
 
 .. automodule:: pulsar.util
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

@@ -6,5 +6,5 @@ Module contents
 
 .. automodule:: pulsar.managers.util.job_script
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

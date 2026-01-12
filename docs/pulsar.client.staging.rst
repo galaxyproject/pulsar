@@ -9,21 +9,21 @@ pulsar.client.staging.down module
 
 .. automodule:: pulsar.client.staging.down
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.client.staging.up module
 -------------------------------
 
 .. automodule:: pulsar.client.staging.up
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.client.staging
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

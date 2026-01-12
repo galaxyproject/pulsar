@@ -6,5 +6,5 @@ Module contents
 
 .. automodule:: pulsar.managers.util.drmaa
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

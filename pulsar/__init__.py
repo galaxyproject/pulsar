@@ -1,4 +1,4 @@
-__version__ = '0.15.13.dev0'
+__version__ = '0.15.13'
 
 PROJECT_NAME = "pulsar"
 PROJECT_OWNER = PROJECT_USERAME = "galaxyproject"

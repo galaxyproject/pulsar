@@ -9,61 +9,61 @@ pulsar.client.transport.curl module
 
 .. automodule:: pulsar.client.transport.curl
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.client.transport.poster module
 -------------------------------------
 
 .. automodule:: pulsar.client.transport.poster
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.client.transport.relay module
 ------------------------------------
 
 .. automodule:: pulsar.client.transport.relay
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.client.transport.requests module
 ---------------------------------------
 
 .. automodule:: pulsar.client.transport.requests
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.client.transport.ssh module
 ----------------------------------
 
 .. automodule:: pulsar.client.transport.ssh
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.client.transport.standard module
 ---------------------------------------
 
 .. automodule:: pulsar.client.transport.standard
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.client.transport.tus module
 ----------------------------------
 
 .. automodule:: pulsar.client.transport.tus
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.client.transport
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

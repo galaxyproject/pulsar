@@ -18,13 +18,13 @@ pulsar.managers.util.cli.factory module
 
 .. automodule:: pulsar.managers.util.cli.factory
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.managers.util.cli
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

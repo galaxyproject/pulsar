@@ -6,6 +6,17 @@ History
 .. to_doc
 
 ---------------------
+0.15.13 (2026-01-12)
+---------------------
+* Restrict collection of dynamic working dir output to specified directory
+  (thanks to `@mvdbeek`_). `Pull Request 432`_
+* Documentation fixes (thanks to `@nsoranzo`_). `Pull Request 433`_
+* Implement pulsar-relay retry handling, improve message resume (thanks to
+  `@mvdbeek`_). `Pull Request 421`_
+* Better cleanup after external DRMAA and condor jobs (thanks to `@bernt-matthias`_).
+  `Pull Request 429`_
+
+---------------------
 0.15.12 (2025-11-28)
 ---------------------
 
@@ -559,6 +570,12 @@ History
 
 
 .. github_links
+.. _Pull Request 432: https://github.com/galaxyproject/pulsar/pull/432
+.. _Pull Request 433: https://github.com/galaxyproject/pulsar/pull/433
+.. _Pull Request 421: https://github.com/galaxyproject/pulsar/pull/421
+.. _Pull Request 431: https://github.com/galaxyproject/pulsar/pull/431
+.. _Pull Request 430: https://github.com/galaxyproject/pulsar/pull/430
+.. _Pull Request 429: https://github.com/galaxyproject/pulsar/pull/429
 .. _Pull Request 426: https://github.com/galaxyproject/pulsar/pull/426
 .. _Pull Request 420: https://github.com/galaxyproject/pulsar/pull/420
 .. _Pull Request 419: https://github.com/galaxyproject/pulsar/pull/419
@@ -744,5 +761,6 @@ History
 .. _@peterg1t: https://github.com/peterg1t
 .. _@neoformit: https://github.com/neoformit
 .. _@BorisYourich: https://github.com/BorisYourich
+.. _@bernt-matthias: https://github.com/bernt-matthias
 .. _@kysrpex: https://github.com/kysrpex
 .. _@jmchilton: https://github.com/jmchilton

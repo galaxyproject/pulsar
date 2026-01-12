@@ -9,29 +9,29 @@ pulsar.messaging.bind\_amqp module
 
 .. automodule:: pulsar.messaging.bind_amqp
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.messaging.bind\_relay module
 -----------------------------------
 
 .. automodule:: pulsar.messaging.bind_relay
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.messaging.relay\_state module
 ------------------------------------
 
 .. automodule:: pulsar.messaging.relay_state
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.messaging
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

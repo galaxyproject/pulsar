@@ -26,45 +26,45 @@ pulsar.core module
 
 .. automodule:: pulsar.core
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.locks module
 -------------------
 
 .. automodule:: pulsar.locks
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.main module
 ------------------
 
 .. automodule:: pulsar.main
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.manager\_endpoint\_util module
 -------------------------------------
 
 .. automodule:: pulsar.manager_endpoint_util
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 pulsar.manager\_factory module
 ------------------------------
 
 .. automodule:: pulsar.manager_factory
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
