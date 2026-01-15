@@ -333,6 +333,13 @@ class BaseAction:
     def staging_action_local(self):
         return self.staging == STAGING_ACTION_LOCAL
 
+    def write_from_path(self, pulsar_path):
+        if not self.staging_needed:
+            return  # No-op for actions that don't require staging (e.g., shared filesystem)
+        raise NotImplementedError(
+            f"{self.__class__.__name__} with staging={self.staging} must implement write_from_path"
+        )
+
     def _extend_base_dict(self, **kwds):
         base_dict = dict(
             path=self.path,  # For older Pulsar servers (pre-0.13.0?)
