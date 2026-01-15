@@ -11,11 +11,12 @@
       <destination id="local" runner="local"/>
       <destination id="pulsar_rest" runner="pulsar_rest">
         <param id="url">http://localhost:8913/</param>
+        <param id="docker_enabled">true</param>
+        <param id="docker_sudo">false</param>
+        <param id="outputs_to_working_directory">false</param>
       </destination>
     </destinations>
     <tools>
       <tool id="__DATA_FETCH__" destination="local" />
     </tools>
 </job_conf>
-
-        
