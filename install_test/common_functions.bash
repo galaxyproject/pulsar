@@ -61,6 +61,7 @@ check_pulsar() {
         sleep 1;
     done
     sleep 2
+
     echo "Running a standalone Pulsar job."
     if ! $PULSAR_TEST_DEBUG; then
         pulsar-check # runs a test job
@@ -83,7 +84,7 @@ check_pulsar() {
     sleep 2
     cat paster.log
 
-    cd ..    
+    cd ..
 }
 
 init_planemo() {
@@ -108,6 +109,7 @@ run_planemo() {
         galaxy_root_args="--galaxy_root $GALAXY_ROOT"
     fi
     MARKDOWN_OUTPUT="${GITHUB_STEP_SUMMARY:-tool_test_output.md}"
-    planemo --verbose test --test_output_markdown "$MARKDOWN_OUTPUT" $galaxy_root_args "$@"
+    # Use --biocontainers for Docker-based dependency resolution
+    planemo --verbose test --test_output_markdown "$MARKDOWN_OUTPUT" --biocontainers $galaxy_root_args "$@"
     echo "Tests complete."
 }

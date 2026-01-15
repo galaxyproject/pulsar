@@ -84,10 +84,10 @@ tests:
 	$(IN_VENV) pytest $(PYTEST_TESTS)
 
 test-install-pypi:
-	bash install_test/test_install_conda.bash
+	bash install_test/test_install_docker.bash
 
 test-install-wheel: dist
-	PULSAR_INSTALL_TARGET=$(wildcard $(shell pwd)/dist/pulsar_app*.whl)[web] bash install_test/test_install_conda.bash
+	PULSAR_INSTALL_TARGET=$(wildcard $(shell pwd)/dist/pulsar_app*.whl)[web] bash install_test/test_install_docker.bash
 
 coverage:
 	coverage run --source $(SOURCE_DIR) setup.py $(TEST_DIR)
