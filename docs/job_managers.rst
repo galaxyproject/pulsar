@@ -151,9 +151,10 @@ run DRMAA jobs via the user requested by the client (e.g. the Galaxy user).
         #drmaa_kill_script: scripts/drmaa_kill.bash
         #drmaa_launch_script: scripts/drmaa_launch.bash
 
-For more information on running jobs as the real user, check out `this discussion
-<http://dev.list.galaxyproject.org/Managing-Data-Locality-tp4662438.html>`__ from
-the Galaxy mailing list.
+In addition one needs to set the ``submit_user`` parameter to ``$__user_name__``, see
+documentation in the `sample job_conf.yml file
+<https://github.com/galaxyproject/galaxy/blob/dev/lib/galaxy/config/sample/job_conf.sample.yml>`__
+
 
 More Options
 -------------------------------
