@@ -36,7 +36,9 @@ argmap = {
 
 class Torque(BaseJobExec):
 
-    ERROR_MESSAGE_UNRECOGNIZED_ARG = "Unrecognized long argument passed to Torque CLI plugin: %s"
+    ERROR_MESSAGE_UNRECOGNIZED_ARG = (
+        "Unrecognized long argument passed to Torque CLI plugin: %s"
+    )
 
     def job_script_kwargs(self, ofile, efile, job_name):
         pbsargs = {"-o": ofile, "-e": efile, "-N": job_name}
@@ -78,7 +80,9 @@ class Torque(BaseJobExec):
             except Exception:
                 tree = None
         if tree is None:
-            log.warning(f"No valid qstat XML return from `qstat -x`, got the following: {status}")
+            log.warning(
+                f"No valid qstat XML return from `qstat -x`, got the following: {status}"
+            )
             return None
         else:
             for job in tree.findall("Job"):
@@ -99,9 +103,12 @@ class Torque(BaseJobExec):
 
     def _get_job_state(self, state):
         try:
-            return {"E": job_states.RUNNING, "R": job_states.RUNNING, "Q": job_states.QUEUED, "C": job_states.OK}.get(
-                state
-            )
+            return {
+                "E": job_states.RUNNING,
+                "R": job_states.RUNNING,
+                "Q": job_states.QUEUED,
+                "C": job_states.OK,
+            }.get(state)
         except KeyError:
             raise KeyError(f"Failed to map torque status code [{state}] to job state.")
 

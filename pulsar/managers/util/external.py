@@ -1,4 +1,6 @@
 from re import search
+from typing import Optional
+from typing_extensions import Literal
 
 EXTERNAL_ID_TYPE_ANY = None
 
@@ -9,7 +11,10 @@ EXTERNAL_ID_PATTERNS = [
 ]
 
 
-def parse_external_id(output, type=EXTERNAL_ID_TYPE_ANY):
+def parse_external_id(
+    output: str,
+    type: Optional[Literal["condor", "slurm", "torque"]] = EXTERNAL_ID_TYPE_ANY,
+) -> Optional[str]:
     """
     Attempt to parse the output of job submission commands for an external id.__doc__
 

@@ -19,11 +19,17 @@ from galaxy.util.resources import resource_string
 log = logging.getLogger(__name__)
 DEFAULT_SHELL = "/bin/bash"
 
-DEFAULT_JOB_FILE_TEMPLATE = Template(resource_string(__name__, "DEFAULT_JOB_FILE_TEMPLATE.sh"))
+DEFAULT_JOB_FILE_TEMPLATE = Template(
+    resource_string(__name__, "DEFAULT_JOB_FILE_TEMPLATE.sh")
+)
 
-SLOTS_STATEMENT_CLUSTER_DEFAULT = resource_string(__name__, "CLUSTER_SLOTS_STATEMENT.sh")
+SLOTS_STATEMENT_CLUSTER_DEFAULT = resource_string(
+    __name__, "CLUSTER_SLOTS_STATEMENT.sh"
+)
 
-MEMORY_STATEMENT_DEFAULT_TEMPLATE = Template(resource_string(__name__, "MEMORY_STATEMENT.sh"))
+MEMORY_STATEMENT_DEFAULT_TEMPLATE = Template(
+    resource_string(__name__, "MEMORY_STATEMENT.sh")
+)
 
 SLOTS_STATEMENT_SINGLE = """
 GALAXY_SLOTS="1"
@@ -101,15 +107,21 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     if job_instrumenter:
         del kwds["job_instrumenter"]
         working_directory = kwds.get("metadata_directory", kwds["working_directory"])
-        kwds["instrument_pre_commands"] = job_instrumenter.pre_execute_commands(working_directory) or ""
-        kwds["instrument_post_commands"] = job_instrumenter.post_execute_commands(working_directory) or ""
+        kwds["instrument_pre_commands"] = (
+            job_instrumenter.pre_execute_commands(working_directory) or ""
+        )
+        kwds["instrument_post_commands"] = (
+            job_instrumenter.post_execute_commands(working_directory) or ""
+        )
     if "memory_statement" not in kwds:
         kwds["memory_statement"] = MEMORY_STATEMENT_DEFAULT_TEMPLATE.safe_substitute(
             metadata_directory=metadata_directory
         )
 
     # Setup home directory var
-    kwds["home_directory"] = kwds.get("home_directory", os.path.join(kwds["working_directory"], "home"))
+    kwds["home_directory"] = kwds.get(
+        "home_directory", os.path.join(kwds["working_directory"], "home")
+    )
 
     template_params = OPTIONAL_TEMPLATE_PARAMS.copy()
     template_params.update(**kwds)
@@ -128,7 +140,9 @@ class DescribesScriptIntegrityChecks(Protocol):
     check_job_script_integrity_sleep: float
 
 
-def write_script(path, contents, job_io: DescribesScriptIntegrityChecks, mode=RWXR_XR_X) -> None:
+def write_script(
+    path, contents, job_io: DescribesScriptIntegrityChecks, mode=RWXR_XR_X
+) -> None:
     dir = os.path.dirname(path)
     if not os.path.exists(dir):
         os.makedirs(dir)
@@ -137,20 +151,32 @@ def write_script(path, contents, job_io: DescribesScriptIntegrityChecks, mode=RW
         f.write(unicodify(contents))
     os.chmod(path, mode)
     if job_io.check_job_script_integrity:
-        _handle_script_integrity(path, job_io.check_job_script_integrity_count, job_io.check_job_script_integrity_sleep)
+        _handle_script_integrity(
+            path,
+            job_io.check_job_script_integrity_count,
+            job_io.check_job_script_integrity_sleep,
+        )
 
 
-def _handle_script_integrity(path, check_job_script_integrity_count, check_job_script_integrity_sleep):
+def _handle_script_integrity(
+    path, check_job_script_integrity_count, check_job_script_integrity_sleep
+):
 
     script_integrity_verified = False
     for _ in range(check_job_script_integrity_count):
         try:
-            returncode = subprocess.call([path], env={"ABC_TEST_JOB_SCRIPT_INTEGRITY_XYZ": "1"})
+            returncode = subprocess.call(
+                [path], env={"ABC_TEST_JOB_SCRIPT_INTEGRITY_XYZ": "1"}
+            )
             if returncode == 42:
                 script_integrity_verified = True
                 break
 
-            log.debug("Script integrity error for file '%s': returncode was %d", path, returncode)
+            log.debug(
+                "Script integrity error for file '%s': returncode was %d",
+                path,
+                returncode,
+            )
 
             # Else we will sync and wait to see if the script becomes
             # executable.
@@ -168,7 +194,9 @@ def _handle_script_integrity(path, check_job_script_integrity_count, check_job_s
         time.sleep(check_job_script_integrity_sleep)
 
     if not script_integrity_verified:
-        raise Exception(f"Failed to write job script '{path}', could not verify job script integrity.")
+        raise Exception(
+            f"Failed to write job script '{path}', could not verify job script integrity."
+        )
 
 
 __all__ = (
