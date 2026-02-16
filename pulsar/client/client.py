@@ -1121,6 +1121,7 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
         gcp_job_params = self._gcp_job_params
         job = gcp_job_template(gcp_job_params)
         runnable = container_command_to_gcp_runnable("pulsar-container", pulsar_submit_container)
+        runnable.background = True
         job.task_groups[0].task_spec.runnables.append(runnable)
 
         if tool_container:
