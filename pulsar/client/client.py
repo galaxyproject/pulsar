@@ -1152,6 +1152,14 @@ class GcpMessageCoexecutionJobClient(BaseMessageCoexecutionJobClient, LaunchesGc
         super().__init__(destination_params, job_id, client_manager)
         self._setup_gcp_batch_client_properties(destination_params)
 
+    def kill(self):
+        if str(self.destination_params.get("delete_batch_job", "true")).lower() not in ("false", "0", "no"):
+            gcp_job_params = self._gcp_job_params
+            try:
+                delete_gcp_job(gcp_job_params.project_id, gcp_job_params.region, self._job_name, gcp_job_params.credentials_file)
+            except Exception:
+                log.warning("Failed to delete GCP Batch job %s", self._job_name)
+
 
 class GcpPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesGcpContainersMixin):
     """A client that co-executes pods via GCP and doesn't depend on amqp."""
@@ -1161,8 +1169,12 @@ class GcpPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesGc
         self._setup_gcp_batch_client_properties(destination_params)
 
     def kill(self):
-        gcp_job_params = self._gcp_job_params
-        delete_gcp_job(gcp_job_params.project_id, gcp_job_params.region, self._job_name, gcp_job_params.credentials_file)
+        if str(self.destination_params.get("delete_batch_job", "true")).lower() not in ("false", "0", "no"):
+            gcp_job_params = self._gcp_job_params
+            try:
+                delete_gcp_job(gcp_job_params.project_id, gcp_job_params.region, self._job_name, gcp_job_params.credentials_file)
+            except Exception:
+                log.warning("Failed to delete GCP Batch job %s", self._job_name)
 
     def clean(self):
         pass
