@@ -26,6 +26,9 @@ from typing_extensions import Literal
 
 from pulsar.managers.util.gcp_util import (
     batch_v1,
+    compute_machine_type,
+    convert_cpu_to_milli,
+    convert_memory_to_mib,
     ensure_client as ensure_gcp_client,
 )
 from pulsar.managers.util.tes import TesClient
@@ -124,7 +127,13 @@ class GcpJobParams(BaseModel):
         375, description="Size of the shared local SSD disk in GB (must be a multiple of 375). Maps to AllocationPolicy.Disk.size_gb."
     )
     machine_type: str = Field(
-        "n1-standard-1", description="Machine type for the job's VM."
+        "n1-standard-1", description="Machine type for the job's VM. Overridden by dynamic sizing when cores/mem are provided."
+    )
+    cores: Optional[str] = Field(
+        None, description="CPU cores requested (e.g., '4', '1.5', '500m'). When set, machine_type is computed dynamically."
+    )
+    mem: Optional[str] = Field(
+        None, description="Memory requested in GB (e.g., '8', '16'). When set, machine_type is computed dynamically."
     )
     labels: Optional[Dict[str, str]] = Field(None)
 
@@ -132,8 +141,23 @@ class GcpJobParams(BaseModel):
 def parse_gcp_job_params(params: dict) -> GcpJobParams:
     """
     Parse GCP job parameters from a dictionary (e.g., Galaxy's job destination/environment params).
+
+    If cores and/or mem are provided, machine_type is computed dynamically
+    using compute_machine_type() to select an appropriate GCP VM size.
     """
-    return GcpJobParams(**params)
+    gcp_params = GcpJobParams(**params)
+    if gcp_params.cores is not None or gcp_params.mem is not None:
+        cpu_milli = convert_cpu_to_milli(gcp_params.cores)
+        # mem is in GB from TPV, convert to MiB
+        if gcp_params.mem is not None:
+            try:
+                memory_mib = int(float(gcp_params.mem) * 1024)
+            except (ValueError, TypeError):
+                memory_mib = convert_memory_to_mib(gcp_params.mem)
+        else:
+            memory_mib = convert_memory_to_mib(None)
+        gcp_params.machine_type = compute_machine_type(cpu_milli, memory_mib)
+    return gcp_params
 
 
 def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
