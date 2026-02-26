@@ -51,8 +51,8 @@ class PulsarApp:
         self.__setup_user_auth_manager(conf)
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
-        self.__setup_bind_to_message_queue(conf)
         self.__recover_jobs()
+        self.__setup_bind_to_message_queue(conf)
         self.ensure_cleanup = conf.get("ensure_cleanup", False)
 
     def shutdown(self, timeout=None):
