@@ -8,8 +8,7 @@ port = 8913
 ## The interface(s) on which to listen. Use '0.0.0.0' for all interfaces.
 host = localhost
 
-## pem file to use to enable SSL. Set to * to generate one
-## automatically.
+## pem file to use to enable SSL.
 # ssl_pem = host.pem
 
 [app:main]

@@ -144,10 +144,6 @@ def _run_gunicorn(config_file, host, port, ssl_pem, daemon, pid_file, log_file):
         options["accesslog"] = log_file
 
     if ssl_pem:
-        if ssl_pem == "*":
-            # Auto-generate a self-signed certificate
-            _generate_ssl_cert("host.pem")
-            ssl_pem = "host.pem"
         if os.path.exists(ssl_pem):
             options["certfile"] = ssl_pem
             options["keyfile"] = ssl_pem
@@ -170,31 +166,6 @@ def _run_gunicorn(config_file, host, port, ssl_pem, daemon, pid_file, log_file):
 
     print("Starting Pulsar on %s" % bind)
     PulsarApplication(options).run()
-
-
-def _generate_ssl_cert(pem_path):
-    """Generate a self-signed SSL certificate (matching old Paste behavior)."""
-    try:
-        from OpenSSL import crypto
-    except ImportError:
-        print("pyOpenSSL is required to auto-generate SSL certificates. "
-              "Install it with: pip install pyOpenSSL", file=sys.stderr)
-        sys.exit(1)
-
-    key = crypto.PKey()
-    key.generate_key(crypto.TYPE_RSA, 2048)
-    cert = crypto.X509()
-    cert.get_subject().CN = "localhost"
-    cert.set_serial_number(1000)
-    cert.gmtime_adj_notBefore(0)
-    cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
-    cert.set_issuer(cert.get_subject())
-    cert.set_pubkey(key)
-    cert.sign(key, "sha256")
-
-    with open(pem_path, "wb") as f:
-        f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
-        f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
 
 
 if __name__ == "__main__":
