@@ -12,6 +12,12 @@ import signal
 import ssl
 import sys
 
+# On macOS, Objective-C runtime crashes when fork() is called after
+# certain frameworks are initialized. This must be set before any
+# imports that might trigger ObjC initialization.
+if sys.platform == "darwin":
+    os.environ.setdefault("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Serve Pulsar with gunicorn.")
@@ -47,8 +53,9 @@ def main(argv=None):
             pid_file = "pulsar.pid"
         if log_file is None:
             log_file = "pulsar.log"
+        _daemonize(pid_file, log_file)
 
-    _run_gunicorn(config_file, host, port, ssl_pem, args.daemon, pid_file, log_file)
+    _run_gunicorn(config_file, host, port, ssl_pem, pid_file, log_file)
 
 
 def _find_config_file():
@@ -83,6 +90,39 @@ def _read_server_config(config_file):
     return host, port, ssl_pem
 
 
+def _daemonize(pid_file, log_file):
+    """Double-fork to daemonize, write PID file, redirect stdio to log."""
+    # First fork
+    pid = os.fork()
+    if pid > 0:
+        # Parent waits briefly for child to set up, then exits
+        os._exit(0)
+
+    # Decouple from parent environment
+    os.setsid()
+
+    # Second fork
+    pid = os.fork()
+    if pid > 0:
+        os._exit(0)
+
+    # Write PID file
+    pid_file_abs = os.path.abspath(pid_file)
+    with open(pid_file_abs, "w") as f:
+        f.write(str(os.getpid()))
+
+    # Redirect stdio to log file
+    sys.stdout.flush()
+    sys.stderr.flush()
+    log_fd = os.open(log_file, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    dev_null = os.open(os.devnull, os.O_RDONLY)
+    os.dup2(dev_null, sys.stdin.fileno())
+    os.dup2(log_fd, sys.stdout.fileno())
+    os.dup2(log_fd, sys.stderr.fileno())
+    os.close(dev_null)
+    os.close(log_fd)
+
+
 def _stop_daemon(pid_file):
     """Stop a daemonized pulsar-serve process."""
     if not os.path.exists(pid_file):
@@ -109,7 +149,7 @@ def _stop_daemon(pid_file):
     return 0
 
 
-def _run_gunicorn(config_file, host, port, ssl_pem, daemon, pid_file, log_file):
+def _run_gunicorn(config_file, host, port, ssl_pem, pid_file, log_file):
     """Start gunicorn with the Pulsar WSGI app."""
     try:
         from gunicorn.app.base import BaseApplication
@@ -121,11 +161,6 @@ def _run_gunicorn(config_file, host, port, ssl_pem, daemon, pid_file, log_file):
     # Set PULSAR_CONFIG_FILE so init_webapp can find it
     os.environ["PULSAR_CONFIG_FILE"] = config_file
 
-    # On macOS, Objective-C runtime crashes when fork() is called after
-    # certain frameworks are initialized. This is the standard workaround.
-    if sys.platform == "darwin":
-        os.environ.setdefault("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
-
     bind = "%s:%s" % (host, port)
 
     options = {
@@ -133,12 +168,11 @@ def _run_gunicorn(config_file, host, port, ssl_pem, daemon, pid_file, log_file):
         "workers": 1,
         "threads": 4,
         "worker_class": "gthread",
+        # Allow generous time for app initialization (loading galaxy modules, etc.)
+        "timeout": 300,
+        "graceful_timeout": 300,
     }
 
-    if daemon:
-        options["daemon"] = True
-    if pid_file:
-        options["pidfile"] = pid_file
     if log_file:
         options["errorlog"] = log_file
         options["accesslog"] = log_file
