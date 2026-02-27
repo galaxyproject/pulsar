@@ -171,6 +171,10 @@ def _run_gunicorn(config_file, host, port, ssl_pem, pid_file, log_file):
         # Allow generous time for app initialization (loading galaxy modules, etc.)
         "timeout": 300,
         "graceful_timeout": 300,
+        # Pulsar sends job parameters as long query strings; disable request
+        # line and field size limits to match the old Paste server behavior.
+        "limit_request_line": 0,
+        "limit_request_field_size": 0,
     }
 
     if log_file:
