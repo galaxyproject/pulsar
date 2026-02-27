@@ -82,7 +82,7 @@ check_pulsar() {
         sleep 1;
     done
     sleep 2
-    cat paster.log
+    cat pulsar.log
 
     cd ..
 }

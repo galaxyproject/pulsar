@@ -5,14 +5,14 @@ cat <<EOF
 Usage:
 
 ${0##*/} --daemon
-    Start Pulsar server as daemon process (paster or circus):
+    Start Pulsar server as daemon process (gunicorn or circus):
 ${0##*/} --stop-daemon
-    Stop Pulsar daemon process (paster/chaussette) with circus use
+    Stop Pulsar daemon process (gunicorn) with circus use
     'circusctl quit'
 
 Extra Options:
 
-  -m|--mode   How to launch (paster,uwsgi,chaussette,circusd,webless).
+  -m|--mode   How to launch (gunicorn,uwsgi,chaussette,circusd,webless).
               In webless mode Pulsar will not attempt to bind to a port,
               this may be useful in conjuction with message queue driven
               Pulsar operation.
@@ -26,7 +26,7 @@ EOF
 while :
 do
     case "$1" in
-      -h|--help|-\?) 
+      -h|--help|-\?)
           show_help
           exit 0
           ;;
@@ -34,21 +34,21 @@ do
           if [ $# -gt 1 ]; then
               MODE=$2
               shift 2
-          else 
+          else
               echo "--mode requires explicit argument" 1>&2
               exit 1
-          fi          
+          fi
           ;;
       -c|--config)
           if [ $# -gt 1 ]; then
               PULSAR_CONFIG_DIR=$2
               shift 2
-          else 
+          else
               echo "--config requires explicit argument" 1>&2
               exit 1
           fi
           ;;
-      --) 
+      --)
           shift
           break
           ;;
@@ -76,7 +76,7 @@ then
     . $PULSAR_LOCAL_ENV
 fi
 
-if [ -d $PULSAR_VIRTUALENV ]; 
+if [ -d $PULSAR_VIRTUALENV ];
 then
     echo "Activating virtual environment $PULSAR_VIRTUALENV/bin/activate"
     . $PULSAR_VIRTUALENV/bin/activate
@@ -108,7 +108,7 @@ if [ -z "$PULSAR_CONFIG_FILE" ]; then
     export PULSAR_CONFIG_FILE
 fi
 
-if [ -z "$MODE" ]; 
+if [ -z "$MODE" ];
 then
     if hash uwsgi 2>/dev/null; then
         MODE="uwsgi"
@@ -117,7 +117,7 @@ then
     elif hash chaussette 2>/dev/null; then
         MODE="chaussette"
     else
-        MODE="paster"
+        MODE="gunicorn"
     fi
 fi
 
@@ -127,11 +127,15 @@ if [ "$MODE" == "uwsgi" ]; then
 elif [ "$MODE" == "circusd" ]; then
     circusd server.ini "$@"
 elif [ "$MODE" == "chaussette" ]; then
-    echo "Attempting to use chaussette instead of paster, you must specify port on command-line (--port 8913)."
+    echo "Attempting to use chaussette instead of gunicorn, you must specify port on command-line (--port 8913)."
     chaussette "paste:$PULSAR_CONFIG_FILE" "$@"
+elif [ "$MODE" == "gunicorn" ]; then
+    echo "Starting pulsar with command [pulsar-serve \"$PULSAR_CONFIG_FILE\" \"$@\"]"
+    pulsar-serve "$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "paster" ]; then
-    echo "Starting pulsar with command [paster server \"$PULSAR_CONFIG_FILE\" \"$@\"]"
-    paster serve "$PULSAR_CONFIG_FILE" "$@"
+    echo "WARNING: paster mode is deprecated. Using gunicorn instead." 1>&2
+    echo "Starting pulsar with command [pulsar-serve \"$PULSAR_CONFIG_FILE\" \"$@\"]"
+    pulsar-serve "$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "webless" ]; then
     if hash pulsar-main 2>/dev/null; then
         # Running from pip install since

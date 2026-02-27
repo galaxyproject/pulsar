@@ -155,9 +155,9 @@ Finally, install Pulsar's required dependencies into the virtual environment::
 
     $ pip install -r requirements.txt
 
-If using the standard webserver, it can be installed with::
+If using the standard webserver, install gunicorn with::
 
-    $ pip install Paste PasteScript
+    $ pip install gunicorn
 
 Launching Pulsar
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -177,7 +177,7 @@ Pulsar can be launched with::
     $ ./run.sh [--daemon]
 
 This daemon can be stopped using ``./run.sh --stop-daemon``. When run as a
-daemon, Pulsar will log to the file ``paster.log``.  If ``--daemon`` is not
+daemon, Pulsar will log to the file ``pulsar.log``.  If ``--daemon`` is not
 supplied, Pulsar will just run in the foreground.
 
 Under Windows, Pulsar can be started using::
@@ -198,7 +198,7 @@ private token has been configured it can be supplied using
 Pulsar Webservers
 ----------------------
 
-Pulsar's default webserver (if web dependencies are installed) is `Paste`_.
+Pulsar's default webserver (if web dependencies are installed) is `gunicorn`_.
 However, `uWSGI`_ or `circus`_ will be used instead, if found.
 
 A precompiled version of uWSGI can be installed with::
@@ -226,6 +226,6 @@ install <dependency_name>``.
 .. _venv: https://docs.python.org/3/library/venv.html
 .. _pip: https://pip.pypa.io/
 .. _Supervisord: http://supervisord.org/
-.. _Paste: https://pythonpaste.readthedocs.io/en/latest/
+.. _gunicorn: https://gunicorn.org/
 .. _uWSGI: https://uwsgi-docs.readthedocs.io/
 .. _circus: http://circus.readthedocs.org/

@@ -95,7 +95,6 @@ def __write_mock_ini(path, **kwds):
 def __mock_ini_contents(app="main", extra=""):
     return """
 [app:{}]
-paste.app_factory = pulsar.web.wsgi:app_factory
 foo=bar1
 {}
 """.format(app, extra)

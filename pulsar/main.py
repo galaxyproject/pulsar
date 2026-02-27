@@ -197,6 +197,8 @@ def apply_env_overrides_and_defaults(conf):
 
 
 def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, local_conf=None, config_dir=PULSAR_CONFIG_DIR):
+    if app_name is None:
+        app_name = DEFAULT_INI_APP
     """
     """
     if ini_path and local_conf is None:
