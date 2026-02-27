@@ -91,6 +91,7 @@ setup(
         pulsar-submit=pulsar.scripts.submit:main
         pulsar-finish=pulsar.scripts.finish:main
         pulsar-run=pulsar.scripts.run:main
+        pulsar-serve=pulsar.scripts.serve:main
         _pulsar-conda-init=pulsar.scripts._conda_init:main
         _pulsar-configure-slurm=pulsar.scripts._configure_slurm:main
         _pulsar-configure-galaxy-cvmfs=pulsar.scripts._configure_galaxy_cvmfs:main
@@ -106,7 +107,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'amqp': ['kombu'],
-        'web': ['Paste', 'PasteScript'],
+        'web': ['gunicorn'],
         'galaxy_extended_metadata': ['galaxy-job-execution', 'galaxy-util[template]'],
     },
     license="Apache License 2.0",

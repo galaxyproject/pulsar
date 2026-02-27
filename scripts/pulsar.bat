@@ -1,2 +1,2 @@
 
-paster serve server.ini %*
+pulsar-serve server.ini %*

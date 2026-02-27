@@ -89,14 +89,12 @@ autorestart     = true
 """)
 
 SERVER_CONFIG_TEMPLATE = string.Template("""[server:main]
-use = egg:Paste#http
 port = ${port}
 host = ${host}
 ## pem file to use to enable SSL.
 # ssl_pem = host.pem
 
 [app:main]
-paste.app_factory = pulsar.web.wsgi:app_factory
 app_config = %(here)s/app.yml
 
 ## Configure uWSGI (if used).
@@ -165,7 +163,7 @@ def main(argv=None):
                             help=HELP_SUPERVISOR,
                             skip_on_windows=True)
     arg_parser.add_argument("--wsgi_server",
-                            choices=["paster", "uwsgi"],
+                            choices=["gunicorn", "uwsgi"],
                             default=None,
                             help=HELP_WSGI_SERVER,
                             skip_on_windows=True)
@@ -247,7 +245,7 @@ def _print_pulsar_run(mode):
     elif mode == "uwsgi":
         print("    pulsar --mode %s" % mode)
         print("Any extra commands passed to pulsar will be forwarded along to uwsgi.")
-    elif mode != "paster":
+    elif mode != "gunicorn":
         print("    pulsar --mode %s" % mode)
     else:
         print("    pulsar")
@@ -272,7 +270,7 @@ def _determine_mode(args):
     elif args.mq:
         mode = "webless"
     else:
-        mode = "paster"
+        mode = "gunicorn"
     return mode
 
 

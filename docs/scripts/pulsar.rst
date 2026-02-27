@@ -17,15 +17,15 @@ main``) and delegate to that method.
 ``pulsar`` can be passed the ``--mode`` argument to explicitly describe which
 application should be used to run Pulsar. If ``--mode`` unspecified,
 ``pulsar``  will check the ``PATH`` and launch look for (in order) ``uwsgi``,
-``circusd``, ``chaussette``, and finally ``paster`` to determine which mode to
+``circusd``, ``chaussette``, and finally ``gunicorn`` to determine which mode to
 use.
 
 ------------------------
-``paster`` mode
+``gunicorn`` mode
 ------------------------
 
-Paste_ is installed with Pulsar and so is the fallback mode if none of the
-other web servers is available.
+gunicorn_ is installed with Pulsar (via the ``[web]`` extra) and so is the
+fallback mode if none of the other web servers is available.
 
 In this mode, Pulsar can be launched using the command::
 
@@ -38,8 +38,8 @@ the command::
     pulsar --daemon
 
 This will run Pulsar in daemon mode (i.e. run in the background). In daemon
-mode, paster creates a pid file in the current directory called ``paster.pid``
-and a log file ``paster.log``. The daemon can be stopped using the command::
+mode, gunicorn creates a pid file in the current directory called ``pulsar.pid``
+and a log file ``pulsar.log``. The daemon can be stopped using the command::
 
     pulsar --stop-daemon
 
@@ -64,24 +64,19 @@ these servers when ``--mode`` is specified as ``uwsgi``, ``circus``,
 ``chaussette`` respectively.
 
 See the documentation for the respective application for a full description of
-the arguments that can be used to configure that web server. Presumably each
-of these servers is more performant and better maintained than Paste_ but
-Paste_ is cross-platform and makes it trivial to configure SSL and so it
-remains the default for Pulsar for now.
+the arguments that can be used to configure that web server.
 
 ``pulsar`` (Windows)
 ======================================
 
-``pulsar`` is a lightweight wrapper around ``paster serve`` (see `docs
-<http://pythonpaste.org/script/#paster-serve>`__). It will check the current
-directory for a ``server.ini`` file and launch the described Pulsar server using Paste_.
+``pulsar`` is a lightweight wrapper around ``pulsar-serve`` which launches
+Pulsar using gunicorn_. It will check the current directory for a ``server.ini``
+file and launch the described Pulsar server.
 
 
-.. _Paste: http://pythonpaste.org/
+.. _gunicorn: https://gunicorn.org/
 .. _WSGI: http://en.wikipedia.org/wiki/Web_Server_Gateway_Interface
 .. _Cirucs: http://circus.readthedocs.org/
 .. _Chaussette: https://chaussette.readthedocs.org/
 .. _uWSGI: https://uwsgi-docs.readthedocs.org/
 
-
-	

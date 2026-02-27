@@ -5,7 +5,7 @@
 **Usage**::
 
     pulsar-config [-h] [--directory DIRECTORY] [--mq] [--no_logging]
-                  [--supervisor] [--wsgi_server {paster,uwsgi}]
+                  [--supervisor] [--wsgi_server {gunicorn,uwsgi}]
                   [--libdrmaa_path LIBDRMAA_PATH] [--host HOST]
                   [--private_token PRIVATE_TOKEN] [--port PORT] [--install]
                   [--force]
@@ -29,7 +29,7 @@ Initialize a directory with a minimal pulsar config.
                             its logging either.
       --supervisor          Write a supervisord configuration file for managing
                             pulsar out as well.
-      --wsgi_server {paster,uwsgi}
+      --wsgi_server {gunicorn,uwsgi}
                             Web server stack used to host Pulsar wsgi application.
       --libdrmaa_path LIBDRMAA_PATH
                             Configure Pulsar to submit jobs to a cluster via DRMAA
@@ -47,4 +47,4 @@ Initialize a directory with a minimal pulsar config.
       --install             Install optional dependencies required by specified
                             configuration (e.g. drmaa, supervisor, uwsgi, etc...).
       --force               Overwrite existing files if they already exist.
-    
+
