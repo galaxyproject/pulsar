@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from enum import Enum
 from typing import (
     Any,
@@ -1134,10 +1135,11 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
 
     @property
     def _job_name(self):
-        # currently just _k8s_job_prefix... which might be fine?
-        job_id = self.job_id
-        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
-        return job_name
+        if not hasattr(self, '_cached_job_name'):
+            job_id = self.job_id
+            timestamp = int(time.time())
+            self._cached_job_name = f"pulsar-{job_id}-{timestamp}"
+        return self._cached_job_name
 
     @property
     def _gcp_job_params(self):
