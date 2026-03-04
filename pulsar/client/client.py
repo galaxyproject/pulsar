@@ -1120,12 +1120,24 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
         assert pulsar_finish_container is None
         gcp_job_params = self._gcp_job_params
         job = gcp_job_template(gcp_job_params)
+
+        # Parse docker_extra_volumes (comma-separated Docker -v style strings)
+        # into a list for GCP Batch Runnable.Container.volumes
+        extra_volumes = []
+        raw = self.destination_params.get("docker_extra_volumes", "")
+        if raw:
+            extra_volumes = [v.strip() for v in raw.split(",") if v.strip()]
+
         runnable = container_command_to_gcp_runnable("pulsar-container", pulsar_submit_container)
         runnable.background = True
+        if extra_volumes:
+            runnable.container.volumes = extra_volumes
         job.task_groups[0].task_spec.runnables.append(runnable)
 
         if tool_container:
             tool_runnable = container_command_to_gcp_runnable("tool-container", tool_container)
+            if extra_volumes:
+                tool_runnable.container.volumes = extra_volumes
             job.task_groups[0].task_spec.runnables.append(tool_runnable)
 
         job_name = self._job_name
