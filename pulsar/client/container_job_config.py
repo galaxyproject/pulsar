@@ -8,6 +8,7 @@ documents how to map Galaxy job environment configuration objects to the contain
 infrastructure.
 """
 import base64
+import logging
 import re
 from typing import (
     Dict,
@@ -33,6 +34,8 @@ from pulsar.managers.util.gcp_util import (
 )
 from pulsar.managers.util.tes import TesClient
 
+
+log = logging.getLogger(__name__)
 
 DEFAULT_GCP_WALLTIME_LIMIT = 60 * 60 * 24  # Default wall time limit in seconds
 
@@ -160,6 +163,36 @@ def parse_gcp_job_params(params: dict) -> GcpJobParams:
     return gcp_params
 
 
+def _validate_ssd_size(disk_size_gb, machine_type):
+    """Validate and adjust local SSD size for the given machine type.
+
+    Each local SSD is 375 GB. N1 machines accept any count from 1-24,
+    but N2/N2D machines require an even number of SSDs (multiples of 2).
+    See: https://cloud.google.com/compute/docs/disks/local-ssd#choose_number_local_ssds
+
+    Returns the adjusted disk_size_gb (rounded up if necessary).
+    """
+    if disk_size_gb % 375 != 0:
+        disk_size_gb = ((disk_size_gb + 374) // 375) * 375
+        log.warning("disk_size must be a multiple of 375 GB, rounded up to %d GB", disk_size_gb)
+
+    ssd_count = disk_size_gb // 375
+    family = machine_type.split("-")[0].lower() if machine_type else ""
+
+    # N2 and N2D require an even number of local SSDs
+    if family in ("n2", "n2d") and ssd_count % 2 != 0:
+        ssd_count += 1
+        adjusted = ssd_count * 375
+        log.info(
+            "Adjusted local SSD size from %d GB to %d GB (%d SSDs) for machine type %s "
+            "(n2/n2d require an even number of local SSDs)",
+            disk_size_gb, adjusted, ssd_count, machine_type,
+        )
+        disk_size_gb = adjusted
+
+    return disk_size_gb
+
+
 def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
     ensure_gcp_client()
 
@@ -196,12 +229,12 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
     # The size of all the local SSDs in GB. Each local SSD is 375 GB,
     # so this value must be a multiple of 375 GB.
     # For example, for 2 local SSDs, set this value to 750 GB.
-    disk.size_gb = params.disk_size
-    assert disk.size_gb % 375 == 0
+    # The allowed number of local SSDs depends on the machine type:
+    # n1 allows any count 1-24, n2/n2d require an even number.
+    disk.size_gb = _validate_ssd_size(params.disk_size, params.machine_type)
 
     # Policies are used to define on what kind of virtual machines the tasks will run on.
     # The allowed number of local SSDs depends on the machine type for your job's VMs.
-    # In this case, we tell the system to use "n1-standard-1" machine type, which require to attach local ssd manually.
     # Read more about local disks here: https://cloud.google.com/compute/docs/disks/local-ssd#lssd_disk_options
     policy = batch_v1.AllocationPolicy.InstancePolicy()
     policy.machine_type = params.machine_type
