@@ -126,6 +126,9 @@ class GcpJobParams(BaseModel):
     machine_type: str = Field(
         "n1-standard-1", description="Machine type for the job's VM."
     )
+    custom_vm_image: Optional[str] = Field(
+        None, description="Custom VM boot disk image URI (e.g. 'projects/my-project/global/images/my-image'). When set, VMs boot from this image."
+    )
     labels: Optional[Dict[str, str]] = Field(None)
 
 
@@ -181,6 +184,11 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
     # Read more about local disks here: https://cloud.google.com/compute/docs/disks/local-ssd#lssd_disk_options
     policy = batch_v1.AllocationPolicy.InstancePolicy()
     policy.machine_type = params.machine_type
+
+    if params.custom_vm_image:
+        boot_disk = batch_v1.AllocationPolicy.Disk()
+        boot_disk.image = params.custom_vm_image
+        policy.boot_disk = boot_disk
 
     attached_disk = batch_v1.AllocationPolicy.AttachedDisk()
     attached_disk.new_disk = disk
