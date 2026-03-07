@@ -223,6 +223,9 @@ class ResultsCollector:
         log.info("collecting output {} with action {}".format(name, action))
         try:
             return self.output_collector.collect_output(self, output_type, action, name)
+        except (ImportError, MemoryError, SystemError):
+            # Genuine infrastructure failures must never be downgraded.
+            raise
         except Exception as e:
             if http_status_code(e) == 403:
                 # The Galaxy server authoritatively refused this upload (HTTP
@@ -231,6 +234,9 @@ class ResultsCollector:
                 # the dataset's state, retrying cannot help, and the tool itself
                 # ran, so this must not fail the job. Surface the path/output so
                 # the reason is visible rather than a generic failure.
+                #
+                # Checked before the OSError branch below because
+                # requests.HTTPError is itself an OSError subclass.
                 log.warning(
                     "Galaxy refused output '%s' (HTTP 403) at %s; not failing the job. "
                     "This is expected when the output dataset was purged or deleted "
@@ -239,6 +245,14 @@ class ResultsCollector:
                     getattr(action, "url", None) or getattr(action, "path", action),
                 )
                 return False
+            if isinstance(e, OSError) and not isinstance(e, FileNotFoundError):
+                # Infrastructure OSErrors (disk full, I/O errors) must fail the
+                # job rather than be silently downgraded to a warning. A missing
+                # output file (FileNotFoundError) is excluded: it is an expected,
+                # recoverable condition — e.g. a ``from_work_dir`` output a tool
+                # legitimately did not produce, which Galaxy represents as an
+                # empty dataset — so it flows through the normal handling below.
+                raise
             if _allow_collect_failure(output_type):
                 log.warning(
                     "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
