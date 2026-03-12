@@ -211,11 +211,26 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
 
     # override the staging directory since we cannot set the location of this mount path
     # the way we can in K8S based on @jmchilton's initial testing.
-    environment = batch_v1.Environment(
-        variables={
-            "PULSAR_CONFIG_OVERRIDE_STAGING_DIRECTORY": mount_path,
-        }
-    )
+    env_vars = {
+        "PULSAR_CONFIG_OVERRIDE_STAGING_DIRECTORY": mount_path,
+    }
+
+    # Inject GALAXY_SLOTS and GALAXY_MEMORY_MB so that Galaxy tool wrappers
+    # (which read $GALAXY_SLOTS for -t/--threads) use the full available cores
+    # on the right-sized VM.  Without this, CLUSTER_SLOTS_STATEMENT.sh falls
+    # through to GALAXY_SLOTS="1" on GCP Batch VMs (no SLURM/PBS/SGE env).
+    if params.cores is not None:
+        cpu_milli = convert_cpu_to_milli(params.cores)
+        galaxy_slots = max(1, cpu_milli // 1000)
+        env_vars["GALAXY_SLOTS"] = str(galaxy_slots)
+    if params.mem is not None:
+        try:
+            memory_mib = int(float(params.mem) * 1024)
+        except (ValueError, TypeError):
+            memory_mib = convert_memory_to_mib(params.mem)
+        env_vars["GALAXY_MEMORY_MB"] = str(memory_mib)
+
+    environment = batch_v1.Environment(variables=env_vars)
     task.environment = environment
 
     # Tasks are grouped inside a job using TaskGroups.
