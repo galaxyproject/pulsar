@@ -26,7 +26,9 @@ def ensure_client():
 
 def gcp_client(credentials_file: Optional[str]) -> "batch_v1.BatchServiceClient":
     if credentials_file:
-        credentials = service_account.Credentials.from_service_account_file(credentials_file)
+        credentials = service_account.Credentials.from_service_account_file(
+            credentials_file
+        )
         client = batch_v1.BatchServiceClient(credentials=credentials)
     else:
         client = batch_v1.BatchServiceClient()

@@ -55,16 +55,24 @@ class RetryActionExecutor:
             "Failed to execute %s, retrying in %s seconds.",
             description,
             interval,
-            exc_info=True
+            exc_info=True,
         )
 
 
 # Following functions are derived from Kombu versions @
 # https://github.com/celery/kombu/blob/master/kombu/utils/__init__.py
 # BSD License (https://github.com/celery/kombu/blob/master/LICENSE)
-def _retry_over_time(fun, catch, args=[], kwargs={}, errback=None,
-                     max_retries=None, interval_start=2, interval_step=2,
-                     interval_max=30):
+def _retry_over_time(
+    fun,
+    catch,
+    args=[],
+    kwargs={},
+    errback=None,
+    max_retries=None,
+    interval_start=2,
+    interval_step=2,
+    interval_max=30,
+):
     """Retry the function over and over until max retries is exceeded.
 
     For each retry we sleep a for a while before we try again, this interval
@@ -85,17 +93,20 @@ def _retry_over_time(fun, catch, args=[], kwargs={}, errback=None,
 
     """
     retries = 0
-    interval_range = __fxrange(interval_start,
-                               interval_max + interval_start,
-                               interval_step, repeatlast=True)
+    interval_range = __fxrange(
+        interval_start, interval_max + interval_start, interval_step, repeatlast=True
+    )
     for retries in count():
         try:
             return fun(*args, **kwargs)
         except catch as exc:
             if max_retries and retries >= max_retries:
                 raise
-            tts = float(errback(exc, interval_range, retries) if errback
-                        else next(interval_range))
+            tts = float(
+                errback(exc, interval_range, retries)
+                if errback
+                else next(interval_range)
+            )
             if tts:
                 sleep(tts)
 

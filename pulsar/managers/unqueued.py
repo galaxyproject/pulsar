@@ -1,71 +1,69 @@
 import _thread as thread
 import os
 import platform
-import tempfile
 import time
+from abc import ABC, abstractmethod
 from logging import getLogger
 from subprocess import Popen
+from typing import cast, Any, IO, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 
+from galaxy.util.commands import new_clean_env
 from pulsar.managers import status
 from pulsar.managers.base.directory import DirectoryBaseManager
 from pulsar.client.util import MonitorStyle
 from .util import kill_pid
+
+if TYPE_CHECKING:
+    from galaxy.tools.deps.dependencies import DependencyDescription
+    from lockfile import LockFile
+    from pulsar.core import PulsarApp
+    from pulsar.managers.status import StateLiteral
+    from threading import Lock
 
 log = getLogger(__name__)
 
 JOB_FILE_SUBMITTED = "submitted"
 JOB_FILE_PID = "pid"
 
-try:
-    from galaxy.util.commands import new_clean_env
-except ImportError:
-    # We can drop this once we require galaxy-util >=21.01
-    def new_clean_env():
-        """
-        Returns a minimal environment to use when invoking a subprocess
-        """
-        env = {}
-        for k in ("HOME", "PATH", "TMPDIR"):
-            if k in os.environ:
-                env[k] = os.environ[k]
-        if "TMPDIR" not in env:
-            env["TMPDIR"] = os.path.abspath(tempfile.gettempdir())
-        # Set LC_CTYPE environment variable to enforce UTF-8 file encoding.
-        # This is needed e.g. for Python < 3.7 where
-        # `locale.getpreferredencoding()` (also used by open() to determine the
-        # default file encoding) would return `ANSI_X3.4-1968` without this.
-        env["LC_CTYPE"] = "C.UTF-8"
-        return env
 
+class BaseUnqueuedManager(DirectoryBaseManager, ABC):
 
-class BaseUnqueuedManager(DirectoryBaseManager):
+    def _record_submission(self, job_id: str) -> None:
+        self._job_directory(job_id).store_metadata(JOB_FILE_SUBMITTED, "true")
 
-    def _record_submission(self, job_id):
-        self._job_directory(job_id).store_metadata(JOB_FILE_SUBMITTED, 'true')
-
-    def _get_status(self, job_id):
+    def _get_status(self, job_id: str) -> "StateLiteral":
         job_directory = self._job_directory(job_id)
         if self._was_cancelled(job_id):
-            job_status = status.CANCELLED
+            job_status = cast("StateLiteral", status.CANCELLED)
         elif job_directory.has_metadata(JOB_FILE_PID):
-            job_status = status.RUNNING
+            job_status = cast("StateLiteral", status.RUNNING)
         elif job_directory.has_metadata(JOB_FILE_SUBMITTED):
-            job_status = status.QUEUED
+            job_status = cast("StateLiteral", status.QUEUED)
         else:
-            job_status = status.COMPLETE
+            job_status = cast("StateLiteral", status.COMPLETE)
         return job_status
 
-    def _finish_execution(self, job_id):
+    def _finish_execution(self, job_id: str) -> None:
         self._job_directory(job_id).remove_metadata(JOB_FILE_SUBMITTED)
 
-    def _prepare_run(self, job_id, command_line, dependencies_description, env, setup_params=None):
+    def _prepare_run(
+        self,
+        job_id: str,
+        command_line: str,
+        dependencies_description: Optional["DependencyDescription"] = None,
+        env: List[Dict[str, str]] = [],
+        setup_params: Optional[Dict[str, str]] = None,
+    ) -> str:
         self._check_execution_with_tool_file(job_id, command_line)
         self._record_submission(job_id)
         if self._is_windows:
             # TODO: Don't ignore requirements and env without warning. Ideally
             # process them or at least warn about them being ignored.
             command_line = self._expand_command_line(
-                job_id, command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory
+                job_id,
+                command_line,
+                dependencies_description,
+                job_directory=self.job_directory(job_id).job_directory,
             )
         else:
             command_line = self._setup_job_file(
@@ -73,11 +71,11 @@ class BaseUnqueuedManager(DirectoryBaseManager):
                 command_line,
                 dependencies_description=dependencies_description,
                 env=env,
-                setup_params=setup_params
+                setup_params=setup_params,
             )
         return command_line
 
-    def _start_monitor(self, *args, **kwd):
+    def _start_monitor(self, *args: Any, **kwd: Any) -> None:
         monitor = kwd.get("monitor", MonitorStyle.BACKGROUND)
         if monitor == MonitorStyle.BACKGROUND:
             thread.start_new_thread(self._monitor_execution, args)
@@ -85,6 +83,10 @@ class BaseUnqueuedManager(DirectoryBaseManager):
             self._monitor_execution(*args)
         else:
             log.info("No monitoring job")
+
+    @abstractmethod
+    def _monitor_execution(self, *args: Any, **kwargs: Any) -> None:
+        ...
 
 
 # Job Locks (for status updates). Following methods are locked.
@@ -102,12 +104,13 @@ class Manager(BaseUnqueuedManager):
     local job runner).
 
     """
+
     manager_type = "unqueued"
 
-    def __init__(self, name, app, **kwds):
+    def __init__(self, name: str, app: "PulsarApp", **kwds):
         super().__init__(name, app, **kwds)
 
-    def __get_pid(self, job_id):
+    def __get_pid(self, job_id: str) -> Optional[int]:
         pid = None
         try:
             pid = self._job_directory(job_id).load_metadata(JOB_FILE_PID)
@@ -117,14 +120,14 @@ class Manager(BaseUnqueuedManager):
             pass
         return pid
 
-    def _get_job_lock(self, job_id):
+    def _get_job_lock(self, job_id: str) -> Union["Lock", "LockFile"]:
         return self._job_directory(job_id).lock()
 
-    def get_status(self, job_id):
+    def get_status(self, job_id: str) -> "StateLiteral":
         with self._get_job_lock(job_id):
             return self._get_status(job_id)
 
-    def kill(self, job_id):
+    def kill(self, job_id: str) -> None:
         log.info("Attempting to kill job with job_id %s" % job_id)
         job_lock = self._get_job_lock(job_id)
         with job_lock:
@@ -133,7 +136,9 @@ class Manager(BaseUnqueuedManager):
             log.info("Attempting to kill pid %s" % pid)
             kill_pid(pid)
 
-    def _monitor_execution(self, job_id, proc, stdout, stderr):
+    def _monitor_execution(
+        self, job_id: str, proc: Popen, stdout: IO, stderr: IO
+    ) -> None:
         try:
             proc.wait()
             stdout.close()
@@ -147,27 +152,27 @@ class Manager(BaseUnqueuedManager):
                 self._finish_execution(job_id)
 
     # with job lock
-    def _finish_execution(self, job_id):
+    def _finish_execution(self, job_id: str) -> None:
         super()._finish_execution(job_id)
         self._job_directory(job_id).remove_metadata(JOB_FILE_PID)
 
     # with job lock
-    def _get_status(self, job_id):
+    def _get_status(self, job_id: str) -> "StateLiteral":
         return super()._get_status(job_id)
 
     # with job lock
-    def _was_cancelled(self, job_id):
+    def _was_cancelled(self, job_id: str) -> Optional[bool]:
         return super()._was_cancelled(job_id)
 
     # with job lock
-    def _record_pid(self, job_id, pid):
+    def _record_pid(self, job_id: str, pid: int) -> None:
         self._job_directory(job_id).store_metadata(JOB_FILE_PID, str(pid))
 
     # with job lock
-    def _get_pid_for_killing_or_cancel(self, job_id):
+    def _get_pid_for_killing_or_cancel(self, job_id: str) -> Optional[int]:
         job_status = self._get_status(job_id)
         if job_status not in [status.RUNNING, status.QUEUED]:
-            return
+            return None
 
         pid = self.__get_pid(job_id)
         self._record_cancel(job_id)
@@ -175,7 +180,12 @@ class Manager(BaseUnqueuedManager):
             self._job_directory(job_id).remove_metadata(JOB_FILE_SUBMITTED)
         return pid
 
-    def _run(self, job_id, command_line, montior: MonitorStyle = MonitorStyle.BACKGROUND):
+    def _run(
+        self,
+        job_id: str,
+        command_line: str,
+        montior: MonitorStyle = MonitorStyle.BACKGROUND,
+    ) -> None:
         with self._get_job_lock(job_id):
             if self._was_cancelled(job_id):
                 return
@@ -185,19 +195,35 @@ class Manager(BaseUnqueuedManager):
             self._record_pid(job_id, proc.pid)
         self._start_monitor(job_id, proc, stdout, stderr, montior=montior)
 
-    def _proc_for_job_id(self, job_id, command_line):
+    def _proc_for_job_id(self, job_id: str, command_line: str) -> Tuple[Popen, IO, IO]:
         job_directory = self.job_directory(job_id)
         working_directory = job_directory.working_directory()
         stdout = self._open_job_standard_output(job_id)
         stderr = self._open_job_standard_error(job_id)
-        proc = execute(command_line=command_line,
-                       working_directory=working_directory,
-                       stdout=stdout,
-                       stderr=stderr)
+        proc = execute(
+            command_line=command_line,
+            working_directory=working_directory,
+            stdout=stdout,
+            stderr=stderr,
+        )
         return proc, stdout, stderr
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
-        command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env, setup_params=setup_params)
+    def launch(
+        self,
+        job_id: str,
+        command_line: str,
+        submit_params: Dict[str, str] = {},
+        dependencies_description: Optional["DependencyDescription"] = None,
+        env: List[Dict[str, str]] = [],
+        setup_params: Optional[Dict[str, str]] = None,
+    ) -> None:
+        command_line = self._prepare_run(
+            job_id,
+            command_line,
+            dependencies_description=dependencies_description,
+            env=env,
+            setup_params=setup_params,
+        )
         self._run(job_id, command_line)
 
 
@@ -206,19 +232,23 @@ class CoexecutionManager(BaseUnqueuedManager):
 
     Assume some process in another container will execute the command.
     """
+
     manager_type = "coexecution"
 
-    def __init__(self, name, app, **kwds):
+    def __init__(self, name: str, app: "PulsarApp", **kwds):
         super().__init__(name, app, **kwds)
         self.monitor = MonitorStyle(kwds.get("monitor", "background"))
 
-    def get_status(self, job_id):
+    def get_status(self, job_id: str) -> "StateLiteral":
         return self._get_status(job_id)
 
-    def kill(self, job_id):
-        log.info("Attempting to kill job with job_id %s - unimplemented in CoexecutionManager..." % job_id)
+    def kill(self, job_id: str) -> None:
+        log.info(
+            "Attempting to kill job with job_id %s - unimplemented in CoexecutionManager..."
+            % job_id
+        )
 
-    def _monitor_execution(self, job_id):
+    def _monitor_execution(self, job_id: str) -> None:
         return_code_path = self._return_code_path(job_id)
         try:
             while not os.path.exists(return_code_path):
@@ -231,13 +261,27 @@ class CoexecutionManager(BaseUnqueuedManager):
         finally:
             self._finish_execution(job_id)
 
-    def finish_execution(self, job_id):
+    def finish_execution(self, job_id: str) -> None:
         # expose this publicly for post-processing containers
         self._job_directory(job_id).remove_metadata(JOB_FILE_PID)
         self._finish_execution(job_id)
 
-    def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
-        command_line = self._prepare_run(job_id, command_line, dependencies_description=dependencies_description, env=env, setup_params=setup_params)
+    def launch(
+        self,
+        job_id: str,
+        command_line: str,
+        submit_params: Dict[str, str] = {},
+        dependencies_description: Optional["DependencyDescription"] = None,
+        env: List[Dict[str, str]] = [],
+        setup_params: Optional[Dict[str, str]] = None,
+    ) -> None:
+        command_line = self._prepare_run(
+            job_id,
+            command_line,
+            dependencies_description=dependencies_description,
+            env=env,
+            setup_params=setup_params,
+        )
         job_directory = self.job_directory(job_id)
         working_directory = job_directory.working_directory()
         command_line = "cd '{}'; sh {}".format(working_directory, command_line)
@@ -249,9 +293,9 @@ class CoexecutionManager(BaseUnqueuedManager):
         self._start_monitor(job_id, monitor=monitor)
 
 
-def execute(command_line, working_directory, stdout, stderr):
+def execute(command_line: str, working_directory: str, stdout: IO, stderr: IO) -> Popen:
     preexec_fn = None
-    if platform.system() != 'Windows':
+    if platform.system() != "Windows":
         preexec_fn = os.setpgrp
     proc = Popen(
         args=command_line,
@@ -265,4 +309,4 @@ def execute(command_line, working_directory, stdout, stderr):
     return proc
 
 
-__all__ = ['Manager']
+__all__ = ["Manager"]

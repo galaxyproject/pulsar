@@ -2,6 +2,7 @@ import configparser
 import inspect
 import logging
 import os
+from typing import List
 
 import pulsar.managers
 from pulsar.managers import stateful
@@ -52,7 +53,7 @@ def build_managers(app, conf):
 
 def _populate_manager_descriptions_from_ini(manager_descriptions, job_managers_config):
     config = configparser.ConfigParser()
-    config.readfp(open(job_managers_config))
+    config.read_file(open(job_managers_config))
     for section in config.sections():
         if not section.startswith(MANAGER_PREFIX):
             continue
@@ -83,7 +84,7 @@ def _build_manager(manager_class, app, name=DEFAULT_MANAGER_NAME, manager_option
     return stateful.StatefulManagerProxy(manager_class(name, app, **manager_options), **manager_options)
 
 
-def _get_manager_modules():
+def _get_manager_modules() -> List[str]:
     """
 
     >>> 'pulsar.managers.queued_pbs' in _get_manager_modules()

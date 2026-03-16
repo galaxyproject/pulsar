@@ -1,4 +1,5 @@
 """Interface layer for pykube library shared between Galaxy and Pulsar."""
+
 import logging
 import os
 import re
@@ -7,25 +8,26 @@ import uuid
 try:
     from pykube.config import KubeConfig
     from pykube.http import HTTPClient
-    from pykube.objects import (
-        Job,
-        Pod
-    )
+    from pykube.objects import Job, Pod
 except ImportError as exc:
     KubeConfig = None
     Job = None
     Pod = None
-    K8S_IMPORT_MESSAGE = ('The Python pykube package is required to use '
-                          'this feature, please install it or correct the '
-                          'following error:\nImportError %s' % str(exc))
+    K8S_IMPORT_MESSAGE = (
+        "The Python pykube package is required to use "
+        "this feature, please install it or correct the "
+        "following error:\nImportError %s" % str(exc)
+    )
 
 log = logging.getLogger(__name__)
 
 DEFAULT_JOB_API_VERSION = "batch/v1"
 DEFAULT_NAMESPACE = "default"
-INSTANCE_ID_INVALID_MESSAGE = ("Galaxy instance [%s] is either too long "
-                               "(>20 characters) or it includes non DNS "
-                               "acceptable characters, ignoring it.")
+INSTANCE_ID_INVALID_MESSAGE = (
+    "Galaxy instance [%s] is either too long "
+    "(>20 characters) or it includes non DNS "
+    "acceptable characters, ignoring it."
+)
 
 
 def ensure_pykube():
@@ -39,9 +41,9 @@ def pykube_client_from_dict(params):
     else:
         config_path = params.get("k8s_config_path")
         if config_path is None:
-            config_path = os.environ.get('KUBECONFIG', None)
+            config_path = os.environ.get("KUBECONFIG", None)
         if config_path is None:
-            config_path = '~/.kube/config'
+            config_path = "~/.kube/config"
         pykube_client = HTTPClient(KubeConfig.from_file(config_path))
     return pykube_client
 
@@ -63,8 +65,8 @@ def produce_unique_k8s_job_name(app_prefix=None, instance_id=None, job_id=None):
 def pull_policy(params):
     # If this doesn't validate it returns None, that seems odd?
     if "k8s_pull_policy" in params:
-        if params['k8s_pull_policy'] in ["Always", "IfNotPresent", "Never"]:
-            return params['k8s_pull_policy']
+        if params["k8s_pull_policy"] in ["Always", "IfNotPresent", "Never"]:
+            return params["k8s_pull_policy"]
     return None
 
 
@@ -83,22 +85,22 @@ def _find_object_by_name(clazz, pykube_api, object_name, namespace=None):
 
     objs = clazz.objects(pykube_api).filter(**filter_kwd)
     obj = None
-    if len(objs.response['items']) > 0:
-        obj = clazz(pykube_api, objs.response['items'][0])
+    if len(objs.response["items"]) > 0:
+        obj = clazz(pykube_api, objs.response["items"][0])
     return obj
 
 
 def stop_job(job, cleanup="always"):
-    job_failed = (job.obj['status']['failed'] > 0
-                  if 'failed' in job.obj['status'] else False)
+    job_failed = (
+        job.obj["status"]["failed"] > 0 if "failed" in job.obj["status"] else False
+    )
     # Scale down the job just in case even if cleanup is never
     job.scale(replicas=0)
-    if (cleanup == "always" or
-            (cleanup == "onsuccess" and not job_failed)):
+    if cleanup == "always" or (cleanup == "onsuccess" and not job_failed):
         delete_options = {
             "apiVersion": "v1",
             "kind": "DeleteOptions",
-            "propagationPolicy": "Background"
+            "propagationPolicy": "Background",
         }
         r = job.api.delete(json=delete_options, **job.api_kwargs())
         job.api.raise_for_status(r)
@@ -106,14 +108,14 @@ def stop_job(job, cleanup="always"):
 
 def job_object_dict(params, job_name, spec):
     k8s_job_obj = {
-        "apiVersion": params.get('k8s_job_api_version', DEFAULT_JOB_API_VERSION),
+        "apiVersion": params.get("k8s_job_api_version", DEFAULT_JOB_API_VERSION),
         "kind": "Job",
         "metadata": {
-                # metadata.name is the name of the pod resource created, and must be unique
-                # http://kubernetes.io/docs/user-guide/configuring-containers/
-                "name": job_name,
-                "namespace": params.get('k8s_namespace', DEFAULT_NAMESPACE),
-                "labels": {"app": job_name}
+            # metadata.name is the name of the pod resource created, and must be unique
+            # http://kubernetes.io/docs/user-guide/configuring-containers/
+            "name": job_name,
+            "namespace": params.get("k8s_namespace", DEFAULT_NAMESPACE),
+            "labels": {"app": job_name},
         },
         "spec": spec,
     }
@@ -133,7 +135,7 @@ def galaxy_instance_id(params):
     setup of a Job that is being recovered or restarted after a downtime/reboot.
     """
     if "k8s_galaxy_instance_id" in params:
-        raw_value = params['k8s_galaxy_instance_id']
+        raw_value = params["k8s_galaxy_instance_id"]
         if re.match(r"(?!-)[a-z\d-]{1,20}(?<!-)$", raw_value):
             return raw_value
         else:
