@@ -41,7 +41,7 @@ from pulsar.managers.util.gcp_util import (
 from pulsar.client.container_job_config import (
     CoexecutionContainerCommand,
     container_command_to_gcp_runnable,
-    gcp_galaxy_instance_id,
+    gcp_job_id_prefix,
     gcp_job_request,
     gcp_job_template,
     parse_gcp_job_params,
@@ -1110,7 +1110,7 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
         return f"/mnt/disks/{ssd_name}"
 
     def _setup_gcp_batch_client_properties(self, destination_params):
-        self.instance_id = gcp_galaxy_instance_id(destination_params)
+        self.job_id_prefix = gcp_job_id_prefix(destination_params)
 
     def _launch_containers(
         self,
@@ -1137,8 +1137,9 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
     def _job_name(self):
         if not hasattr(self, '_cached_job_name'):
             job_id = self.job_id
+            prefix = getattr(self, 'job_id_prefix', 'pulsar')
             timestamp = int(time.time())
-            self._cached_job_name = f"pulsar-{job_id}-{timestamp}"
+            self._cached_job_name = f"{prefix}-{job_id}-{timestamp}"
         return self._cached_job_name
 
     @property

@@ -295,8 +295,8 @@ def container_command_to_gcp_runnable(name: str, container: CoexecutionContainer
     return runnable
 
 
-def gcp_galaxy_instance_id(destination_params: Dict[str, str]) -> Optional[str]:
-    return destination_params.get("galaxy_instance_id")
+def gcp_job_id_prefix(destination_params: Dict[str, str]) -> str:
+    return destination_params.get("job_id_prefix") or destination_params.get("galaxy_instance_id") or "pulsar"
 
 
 class BasicAuth(BaseModel):
