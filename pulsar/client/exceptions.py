@@ -6,11 +6,13 @@ Pulsar client exceptions
 class PulsarClientTransportError(Exception):
     TIMEOUT = 'timeout'
     CONNECTION_REFUSED = 'connection_refused'
+    NOT_200 = 'not_200'
     UNKNOWN = 'unknown'
 
     messages = {
         TIMEOUT: 'Connection timed out',
         CONNECTION_REFUSED: 'Connection refused',
+        NOT_200: 'Response code not 200',
         UNKNOWN: 'Unknown transport error'
     }
 
