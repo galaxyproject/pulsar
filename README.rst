@@ -55,7 +55,7 @@ available it can be quickly download and a test job run with::
     $ pulsar-check           # runs a test job
 
 Please note that as of the 0.14.0 release, Pulsar no longer supports any version
-of Python 2. The minimum supported Python version is 3.5.
+of Python 2. The minimum supported Python version is 3.5. Python 3.12 and above are not currently supported.
 
 The `configuration documentation
 <https://pulsar.readthedocs.org/en/latest/configure.html>`__
