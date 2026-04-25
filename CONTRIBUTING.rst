@@ -2,9 +2,8 @@
 Contributing
 ============
 
-Please note that this project is released with a `Contributor Code of Conduct
-<https://pulsar.readthedocs.org/en/latest/conduct.html>`. By participating in
-this project you agree to abide by its terms.
+Please note that this project is released with a `Contributor Code of Conduct <https://pulsar.readthedocs.org/en/latest/conduct.html>`_. By participating in
+this project, you agree to abide by its terms.
 
 Contributions are welcome, and they are greatly appreciated! Every
 little bit helps, and credit will always be given.
@@ -21,7 +20,7 @@ Report bugs at https://github.com/galaxyproject/pulsar/issues.
 
 If you are reporting a bug, please include:
 
-* Your operating system name and version, versions of other relevant software 
+* Your operating system name and version, along with versions of any other relevant software, 
   such as Galaxy or Docker.
 * Links to relevant tools.
 * Any details about your local setup that might be helpful in troubleshooting.
@@ -31,19 +30,19 @@ Fix Bugs
 ~~~~~~~~
 
 Look through the GitHub issues for bugs. Most things there are up for grabs
-but the tag "Help Wanted" may be particulary good places to start.
+but the tag "Help Wanted" may be a particularly good place to start.
 
 Implement Features
 ~~~~~~~~~~~~~~~~~~
 
 Look through the GitHub issues for features (tagged with "enhancement").
 Again, most things there are up for grabs but the tag "Help Wanted" may be
-particulary good places to start.
+a particularly good place to start.
 
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-Pulsar is cronically under documented, whether as part of the
+Pulsar is chronically under documented, whether as part of the
 official Pulsar docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
@@ -55,7 +54,7 @@ The best way to send feedback is to file an issue at https://github.com/galaxypr
 If you are proposing a feature:
 
 * Explain in detail how it would work.
-* Keep the scope as narrow as possible, to make it easier to implement.
+* Keep the scope as narrow as possible to make it easier to implement.
 * This will hopefully become a community-driven project and contributions
   are welcome :)
 
@@ -89,15 +88,15 @@ Ready to contribute? Here's how to set up `pulsar` for local development.
 
     $ make lint
 
-and ensure the tests look good. The easiest way to test is with Docker if it is
+And ensure the tests look good. The easiest way to test is with Docker if it is
 available (given the need to test commands with DRMAA, condor, sudo, etc...).::
 
     $ docker run -v `pwd`:/pulsar -t jmchilton/pulsar_testing
 
 This will mount your copy of `pulsar` in a Docker container preconfigured with all
 optional dependencies needed to run a wide range of integration tests. If Docker
-is to much of an ordeal many of Pulsar's tests can be executed by simply running 
-``pytest`` from within an ``virtualenv`` configured as explained above.::
+is too much of an ordeal, many of Pulsar's tests can be executed by simply running 
+``pytest`` from within a ``virtualenv`` configured as explained above.::
 
     $ make tests
 

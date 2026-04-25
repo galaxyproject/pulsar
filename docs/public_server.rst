@@ -4,14 +4,14 @@ Configuring a Public Pulsar Server
 
 (This is highly experimental and not recommended at this time.)
 
-An Pulsar server can be pointed at a Galaxy toolbox XML file and opened
-to the world. By default, an Pulsar is allowed to run anything Galaxy (or
+A Pulsar server can be pointed at a Galaxy toolbox XML file and opened
+to the world. By default, a Pulsar is allowed to run anything Galaxy (or
 other client) sends it. The toolbox and referenced tool files are used
-to restrict what what the Pulsar will run.
+to restrict what the Pulsar will run.
 
 This can be sort of thought of as web services defined by Galaxy tool
 files - with all the advantages (dead simple configuration for
-clients, ability to hide details related date and computation) and
+clients, ability to hide details related to date and computation) and
 disadvantages (lack of reproducibility if the Pulsar server goes away,
 potential lack of transparency).
 
@@ -21,10 +21,10 @@ Securing a Public Pulsar
 The following options should be set in ``server.ini`` to configure a
 public `Pulsar` server.
 
-- ``assign_ids=uuid`` - By default the `Pulsar` will just the ids Galaxy
+- ``assign_ids=uuid`` - By default, the `Pulsar` will just use the ids Galaxy
   instances. Setting this setting to ``uuid`` will result in each job
   being assigned a UUID, ensuring different clients will not and
-  cannot interfer with each other.
+  cannot interfere with each other.
 
 - ``tool_config_files=/path/to/tools.xml`` - As noted above, this is used to
   restrict what tools clients can run. All tools on public Pulsar servers
@@ -35,9 +35,9 @@ public `Pulsar` server.
 Writing Secure Tools
 --------------------
 
-Validating in this fashion is complicated and potentially error prone,
-so it is advisable to keep command-lines as simple as
-possible. configfiles and reorganizing parameter handling in wrappers
+Validating in this fashion is complicated and potentially error-prone,
+so it is advisable to keep command lines as simple as
+possible. Using ``configfiles`` arguments (in wrapper scripts) and reorganizing parameter handling in wrapper
 scripts can assist in this.
 
 Consider the following simple example:
@@ -59,7 +59,7 @@ Consider the following simple example:
          (options, args) = parser.parse_args()
 
 Even this simple example is easier to validate and secure if it is
-reworked as so:
+reworked as such:
 
 ``tool.xml``::
     

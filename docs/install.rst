@@ -6,13 +6,13 @@ Installing Pulsar
 
 .. tip::
 
-    This documentation covers installing Pulsar by hand. The tutorial
+    This documentation covers installing `Pulsar` by hand. The tutorial
     `Running Jobs on Remote Resources with Pulsar <https://training.galaxyproject.org/training-material/topics/admin/tutorials/pulsar/tutorial.html>`_
     in the `Galaxy Training Network <https://training.galaxyproject.org/>`_
     contains a step-by-step guide for installing Pulsar using `Ansible
     <http://www.ansible.com/>`_.
 
-There are two primary ways to deploy Pulsar. The newer and preferred
+There are two primary ways to deploy `Pulsar`. The newer and preferred
 method is to install Pulsar from `PyPI <pypi.python.org/pypi/pulsar-app>`__
 using the standard pip_ and venv_ Python tools.
 
@@ -29,7 +29,7 @@ Both methods presented here require a Python 3.5 (or later) runtime for either
 no longer supported as of the 0.14.0 release of Pulsar**.
 
 These instructions also require venv_. Open a console on your machine and
-type ``python3 -m venv`` - if the module is missing you will need to install it.
+type ``python3 -m venv`` - if the module is missing, you will need to install it.
 It is part of any full Python installation, but some Linux distributions (such
 as Debian and its derivatives) package it separately. On Debian systems, you can
 
@@ -117,7 +117,7 @@ Building a container image for Kubernetes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, the chart uses ``galaxy/pulsar-kubernetes`` on Docker Hub as the
-container image. To update or customize this image, use the Kubernetes-specific
+container image. To update or customise this image, use the Kubernetes-specific
 Dockerfile (``docker/kubernetes/Dockerfile``)::
 
     $ cd docker/kubernetes
@@ -155,7 +155,7 @@ Finally, install Pulsar's required dependencies into the virtual environment::
 
     $ pip install -r requirements.txt
 
-If using the standard webserver, install gunicorn with::
+If using the standard web server, install gunicorn with::
 
     $ pip install gunicorn
 
@@ -192,13 +192,13 @@ job can be submitted using the command::
 If Pulsar's ``server.ini`` has been modified and it is not running on the
 default port ``8913``, ``run_client_tests.py`` should be called with an
 explicit URL using the argument ``--url=http://localhost:8913``. Likewise if a
-private token has been configured it can be supplied using
+private token has been configured, it can be supplied using
 ``--private_token=<token>``.
 
 Pulsar Webservers
 ----------------------
 
-Pulsar's default webserver (if web dependencies are installed) is `gunicorn`_.
+Pulsar's default web server (if web dependencies are installed) is `gunicorn`_.
 However, `uWSGI`_ or `circus`_ will be used instead, if found.
 
 A precompiled version of uWSGI can be installed with::
@@ -216,7 +216,7 @@ Several Python packages must be installed to run the Pulsar server. The core set
 of required dependencies were installed during the Pulsar installation in the
 previous section. Additional dependencies are required for features such
 submitting to a cluster (``drmaa``), communicating via message queue
-(``kombu``), etc.... Most of the time these can just be installed with ``pip
+(``kombu``), etc. Most of the time, these can just be installed with ``pip
 install <dependency_name>``.
 
 .. TODO better optional dependency handling/docs

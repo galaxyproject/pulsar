@@ -22,6 +22,7 @@ sphinxcontrib-apidoc
 # Used for code checking.
 pyflakes
 flake8
+tox
 
 mypy
 types-paramiko

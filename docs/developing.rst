@@ -42,7 +42,7 @@ are fine.
 
   * Review `Test PyPI site <https://testpypi.python.org/pypi/pulsar-app>`_
     for errors.
-  * Test intall ``pip install -i https://testpypi.python.org/pypi pulsar-app``.
+  * Test install ``pip install -i https://testpypi.python.org/pypi pulsar-app``.
 
   This process will push packages to test PyPI, allow review, publish
   to production PyPI, tag the git repository, and push the tag upstream.
