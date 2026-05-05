@@ -1,5 +1,6 @@
 from getpass import getuser
 from json import dumps
+import subprocess
 
 from .base.base_drmaa import BaseDrmaaManager
 from .util.sudo import sudo_popen
@@ -27,6 +28,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         self.chown_working_directory_script = _handle_default(kwds.get('chown_working_directory_script', None), "chown_working_directory")
         self.drmaa_kill_script = _handle_default(kwds.get('drmaa_kill_script', None), "drmaa_kill")
         self.drmaa_launch_script = _handle_default(kwds.get('drmaa_launch_script', None), "drmaa_launch")
+        self.user_mapping_script = kwds.get('user_mapping_script', None)
         self.production = str(kwds.get('production', "true")).lower() != "false"
         self.reclaimed = {}
         self.user_map = {}
@@ -47,6 +49,14 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         log.info("Submit as user %s" % user)
         if not user:
             raise Exception("Must specify user submit parameter with this manager.")
+        if self.user_mapping_script:
+            try:
+                mapped_user = subprocess.check_output([self.user_mapping_script, user], text=True).strip()
+                log.info("Mapped user %s to %s" % (user, mapped_user))
+                user = mapped_user
+            except subprocess.CalledProcessError as e:
+                log.error(f"Could not map user {user}: {e.stderr}")
+                raise Exception("User mapping script failed")
         self.__change_ownership(job_id, user)
         external_id = self.__launch(job_attributes_file, user).strip()
         self.user_map[external_id] = user
