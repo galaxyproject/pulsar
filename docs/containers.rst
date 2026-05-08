@@ -7,7 +7,7 @@ Containers
 Galaxy and Shared File Systems
 -------------------------------
 
-`Galaxy` can be configured to run `Pulsar` with traditional job managers and just submit jobs
+Galaxy can be configured to run Pulsar with traditional job managers and just submit jobs
 that launch containers. Simply setting ``docker_enabled`` on the job environment in Galaxy's
 ``job_conf.yml`` file will accomplish this.
 
@@ -32,11 +32,11 @@ These two scenarios and some of their limitations are described below.
 
    Deployment diagram for Galaxy's Kubernetes job runner.
 
-The most glaring disadvantage of not using `Pulsar` in the above scenarios is that Galaxy must
+The most glaring disadvantage of not using Pulsar in the above scenarios is that Galaxy must
 be deployed in the same container with the same mounts as the job execution environment. This
 prevents leveraging external cloud compute and multi-cloud compute, and makes it unsuitable for
 common Galaxy use cases such as large public instances, Galaxy's leveraging institutional non-cloud
-storage, etc. Even within the same cloud, a large shared file system can be an expensive prospect. `Pulsar` may allow the use of buckets and such, making it more tractable. Finally, Pulsar offers more
+storage, etc. Even within the same cloud, a large shared file system can be an expensive prospect. Pulsar may allow the use of buckets and such, making it more tractable. Finally, Pulsar offers more
 options in terms of how to collect metadata, which can have big implications in terms of metadata.
 
 Co-execution
@@ -74,12 +74,12 @@ when available, while the `Pulsar container` expects a return code from the tool
 staging out the job. In the GA4GH TES case, three containers are used instead of two, but they run sequentially
 one at a time.
 
-Typically, a MQ is needed to communicate between `Pulsar` and `Galaxy`, even though the status of the job
-could potentially be inferred from the container scheduling environment. This is because `Pulsar` needs
+Typically, a MQ is needed to communicate between Pulsar and Galaxy, even though the status of the job
+could potentially be inferred from the container scheduling environment. This is because Pulsar needs
 to transfer information about job state, etc. after the job is complete.
 
 More experimentally this shouldn't be needed if extended metadata is being collected because then the
-whole job state that needs to be ingested by `Galaxy` should be populated as part of the job. In this case
+whole job state that needs to be ingested by Galaxy should be populated as part of the job. In this case
 it may be possible to get away without a `MQ`.
 
 .. figure:: pulsar_k8s_coexecution_deployment.plantuml.svg

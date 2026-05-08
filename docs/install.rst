@@ -6,19 +6,19 @@ Installing Pulsar
 
 .. tip::
 
-    This documentation covers installing `Pulsar` by hand. The tutorial
+    This documentation covers installing Pulsar by hand. The tutorial
     `Running Jobs on Remote Resources with Pulsar <https://training.galaxyproject.org/training-material/topics/admin/tutorials/pulsar/tutorial.html>`_
     in the `Galaxy Training Network <https://training.galaxyproject.org/>`_
     contains a step-by-step guide for installing Pulsar using `Ansible
     <http://www.ansible.com/>`_.
 
-There are two primary ways to deploy `Pulsar`. The newer and preferred
+There are two primary ways to deploy Pulsar. The newer and preferred
 method is to install Pulsar from `PyPI <pypi.python.org/pypi/pulsar-app>`__
 using the standard pip_ and venv_ Python tools.
 
 The older method also requires these tools to install Pulsar's dependencies
 but Pulsar itself is served directly from a clone of the Pulsar source tree -
-this mirrors how `Galaxy`_ is most typically deployed. This may be beneficial
+this mirrors how Galaxy_ is most typically deployed. This may be beneficial
 during Pulsar development and is required for certain experimental features such
 as Mesos support.
 

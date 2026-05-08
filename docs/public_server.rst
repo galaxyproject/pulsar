@@ -19,9 +19,9 @@ Securing a Public Pulsar
 -----------------------------
 
 The following options should be set in ``server.ini`` to configure a
-public `Pulsar` server.
+public Pulsar server.
 
-- ``assign_ids=uuid`` - By default, the `Pulsar` will just use the ids Galaxy
+- ``assign_ids=uuid`` - By default, the Pulsar will just use the ids Galaxy
   instances. Setting this setting to ``uuid`` will result in each job
   being assigned a UUID, ensuring different clients will not and
   cannot interfere with each other.
