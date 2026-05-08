@@ -136,7 +136,8 @@ authorization::
             - xxx
 
 
-See `plugins folder
+See the `plugins folder
+<https://github.com/galaxyproject/pulsar/blob/master/pulsar/user_auth/methods>`_
 <https://github.com/galaxyproject/pulsar/blob/master/pulsar/user_auth/methods>`_
 for available plugins and their parameters.
 
