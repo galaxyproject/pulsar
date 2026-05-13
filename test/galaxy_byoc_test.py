@@ -1,5 +1,6 @@
 """Tests for ``pulsar-config register-with-galaxy`` orchestration."""
 
+import base64
 import importlib.util
 import json
 import os
@@ -28,8 +29,6 @@ BOOTSTRAP_TOKEN = "one-shot-from-galaxy"
 
 
 def _b64url(payload: dict) -> str:
-    import base64
-
     raw = json.dumps(payload).encode("utf-8")
     return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 

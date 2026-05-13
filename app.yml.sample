@@ -104,6 +104,15 @@
 ## configured in Galaxy's job_conf.yml if set.
 #relay_topic_prefix: production
 
+## On startup, publish a static capability snapshot (staging dirs, dependency
+## resolvers, container runtimes available, manager type) to the relay topic
+## "pulsar_capabilities[_<manager>]". Galaxy can read this to auto-fill
+## destination params and to refuse jobs that ask for capabilities this Pulsar
+## doesn't have. Advisory: a publish failure does not block startup, and
+## Galaxy keeps using operator-supplied params if no snapshot is available.
+## Set to false to disable the publish entirely.
+#message_queue_publish_capabilities: true
+
 ## Pulsar loops over waiting for queue messages for a short time before checking
 ## to see if it has been instructed to shut down. By default this is 0.2
 ## seconds. This value is used as the value of the 'timeout' parameter to

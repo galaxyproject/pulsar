@@ -23,8 +23,19 @@ def bind_app(app, queue_id, conf=None):
         log.info("Detected relay connection string, binding to pulsar-relay at %s", relay_url)
 
         relay_state = RelayState()
+        merged_conf = conf or {}
         for manager in app.managers.values():
-            bind_relay.bind_manager_to_relay(manager, relay_state, relay_url, conf or {})
+            # Build the transport once per manager and reuse for both the
+            # control-message bind and the capabilities publish, so the
+            # initial token fetch + cursor file open happen exactly once.
+            relay_transport = bind_relay.build_relay_transport(manager, relay_url, merged_conf)
+            bind_relay.bind_manager_to_relay(
+                manager, relay_state, relay_url, merged_conf,
+                relay_transport=relay_transport,
+            )
+            bind_relay.publish_manager_capabilities_to_relay(
+                app, manager, relay_transport, merged_conf,
+            )
         return relay_state
     else:
         # Use AMQP binding
