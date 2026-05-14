@@ -38,7 +38,7 @@ jobs to the remote cluster - namely the ``trinity`` and ``abyss`` tools.
 .. literalinclude:: files/job_conf_sample_remote_cluster.yml
    :language: yaml
 
-For this configuration, on the Pulsar side be sure to also set a
+For this configuration, on the Pulsar side, be sure to also set a
 ``DRMAA_LIBRARY_PATH`` in ``local_env.sh``, install the Python ``drmaa``
 module, and configure a DRMAA job manager for Pulsar in ``app.yml`` as described
 in :ref:`job_managers`.
