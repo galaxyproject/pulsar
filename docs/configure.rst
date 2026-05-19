@@ -246,6 +246,13 @@ In this mode:
 4. **Relay → Galaxy**: Galaxy polls the relay to receive status updates
 5. **File Transfers**: Pulsar transfers files directly to/from Galaxy via HTTP
    (not through the relay)
+6. **Pulsar → Relay (capabilities)**: On startup Pulsar publishes a one-shot,
+   advisory snapshot of its configuration and host capabilities (staging
+   directories, dependency resolvers, available container runtimes, manager
+   type) to the ``pulsar_capabilities`` topic. Galaxy reads the latest snapshot
+   to auto-fill destination parameters and to downgrade per-job requests the
+   remote Pulsar cannot satisfy. This publish is fire-and-forget — a failure
+   never blocks Pulsar startup.
 
 ::
 
@@ -314,6 +321,31 @@ with proxy parameters::
 
     The ``relay_topic_prefix`` must match on both Galaxy and Pulsar sides.
     If set on one side but not the other, messages will not be routed correctly.
+
+
+Capability Snapshot
+```````````````````
+
+When using relay mode, Pulsar publishes a single capability snapshot per
+manager when it binds to the relay at startup. Galaxy's "bring your own
+compute" integration reads the most recent snapshot to pre-fill destination
+parameters and to refuse or downgrade jobs that request something the remote
+Pulsar does not provide (e.g. a container runtime that is not on ``PATH``).
+
+The snapshot is published to the ``pulsar_capabilities`` topic — or
+``<relay_topic_prefix>_pulsar_capabilities[_<manager>]`` when a topic prefix
+or non-default manager name is configured, mirroring the other relay topics.
+
+This behavior is on by default and can be disabled::
+
+    message_queue_publish_capabilities: false
+
+.. note::
+
+    The snapshot is advisory. A publish failure is logged and swallowed — it
+    never blocks Pulsar startup — and if no snapshot is available Galaxy falls
+    back to the operator-supplied destination parameters. The data is collected
+    once at startup and is static for the lifetime of the process.
 
 
 Authentication
