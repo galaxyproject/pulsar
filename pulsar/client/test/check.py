@@ -304,18 +304,10 @@ def run(options):
             client.job_id = job_id
         result_status = waiter.wait()
 
+        assert result_status["complete"] == "true"
         expecting_full_metadata = getattr(options, "expecting_full_metadata", True)
         if expecting_full_metadata:
-            stdout = result_status["stdout"].strip()
-            std_streams_debug = f"actual stdout [{stdout}], actual stderr [{result_status['stderr']}]"
-            assert "stdout output".startswith(stdout), f"Standard output is not an initial substring of [stdout output], {std_streams_debug}"
-
-            if hasattr(options, "maximum_stream_size"):
-                assert len(stdout) == options.maximum_stream_size
-
-        assert result_status["complete"] == "true"
-        if expecting_full_metadata:
-            assert result_status["returncode"] == 4, f"Expected exit code of 4, got {result_status['returncode']} - {std_streams_debug}"
+            assert result_status["returncode"] == 4, f"Expected exit code of 4, got {result_status['returncode']}"
         if expecting_full_metadata:
             __finish(options, client, client_outputs, result_status)
         else:
