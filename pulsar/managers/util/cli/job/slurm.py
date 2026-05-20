@@ -62,7 +62,7 @@ class Slurm(BaseJobExec):
             id, state = status[1].split()
             return self._get_job_state(state)
         # else line like "slurm_load_jobs error: Invalid job id specified"
-        return job_states.OK
+        return "complete"
 
     def _get_job_state(self, state):
         try:
