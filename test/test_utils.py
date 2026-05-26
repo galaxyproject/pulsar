@@ -136,9 +136,31 @@ class TestAuthorization:
 
 
 class TestDependencyManager:
+    __test__ = False  # not a pytest test class
+
+    def __init__(self, dependency_resolvers=None, default_base_path=None):
+        self.dependency_resolvers = dependency_resolvers or []
+        self.default_base_path = default_base_path
 
     def dependency_shell_commands(self, requirements, **kwds):
         return []
+
+
+class RecordingRelayTransport:
+    """Stand-in for ``RelayTransport`` that records ``post_message`` calls.
+
+    Set ``raise_on_post`` to make the next post raise that exception
+    (covers the "transport throws" branches without ``unittest.mock``).
+    """
+
+    def __init__(self, raise_on_post=None):
+        self.calls = []  # list of (topic, payload)
+        self.raise_on_post = raise_on_post
+
+    def post_message(self, topic, payload):
+        self.calls.append((topic, payload))
+        if self.raise_on_post is not None:
+            raise self.raise_on_post
 
 
 class BaseManagerTestCase(TestCase):
@@ -207,6 +229,7 @@ def minimal_app_for_managers():
     user_auth_manager = get_test_user_auth_manager()
     return Bunch(
         staging_directory=staging_directory,
+        persistence_directory=staging_directory,
         authorizer=authorizer,
         job_metrics=NullJobMetrics(),
         dependency_manager=TestDependencyManager(),

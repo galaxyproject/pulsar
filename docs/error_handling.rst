@@ -195,6 +195,11 @@ persist concurrently and could silently rewind another handler's
 progress, which is why the suffix is mandatory whenever
 ``relay_cursor_path`` is set.
 
+The startup capability snapshot is intentionally *advisory* and is excluded
+from these durability defenses — it carries no outbox or cursor; a missed
+or failed publish simply means Galaxy uses operator-supplied destination
+parameters until the next Pulsar restart re-publishes.
+
 ------------------------------------------------------------------------
 5. Setup-message idempotency
 ------------------------------------------------------------------------
