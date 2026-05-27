@@ -10,6 +10,7 @@ from os.path import (
 
 from ..action_mapper import FileActionMapper
 from ..staging import COMMAND_VERSION_FILENAME
+from ..transport.transient import http_status_code
 
 log = getLogger(__name__)
 
@@ -223,6 +224,21 @@ class ResultsCollector:
         try:
             return self.output_collector.collect_output(self, output_type, action, name)
         except Exception as e:
+            if http_status_code(e) == 403:
+                # The Galaxy server authoritatively refused this upload (HTTP
+                # 403). The usual cause is the output's dataset being purged or
+                # deleted while the job ran — Galaxy is the source of truth for
+                # the dataset's state, retrying cannot help, and the tool itself
+                # ran, so this must not fail the job. Surface the path/output so
+                # the reason is visible rather than a generic failure.
+                log.warning(
+                    "Galaxy refused output '%s' (HTTP 403) at %s; not failing the job. "
+                    "This is expected when the output dataset was purged or deleted "
+                    "while the job was running.",
+                    name,
+                    getattr(action, "url", None) or getattr(action, "path", action),
+                )
+                return False
             if _allow_collect_failure(output_type):
                 log.warning(
                     "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"

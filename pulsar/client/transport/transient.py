@@ -27,6 +27,26 @@ from ..exceptions import PulsarClientTransportError
 TRANSIENT_HTTP_STATUS = frozenset({408, 425, 429, 500, 502, 503, 504})
 
 
+def http_status_code(exc):
+    """Best-effort HTTP status code from a transport exception, else ``None``.
+
+    Normalizes the several exception shapes Pulsar transports raise (requests
+    ``HTTPError``, urllib ``HTTPError``, ``PulsarClientTransportError``) into a
+    single integer status, so callers can react to specific codes (e.g. a 403
+    that means the Galaxy server authoritatively refused an upload).
+    """
+    if isinstance(exc, requests.HTTPError) and exc.response is not None:
+        return exc.response.status_code
+    if isinstance(exc, UrllibHTTPError):
+        return exc.code
+    if isinstance(exc, PulsarClientTransportError):
+        try:
+            return int(exc.transport_code)
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
 def _status_is_transient(status):
     try:
         return int(status) in TRANSIENT_HTTP_STATUS
