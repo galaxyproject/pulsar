@@ -13,7 +13,11 @@ def get_exchange(url, manager_name, params):
         connect_ssl=connect_ssl,
         publish_kwds=parse_amqp_publish_kwds(params),
     )
-    durable_param = params.get("amqp_durable", False)
+    # Default True: kombu declares durable queues/exchanges by default, which is
+    # what Pulsar did before opt-in durability was added, and RabbitMQ 4.x
+    # rejects transient non-exclusive queues outright (transient_nonexcl_queues
+    # is deprecated). Keep the knob for explicit opt-out on legacy brokers.
+    durable_param = params.get("amqp_durable", True)
     if isinstance(durable_param, str):
         durable_param = durable_param.strip().lower() in ("true", "1", "yes", "on")
     exchange_kwds["durable"] = bool(durable_param)
