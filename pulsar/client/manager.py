@@ -365,6 +365,11 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
             )
             auth_manager = RelayAuthManager(relay_url, credentials_store=store)
 
+        # Keep a handle on the explicit refresh-token auth manager so read-only
+        # relay probes (e.g. Galaxy's capability-snapshot fetch) can reuse this
+        # manager's centrally-cached access token instead of exchanging the
+        # refresh token themselves — see ``get_relay_access_token``.
+        self._relay_auth_manager = auth_manager
         self.relay_transport = RelayTransport(
             relay_url,
             username=relay_username,
@@ -381,6 +386,25 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
         self.callback_thread = None
         self.active = True
         self.shutdown_event = threading.Event()
+
+    def get_relay_access_token(self) -> Optional[str]:
+        """Return a relay access token from this manager's central auth cache.
+
+        Read-only relay probes (e.g. Galaxy's capability-snapshot fetch) must
+        reuse this token rather than exchanging the refresh token on their own:
+        the relay rotates refresh tokens single-use and revokes the entire
+        chain on replay, so a second, independent exchange of the same token
+        would tear down this manager's credentials mid-flight. Routing every
+        consumer through the one :class:`RelayAuthManager` keeps the exchange
+        count at one (it caches the access token until expiry).
+
+        Returns ``None`` when this manager was not built with refresh-token
+        auth (e.g. credentials-file / password auth), in which case callers
+        fall back to their own credential handling.
+        """
+        if self._relay_auth_manager is None:
+            return None
+        return self._relay_auth_manager.get_token()
 
     def callback_wrapper(self, callback, message_data):
         """Process status update messages from the relay."""
