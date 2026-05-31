@@ -74,7 +74,7 @@ class PulsarExchange:
         publish_uuid_store=None,
         consume_uuid_store=None,
         republish_time=DEFAULT_REPUBLISH_TIME,
-        durable=False,
+        durable=True,
     ):
         """
         """

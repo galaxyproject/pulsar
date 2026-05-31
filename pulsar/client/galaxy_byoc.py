@@ -9,8 +9,8 @@ A user runs ``pulsar-config register-with-galaxy --galaxy <url> --token <one-sho
    id, which we adopt as the BYOC manager name (and as the Pulsar manager
    name in the local ``app.yml``).
 3. Posts the secondary refresh token to Galaxy at
-   ``/api/pulsar_byoc/bootstrap`` (authenticated by the one-shot token from
-   ``POST /api/pulsar_byoc/registration``).
+   ``/api/compute_resources/registrations/complete`` (authenticated by the
+   one-shot token from ``POST /api/compute_resources/registrations``).
 4. Writes the local ``relay_credentials.json`` with the *primary* refresh
    token only; the secondary is in-flight to Galaxy and never persisted on
    the host.
@@ -69,7 +69,8 @@ def register_with_galaxy(
 
     Side effects:
       * Writes the primary refresh token to ``credentials_path``.
-      * Calls Galaxy's ``POST /api/pulsar_byoc/bootstrap`` with the secondary.
+      * Calls Galaxy's ``POST /api/compute_resources/registrations/complete``
+        with the secondary.
     """
     # Imported lazily so pulsar still installs on Pythons that don't meet
     # pulsar-relay-client's requires-python.
@@ -108,7 +109,7 @@ def register_with_galaxy(
         "relay_url": relay_url,
         "manager_name": manager_name,
     }
-    bootstrap_url = galaxy_url.rstrip("/") + "/api/pulsar_byoc/bootstrap"
+    bootstrap_url = galaxy_url.rstrip("/") + "/api/compute_resources/registrations/complete"
     try:
         resp = requests.post(bootstrap_url, json=payload, timeout=timeout)
     except requests.RequestException as exc:

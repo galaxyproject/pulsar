@@ -85,7 +85,7 @@ def test_register_with_galaxy_happy_path(tmp_path):
     # 3. Galaxy accepts the bootstrap callback.
     responses.add(
         responses.POST,
-        f"{GALAXY_URL}/api/pulsar_byoc/bootstrap",
+        f"{GALAXY_URL}/api/compute_resources/registrations/complete",
         json={"id": 42, "manager_name": "byoc_7_lab", "status": "active"},
         status=200,
     )
@@ -108,7 +108,7 @@ def test_register_with_galaxy_happy_path(tmp_path):
     assert os.stat(cred_path).st_mode & 0o777 == 0o600
 
     # Galaxy got the right payload.
-    galaxy_call = next(c for c in responses.calls if c.request.url.endswith("/bootstrap"))
+    galaxy_call = next(c for c in responses.calls if c.request.url.endswith("/registrations/complete"))
     body = json.loads(galaxy_call.request.body)
     assert body == {
         "bootstrap_token": BOOTSTRAP_TOKEN,
@@ -193,7 +193,7 @@ def test_register_with_galaxy_surfaces_galaxy_error(tmp_path):
     )
     responses.add(
         responses.POST,
-        f"{GALAXY_URL}/api/pulsar_byoc/bootstrap",
+        f"{GALAXY_URL}/api/compute_resources/registrations/complete",
         json={"detail": "bootstrap_token has expired"},
         status=410,
     )

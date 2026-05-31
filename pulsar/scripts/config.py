@@ -223,14 +223,14 @@ def main(argv=None):
                                 "Bootstrap a BYOC Pulsar registration against a Galaxy "
                                 "server. Drives the relay device flow with pair-issuance "
                                 "and hands the secondary refresh token to Galaxy at "
-                                "/api/pulsar_byoc/bootstrap. Requires --relay-url and "
-                                "--galaxy-token (the one-shot token returned by "
-                                "POST /api/pulsar_byoc/registration)."
+                                "/api/compute_resources/registrations/complete. Requires "
+                                "--relay-url and --galaxy-token (the one-shot token returned "
+                                "by POST /api/compute_resources/registrations)."
                             ))
     arg_parser.add_argument("--galaxy-token",
                             dest="galaxy_token",
                             default=None,
-                            help="One-shot bootstrap token from /api/pulsar_byoc/registration.")
+                            help="One-shot bootstrap token from /api/compute_resources/registrations.")
     # arg_parser.add_argument("--pip_install_args",
     #                         default="pulsar-app",
     #                         help=HELP_PIP_INSTALL_ARGS_HELP)

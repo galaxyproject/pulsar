@@ -74,24 +74,25 @@ class TestThread(threading.Thread):
 
 
 @skip_unless_module("kombu")
-def test_non_durable_queue_and_exchange_default():
-    """Default is non-durable to preserve legacy behavior: RabbitMQ refuses to
-    redeclare an existing queue with mismatched durability, so flipping the
-    default would break upgrades. Operators opt in via ``amqp_durable: true``.
+def test_durable_queue_and_exchange_default():
+    """Default is durable. That matches kombu's own default (which Pulsar relied
+    on before opt-in durability was added) and is required by RabbitMQ 4.x,
+    which refuses transient non-exclusive queues outright. Operators can opt out
+    on a legacy broker via ``amqp_durable: false``.
     """
     exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager_durable_default")
     queue = exchange._PulsarExchange__queue("status_update")
-    assert queue.durable is False
-    assert queue.exchange.durable is False
+    assert queue.durable is True
+    assert queue.exchange.durable is True
 
 
 @skip_unless_module("kombu")
-def test_durable_can_be_enabled():
-    """Operators who want broker-restart durability opt in explicitly."""
-    exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager_durable_on", durable=True)
+def test_durable_can_be_disabled():
+    """Explicit opt-out for legacy brokers that still allow transient queues."""
+    exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager_durable_off", durable=False)
     queue = exchange._PulsarExchange__queue("status_update")
-    assert queue.durable is True
-    assert queue.exchange.durable is True
+    assert queue.durable is False
+    assert queue.exchange.durable is False
 
 
 @skip_unless_module("kombu")
@@ -106,15 +107,25 @@ def test_durable_publishes_use_persistent_delivery_mode():
 
 @skip_unless_module("kombu")
 def test_non_durable_publishes_do_not_force_persistent_mode():
-    exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager_dm_off")
+    exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "manager_dm_off", durable=False)
     publish_kwds = exchange._PulsarExchange__prepare_publish_kwds("test")
     assert "delivery_mode" not in publish_kwds
 
 
 @skip_unless_module("kombu")
-def test_factory_defaults_durable_false():
+def test_factory_defaults_durable_true():
     from pulsar.client import amqp_exchange_factory
     exchange = amqp_exchange_factory.get_exchange(TEST_CONNECTION, "factory_durable_default", {})
+    queue = exchange._PulsarExchange__queue("status_update")
+    assert queue.durable is True
+
+
+@skip_unless_module("kombu")
+def test_factory_respects_amqp_durable_false():
+    from pulsar.client import amqp_exchange_factory
+    exchange = amqp_exchange_factory.get_exchange(
+        TEST_CONNECTION, "factory_durable_off", {"amqp_durable": False},
+    )
     queue = exchange._PulsarExchange__queue("status_update")
     assert queue.durable is False
 
