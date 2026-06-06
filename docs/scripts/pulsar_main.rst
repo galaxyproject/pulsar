@@ -13,7 +13,7 @@
 Stand-alone entry point for running Pulsar without a web server.
 
 In its simplest form, this method will check the current directory for an
-app.yml and run the corresponding configuration as a standalone applciation.
+app.yml and run the corresponding configuration as a standalone application.
 This makes sense when ``app.yml`` contains a ``message_queue_url`` option so
 Pulsar is configured to listen to a message queue and doesn't require a web
 server.
@@ -47,4 +47,3 @@ delegate to this script.
                             Log file for daemon, if --daemonize supplied.
       --pid-file PID_FILE   Pid file for daemon, if --daemonize supplied (default
                             is pulsar.pid).
-    
