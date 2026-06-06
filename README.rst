@@ -42,7 +42,7 @@ Quickstart
 
 Full details on different ways to install Pulsar can be found in the `install
 section <https://pulsar.readthedocs.org/en/latest/install.html>`__ of the
-documentaiton, but if your machine has the proper Python dependencies
+documentation, but if your machine has the proper Python dependencies
 available it can be quickly download and a test job run with::
 
     $ mkdir pulsar
@@ -67,7 +67,7 @@ Development and Testing
 -----------------------
 
 The recommended approach to setting up a development environment for Pulsar on
-Linux or macOS is rougly as follows::
+Linux or macOS is roughly as follows::
 
     $ git clone https://github.com/galaxyproject/pulsar
     $ cd pulsar
@@ -96,7 +96,7 @@ Check out the `Contributing
 <https://pulsar.readthedocs.org/en/latest/contributing.html>`_ documentation
 for many more details on developing and contributing to Pulsar.
 
-Please note that this project is released with a `Contributor Code of Conduct 
+Please note that this project is released with a `Contributor Code of Conduct
 <https://pulsar.readthedocs.org/en/latest/conduct.html>`__. By participating
 in this project you agree to abide by its terms.
 

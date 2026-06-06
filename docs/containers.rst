@@ -13,7 +13,7 @@ job_conf.yml file will accomplish this.
 
 There are limitations to using DRM systems that submit job scripts that launch containers
 though. Modern container scheduling environments (AWS Batch or Kubernetes or instance) are
-capable of scheduling containers directly. This is conceptually cleaner, persumably scales better,
+capable of scheduling containers directly. This is conceptually cleaner, presumably scales better,
 and side steps all sorts of issues for the deployer and developer such as configuring Docker and
 managing the interaction between the DRM and the container host server (i.e. the Docker server).
 
@@ -100,16 +100,16 @@ Kubernetes
 
 .. figure:: pulsar_k8s_mq_deployment.plantuml.svg
 
-   Kuberentes job execution with Conda dependencies for the tool and RabbitMQ for communicating with
+   Kubernetes job execution with Conda dependencies for the tool and RabbitMQ for communicating with
    Galaxy.
 
 .. figure:: pulsar_k8s_coexecution_deployment.plantuml.svg
 
-   Kuberentes job execution with a biocontainer for the tool and no message queue.
+   Kubernetes job execution with a biocontainer for the tool and no message queue.
 
 .. figure:: pulsar_k8s_deployment.plantuml.svg
 
-   Kuberentes job execution with Conda dependencies for the tool and no message queue.
+   Kubernetes job execution with Conda dependencies for the tool and no message queue.
 
 GA4GH TES
 ~~~~~~~~~~
@@ -138,13 +138,13 @@ A Galaxy job configuration (job_conf.yml) for using TES with Pulsar and RabbitMQ
 
    runners:
       local:
-         load: galaxy.jobs.runners.local:LocalJobRunner  
+         load: galaxy.jobs.runners.local:LocalJobRunner
       pulsar_tes:
          load: galaxy.jobs.runners.pulsar:PulsarTesJobRunner
          # RabbitMQ URL from Galaxy server.
          amqp_url: <amqp_url>
          # If Pulsar needs to talk to Galaxy at a particular host and port, set that here.
-         #galaxy_url: <galaxy_url>  
+         #galaxy_url: <galaxy_url>
 
    execution:
       default: pulsar_tes
@@ -172,7 +172,7 @@ and a Funnel with default configuration server running locally, a configuration 
 
    runners:
       local:
-         load: galaxy.jobs.runners.local:LocalJobRunner  
+         load: galaxy.jobs.runners.local:LocalJobRunner
       pulsar_tes:
          load: galaxy.jobs.runners.pulsar:PulsarTesJobRunner
          # RabbitMQ URL from Galaxy server.
@@ -220,7 +220,7 @@ A Galaxy job configuration (job_conf.yml) for using GCP with Pulsar and RabbitMQ
 
    runners:
       local:
-         load: galaxy.jobs.runners.local:LocalJobRunner  
+         load: galaxy.jobs.runners.local:LocalJobRunner
       pulsar_gcp:
          load: galaxy.jobs.runners.pulsar:PulsarGcpBatchJobRunner
          # RabbitMQ URL from Galaxy server.
@@ -252,7 +252,7 @@ A Galaxy job configuration (job_conf.yml) for using GCP with Pulsar and RabbitMQ
    - class: local
      environment: local
 
-For testing these configurations - John setup a production-ish RabbitMQ server on 
+For testing these configurations - John setup a production-ish RabbitMQ server on
 173.255.213.165 with user `john` and password `password` that is accessible from
 anywhere. John also opened the router ports to expose their Macbook and set Galaxy
 to bind to ``0.0.0.0`` using the `bind` option in the `gunicorn` section of `galaxy.yml`.
@@ -263,7 +263,7 @@ The job configuration for this test setup looked something like:
 
    runners:
       local:
-         load: galaxy.jobs.runners.local:LocalJobRunner  
+         load: galaxy.jobs.runners.local:LocalJobRunner
       pulsar_gcp:
          load: galaxy.jobs.runners.pulsar:PulsarGcpBatchJobRunner
          amqp_url: "amqp://john:password@173.255.213.165/"
@@ -288,7 +288,7 @@ The job configuration for this test setup looked something like:
    tools:
    - class: local
      environment: local
- 
+
 
 AWS Batch
 ~~~~~~~~~~

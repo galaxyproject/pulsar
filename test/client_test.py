@@ -180,7 +180,7 @@ def test_download_output():
 
     with open(temp_file.name) as f:
         contents = f.read(1024)
-        assert contents == "test output contents", "Unxpected contents %s" % contents
+        assert contents == "test output contents", "Unexpected contents %s" % contents
 
 
 def test_get_status_queued():

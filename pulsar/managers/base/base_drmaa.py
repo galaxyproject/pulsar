@@ -12,7 +12,7 @@ from ..util.drmaa import DrmaaSessionFactory
 
 log = logging.getLogger(__name__)
 
-IGNORE_SUBMISSION_SPEC_MESSAGE = "Submission recieved native_specification but being overridden by manager specification."
+IGNORE_SUBMISSION_SPEC_MESSAGE = "Submission received native_specification but being overridden by manager specification."
 
 
 class BaseDrmaaManager(ExternalBaseManager):

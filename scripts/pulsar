@@ -14,7 +14,7 @@ Extra Options:
 
   -m|--mode   How to launch (gunicorn,uwsgi,chaussette,circusd,webless).
               In webless mode Pulsar will not attempt to bind to a port,
-              this may be useful in conjuction with message queue driven
+              this may be useful in conjunction with message queue driven
               Pulsar operation.
   -c|--config Configuration directory for Pulsar, defaults to current directory.
               Can also set with PULSAR_CONFIG_DIR environment variable.
