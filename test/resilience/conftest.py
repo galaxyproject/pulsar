@@ -97,7 +97,34 @@ def compose_up(request):
         )
 
 
-@pytest.fixture(params=["amqp", "amqp_ack", "relay"], ids=lambda m: f"mode={m}")
+MQ_MODES = ["amqp", "amqp_ack", "relay"]
+
+
+def pytest_generate_tests(metafunc):
+    """Parametrize ``mq_mode`` over all messaging modes by default.
+
+    Previously ``mq_mode`` was a parametrized fixture (``params=MQ_MODES``).
+    Tests that only make sense for a single mode narrowed it with their own
+    ``@pytest.mark.parametrize("mq_mode", [...], indirect=True)``. Under
+    pytest < 9.1 the per-test parametrize overrode the fixture's params; pytest
+    9.1 instead rejects the two sources as a "duplicate parametrization of
+    'mq_mode'" collection error, which aborts the whole session.
+
+    Applying the default here only when the test hasn't already parametrized
+    ``mq_mode`` keeps the single source of truth pytest 9.1 requires while
+    preserving the existing behavior (full matrix by default, override allowed).
+    """
+    if "mq_mode" not in metafunc.fixturenames:
+        return
+    already_parametrized = any(
+        marker.args and "mq_mode" in [name.strip() for name in str(marker.args[0]).split(",")]
+        for marker in metafunc.definition.iter_markers("parametrize")
+    )
+    if not already_parametrized:
+        metafunc.parametrize("mq_mode", MQ_MODES, indirect=True, ids=lambda m: f"mode={m}")
+
+
+@pytest.fixture
 def mq_mode(request):
     return request.param
 
