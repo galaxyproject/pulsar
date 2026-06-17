@@ -5,15 +5,31 @@ qstat, etc...).
 
 from logging import getLogger
 
+from pulsar.managers import status
 from .base.external import ExternalBaseManager
 from .util.cli import (
     CliInterface,
     split_params,
 )
+from .util.cli.job import job_states
 from .util.external import parse_external_id
 from .util.job_script import job_script
 
 log = getLogger(__name__)
+
+# Translate the CLI plugins' job states into the Pulsar status vocabulary the
+# stateful manager understands. The CLI plugins are shared with Galaxy, so
+# job_states resolves to galaxy.model.Job.states when Galaxy is importable
+# (OK == 'ok', ERROR == 'error') and to Pulsar's local fallback enum otherwise
+# (OK == 'complete', ERROR == 'failed'). Keying on the enum member rather than
+# its string value keeps this correct under both bindings. Mirrors the
+# JobState -> status mapping in base/base_drmaa.py.
+_CLI_STATE_TO_STATUS = {
+    job_states.OK: status.COMPLETE,
+    job_states.RUNNING: status.RUNNING,
+    job_states.QUEUED: status.QUEUED,
+    job_states.ERROR: status.FAILED,
+}
 
 
 class CliQueueManager(ExternalBaseManager):
@@ -69,4 +85,4 @@ class CliQueueManager(ExternalBaseManager):
         status_command = job_interface.get_single_status(external_id)
         cmd_out = shell.execute(status_command)
         state = job_interface.parse_single_status(cmd_out.stdout, external_id)
-        return state
+        return _CLI_STATE_TO_STATUS.get(state, state)
