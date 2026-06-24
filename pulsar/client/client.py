@@ -1120,12 +1120,32 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
         assert pulsar_finish_container is None
         gcp_job_params = self._gcp_job_params
         job = gcp_job_template(gcp_job_params)
-        runnable = container_command_to_gcp_runnable("pulsar-container", pulsar_submit_container)
-        job.task_groups[0].task_spec.runnables.append(runnable)
 
+        # Parse docker_extra_volumes (comma-separated Docker -v style strings)
+        # into a list for GCP Batch Runnable.Container.volumes
+        extra_volumes = []
+        raw = self.destination_params.get("docker_extra_volumes", "")
+        if raw:
+            extra_volumes = [v.strip() for v in raw.split(",") if v.strip()]
+
+        # Order matters: GCP Batch runs runnables sequentially. A background
+        # runnable starts and immediately yields to the next runnable. We need:
+        #   1. Tool (background) — starts polling for command_line file
+        #   2. Sidecar (foreground) — stages inputs, writes command_line, polls
+        #      for return_code, collects outputs, sends AMQP callback
+        # The sidecar must be foreground so it survives after the tool finishes
+        # (GCP Batch kills background runnables when all foreground ones exit).
         if tool_container:
             tool_runnable = container_command_to_gcp_runnable("tool-container", tool_container)
+            tool_runnable.background = True
+            if extra_volumes:
+                tool_runnable.container.volumes = extra_volumes
             job.task_groups[0].task_spec.runnables.append(tool_runnable)
+
+        runnable = container_command_to_gcp_runnable("pulsar-container", pulsar_submit_container)
+        if extra_volumes:
+            runnable.container.volumes = extra_volumes
+        job.task_groups[0].task_spec.runnables.append(runnable)
 
         job_name = self._job_name
         create_request = gcp_job_request(gcp_job_params, job, job_name)
