@@ -16,7 +16,7 @@
 
 This project is a Python server application that allows a `Galaxy
 <http://galaxyproject.org>`_ server to run jobs on remote systems (including
-Windows) without requiring a shared mounted file systems. Unlike traditional
+Windows) without requiring a shared mounted file system. Unlike traditional
 Galaxy job runners - input files, scripts, and config files may be transferred
 to the remote system, the job is executed, and the results are transferred back
 to the Galaxy server - eliminating the need for a shared file system.
@@ -42,8 +42,8 @@ Quickstart
 
 Full details on different ways to install Pulsar can be found in the `install
 section <https://pulsar.readthedocs.org/en/latest/install.html>`__ of the
-documentaiton, but if your machine has the proper Python dependencies
-available it can be quickly download and a test job run with::
+documentation, but if your machine has the proper Python dependencies
+available, it can be quickly downloaded and a test job runs with::
 
     $ mkdir pulsar
     $ cd pulsar
@@ -67,7 +67,7 @@ Development and Testing
 -----------------------
 
 The recommended approach to setting up a development environment for Pulsar on
-Linux or macOS is rougly as follows::
+Linux or macOS is roughly as follows::
 
     $ git clone https://github.com/galaxyproject/pulsar
     $ cd pulsar
@@ -81,7 +81,7 @@ changes you make to the source code will be reflected when running the pulsar
 commands installed in the virtual environment.
 
 This project is distributed with unit and integration tests (many of which will
-not run under Windows), the following command will install the needed python
+not run under Windows). The following command will install the needed python
 components to run these tests. The following command will then run these tests::
 
     $ make tests
@@ -98,7 +98,7 @@ for many more details on developing and contributing to Pulsar.
 
 Please note that this project is released with a `Contributor Code of Conduct 
 <https://pulsar.readthedocs.org/en/latest/conduct.html>`__. By participating
-in this project you agree to abide by its terms.
+in this project, you agree to abide by its terms.
 
 -----------------------
 Support
@@ -107,7 +107,7 @@ Support
 This documentation is an incomplete work in progress. There are more ways to
 configure and use Pulsar than are documented, and a growing number of Pulsar
 experts who would be more than happy to answer your questions and help with any
-problems you may run in to while setting up a Pulsar deployment. Please do not
+problems you may run into while setting up a Pulsar deployment. Please do not
 hesitate to reach out on the `Galaxy Admins Gitter Channel`_
 
 .. _Galaxy Admins Gitter Channel: https://gitter.im/galaxyproject/admins

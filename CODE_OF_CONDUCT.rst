@@ -3,7 +3,7 @@ Pulsar Project Code of Conduct
 ------------------------------
 
 This code of conduct outlines our expectations for participants within the
-Pulsar community, as well as steps to reporting unacceptable behavior. We are
+Pulsar community, as well as steps for reporting unacceptable behavior. We are
 committed to providing a welcoming and inspiring community for all and expect
 our code of conduct to be honored. Anyone who violates this code of conduct may
 be banned from the community.
@@ -19,7 +19,7 @@ Our open source community strives to:
   orientation, gender identity and expression, age, size, family status,
   political belief, religion, and mental and physical ability.
 
-* **Be considerate**: Your work will be used by other people, and you in turn
+* **Be considerate**: Your work will be used by other people, and you, in turn,
   will depend on the work of others. Any decision you take will affect users
   and colleagues, and you should take those consequences into account when
   making decisions. Remember that we're a world-wide community, so you might
@@ -34,13 +34,13 @@ Our open source community strives to:
 * **Be careful in the words that we choose**: We are a community of
   professionals, and we conduct ourselves professionally. Be kind to others. Do
   not insult or put down other participants. Harassment and other exclusionary
-  behavior aren't acceptable. This includes, but is not limited to: Violent
-  threats or language directed against another person, Discriminatory jokes and
-  language, Posting sexually explicit or violent material, Posting (or
+  behavior aren't acceptable. This includes, but is not limited to: violent
+  threats or language directed against another person, discriminatory jokes and
+  language, posting sexually explicit or violent material, posting (or
   threatening to post) other people’s personally identifying information
-  (“doxing”), Personal insults, especially those using racist or sexist terms,
-  Unwelcome sexual attention, Advocating for, or encouraging, any of the above
-  behavior, Repeated harassment of others. In general, if someone asks you to
+  (“doxing”), personal insults, especially those using racist or sexist terms,
+  unwelcome sexual attention, advocating for, or encouraging, any of the above
+  behavior, repeated harassment of others. In general, if someone asks you to
   stop, then stop.
 
 * **Try to understand why we disagree**: Disagreements, both social and
@@ -57,7 +57,7 @@ Diversity Statement
 -------------------
 
 We encourage everyone to participate and are committed to building a community
-for all. Although we will fail at times, we seek to treat everyone both as
+for all. Although we will fail at times, we seek to treat everyone as
 fairly and equally as possible. Whenever a participant has made a mistake, we
 expect them to take responsibility for it. If someone has been harmed or
 offended, it is our responsibility to listen carefully and respectfully, and do
@@ -80,7 +80,7 @@ the most comfortable:
 - Dave Clements (clementsgalaxy@gmail.com). Dave is the Galaxy Project community
   outreach manager and has experience handling Code of Conduct related issues.
 - Dr. Mike Schatz (mschatz@cs.jhu.edu). Mike is Dave Clements' direct manager
-  and issues related to Dave in some way should be reported to Mike.
+  and issues related to Dave, in some ways, should be reported to Mike.
 - Helena Rasche (helena.rasche@gmail.com). Helena is a well-known, trusted
   community member, is LGBT+, and has completely separate funding and
   institutional affiliation from Dave and Mike.

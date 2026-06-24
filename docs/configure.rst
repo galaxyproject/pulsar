@@ -29,7 +29,7 @@ Security
 
 Out of the box, **Pulsar essentially allows anyone with network access to the
 Pulsar server to execute arbitrary code and read and write any files the web
-server can access.** Hence, in most settings steps should be taken to secure the
+server can access.** Hence, in most settings, steps should be taken to secure the
 Pulsar server.
 
 Private Token
@@ -52,19 +52,19 @@ use.
 
 .. tip::
 
-    SSL support is built in to `uWSGI`_, an alternate webserver that can be
+    SSL support is built in to `uWSGI`_, an alternate web server that can be
     installed (see :ref:`install`).
 
 ``pyOpenSSL`` is required to configure a Pulsar web server to server content via
 HTTPS/SSL. This dependency can be difficult to install and seems to be getting
 more difficult. Under Linux you will want to ensure the needed dependencies to
-compile pyOpenSSL are available - for instance in a fresh Ubuntu image you
+compile pyOpenSSL are available - for instance, in a fresh Ubuntu image, you
 will likely need::
 
     $ sudo apt-get install libffi-dev python3-dev libssl-dev
 
 Then pyOpenSSL can be installed with the following command (be sure to source
-your virtualenv if setup above)::
+your virtualenv if set up above)::
 
     $ pip install pyOpenSSL
 
@@ -119,8 +119,8 @@ You can configure Pulsar to authenticate user during request processing and chec
 if this user is allowed to run a job.
 
 Various authentication/authorization plugins can be configured in `app.yml` to
-do that and plugin parameters depend on auth type. For example, the following
-configuration uses `oidc` plugin for authentication and `userlist` for
+do that and plugin parameters depend on the auth type. For example, the following
+configuration uses the `oidc` plugin for authentication and `userlist` for
 authorization::
 
     user_auth:
@@ -136,7 +136,8 @@ authorization::
             - xxx
 
 
-see `plugins folder
+See the `plugins folder
+<https://github.com/galaxyproject/pulsar/blob/master/pulsar/user_auth/methods>`_
 <https://github.com/galaxyproject/pulsar/blob/master/pulsar/user_auth/methods>`_
 for available plugins and their parameters.
 
@@ -145,13 +146,13 @@ Customizing the Pulsar Environment (\*nix only)
 
 For many deployments, Pulsar's environment will need to be tweaked. For
 instance to define a ``DRMAA_LIBRARY_PATH`` environment variable for the
-``drmaa`` Python module or to define the location to a find a location of
+``drmaa`` Python module or to define the location to find a location of
 Galaxy (via ``GALAXY_HOME``) if certain Galaxy tools require it or if Galaxy
 metadata is being set by the Pulsar.
 
 The file ``local_env.sh`` (created automatically by ``pulsar-config``) will be
 source by ``pulsar`` before launching the application and by child process
-created by Pulsar that require this configuration.
+created by Pulsar that requires this configuration.
 
 Job Managers (Queues)
 ---------------------
@@ -222,7 +223,7 @@ In the event that the connection to the AMQP server is lost during message
 publish, the Pulsar server can retry the connection, governed by the
 ``amqp_publish*`` options documented in `app.yml.sample`_.
 
-Message Queue (pulsar-relay)
+Message queue (pulsar-relay)
 -----------------------------
 
 Pulsar can also communicate with Galaxy via an experimental **pulsar-relay** server,
@@ -560,4 +561,4 @@ and future plans and progress can be tracked on `this Trello card <https://trell
 .. _AMQP: http://en.wikipedia.org/wiki/AMQP
 .. _RabbitMQ: https://www.rabbitmq.com/
 .. _app.yml.sample: https://github.com/galaxyproject/pulsar/blob/master/app.yml.sample
-.. _Two Generals Problem: https://en.wikipedia.org/wiki/Two_Generals%27_Problem
+.. _Two Generals' Problem: https://en.wikipedia.org/wiki/Two_Generals%27_Problem

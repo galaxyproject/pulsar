@@ -23,7 +23,7 @@ is currently too small to support full and open governance at this time. In
 order to keep things evolving quickly, it is better to keep procedures and
 process to a minimum and centralize important decisions with a trusted
 developer. The BDFN is explicitly meant to be replaced with a more formal and
-democratice process if the project grows to a sufficient size or importance.
+democratic process if the project grows to a sufficient size or importance.
 
 The *committers* group is the group of trusted developers and advocates who
 manage the Pulsar code base. They assume many roles required to achieve
@@ -35,7 +35,7 @@ discretion, but everyone (including the BDFN) should open pull requests for
 larger changes.
 
 In order to encourage a shared sense of ownership and openness, any committer
-may decide at any time to request a open governance model for the project be
+may decide at any time to request an open governance model for the project be
 established and the BDFN must replace this informal policy with a more formal
 one and work with the project committers to establish a consensus on these
 procedures.
