@@ -13,7 +13,7 @@ jobs:
           - python-version: '3.14'
             tox-env: lint
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         persist-credentials: false
     - uses: actions/setup-python@v6
@@ -33,7 +33,7 @@ jobs:
         tox-env: [mypy]
         python-version: ['3.14']
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         persist-credentials: false
     - uses: actions/setup-python@v6
@@ -67,7 +67,7 @@ jobs:
         volumes:
           - '/tmp:/tmp:rw'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         persist-credentials: false
     - uses: actions/setup-python@v6
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         persist-credentials: false
     - uses: actions/setup-python@v6
@@ -156,7 +156,7 @@ jobs:
   #       - tox-env: test-funnel
   #         python-version: 3.7
   #   steps:
-  #   - uses: actions/checkout@v6
+  #   - uses: actions/checkout@v7
   #     with:
   #       persist-credentials: false
   #   - uses: actions/setup-python@v6
