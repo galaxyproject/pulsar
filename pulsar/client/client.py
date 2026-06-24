@@ -496,7 +496,7 @@ class BaseMessageJobClient(BaseRemoteConfiguredJobClient):
         job_id = self.job_id
         full_status = self.client_manager.status_cache.get(job_id, None)
         if full_status is None:
-            raise Exception("full_status() called for [%s] before a final status was properly cached with cilent manager." % job_id)
+            raise Exception("full_status() called for [%s] before a final status was properly cached with client manager." % job_id)
         return full_status
 
     def _build_status_request_message(self):

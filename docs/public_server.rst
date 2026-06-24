@@ -24,7 +24,7 @@ public `Pulsar` server.
 - ``assign_ids=uuid`` - By default the `Pulsar` will just the ids Galaxy
   instances. Setting this setting to ``uuid`` will result in each job
   being assigned a UUID, ensuring different clients will not and
-  cannot interfer with each other.
+  cannot interfere with each other.
 
 - ``tool_config_files=/path/to/tools.xml`` - As noted above, this is used to
   restrict what tools clients can run. All tools on public Pulsar servers
@@ -62,7 +62,7 @@ Even this simple example is easier to validate and secure if it is
 reworked as so:
 
 ``tool.xml``::
-    
+
     <tool>
       <configfiles>
         <configfile name="args">--input1 'Text' --input2 'Text2' --input3 4.5</configfile>
@@ -73,13 +73,13 @@ reworked as so:
 ``wrapper.py``::
 
     import sys, shlex
-    
+
     def main():
         args_config = sys.argv[1]
         args_string = open(args_config, "r").read()
-      
+
         parser = OptionParser()
         parser.add_option("--input1")
         parser.add_option("--input2")
         parser.add_option("--input3")
-        (options, args) = parser.parse_args(shlex.split(args_string))    
+        (options, args) = parser.parse_args(shlex.split(args_string))

@@ -26,7 +26,7 @@ def test_torque_cli():
     assert "#PBS -p 4" in headers
 
     # Verify it just skips invalid status...
-    assert job.parse_status("Warning: Network Proble.", ["24", "25"]) is None
+    assert job.parse_status("Warning: Network Problem.", ["24", "25"]) is None
 
     output = "<Data><Job><Job_Id>24</Job_Id><job_state>Q</job_state></Job>"
     output += "<Job><Job_Id>25</Job_Id><job_state>E</job_state></Job>"
