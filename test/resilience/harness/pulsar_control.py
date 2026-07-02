@@ -149,7 +149,7 @@ class PulsarControl:
         self.stop()
         self.start(wait_ready=wait_ready)
 
-    def wait_until_consuming(self, timeout=60.0, poll_interval=0.1):
+    def wait_until_consuming(self, timeout=120.0, poll_interval=0.1):
         """Block until Pulsar has bound consumers for the control queues.
 
         Both modes wait for a fresh ``bind_manager_to`` log line from the

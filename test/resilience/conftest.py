@@ -134,9 +134,32 @@ def pulsar(compose_up, mq_mode):
     ctrl = PulsarControl(PROJECT_DIR, mode=mq_mode)
     # Wipe state at fixture entry only; tests that kill/restart reuse persisted
     # state to validate recovery semantics.
-    ctrl.start(wait_ready=True, fresh=True)
+    _start_fresh_with_retry(ctrl)
     yield ctrl
     ctrl.stop()
+
+
+def _start_fresh_with_retry(ctrl, attempts=2):
+    """Bring up a fresh Pulsar, retrying once if the consumer bind wait times out.
+
+    Interim mitigation for the intermittent relay bind-timeout flake
+    (``TimeoutError: Pulsar did not bind <mode> consumers``) that lands on a
+    different ``[mode=relay]`` scenario each run. A blanket setup retry is more
+    robust than marking individual scenarios rerun-eligible, since the flake is
+    not pinned to a fixed test. Each attempt force-recreates the container
+    (``fresh=True``), so a retry starts from a clean slate. Only the bind
+    ``TimeoutError`` is retried — a ``docker compose up`` failure still raises
+    immediately. The final ``TimeoutError`` propagates if every attempt times
+    out, so a genuine breakage still surfaces the original message.
+    """
+    last_exc = None
+    for _ in range(attempts):
+        try:
+            ctrl.start(wait_ready=True, fresh=True)
+            return
+        except TimeoutError as exc:
+            last_exc = exc
+    raise last_exc
 
 
 @pytest.fixture
