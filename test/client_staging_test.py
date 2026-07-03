@@ -231,3 +231,21 @@ def test_collect_output_reraises_non_403_for_fatal_output_type():
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     with pytest.raises(requests.HTTPError):
         rc._collect_output("output", action, "out1")
+
+
+def test_collect_output_reraises_infra_oserror_for_workdir_output():
+    """An infrastructure OSError (e.g. disk full) collecting a working-directory
+    output must fail the job rather than be downgraded to an allowed failure."""
+    rc = _results_collector_with_failing_collect(OSError("No space left on device"))
+    action = SimpleNamespace(path="/pulsar/working/out.dat")
+    with pytest.raises(OSError):
+        rc._collect_output("output_workdir", action, "out1")
+
+
+def test_collect_output_tolerates_missing_workdir_output():
+    """A missing from_work_dir output (FileNotFoundError) is an expected,
+    recoverable condition for a working-directory output, so it is an allowed
+    failure and must not raise."""
+    rc = _results_collector_with_failing_collect(FileNotFoundError("out.dat"))
+    action = SimpleNamespace(path="/pulsar/working/out.dat")
+    assert rc._collect_output("output_workdir", action, "out1") is None

@@ -245,15 +245,7 @@ class ResultsCollector:
                     getattr(action, "url", None) or getattr(action, "path", action),
                 )
                 return False
-            if isinstance(e, OSError) and not isinstance(e, FileNotFoundError):
-                # Infrastructure OSErrors (disk full, I/O errors) must fail the
-                # job rather than be silently downgraded to a warning. A missing
-                # output file (FileNotFoundError) is excluded: it is an expected,
-                # recoverable condition — e.g. a ``from_work_dir`` output a tool
-                # legitimately did not produce, which Galaxy represents as an
-                # empty dataset — so it flows through the normal handling below.
-                raise
-            if _allow_collect_failure(output_type):
+            if _allow_collect_failure(output_type, e):
                 log.warning(
                     "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
                     f" failure: {e}")
@@ -289,8 +281,25 @@ def _clean(collection_failure_exceptions, cleanup_job, client):
             log.warn("Failed to cleanup remote Pulsar job")
 
 
-def _allow_collect_failure(output_type):
-    return output_type in ['output_workdir']
+def _allow_collect_failure(output_type, exception):
+    """Whether a collection failure may be downgraded to a warning instead of failing the job.
+
+    Only working-directory outputs are eligible: a failure collecting one
+    generally indicates a tool problem rather than an infrastructure one, so it
+    should not force the job to fail.
+
+    Infrastructure ``OSError``s (disk full, I/O errors) are never downgraded,
+    even for working-directory outputs — they must fail the job. A missing
+    output file (``FileNotFoundError``) is excluded from that rule: it is an
+    expected, recoverable condition — e.g. a ``from_work_dir`` output a tool
+    legitimately did not produce, which Galaxy represents as an empty dataset —
+    so it remains an allowed failure.
+    """
+    if output_type not in ['output_workdir']:
+        return False
+    if isinstance(exception, OSError) and not isinstance(exception, FileNotFoundError):
+        return False
+    return True
 
 
 __all__ = ('finish_job',)
