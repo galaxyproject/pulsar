@@ -92,6 +92,7 @@ def submit_job(manager, job_config):
         touch_outputs = job_config.get('touch_outputs', [])
         dynamic_file_sources = job_config.get("dynamic_file_sources", None)
         token_endpoint = job_config.get("token_endpoint", None)
+        cvmfsexec = job_config.get("cvmfsexec", None)
 
         job_config = None
         if setup_params or force_setup:
@@ -111,6 +112,12 @@ def submit_job(manager, job_config):
             command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
 
         # TODO: Handle __PULSAR_JOB_DIRECTORY__ config files, metadata files, etc...
+        # Deliver a per-job cvmfsexec override to the manager via setup_params.
+        # Merged here (after the setup decision above) so it does not itself
+        # trigger job setup.
+        if cvmfsexec is not None:
+            setup_params = {**setup_params, "cvmfsexec": cvmfsexec}
+
         manager.touch_outputs(job_id, touch_outputs)
         launch_config = {
             "remote_staging": remote_staging,

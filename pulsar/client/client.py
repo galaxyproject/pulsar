@@ -115,6 +115,9 @@ class BaseJobClient:
         for attr in ["ssh_key", "ssh_user", "ssh_host", "ssh_port"]:
             setattr(self, attr, destination_params.get(attr, None))
         self.env = destination_params.get("env", [])
+        # Optional cvmfsexec configuration; delivered to the Pulsar manager via
+        # setup_params so it can override the manager's app.yml default.
+        self.cvmfsexec = destination_params.get("cvmfsexec", None)
         self.files_endpoint = destination_params.get("files_endpoint", None)
         self.token_endpoint = destination_params.get("token_endpoint", None)
 
@@ -210,6 +213,8 @@ class JobClient(BaseJobClient):
             launch_params['submit_extras'] = json_dumps({'touch_outputs': job_config['touch_outputs']})
         if token_endpoint is not None:
             launch_params["token_endpoint"] = json_dumps({'token_endpoint': token_endpoint})
+        if self.cvmfsexec is not None:
+            launch_params['cvmfsexec'] = json_dumps(self.cvmfsexec)
 
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
@@ -385,6 +390,8 @@ class BaseRemoteConfiguredJobClient(BaseJobClient):
             launch_params['remote_staging']['ssh_key'] = self.ssh_key
         launch_params['dynamic_file_sources'] = dynamic_file_sources
         launch_params['token_endpoint'] = token_endpoint
+        if self.cvmfsexec is not None:
+            launch_params['cvmfsexec'] = self.cvmfsexec
 
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
