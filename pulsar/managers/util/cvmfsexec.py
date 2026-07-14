@@ -17,8 +17,13 @@ repositories without root. Pulsar supports two execution modes, selected via a
     ``$CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/<repo>`` instead of the real
     ``/cvmfs``. Because Galaxy resolves Singularity containers against the real
     ``/cvmfs`` on the Galaxy host and bakes that path into the job command, the
-    host-side container image path must be rewritten to the ``dist`` location
-    (see :func:`rewrite_command`).
+    host-side container image path must be remapped to the ``dist`` location.
+    That rewrite is *not* done here: it is an ordinary path rewrite handled by
+    Galaxy via a destination ``file_actions``/``file_action_config`` ``rewrite``
+    rule (source ``/cvmfs/<repo>``, destination
+    ``$CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/<repo>``). This module only owns the
+    cvmfsexec runtime setup (mount preamble and, for namespace mode, wrapping
+    the command).
 
 This module only generates strings; it performs no I/O so it is trivially
 unit-testable.
@@ -42,13 +47,6 @@ DEFAULT_MODE = MODE_MOUNTREPO
 # under - the same value the previous hand-written destination config computed.
 DEFAULT_CVMFSEXEC_DIR_EXPR = '$(dirname "$_GALAXY_JOB_DIR")'
 
-# Where ``mountrepo`` places bind-mounted repositories, relative to CVMFSEXEC_DIR.
-DIST_CVMFS_SUBPATH = ".cvmfsexec/dist/cvmfs"
-
-# Repositories whose names start with this are assumed to hold host-side
-# container images and are rewritten in ``mountrepo`` mode by default.
-DEFAULT_IMAGE_REPOSITORY_PREFIX = "singularity"
-
 
 class CvmfsExecConfig:
 
@@ -57,22 +55,12 @@ class CvmfsExecConfig:
         mode: str,
         path: str,
         repositories: List[str],
-        image_repositories: Optional[List[str]] = None,
         cvmfsexec_dir_expr: str = DEFAULT_CVMFSEXEC_DIR_EXPR,
     ):
         self.mode = mode
         self.path = path
         self.repositories = repositories
-        if image_repositories is None:
-            image_repositories = [
-                r for r in repositories if r.startswith(DEFAULT_IMAGE_REPOSITORY_PREFIX)
-            ]
-        self.image_repositories = image_repositories
         self.cvmfsexec_dir_expr = cvmfsexec_dir_expr
-
-    @property
-    def _dist_cvmfs_dir(self) -> str:
-        return "$CVMFSEXEC_DIR/" + DIST_CVMFS_SUBPATH
 
 
 def parse(raw) -> Optional[CvmfsExecConfig]:
@@ -85,8 +73,8 @@ def parse(raw) -> Optional[CvmfsExecConfig]:
     >>> c = parse({"path": "/opt/cvmfsexec", "repositories": ["singularity.galaxyproject.org", "data.galaxyproject.org"]})
     >>> c.mode
     'mountrepo'
-    >>> c.image_repositories
-    ['singularity.galaxyproject.org']
+    >>> c.repositories
+    ['singularity.galaxyproject.org', 'data.galaxyproject.org']
     >>> parse({"repositories": ["a"]})
     Traceback (most recent call last):
     ...
@@ -115,17 +103,12 @@ def parse(raw) -> Optional[CvmfsExecConfig]:
     if not repositories:
         raise ValueError("cvmfsexec configuration requires at least one repository")
 
-    image_repositories = raw.get("image_repositories")
-    if image_repositories is not None:
-        image_repositories = listify(image_repositories)
-
     cvmfsexec_dir_expr = raw.get("cvmfsexec_dir") or DEFAULT_CVMFSEXEC_DIR_EXPR
 
     return CvmfsExecConfig(
         mode=mode,
         path=path,
         repositories=repositories,
-        image_repositories=image_repositories,
         cvmfsexec_dir_expr=cvmfsexec_dir_expr,
     )
 
@@ -158,30 +141,6 @@ def setup_commands(config: CvmfsExecConfig) -> List[str]:
     for repository in config.repositories:
         commands.append('"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" %s' % repository)
     return commands
-
-
-def rewrite_command(config: CvmfsExecConfig, command: str) -> str:
-    """Rewrite host-side image paths for ``mountrepo`` mode.
-
-    Only the configured ``image_repositories`` prefixes are rewritten. Other
-    ``/cvmfs`` references are left untouched: they are read *inside* the
-    container (where ``singularity_volumes`` bind-mounts the dist tree back onto
-    ``/cvmfs``), and rewriting them would corrupt the in-container paths and the
-    bind-mount target.
-
-    >>> c = parse({"path": "/x", "repositories": ["singularity.galaxyproject.org", "data.galaxyproject.org"]})
-    >>> rewrite_command(c, "singularity exec /cvmfs/singularity.galaxyproject.org/all/img sh")
-    'singularity exec $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/singularity.galaxyproject.org/all/img sh'
-    >>> rewrite_command(c, "cat /cvmfs/data.galaxyproject.org/x.loc")
-    'cat /cvmfs/data.galaxyproject.org/x.loc'
-    """
-    if config.mode != MODE_MOUNTREPO:
-        return command
-    for repository in config.image_repositories:
-        source = "/cvmfs/%s/" % repository
-        destination = "%s/%s/" % (config._dist_cvmfs_dir, repository)
-        command = command.replace(source, destination)
-    return command
 
 
 def wrap_command(config: CvmfsExecConfig, command: str) -> str:

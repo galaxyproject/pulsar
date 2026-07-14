@@ -9,24 +9,14 @@ def test_parse_none_disabled():
     assert cvmfsexec.parse({}) is None
 
 
-def test_parse_defaults_and_image_repository_inference():
+def test_parse_defaults():
     config = cvmfsexec.parse({
         "path": "/opt/cvmfsexec",
         "repositories": ["data.galaxyproject.org", "singularity.galaxyproject.org"],
     })
     assert config.mode == cvmfsexec.MODE_MOUNTREPO
     assert config.path == "/opt/cvmfsexec"
-    # Only repos prefixed "singularity" are treated as host-side image repos.
-    assert config.image_repositories == ["singularity.galaxyproject.org"]
-
-
-def test_parse_explicit_image_repositories():
-    config = cvmfsexec.parse({
-        "path": "/opt/cvmfsexec",
-        "repositories": ["a.example.org", "b.example.org"],
-        "image_repositories": ["b.example.org"],
-    })
-    assert config.image_repositories == ["b.example.org"]
+    assert config.repositories == ["data.galaxyproject.org", "singularity.galaxyproject.org"]
 
 
 def test_parse_requires_path():
@@ -64,36 +54,6 @@ def test_setup_commands_namespace_is_empty():
         "repositories": ["data.galaxyproject.org"],
     })
     assert cvmfsexec.setup_commands(config) == []
-
-
-def test_rewrite_command_only_touches_image_repositories():
-    config = cvmfsexec.parse({
-        "path": "/opt/cvmfsexec",
-        "repositories": ["singularity.galaxyproject.org", "data.galaxyproject.org"],
-    })
-    command = (
-        "singularity exec -B $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs:/cvmfs "
-        "/cvmfs/singularity.galaxyproject.org/all/img "
-        "tool --ref /cvmfs/data.galaxyproject.org/genome.fa"
-    )
-    rewritten = cvmfsexec.rewrite_command(config, command)
-    # Host-side image path is rewritten to the dist location...
-    assert "exec -B $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs:/cvmfs " \
-           "$CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/singularity.galaxyproject.org/all/img" in rewritten
-    assert "exec -B $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs:/cvmfs /cvmfs/singularity" not in rewritten
-    # ...but the in-container reference-data path (resolved via the bind mount)
-    # is left untouched.
-    assert "/cvmfs/data.galaxyproject.org/genome.fa" in rewritten
-
-
-def test_rewrite_command_namespace_is_noop():
-    config = cvmfsexec.parse({
-        "mode": "namespace",
-        "path": "/opt/cvmfsexec",
-        "repositories": ["singularity.galaxyproject.org"],
-    })
-    command = "singularity exec /cvmfs/singularity.galaxyproject.org/all/img sh"
-    assert cvmfsexec.rewrite_command(config, command) == command
 
 
 def test_wrap_command_namespace():

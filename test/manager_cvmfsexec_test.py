@@ -36,17 +36,16 @@ class CvmfsExecManagerTest(BaseManagerTestCase):
         assert "mountrepo" not in contents
         assert "/cvmfs/singularity.galaxyproject.org/all/img" in contents
 
-    def test_mountrepo_preamble_and_image_rewrite(self):
+    def test_mountrepo_preamble(self):
         contents = self._script_for(SINGULARITY_COMMAND, manager_kwds={"cvmfsexec": MOUNTREPO_CONFIG})
         # Mount preamble generated for every repository.
         assert 'export CVMFSEXEC_DIR="$(dirname "$_GALAXY_JOB_DIR")"' in contents
         assert '"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" data.galaxyproject.org' in contents
         assert '"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" singularity.galaxyproject.org' in contents
-        # Host-side container image path rewritten to the dist location...
-        assert "exec $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/singularity.galaxyproject.org/all/img" in contents
-        assert "exec /cvmfs/singularity.galaxyproject.org/all/img" not in contents
-        # ...reference-data path (resolved inside the container) left untouched.
-        assert "/cvmfs/data.galaxyproject.org/genome.fa" in contents
+        # The container image path is NOT rewritten here - in mountrepo mode that
+        # is a Galaxy file_actions rewrite rule. The command passes through as-is.
+        assert SINGULARITY_COMMAND in contents
+        assert ".cvmfsexec/dist/cvmfs/singularity" not in contents
         # Preamble is injected into the template (after dir prep, before cd), not
         # via the env setup mechanism.
         assert contents.index("export CVMFSEXEC_DIR=") < contents.index("\ncd ")
@@ -64,4 +63,4 @@ class CvmfsExecManagerTest(BaseManagerTestCase):
         # Override install path used; the manager-default data repo is not mounted.
         assert 'cp "/scratch/cvmfsexec" "$CVMFSEXEC_DIR/cvmfsexec"' in contents
         assert '"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" data.galaxyproject.org' not in contents
-        assert "exec $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/singularity.galaxyproject.org/all/img" in contents
+        assert '"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" singularity.galaxyproject.org' in contents

@@ -165,11 +165,10 @@ class DirectoryBaseManager(BaseManager):
         )
         cvmfsexec_config = self._cvmfsexec_config(setup_params)
         if cvmfsexec_config is not None:
-            # Rewrite the container image path (mountrepo mode) or wrap the
-            # command to run under cvmfsexec (namespace mode).
-            command_line = cvmfsexec.wrap_command(
-                cvmfsexec_config, cvmfsexec.rewrite_command(cvmfsexec_config, command_line)
-            )
+            # Wrap the command to run under cvmfsexec (namespace mode); no-op for
+            # mountrepo mode, where the container image path is remapped by a
+            # Galaxy file_actions rewrite rule instead.
+            command_line = cvmfsexec.wrap_command(cvmfsexec_config, command_line)
         script_env = self._job_template_env(job_id, command_line=command_line, env=env, setup_params=setup_params)
         if cvmfsexec_config is not None:
             # Mount preamble is injected directly into the job script template

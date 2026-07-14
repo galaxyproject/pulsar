@@ -23,11 +23,11 @@
 #    #  repositories:
 #    #    - data.galaxyproject.org
 #    #    - singularity.galaxyproject.org
-#    #  ## mountrepo mode only: repositories holding host-side container images,
-#    #  ## whose paths are rewritten to the mounted location. Defaults to any
-#    #  ## repository whose name starts with "singularity".
-#    #  #image_repositories:
-#    #  #  - singularity.galaxyproject.org
+#    ## In mountrepo mode the host-side container image path (resolved by Galaxy
+#    ## against the real /cvmfs) must be remapped to the mounted dist location.
+#    ## That is an ordinary path rewrite: configure it on the Galaxy job
+#    ## destination as a file_actions `rewrite` rule (source /cvmfs/<repo>,
+#    ## destination $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/<repo>), not here.
 
 
 ## Mode to create job releated directories with. If unset
