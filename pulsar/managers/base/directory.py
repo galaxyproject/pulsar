@@ -6,6 +6,7 @@ from galaxy.util import asbool
 
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from pulsar.managers.base import BaseManager
+from ..util import cvmfsexec
 from ..util.env import env_to_statement
 from ..util.job_script import job_script
 
@@ -162,9 +163,28 @@ class DirectoryBaseManager(BaseManager):
         command_line = self._expand_command_line(
             job_id, command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory
         )
+        cvmfsexec_config = self._cvmfsexec_config(setup_params)
+        if cvmfsexec_config is not None:
+            # Rewrite the container image path (mountrepo mode) or wrap the
+            # command to run under cvmfsexec (namespace mode).
+            command_line = cvmfsexec.wrap_command(
+                cvmfsexec_config, cvmfsexec.rewrite_command(cvmfsexec_config, command_line)
+            )
         script_env = self._job_template_env(job_id, command_line=command_line, env=env, setup_params=setup_params)
+        if cvmfsexec_config is not None:
+            # Mount preamble is injected directly into the job script template
+            # (after $prepare_dirs_statement), not via the env mechanism.
+            script_env["cvmfsexec_setup"] = "\n".join(cvmfsexec.setup_commands(cvmfsexec_config))
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
+
+    def _cvmfsexec_config(self, setup_params):
+        # A per-job cvmfsexec override (delivered from the Galaxy job destination
+        # via setup_params) takes precedence over the manager default.
+        override = (setup_params or {}).get("cvmfsexec")
+        if override is not None:
+            return cvmfsexec.parse(override)
+        return self.cvmfsexec_config
 
     def _tmp_dir(self, job_id: str):
         # Code stolen from Galaxy's job wrapper.
