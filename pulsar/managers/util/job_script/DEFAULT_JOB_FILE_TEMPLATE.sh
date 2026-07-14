@@ -51,6 +51,7 @@ TMPDIR="${TMPDIR:-$_GALAXY_JOB_TMP_DIR}"
 
 GALAXY_PYTHON=`command -v python`
 $prepare_dirs_statement
+$cvmfsexec_setup
 cd $working_directory
 $memory_statement
 $instrument_pre_commands

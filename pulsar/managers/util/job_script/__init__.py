@@ -66,6 +66,7 @@ OPTIONAL_TEMPLATE_PARAMS: Dict[str, Any] = {
     "preserve_python_environment": True,
     "tmp_dir_creation_statement": '""',
     "prepare_dirs_statement": PREPARE_DIRS,
+    "cvmfsexec_setup": "",
 }
 
 
