@@ -8,6 +8,26 @@
 #  _default_:
 #    type: queued_python
 #    num_concurrent_jobs: 1
+#    ## Run jobs under cvmfsexec (https://github.com/cvmfs/cvmfsexec) so CVMFS
+#    ## repositories are available without a system-wide /cvmfs mount. This can
+#    ## also be set/overridden per-destination from Galaxy (a `cvmfsexec` job
+#    ## destination param with the same structure).
+#    #cvmfsexec:
+#    #  ## "namespace" (default requires unprivileged user namespaces; provides a
+#    #  ## real /cvmfs) or "mountrepo" (bind-mounts repos under
+#    #  ## $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs for hosts without namespaces).
+#    #  mode: mountrepo
+#    #  ## Path to the cvmfsexec launcher to install into each job directory.
+#    #  path: /path/to/cvmfsexec
+#    #  ## CVMFS repositories to mount for each job.
+#    #  repositories:
+#    #    - data.galaxyproject.org
+#    #    - singularity.galaxyproject.org
+#    #  ## mountrepo mode only: repositories holding host-side container images,
+#    #  ## whose paths are rewritten to the mounted location. Defaults to any
+#    #  ## repository whose name starts with "singularity".
+#    #  #image_repositories:
+#    #  #  - singularity.galaxyproject.org
 
 
 ## Mode to create job releated directories with. If unset
