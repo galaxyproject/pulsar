@@ -15,7 +15,7 @@
 #    #cvmfsexec:
 #    #  ## "namespace" (default requires unprivileged user namespaces; provides a
 #    #  ## real /cvmfs) or "mountrepo" (bind-mounts repos under
-#    #  ## $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs for hosts without namespaces).
+#    #  ## <job_directory>/.cvmfsexec/dist/cvmfs for hosts without namespaces).
 #    #  mode: mountrepo
 #    #  ## Path to the cvmfsexec launcher to install into each job directory.
 #    #  path: /path/to/cvmfsexec
@@ -27,7 +27,10 @@
 #    ## against the real /cvmfs) must be remapped to the mounted dist location.
 #    ## That is an ordinary path rewrite: configure it on the Galaxy job
 #    ## destination as a file_actions `rewrite` rule (source /cvmfs/<repo>,
-#    ## destination $CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/<repo>), not here.
+#    ## destination __PULSAR_JOB_DIRECTORY__/.cvmfsexec/dist/cvmfs/<repo>), not
+#    ## here. The __PULSAR_JOB_DIRECTORY__ token is substituted server-side with
+#    ## the absolute job directory (a $CVMFSEXEC_DIR shell var would be broken by
+#    ## the client's shlex.quote of the image path).
 
 
 ## Mode to create job releated directories with. If unset

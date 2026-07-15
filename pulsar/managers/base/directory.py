@@ -172,8 +172,11 @@ class DirectoryBaseManager(BaseManager):
         script_env = self._job_template_env(job_id, command_line=command_line, env=env, setup_params=setup_params)
         if cvmfsexec_config is not None:
             # Mount preamble is injected directly into the job script template
-            # (after $prepare_dirs_statement), not via the env mechanism.
-            script_env["cvmfsexec_setup"] = "\n".join(cvmfsexec.setup_commands(cvmfsexec_config))
+            # (after $prepare_dirs_statement), not via the env mechanism. Uses the
+            # absolute job directory so the mount location matches the image path
+            # the client rewrote to __PULSAR_JOB_DIRECTORY__ (substituted server-side).
+            job_directory = self.job_directory(job_id).job_directory
+            script_env["cvmfsexec_setup"] = "\n".join(cvmfsexec.setup_commands(cvmfsexec_config, job_directory))
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
 

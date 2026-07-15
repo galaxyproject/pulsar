@@ -39,12 +39,14 @@ def test_setup_commands_mountrepo():
         "path": "/opt/cvmfsexec",
         "repositories": ["data.galaxyproject.org", "singularity.galaxyproject.org"],
     })
-    commands = cvmfsexec.setup_commands(config)
-    assert commands[0] == 'export CVMFSEXEC_DIR="$(dirname "$_GALAXY_JOB_DIR")"'
-    assert 'cp "/opt/cvmfsexec" "$CVMFSEXEC_DIR/cvmfsexec"' in commands
-    assert 'trap "$CVMFSEXEC_DIR/.cvmfsexec/umountrepo -a" EXIT' in commands
-    assert '"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" data.galaxyproject.org' in commands
-    assert '"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" singularity.galaxyproject.org' in commands
+    commands = cvmfsexec.setup_commands(config, "/jobs/7")
+    # Absolute job directory used directly (no $CVMFSEXEC_DIR shell variable).
+    assert commands[0] == 'cp "/opt/cvmfsexec" "/jobs/7/cvmfsexec"'
+    assert '"/jobs/7/cvmfsexec" -v >/dev/null' in commands
+    assert 'trap "/jobs/7/.cvmfsexec/umountrepo -a" EXIT' in commands
+    assert '"/jobs/7/.cvmfsexec/mountrepo" data.galaxyproject.org' in commands
+    assert '"/jobs/7/.cvmfsexec/mountrepo" singularity.galaxyproject.org' in commands
+    assert not any("CVMFSEXEC_DIR" in c for c in commands)
 
 
 def test_setup_commands_namespace_is_empty():
@@ -53,7 +55,7 @@ def test_setup_commands_namespace_is_empty():
         "path": "/opt/cvmfsexec",
         "repositories": ["data.galaxyproject.org"],
     })
-    assert cvmfsexec.setup_commands(config) == []
+    assert cvmfsexec.setup_commands(config, "/jobs/7") == []
 
 
 def test_wrap_command_namespace():

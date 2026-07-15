@@ -14,16 +14,18 @@ repositories without root. Pulsar supports two execution modes, selected via a
 ``mountrepo``
     For hosts where the mount namespace cannot be created, ``mountrepo``
     bind-mounts each repository under
-    ``$CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/<repo>`` instead of the real
+    ``<job_directory>/.cvmfsexec/dist/cvmfs/<repo>`` instead of the real
     ``/cvmfs``. Because Galaxy resolves Singularity containers against the real
     ``/cvmfs`` on the Galaxy host and bakes that path into the job command, the
     host-side container image path must be remapped to the ``dist`` location.
     That rewrite is *not* done here: it is an ordinary path rewrite handled by
     Galaxy via a destination ``file_actions``/``file_action_config`` ``rewrite``
     rule (source ``/cvmfs/<repo>``, destination
-    ``$CVMFSEXEC_DIR/.cvmfsexec/dist/cvmfs/<repo>``). This module only owns the
-    cvmfsexec runtime setup (mount preamble and, for namespace mode, wrapping
-    the command).
+    ``__PULSAR_JOB_DIRECTORY__/.cvmfsexec/dist/cvmfs/<repo>``). The
+    ``__PULSAR_JOB_DIRECTORY__`` token is substituted by the Pulsar server with
+    the absolute job directory (it survives ``shlex.quote`` on the client, unlike
+    a ``$VAR``). This module only owns the cvmfsexec runtime setup (mount
+    preamble and, for namespace mode, wrapping the command).
 
 This module only generates strings; it performs no I/O so it is trivially
 unit-testable.
@@ -41,12 +43,6 @@ MODE_NAMESPACE = "namespace"
 VALID_MODES = (MODE_MOUNTREPO, MODE_NAMESPACE)
 DEFAULT_MODE = MODE_MOUNTREPO
 
-# Expression evaluated in the job script to locate the per-job cvmfsexec
-# directory. ``_GALAXY_JOB_DIR`` is set to the working directory near the top of
-# the job script template, so its parent is the job directory that Pulsar stages
-# under - the same value the previous hand-written destination config computed.
-DEFAULT_CVMFSEXEC_DIR_EXPR = '$(dirname "$_GALAXY_JOB_DIR")'
-
 
 class CvmfsExecConfig:
 
@@ -55,12 +51,10 @@ class CvmfsExecConfig:
         mode: str,
         path: str,
         repositories: List[str],
-        cvmfsexec_dir_expr: str = DEFAULT_CVMFSEXEC_DIR_EXPR,
     ):
         self.mode = mode
         self.path = path
         self.repositories = repositories
-        self.cvmfsexec_dir_expr = cvmfsexec_dir_expr
 
 
 def parse(raw) -> Optional[CvmfsExecConfig]:
@@ -103,43 +97,45 @@ def parse(raw) -> Optional[CvmfsExecConfig]:
     if not repositories:
         raise ValueError("cvmfsexec configuration requires at least one repository")
 
-    cvmfsexec_dir_expr = raw.get("cvmfsexec_dir") or DEFAULT_CVMFSEXEC_DIR_EXPR
-
     return CvmfsExecConfig(
         mode=mode,
         path=path,
         repositories=repositories,
-        cvmfsexec_dir_expr=cvmfsexec_dir_expr,
     )
 
 
-def setup_commands(config: CvmfsExecConfig) -> List[str]:
+def setup_commands(config: CvmfsExecConfig, job_directory: str) -> List[str]:
     """Shell statements that prepare cvmfsexec before the job command runs.
 
     For ``mountrepo`` mode this reproduces the previously hand-maintained
-    destination ``env``/``execute`` block: locate ``CVMFSEXEC_DIR``, install the
-    cvmfsexec launcher, bootstrap the ``.cvmfsexec`` dist tree, register cleanup,
-    and mount each repository. ``namespace`` mode needs no preamble - the command
-    is wrapped instead (see :func:`wrap_command`).
+    destination ``env``/``execute`` block: install the cvmfsexec launcher into
+    the (absolute) per-job directory, bootstrap the ``.cvmfsexec`` dist tree,
+    register cleanup, and mount each repository. ``namespace`` mode needs no
+    preamble - the command is wrapped instead (see :func:`wrap_command`).
+
+    ``job_directory`` is the absolute job directory (Pulsar knows it at
+    job-script generation time), used directly instead of a ``$CVMFSEXEC_DIR``
+    shell variable so the mount location matches the ``__PULSAR_JOB_DIRECTORY__``
+    the client rewrites the container image path to.
 
     >>> c = parse({"path": "/opt/cvmfsexec", "repositories": ["singularity.galaxyproject.org"]})
-    >>> setup_commands(c)  # doctest: +NORMALIZE_WHITESPACE
-    ['export CVMFSEXEC_DIR="$(dirname "$_GALAXY_JOB_DIR")"',
-     'cp "/opt/cvmfsexec" "$CVMFSEXEC_DIR/cvmfsexec"',
-     '"$CVMFSEXEC_DIR/cvmfsexec" -v >/dev/null',
-     'trap "$CVMFSEXEC_DIR/.cvmfsexec/umountrepo -a" EXIT',
-     '"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" singularity.galaxyproject.org']
+    >>> setup_commands(c, "/jobs/7")  # doctest: +NORMALIZE_WHITESPACE
+    ['cp "/opt/cvmfsexec" "/jobs/7/cvmfsexec"',
+     '"/jobs/7/cvmfsexec" -v >/dev/null',
+     'trap "/jobs/7/.cvmfsexec/umountrepo -a" EXIT',
+     '"/jobs/7/.cvmfsexec/mountrepo" singularity.galaxyproject.org']
     """
     if config.mode != MODE_MOUNTREPO:
         return []
+    launcher = "%s/cvmfsexec" % job_directory
+    dist = "%s/.cvmfsexec" % job_directory
     commands = [
-        'export CVMFSEXEC_DIR="%s"' % config.cvmfsexec_dir_expr,
-        'cp "%s" "$CVMFSEXEC_DIR/cvmfsexec"' % config.path,
-        '"$CVMFSEXEC_DIR/cvmfsexec" -v >/dev/null',
-        'trap "$CVMFSEXEC_DIR/.cvmfsexec/umountrepo -a" EXIT',
+        'cp "%s" "%s"' % (config.path, launcher),
+        '"%s" -v >/dev/null' % launcher,
+        'trap "%s/umountrepo -a" EXIT' % dist,
     ]
     for repository in config.repositories:
-        commands.append('"$CVMFSEXEC_DIR/.cvmfsexec/mountrepo" %s' % repository)
+        commands.append('"%s/mountrepo" %s' % (dist, repository))
     return commands
 
 
