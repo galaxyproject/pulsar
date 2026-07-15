@@ -4,6 +4,134 @@
 Containers
 -------------------------------
 
+Overview
+-------------------------------
+
+How a tool's container is best run with Pulsar depends on the container runtime:
+
+- **Docker** requires a container host, so containers are either launched by a
+  job script on a traditional batch manager (by setting ``docker_enabled`` on
+  the Galaxy job environment) or, more cleanly, scheduled directly by a
+  container-native backend - Kubernetes, GA4GH TES, GCP Batch, or AWS Batch.
+  These backends, and Pulsar's *co-execution* model for them, make up the bulk
+  of this page.
+
+- **Singularity/Apptainer** containers are unprivileged and run directly under
+  any traditional batch Pulsar manager (DRMAA, CLI, condor, etc.) with no
+  container scheduler required. The Galaxy Project distributes prebuilt images
+  for tools via CVMFS. See :ref:`singularity_cvmfs` below.
+
+.. _singularity_cvmfs:
+
+Singularity / Apptainer and CVMFS
+---------------------------------
+
+Unlike Docker, Singularity_ (and its fork Apptainer_) run containers without a
+privileged daemon, so a traditional batch Pulsar - a DRMAA, CLI, condor, or
+similar manager - can execute containerized tools directly, with no container
+scheduler. Enable it by setting ``singularity_enabled`` on the Galaxy job
+environment that targets Pulsar.
+
+Rather than pulling an image per job, the Galaxy Project publishes prebuilt
+Singularity images for Bioconda-based tools in a CVMFS repository,
+``singularity.galaxyproject.org`` - the ``/cvmfs/singularity.galaxyproject.org/all``
+directory holds one image file per tool/version. Pointing Galaxy's container
+resolvers at this cache lets jobs resolve to an existing image on ``/cvmfs``
+instead of building or pulling one.
+
+Container resolution happens on the Galaxy side, so the Galaxy server needs the
+CVMFS repository mounted at ``/cvmfs``. The compute nodes that run the job also
+need the image available at that path. The simplest way to provide it is to
+mount CVMFS on the compute nodes; the `Galaxy reference data repository
+documentation <https://galaxyproject.org/admin/reference-data-repo/>`_ discusses
+this and provides instructions. For compute environments where mounting CVMFS is
+not possible, ``cvmfsexec`` can access the images (and Galaxy reference data) as
+a fully unprivileged user, without root access or special permissions.
+
+Accessing CVMFS with cvmfsexec
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When a compute node cannot mount ``/cvmfs`` system-wide, cvmfsexec_ provides
+per-user access to CVMFS repositories. Pulsar can utilize it for each job via a
+``cvmfsexec`` option on the job manager in ``app.yml``:
+
+.. code-block:: yaml
+
+   managers:
+     _default_:
+       type: queued_drmaa
+       cvmfsexec:
+         mode: mountrepo
+         path: /path/to/cvmfsexec
+         repositories:
+           - data.galaxyproject.org
+           - singularity.galaxyproject.org
+
+``path`` is the cvmfsexec self-contained distribution, and ``repositories``
+lists the CVMFS repositories to mount for the job. Two modes are supported:
+
+``namespace``
+    cvmfsexec mounts the repositories into a mount namespace so they are
+    available at the real ``/cvmfs``, and the job runs inside that namespace.
+    Requires unprivileged user namespaces (or a suitable setuid/fusermount
+    fallback) on the compute node. No path rewriting is needed.
+
+``mountrepo``
+    For nodes where the mount namespace cannot be created, cvmfsexec
+    bind-mounts each repository under ``<job_directory>/.cvmfsexec/dist/cvmfs``
+    instead of the real ``/cvmfs``. Because Galaxy resolves the container image
+    against the real ``/cvmfs`` and bakes that path into the job command, the
+    host-side image path must be rewritten to the mounted location with a Galaxy
+    ``file_actions`` rewrite rule on the job destination - see :ref:`galaxy_conf`
+    for the example.
+
+``namespace`` is the preferred mode; ``mountrepo`` should typically only be used
+when unprivileged user namespaces and fuse mounts are not enabled on the compute
+nodes, as discussed in the cvmfsexec_ documentation.
+
+Building the self-contained distribution
+''''''''''''''''''''''''''''''''''''''''
+
+Creating the self-contained distribution that ``path`` points to is the
+responsibility of the deployer; see the cvmfsexec_ documentation for full
+details. The simplest configuration that can access the
+``singularity.galaxyproject.org`` and ``data.galaxyproject.org`` repositories
+is:
+
+#. Run ``./makedist none`` to create a ``dist`` directory.
+
+#. Add the ``data.galaxyproject.org.pub`` and ``galaxyproject.org.pub`` keys
+   from the `Galaxy reference data repository documentation
+   <https://galaxyproject.org/admin/reference-data-repo/>`_ to
+   ``dist/etc/cvmfs/keys``.
+
+#. Place the following in ``dist/etc/cvmfs/default.local``:
+
+   .. code-block:: bash
+
+      CVMFS_HTTP_PROXY="DIRECT"
+      CVMFS_SERVER_URL="http://cvmfs1-tacc0.galaxyproject.org/cvmfs/@fqrn@;http://cvmfs1-iu0.galaxyproject.org/cvmfs/@fqrn@;http://cvmfs1-psu0.galaxyproject.org/cvmfs/@fqrn@;http://cvmfs1-ufr0.galaxyproject.eu/cvmfs/@fqrn@;http://cvmfs1-mel0.gvl.org.au/cvmfs/@fqrn@"
+
+#. Run ``./makedist -o /path/to/cvmfsexec`` to create the self-contained
+   distribution, and set ``path`` to ``/path/to/cvmfsexec``.
+
+The `galaxyproject.cvmfsexec
+<https://github.com/galaxyproject/ansible-role-cvmfsexec>`_ Ansible role can
+build the distribution on your Pulsar server for you. For a complete production
+example, see how usegalaxy.org `configures and deploys cvmfsexec
+<https://github.com/galaxyproject/infrastructure-playbook/blob/725401c30e1c02bc0b0bc1630777a557faad217b/group_vars/hpc_pulsar_servers/vars.yaml#L188>`_.
+
+In HPC scenarios with a shared scratch filesystem, configuring a CVMFS `alien
+cache <https://cvmfs.readthedocs.io/en/stable/cpt-configure.html#alien-cache>`_
+can be beneficial.
+
+The ``cvmfsexec`` option can also be set (or overridden) per Galaxy job
+destination via a ``cvmfsexec`` param with the same structure.
+
+.. _Singularity: https://sylabs.io/singularity/
+.. _Apptainer: https://apptainer.org/
+.. _cvmfsexec: https://github.com/cvmfs/cvmfsexec
+
 Galaxy and Shared File Systems
 -------------------------------
 

@@ -17,20 +17,19 @@
 #    #  ## real /cvmfs) or "mountrepo" (bind-mounts repos under
 #    #  ## <job_directory>/.cvmfsexec/dist/cvmfs for hosts without namespaces).
 #    #  mode: mountrepo
-#    #  ## Path to the cvmfsexec launcher to install into each job directory.
+#    #  ## Path to the cvmfsexec self-contained distribution to install into each
+#    #  ## job directory. See the "Containers" section of Pulsar's docs for how
+#    #  ## to build it: https://pulsar.readthedocs.io/en/latest/containers.html
 #    #  path: /path/to/cvmfsexec
 #    #  ## CVMFS repositories to mount for each job.
 #    #  repositories:
 #    #    - data.galaxyproject.org
 #    #    - singularity.galaxyproject.org
-#    ## In mountrepo mode the host-side container image path (resolved by Galaxy
-#    ## against the real /cvmfs) must be remapped to the mounted dist location.
-#    ## That is an ordinary path rewrite: configure it on the Galaxy job
-#    ## destination as a file_actions `rewrite` rule (source /cvmfs/<repo>,
-#    ## destination __PULSAR_JOB_DIRECTORY__/.cvmfsexec/dist/cvmfs/<repo>), not
-#    ## here. The __PULSAR_JOB_DIRECTORY__ token is substituted server-side with
-#    ## the absolute job directory (a $CVMFSEXEC_DIR shell var would be broken by
-#    ## the client's shlex.quote of the image path).
+#    ## In mountrepo mode the host-side container image path must be rewritten to
+#    ## the mounted location. This is necessary and is configured on the Galaxy
+#    ## job destination (not here) with a file_actions rewrite rule; see the
+#    ## example in the "Galaxy Configuration" section of Pulsar's docs:
+#    ## https://pulsar.readthedocs.io/en/latest/galaxy_conf.html
 
 
 ## Mode to create job releated directories with. If unset

@@ -193,4 +193,27 @@ supported JSON). The following captures available options:
 .. literalinclude:: files/file_actions_sample_1.yaml
    :language: yaml
 
+Rewriting Container Image Paths for cvmfsexec
+`````````````````````````````````````````````
+
+The ``rewrite`` action above is also how you remap a Singularity/Apptainer
+container image path when the compute node exposes CVMFS at a non-standard path
+via ``cvmfsexec`` in ``mountrepo`` mode (see :ref:`containers`). Galaxy resolves
+the image against the real ``/cvmfs`` on the Galaxy server, but on the compute
+node the repository is bind-mounted under the per-job directory, so the image
+path baked into the job command must be rewritten. Add the following to the
+destination's ``file_actions`` (or ``file_action_config``):
+
+.. code-block:: yaml
+
+   paths:
+     - path: /cvmfs/singularity.galaxyproject.org
+       path_types: unstructured
+       action: rewrite
+       source_directory: /cvmfs/singularity.galaxyproject.org
+       destination_directory: __PULSAR_JOB_DIRECTORY__/.cvmfsexec/dist/cvmfs/singularity.galaxyproject.org
+
+The ``__PULSAR_JOB_DIRECTORY__`` token is replaced by the Pulsar server with the
+absolute per-job directory.
+
 .. _app.yml.sample: https://github.com/galaxyproject/pulsar/blob/master/app.yml.sample
