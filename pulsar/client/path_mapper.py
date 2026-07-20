@@ -70,6 +70,23 @@ class PathMapper:
         remote_path = self.path_helper.remote_join(self.unstructured_files_directory, name)
         return remote_path, unique_names
 
+    def check_for_container_rewrite(self, local_path):
+        """Rewrite a resolved container image path for the compute node.
+
+        Container images (e.g. a Singularity/Apptainer image on CVMFS) are
+        resolved against the Galaxy-side filesystem but read on the compute
+        node, which may expose the image at a different path. Unlike arbitrary
+        (unstructured) tool paths, container images are never staged, so this
+        only ever applies a ``rewrite`` action; any other action is a no-op.
+        """
+        path = str(local_path)
+        action = self.action_mapper.action({"path": path}, path_type.CONTAINER)
+        if action.staging_needed:
+            # Container images live on CVMFS or in a registry; they are not
+            # staged. A staging action here would be a misconfiguration.
+            return None
+        return action.path_rewrite(self.path_helper)
+
     def __remote_path_rewrite(self, dataset_path, dataset_path_type, name=None):
         """ Return remote path of this file (if staging is required) else None.
         """
