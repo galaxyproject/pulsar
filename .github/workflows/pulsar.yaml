@@ -1,5 +1,6 @@
 name: pulsar
 on: [push, pull_request]
+permissions: {}
 jobs:
   lint:
     name: Lint
@@ -59,7 +60,7 @@ jobs:
           python-version: '3.10'
     services:
       job-files:
-        image: galaxy/simple-job-files:latest
+        image: galaxy/simple-job-files@sha256:b8d92c4d6b547b27f8c4ae42a53f7b43b3c680aa56232151a1ecf4671ee2cb69
         env:
           JOB_FILES_ROOT_DIRECTORY: /tmp
         ports:
