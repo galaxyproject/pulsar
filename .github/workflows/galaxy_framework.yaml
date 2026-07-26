@@ -27,18 +27,18 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           path: 'pulsar'
           persist-credentials: false
       - name: Checkout tools repo
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           repository: galaxyproject/galaxy
           ref: ${{ matrix.galaxy-branch }}
           path: galaxy
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip

@@ -14,10 +14,10 @@ jobs:
           - python-version: '3.14'
             tox-env: lint
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
@@ -34,10 +34,10 @@ jobs:
         tox-env: [mypy]
         python-version: ['3.14']
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
@@ -68,10 +68,10 @@ jobs:
         volumes:
           - '/tmp:/tmp:rw'
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
@@ -91,10 +91,10 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: '3.11'
         cache: pip
@@ -157,10 +157,10 @@ jobs:
   #       - tox-env: test-funnel
   #         python-version: 3.7
   #   steps:
-  #   - uses: actions/checkout@v7
+  #   - uses: actions/checkout@v7.0.1
   #     with:
   #       persist-credentials: false
-  #   - uses: actions/setup-python@v6
+  #   - uses: actions/setup-python@v7
   #     with:
   #       python-version: ${{ matrix.python-version }}
   #       cache: pip
