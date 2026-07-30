@@ -119,7 +119,7 @@ The `galaxyproject.cvmfsexec
 <https://github.com/galaxyproject/ansible-role-cvmfsexec>`_ Ansible role can
 build the distribution on your Pulsar server for you. For a complete production
 example, see how usegalaxy.org `configures and deploys cvmfsexec
-<https://github.com/galaxyproject/infrastructure-playbook/blob/725401c30e1c02bc0b0bc1630777a557faad217b/group_vars/hpc_pulsar_servers/vars.yaml#L188>`_.
+<https://github.com/galaxyproject/infrastructure-playbook/blob/4666707a5cfd7587ed5e9ec8f3c7a6b43933b0cb/group_vars/hpc_pulsar_servers/vars.yaml#L188>`_.
 
 In HPC scenarios with a shared scratch filesystem, configuring a CVMFS `alien
 cache <https://cvmfs.readthedocs.io/en/stable/cpt-configure.html#alien-cache>`_
