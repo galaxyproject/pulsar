@@ -46,7 +46,7 @@ class BaseDrmaaManager(ExternalBaseManager):
             JobState.SYSTEM_SUSPENDED: status.QUEUED,
             JobState.USER_SUSPENDED: status.QUEUED,
             JobState.DONE: status.COMPLETE,
-            JobState.FAILED: status.COMPLETE,  # Should be a FAILED state here as well
+            JobState.FAILED: status.FAILED,
         }[drmaa_state]
 
     def _build_template_attributes(self, job_id, command_line, dependencies_description=None, env=[], submit_params={}, setup_params=None):
