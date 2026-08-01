@@ -137,18 +137,33 @@ elif [ "$MODE" == "paster" ]; then
     echo "Starting pulsar with command [pulsar-serve \"$PULSAR_CONFIG_FILE\" \"$@\"]"
     pulsar-serve "$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "webless" ]; then
+    WEBLESS_ARGS=()
+    for arg in "$@"; do
+        case "$arg" in
+          --daemon)
+              WEBLESS_ARGS+=("--daemonize")
+              ;;
+          --stop-daemon)
+              echo "pulsar-main does not support --stop-daemon. Stop the process directly (see its --pid-file), or manage it with a process supervisor, e.g. 'pulsar-config --supervisor'." 1>&2
+              exit 1
+              ;;
+          *)
+              WEBLESS_ARGS+=("$arg")
+              ;;
+        esac
+    done
     if hash pulsar-main 2>/dev/null; then
         # Running from pip install since
         # pulsar-main is available on PATH.
-        echo "Starting pulsar with command [pulsar-main]"
-        pulsar-main
+        echo "Starting pulsar with command [pulsar-main ${WEBLESS_ARGS[@]}]"
+        pulsar-main "${WEBLESS_ARGS[@]}"
     else
         # Running locally.
         PROJECT_DIRECTORY=$PULSAR_SCRIPTS_DIR/..
         cd $PROJECT_DIRECTORY
         export PYTHONPATH=.:$PYTHONPATH
-        echo "Starting pulsar with command [python pulsar/main.py]"
-        python pulsar/main.py
+        echo "Starting pulsar with command [python pulsar/main.py ${WEBLESS_ARGS[@]}]"
+        python pulsar/main.py "${WEBLESS_ARGS[@]}"
     fi
 else
     echo "Unknown mode passed to --mode argument." 1>&2
