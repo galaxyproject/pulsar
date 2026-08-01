@@ -137,13 +137,6 @@ elif [ "$MODE" == "paster" ]; then
     echo "Starting pulsar with command [pulsar-serve \"$PULSAR_CONFIG_FILE\" \"$@\"]"
     pulsar-serve "$PULSAR_CONFIG_FILE" "$@"
 elif [ "$MODE" == "webless" ]; then
-    # Unlike the other modes above, this branch used to ignore "$@"
-    # entirely, so flags such as --daemon were silently dropped and Pulsar
-    # ran attached to the caller's terminal instead of backgrounding itself.
-    # pulsar-main also does not share pulsar-serve's flag names: it exposes
-    # -d/--daemonize (not --daemon) and has no --stop-daemon support at all,
-    # so translate/validate before forwarding rather than passing "$@"
-    # through unchanged.
     WEBLESS_ARGS=()
     for arg in "$@"; do
         case "$arg" in
