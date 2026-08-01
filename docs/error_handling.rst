@@ -126,17 +126,23 @@ Monitoring
 
 When Pulsar talks to RabbitMQ:
 
-* ``amqp_durable: true`` (off by default) declares the ``pulsar``
-  exchange and every per-name queue with ``durable=true``, and stamps
-  publishes with ``delivery_mode=2`` (persistent). With this enabled,
-  setup, kill, and status-update messages survive a RabbitMQ restart.
-  The default is ``false`` so existing deployments with non-durable
-  queues keep working — RabbitMQ refuses to redeclare an existing queue
-  with mismatched durability, so flipping this on a live deployment
-  requires deleting the affected queues first or migrating to a fresh
-  broker. The outbox already covers the publisher-side leak (LP1)
-  regardless of this setting; durable queues are an extra defense for
-  the *broker-restart* case specifically.
+* ``amqp_durable`` (**on by default**) declares the ``pulsar`` exchange
+  and every per-name queue with ``durable=true``, and stamps publishes
+  with ``delivery_mode=2`` (persistent), so setup, kill, and
+  status-update messages survive a RabbitMQ restart. This matches
+  kombu's own default, which is what Pulsar relied on before the flag
+  existed.
+
+  Setting ``amqp_durable: false`` is an explicit opt-out for legacy
+  brokers that still permit transient non-exclusive queues. **Do not set
+  it on RabbitMQ 4.x**, which rejects such queues outright
+  (``Queue.declare`` fails with ``INTERNAL_ERROR``, "Feature
+  ``transient_nonexcl_queues`` is deprecated"); the consumer then dies on
+  startup and jobs are never picked up.
+
+  The outbox already covers the publisher-side leak (LP1) regardless of
+  this setting; durable queues are an extra defense for the
+  *broker-restart* case specifically.
 * ``amqp_publish_retry: true`` enables kombu's connection-retry policy.
   When set, pulsar fills in bounded defaults (``max_retries: 5``,
   ``interval_start: 1``, ``interval_step: 2``, ``interval_max: 30``) so a
@@ -149,11 +155,13 @@ When Pulsar talks to RabbitMQ:
 
 .. note::
 
-   To enable durable queues on an existing deployment, drain or delete
-   the existing ``pulsar__*`` queues (e.g. ``rabbitmqctl delete_queue
-   pulsar__setup`` for each one) before flipping
-   ``amqp_durable: true``. On a fresh install you can simply set the
-   flag from the start.
+   Changing ``amqp_durable`` on an existing deployment is not a hot
+   flip in *either* direction: RabbitMQ refuses to redeclare an existing
+   queue with mismatched durability. Drain or delete the affected queues
+   (e.g. ``rabbitmqctl delete_queue pulsar__setup``; queues are named
+   ``pulsar_<manager>__<name>``, or ``pulsar__<name>`` for the default
+   manager) before changing the flag. A fresh install needs no action —
+   the default is already durable.
 
 ------------------------------------------------------------------------
 4. pulsar-relay durability defenses
@@ -346,8 +354,8 @@ Failure                                            Recovery mechanism           
 =================================================  ====================================  ===========================================================================
 Broker brief disconnect                            kombu/relay reconnect loop            ``recoverable_exceptions`` log; queue drains on reconnect
 Broker down for minutes                            outbox holds terminal status          outbox dir size > 0 until reconnect; warns on next drain
-RabbitMQ crash + restart (``amqp_durable: true``)  durable queues + delivery_mode=2      no Pulsar-side log; messages restored from broker disk
-RabbitMQ crash + restart (default, non-durable)    outbox replays publisher side         in-flight inbound msgs are lost broker-side; outbound resume from outbox
+RabbitMQ crash + restart (default, durable)        durable queues + delivery_mode=2      no Pulsar-side log; messages restored from broker disk
+RabbitMQ crash + restart (durability opted out)    outbox replays publisher side         in-flight inbound msgs are lost broker-side; outbound resume from outbox
 Pulsar SIGKILL during preprocessing                ``-preprocessing-jobs/`` recovery     ``Failed to find launch parameters`` warning if missing
 Pulsar SIGKILL during running (DRM)                ``-active-jobs/`` recovery            re-attach via runner; no status change visible to Galaxy
 Pulsar SIGKILL during running (queued_python)      job dies, ``lost`` reported           one ``lost`` status update; admin should know this runner
@@ -383,7 +391,7 @@ Setting                           Default                                  Effec
 ================================  =======================================  ====================================================================
 ``persistence_directory``         ``files/persisted_data``                 outbox + active-jobs + relay cursor live here
 ``status_outbox_drain_interval``  ``5.0`` (seconds)                        background outbox retry cadence
-``amqp_durable``                  ``false``                                opt-in: durable queues + delivery_mode=2 (broker-restart resilience)
+``amqp_durable``                  ``true``                                 durable queues + delivery_mode=2; opt out only on legacy brokers
 ``amqp_publish_retry``            unset (off)                              kombu publish retry; defaults bounded when on
 ``amqp_acknowledge``              ``false``                                additional publisher-confirms layer
 ``amqp_consumer_timeout``         ``0.2``                                  consumer drain_events timeout (responsiveness)
