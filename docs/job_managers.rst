@@ -150,10 +150,17 @@ run DRMAA jobs via the user requested by the client (e.g. the Galaxy user).
         #chown_working_directory_script: scripts/chown_working_directory.bash
         #drmaa_kill_script: scripts/drmaa_kill.bash
         #drmaa_launch_script: scripts/drmaa_launch.bash
+        #user_mapping_script: 
 
 For more information on running jobs as the real user, check out `this discussion
 <http://dev.list.galaxyproject.org/Managing-Data-Locality-tp4662438.html>`__ from
 the Galaxy mailing list.
+
+A script that maps the user name that pulsr gets from the Galaxy server to a user name
+on the target system can be configured with the optional parameter ``user_mapping_script``.
+The script is supposed to get a single positional parameter and should output the
+desired user name to stdout. In can a mapping is not possible a non-zero exit code 
+be returned and an error message should be printed on stderr.
 
 More Options
 -------------------------------
