@@ -1,3 +1,4 @@
+import logging
 import os.path
 
 from galaxy.util import in_directory
@@ -8,6 +9,8 @@ from .action_mapper import (
 )
 from .staging import CLIENT_INPUT_PATH_TYPES
 from .util import PathHelper
+
+log = logging.getLogger(__name__)
 
 
 class PathMapper:
@@ -83,7 +86,16 @@ class PathMapper:
         action = self.action_mapper.action({"path": path}, path_type.CONTAINER)
         if action.staging_needed:
             # Container images live on CVMFS or in a registry; they are not
-            # staged. A staging action here would be a misconfiguration.
+            # staged. A staging action here is a misconfiguration - most likely a
+            # broad "*any*" file_actions rule that now also matches container
+            # paths. Warn and leave the image path untouched.
+            log.warning(
+                "Ignoring staging file action (%s) matched for container image path '%s'; "
+                "container images are never staged. Use a 'rewrite' action (or scope the rule "
+                "away from the 'container' path type) if this path needs remapping.",
+                action.action_type,
+                path,
+            )
             return None
         return action.path_rewrite(self.path_helper)
 

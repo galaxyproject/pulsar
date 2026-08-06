@@ -104,14 +104,39 @@ def parse(raw) -> Optional[CvmfsExecConfig]:
     )
 
 
+# Shell state the job-script template sets but does not export, which the
+# namespace-mode wrap (a fresh ``/bin/bash -c``) would otherwise lose. The
+# ``TMP*`` vars are read by the ``singularity`` invocation (``SINGULARITYENV_*``
+# pass-through); the ``GALAXY_*`` vars and the ``_galaxy_setup_environment``
+# function are used by the in-job (remote) metadata segment. ``export -f`` is a
+# bash builtin (the wrap uses ``/bin/bash``).
+NAMESPACE_EXPORT_COMMANDS = [
+    "export TMP TEMP TMPDIR",
+    "export GALAXY_VIRTUAL_ENV _GALAXY_VIRTUAL_ENV GALAXY_LIB GALAXY_PYTHON",
+    "export -f _galaxy_setup_environment",
+]
+
+
+def _guarded(command: str, message: str) -> str:
+    """Abort the job script with ``message`` if ``command`` exits non-zero."""
+    return "%s || { echo %s >&2; exit 1; }" % (command, shlex.quote(message))
+
+
 def setup_commands(config: CvmfsExecConfig, job_directory: str) -> List[str]:
     """Shell statements that prepare cvmfsexec before the job command runs.
 
     For ``mountrepo`` mode this reproduces the previously hand-maintained
     destination ``env``/``execute`` block: install the cvmfsexec launcher into
-    the (absolute) per-job directory, bootstrap the ``.cvmfsexec`` dist tree,
-    register cleanup, and mount each repository. ``namespace`` mode needs no
-    preamble - the command is wrapped instead (see :func:`wrap_command`).
+    the (absolute) per-job directory, bootstrap the ``.cvmfsexec`` dist tree, and
+    mount each repository. Each step aborts the job script with a diagnostic on
+    failure rather than letting the job continue and die later on a missing image
+    path. The matching unmount is registered separately as an EXIT handler (see
+    :func:`add_exit_handlers`).
+
+    For ``namespace`` mode the command is wrapped instead (see
+    :func:`wrap_command`); the preamble only exports the shell state that wrap
+    would otherwise drop across the ``/bin/bash -c`` boundary
+    (:data:`NAMESPACE_EXPORT_COMMANDS`).
 
     ``job_directory`` is the absolute job directory (Pulsar knows it at
     job-script generation time), used directly instead of a ``$CVMFSEXEC_DIR``
@@ -120,23 +145,66 @@ def setup_commands(config: CvmfsExecConfig, job_directory: str) -> List[str]:
 
     >>> c = parse({"path": "/opt/cvmfsexec", "repositories": ["singularity.galaxyproject.org"]})
     >>> setup_commands(c, "/jobs/7")  # doctest: +NORMALIZE_WHITESPACE
-    ['cp "/opt/cvmfsexec" "/jobs/7/cvmfsexec"',
-     '"/jobs/7/cvmfsexec" -v >/dev/null',
-     'trap "/jobs/7/.cvmfsexec/umountrepo -a" EXIT',
-     '"/jobs/7/.cvmfsexec/mountrepo" singularity.galaxyproject.org']
+    ["cp /opt/cvmfsexec /jobs/7/cvmfsexec || { echo 'cvmfsexec: failed to install launcher' >&2; exit 1; }",
+     "/jobs/7/cvmfsexec -v >/dev/null || { echo 'cvmfsexec: failed to bootstrap dist tree' >&2; exit 1; }",
+     "/jobs/7/.cvmfsexec/mountrepo singularity.galaxyproject.org || { echo 'cvmfsexec: failed to mount singularity.galaxyproject.org' >&2; exit 1; }"]
+
+    >>> ns = parse({"mode": "namespace", "path": "/opt/cvmfsexec", "repositories": ["data.galaxyproject.org"]})
+    >>> setup_commands(ns, "/jobs/7")
+    ['export TMP TEMP TMPDIR', 'export GALAXY_VIRTUAL_ENV _GALAXY_VIRTUAL_ENV GALAXY_LIB GALAXY_PYTHON', 'export -f _galaxy_setup_environment']
     """
+    if config.mode == MODE_NAMESPACE:
+        return list(NAMESPACE_EXPORT_COMMANDS)
     if config.mode != MODE_MOUNTREPO:
         return []
     launcher = "%s/cvmfsexec" % job_directory
     dist = "%s/.cvmfsexec" % job_directory
+    mountrepo = "%s/mountrepo" % dist
     commands = [
-        'cp "%s" "%s"' % (config.path, launcher),
-        '"%s" -v >/dev/null' % launcher,
-        'trap "%s/umountrepo -a" EXIT' % dist,
+        _guarded(
+            "cp %s %s" % (shlex.quote(config.path), shlex.quote(launcher)),
+            "cvmfsexec: failed to install launcher",
+        ),
+        _guarded(
+            "%s -v >/dev/null" % shlex.quote(launcher),
+            "cvmfsexec: failed to bootstrap dist tree",
+        ),
     ]
     for repository in config.repositories:
-        commands.append('"%s/mountrepo" %s' % (dist, repository))
+        commands.append(
+            _guarded(
+                "%s %s" % (shlex.quote(mountrepo), shlex.quote(repository)),
+                "cvmfsexec: failed to mount %s" % repository,
+            )
+        )
     return commands
+
+
+def add_exit_handlers(exit_handlers, config: CvmfsExecConfig, job_directory: str) -> None:
+    """Add cvmfsexec cleanup to the job script's exit handlers.
+
+    For ``mountrepo`` mode this unmounts everything mounted by
+    :func:`setup_commands` when the job script exits. ``namespace`` mode needs no
+    cleanup (the mount namespace is torn down with the wrapped process).
+
+    ``exit_handlers`` is a ``pulsar.managers.util.job_script.ExitHandlers`` (the
+    generic collector); cvmfsexec only contributes to it rather than owning the
+    EXIT-handling machinery.
+
+    >>> from pulsar.managers.util.job_script import ExitHandlers
+    >>> handlers = ExitHandlers()
+    >>> c = parse({"path": "/opt/cvmfsexec", "repositories": ["singularity.galaxyproject.org"]})
+    >>> add_exit_handlers(handlers, c, "/jobs/7")
+    >>> handlers.commands
+    ['/jobs/7/.cvmfsexec/umountrepo -a']
+    >>> ns = parse({"mode": "namespace", "path": "/opt/cvmfsexec", "repositories": ["a"]})
+    >>> add_exit_handlers(handlers, ns, "/jobs/7")
+    >>> handlers.commands
+    ['/jobs/7/.cvmfsexec/umountrepo -a']
+    """
+    if config.mode != MODE_MOUNTREPO:
+        return
+    exit_handlers.add("%s -a" % shlex.quote("%s/.cvmfsexec/umountrepo" % job_directory))
 
 
 def wrap_command(config: CvmfsExecConfig, command: str) -> str:
@@ -146,16 +214,17 @@ def wrap_command(config: CvmfsExecConfig, command: str) -> str:
     ...`` so the real ``/cvmfs`` is available throughout. ``mountrepo`` mode
     returns the command unchanged (its repositories are mounted by the preamble).
 
-    Note: exported environment and the working directory are inherited by the
-    wrapped shell, but non-exported shell variables set earlier in the job
-    script are not visible inside it. Namespace mode should be validated on a
-    namespace-capable host before production use.
+    The shell state the wrapped command needs (``TMP*``, ``GALAXY_*``, and the
+    ``_galaxy_setup_environment`` function) is exported by the namespace-mode
+    preamble (:func:`setup_commands`) so it crosses into the wrapped shell.
+    Namespace mode should still be validated on a namespace-capable host before
+    production use.
 
     >>> c = parse({"mode": "namespace", "path": "/opt/cvmfsexec", "repositories": ["data.galaxyproject.org"]})
     >>> wrap_command(c, "run_tool --flag")
-    '"/opt/cvmfsexec" data.galaxyproject.org -- /bin/bash -c \\'run_tool --flag\\''
+    "/opt/cvmfsexec data.galaxyproject.org -- /bin/bash -c 'run_tool --flag'"
     """
     if config.mode != MODE_NAMESPACE:
         return command
-    repositories = " ".join(config.repositories)
-    return '"%s" %s -- /bin/bash -c %s' % (config.path, repositories, shlex.quote(command))
+    repositories = " ".join(shlex.quote(repository) for repository in config.repositories)
+    return "%s %s -- /bin/bash -c %s" % (shlex.quote(config.path), repositories, shlex.quote(command))

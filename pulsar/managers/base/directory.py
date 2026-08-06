@@ -8,7 +8,10 @@ from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from pulsar.managers.base import BaseManager
 from ..util import cvmfsexec
 from ..util.env import env_to_statement
-from ..util.job_script import job_script
+from ..util.job_script import (
+    ExitHandlers,
+    job_script,
+)
 
 log = logging.getLogger(__name__)
 
@@ -171,12 +174,19 @@ class DirectoryBaseManager(BaseManager):
             command_line = cvmfsexec.wrap_command(cvmfsexec_config, command_line)
         script_env = self._job_template_env(job_id, command_line=command_line, env=env, setup_params=setup_params)
         if cvmfsexec_config is not None:
-            # Mount preamble is injected directly into the job script template
-            # (after $prepare_dirs_statement), not via the env mechanism. Uses the
-            # absolute job directory so the mount location matches the image path
-            # the client rewrote to __PULSAR_JOB_DIRECTORY__ (substituted server-side).
+            # cvmfsexec preamble is injected directly into the job script template
+            # (the $cvmfsexec_setup slot), not via the env mechanism: for mountrepo
+            # mode the mount commands (using the absolute job directory so the mount
+            # location matches the image path the client rewrote to
+            # __PULSAR_JOB_DIRECTORY__), and for namespace mode the exports that let
+            # the wrapped command see the job script's shell state.
             job_directory = self.job_directory(job_id).job_directory
             script_env["cvmfsexec_setup"] = "\n".join(cvmfsexec.setup_commands(cvmfsexec_config, job_directory))
+            # Collect cleanup into the job script's single EXIT handler; cvmfsexec
+            # adds its unmount when running in mountrepo mode.
+            exit_handlers = ExitHandlers()
+            cvmfsexec.add_exit_handlers(exit_handlers, cvmfsexec_config, job_directory)
+            script_env["exit_handler_setup"] = exit_handlers.render()
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
 

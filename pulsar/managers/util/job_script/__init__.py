@@ -6,6 +6,7 @@ from string import Template
 from typing import (
     Any,
     Dict,
+    List,
 )
 
 from typing_extensions import Protocol
@@ -67,7 +68,59 @@ OPTIONAL_TEMPLATE_PARAMS: Dict[str, Any] = {
     "tmp_dir_creation_statement": '""',
     "prepare_dirs_statement": PREPARE_DIRS,
     "cvmfsexec_setup": "",
+    "exit_handler_setup": "",
 }
+
+
+def exit_handler_setup(commands: List[str]) -> str:
+    """Render an EXIT trap running each of ``commands`` when the job exits.
+
+    Cleanup that is known at job-script generation time is collected into a
+    single ``_galaxy_on_exit`` function driven by one ``trap`` rather than each
+    mechanism clobbering the single EXIT slot. Returns an empty string (no
+    function, no trap) when there is nothing to run.
+
+    >>> exit_handler_setup([])
+    ''
+    >>> print(exit_handler_setup(["/jobs/7/.cvmfsexec/umountrepo -a"]))
+    _galaxy_on_exit() {
+        /jobs/7/.cvmfsexec/umountrepo -a
+    }
+    trap _galaxy_on_exit EXIT
+    """
+    if not commands:
+        return ""
+    body = "\n".join("    %s" % command for command in commands)
+    return "_galaxy_on_exit() {\n%s\n}\ntrap _galaxy_on_exit EXIT" % body
+
+
+class ExitHandlers:
+    """Shell commands to run when the job script exits.
+
+    Job-setup mechanisms that need cleanup (e.g. cvmfsexec unmounting) ``add``
+    commands here; :meth:`render` collapses them into a single ``_galaxy_on_exit``
+    function driven by one ``trap`` (see :func:`exit_handler_setup`), suitable for
+    the template's ``$exit_handler_setup`` slot.
+
+    >>> handlers = ExitHandlers()
+    >>> handlers.render()
+    ''
+    >>> handlers.add("/jobs/7/.cvmfsexec/umountrepo -a")
+    >>> print(handlers.render())
+    _galaxy_on_exit() {
+        /jobs/7/.cvmfsexec/umountrepo -a
+    }
+    trap _galaxy_on_exit EXIT
+    """
+
+    def __init__(self) -> None:
+        self.commands: List[str] = []
+
+    def add(self, command: str) -> None:
+        self.commands.append(command)
+
+    def render(self) -> str:
+        return exit_handler_setup(self.commands)
 
 
 def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):

@@ -41,21 +41,71 @@ def test_setup_commands_mountrepo():
     })
     commands = cvmfsexec.setup_commands(config, "/jobs/7")
     # Absolute job directory used directly (no $CVMFSEXEC_DIR shell variable).
-    assert commands[0] == 'cp "/opt/cvmfsexec" "/jobs/7/cvmfsexec"'
-    assert '"/jobs/7/cvmfsexec" -v >/dev/null' in commands
-    assert 'trap "/jobs/7/.cvmfsexec/umountrepo -a" EXIT' in commands
-    assert '"/jobs/7/.cvmfsexec/mountrepo" data.galaxyproject.org' in commands
-    assert '"/jobs/7/.cvmfsexec/mountrepo" singularity.galaxyproject.org' in commands
+    assert commands[0].startswith("cp /opt/cvmfsexec /jobs/7/cvmfsexec ")
+    assert any(c.startswith("/jobs/7/cvmfsexec -v >/dev/null ") for c in commands)
+    # Unmount cleanup is an EXIT handler (exit_handler_commands), not part of the
+    # setup preamble, and nothing here claims the trap slot directly.
+    assert not any("umountrepo" in c for c in commands)
+    assert not any(c.startswith("trap ") for c in commands)
+    # Each mount aborts the job with a diagnostic on failure (point 4).
+    assert (
+        "/jobs/7/.cvmfsexec/mountrepo data.galaxyproject.org "
+        "|| { echo 'cvmfsexec: failed to mount data.galaxyproject.org' >&2; exit 1; }"
+    ) in commands
+    assert any(c.startswith("/jobs/7/.cvmfsexec/mountrepo singularity.galaxyproject.org ") for c in commands)
     assert not any("CVMFSEXEC_DIR" in c for c in commands)
 
 
-def test_setup_commands_namespace_is_empty():
+def test_add_exit_handlers_mountrepo_unmounts():
+    from pulsar.managers.util.job_script import ExitHandlers
+    handlers = ExitHandlers()
+    config = cvmfsexec.parse({
+        "path": "/opt/cvmfsexec",
+        "repositories": ["data.galaxyproject.org", "singularity.galaxyproject.org"],
+    })
+    cvmfsexec.add_exit_handlers(handlers, config, "/jobs/7")
+    # cvmfsexec only contributes to the generic ExitHandlers collector.
+    assert handlers.commands == ["/jobs/7/.cvmfsexec/umountrepo -a"]
+
+
+def test_add_exit_handlers_namespace_is_noop():
+    from pulsar.managers.util.job_script import ExitHandlers
+    handlers = ExitHandlers()
     config = cvmfsexec.parse({
         "mode": "namespace",
         "path": "/opt/cvmfsexec",
         "repositories": ["data.galaxyproject.org"],
     })
-    assert cvmfsexec.setup_commands(config, "/jobs/7") == []
+    cvmfsexec.add_exit_handlers(handlers, config, "/jobs/7")
+    assert handlers.commands == []
+
+
+def test_setup_commands_quotes_shell_metacharacters():
+    # A per-job override arrives over the wire; a repository (or path) carrying
+    # shell metacharacters must be quoted, never interpolated raw.
+    config = cvmfsexec.parse({
+        "path": "/opt/cvmfsexec",
+        "repositories": ["$(touch pwned)"],
+    })
+    commands = cvmfsexec.setup_commands(config, "/jobs/7")
+    mount = next(c for c in commands if c.startswith("/jobs/7/.cvmfsexec/mountrepo "))
+    assert mount.startswith("/jobs/7/.cvmfsexec/mountrepo '$(touch pwned)'")
+
+
+def test_setup_commands_namespace_exports_env():
+    config = cvmfsexec.parse({
+        "mode": "namespace",
+        "path": "/opt/cvmfsexec",
+        "repositories": ["data.galaxyproject.org"],
+    })
+    # Namespace mode wraps the command in a fresh `bash -c`; the preamble exports
+    # the shell state (tmp dirs, Galaxy env, and the setup function) that would
+    # otherwise not cross the boundary.
+    assert cvmfsexec.setup_commands(config, "/jobs/7") == [
+        "export TMP TEMP TMPDIR",
+        "export GALAXY_VIRTUAL_ENV _GALAXY_VIRTUAL_ENV GALAXY_LIB GALAXY_PYTHON",
+        "export -f _galaxy_setup_environment",
+    ]
 
 
 def test_wrap_command_namespace():
@@ -66,7 +116,7 @@ def test_wrap_command_namespace():
     })
     wrapped = cvmfsexec.wrap_command(config, "run_tool --flag")
     assert wrapped == (
-        '"/opt/cvmfsexec" data.galaxyproject.org singularity.galaxyproject.org '
+        "/opt/cvmfsexec data.galaxyproject.org singularity.galaxyproject.org "
         "-- /bin/bash -c 'run_tool --flag'"
     )
 

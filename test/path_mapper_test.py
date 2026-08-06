@@ -45,6 +45,29 @@ class PathMapperTestCase(TempDirectoryTestCase):
         new_path = path_mapper.remote_version_path_rewrite(local_path)
         assert new_path == "/scratch/staging/1/outputs/COMMAND_VERSION"
 
+    def test_container_rewrite_applies_rewrite_action(self):
+        action = Bunch(staging_needed=False, action_type="rewrite", path_rewrite=lambda helper: "/dist/cvmfs/img")
+        path_mapper = self._container_path_mapper(action)
+        assert path_mapper.check_for_container_rewrite("/cvmfs/img") == "/dist/cvmfs/img"
+
+    def test_container_rewrite_warns_and_skips_staging_action(self):
+        # A staging action matched for a container image (e.g. a broad "*any*"
+        # rule) is a misconfiguration: warn and leave the path untouched.
+        action = Bunch(staging_needed=True, action_type="remote_transfer")
+        path_mapper = self._container_path_mapper(action)
+        with self.assertLogs("pulsar.client.path_mapper", level="WARNING") as captured:
+            assert path_mapper.check_for_container_rewrite("/cvmfs/img") is None
+        assert any("container image path" in message for message in captured.output)
+
+    def _container_path_mapper(self, action):
+        path_mapper = PathMapper(
+            client=None,
+            remote_job_config=self.__test_remote_config(),
+            local_working_directory=self.temp_directory,
+            action_mapper=_ContainerActionMapper(action),
+        )
+        return path_mapper
+
     def _path_mapper(self, expected_path, expected_type, staging_needed=True):
         action_mapper = TestActionMapper(expected_path, expected_type, staging_needed)
         path_mapper = PathMapper(
@@ -78,4 +101,15 @@ class TestActionMapper:
     def action(self, source, type):
         assert self.expected_path == source["path"]
         assert self.expected_type == type
+        return self._action
+
+
+class _ContainerActionMapper:
+    """Returns a fixed action for CONTAINER lookups (container-rewrite tests)."""
+
+    def __init__(self, action):
+        self._action = action
+
+    def action(self, source, type):
+        assert type == path_type.CONTAINER
         return self._action
