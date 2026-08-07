@@ -6,8 +6,12 @@ from galaxy.util import asbool
 
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from pulsar.managers.base import BaseManager
+from ..util import cvmfsexec
 from ..util.env import env_to_statement
-from ..util.job_script import job_script
+from ..util.job_script import (
+    ExitHandlers,
+    job_script,
+)
 
 log = logging.getLogger(__name__)
 
@@ -162,9 +166,37 @@ class DirectoryBaseManager(BaseManager):
         command_line = self._expand_command_line(
             job_id, command_line, dependencies_description, job_directory=self.job_directory(job_id).job_directory
         )
+        cvmfsexec_config = self._cvmfsexec_config(setup_params)
+        if cvmfsexec_config is not None:
+            # Wrap the command to run under cvmfsexec (namespace mode); no-op for
+            # mountrepo mode, where the container image path is remapped by a
+            # Galaxy file_actions rewrite rule instead.
+            command_line = cvmfsexec.wrap_command(cvmfsexec_config, command_line)
         script_env = self._job_template_env(job_id, command_line=command_line, env=env, setup_params=setup_params)
+        if cvmfsexec_config is not None:
+            # cvmfsexec preamble is injected directly into the job script template
+            # (the $cvmfsexec_setup slot), not via the env mechanism: for mountrepo
+            # mode the mount commands (using the absolute job directory so the mount
+            # location matches the image path the client rewrote to
+            # __PULSAR_JOB_DIRECTORY__), and for namespace mode the exports that let
+            # the wrapped command see the job script's shell state.
+            job_directory = self.job_directory(job_id).job_directory
+            script_env["cvmfsexec_setup"] = "\n".join(cvmfsexec.setup_commands(cvmfsexec_config, job_directory))
+            # Collect cleanup into the job script's single EXIT handler; cvmfsexec
+            # adds its unmount when running in mountrepo mode.
+            exit_handlers = ExitHandlers()
+            cvmfsexec.add_exit_handlers(exit_handlers, cvmfsexec_config, job_directory)
+            script_env["exit_handler_setup"] = exit_handlers.render()
         script = job_script(**script_env)
         return self._write_job_script(job_id, script)
+
+    def _cvmfsexec_config(self, setup_params):
+        # A per-job cvmfsexec override (delivered from the Galaxy job destination
+        # via setup_params) takes precedence over the manager default.
+        override = (setup_params or {}).get("cvmfsexec")
+        if override is not None:
+            return cvmfsexec.parse(override)
+        return self.cvmfsexec_config
 
     def _tmp_dir(self, job_id: str):
         # Code stolen from Galaxy's job wrapper.

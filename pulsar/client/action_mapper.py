@@ -79,6 +79,10 @@ path_type = Bunch(
     # Other fixed tool parameter paths (likely coming from tool data, but not
     # necessarily).
     UNSTRUCTURED="unstructured",
+    # Resolved container image path (e.g. a Singularity/Apptainer image on
+    # CVMFS). Resolved on the Galaxy host but read on the compute node, which
+    # may expose the image at a different path. Never staged.
+    CONTAINER="container",
 )
 
 
@@ -94,7 +98,7 @@ ACTION_DEFAULT_PATH_TYPES = [
     path_type.OUTPUT_METADATA,
     path_type.OUTPUT_JOBDIR,
 ]
-ALL_PATH_TYPES = ACTION_DEFAULT_PATH_TYPES + [path_type.UNSTRUCTURED]
+ALL_PATH_TYPES = ACTION_DEFAULT_PATH_TYPES + [path_type.UNSTRUCTURED, path_type.CONTAINER]
 
 MISSING_FILES_ENDPOINT_ERROR = "Attempted to use remote_transfer action without defining a files_endpoint."
 MISSING_SSH_KEY_ERROR = "Attempt to use file transfer action requiring an SSH key without specifying a ssh_key."

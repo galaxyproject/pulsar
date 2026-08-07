@@ -9,7 +9,15 @@ History
 0.15.16.dev0
 ---------------------
 
-
+* Add native ``cvmfsexec`` support to Pulsar managers (``mountrepo`` and
+  ``namespace`` modes), configured via a ``cvmfsexec`` manager option or a
+  per-job override, for accessing CVMFS repositories (and CVMFS-hosted
+  container images) on hosts without a system-wide ``/cvmfs``.
+* Add a dedicated ``container`` file-action path type for rewriting resolved
+  container image paths (e.g. a Singularity/Apptainer image on CVMFS) via a
+  ``rewrite`` action, without overloading the ``unstructured`` tool-parameter
+  path type. **Note:** ``path_types: "*any*"`` now also matches container image
+  paths.
 
 ---------------------
 0.15.15 (2026-07-13)

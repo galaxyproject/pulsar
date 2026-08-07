@@ -31,6 +31,7 @@ from pulsar.client.job_directory import (
     RemoteJobDirectory,
 )
 from pulsar.managers import ManagerInterface
+from pulsar.managers.util.cvmfsexec import parse as parse_cvmfsexec_config
 
 JOB_DIRECTORY_INPUTS = "inputs"
 JOB_DIRECTORY_OUTPUTS = "outputs"
@@ -71,6 +72,9 @@ class BaseManager(ManagerInterface):
         self.maximum_stream_size = kwds.get("maximum_stream_size", -1)
         self.__init_galaxy_system_properties(kwds)
         self.tmp_dir = kwds.get("tmp_dir", None)
+        # Default cvmfsexec configuration for this manager (app.yml). May be
+        # overridden per job by a ``cvmfsexec`` entry in setup_params.
+        self.cvmfsexec_config = parse_cvmfsexec_config(kwds.get("cvmfsexec"))
         self.debug = str(kwds.get("debug", False)).lower() == "true"
         self.authorizer = app.authorizer
         self.user_auth_manager = app.user_auth_manager
