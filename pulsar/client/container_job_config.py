@@ -8,6 +8,7 @@ documents how to map Galaxy job environment configuration objects to the contain
 infrastructure.
 """
 import base64
+import logging
 import re
 from typing import (
     Dict,
@@ -26,10 +27,15 @@ from typing_extensions import Literal
 
 from pulsar.managers.util.gcp_util import (
     batch_v1,
+    compute_machine_type,
+    convert_cpu_to_milli,
+    convert_memory_to_mib,
     ensure_client as ensure_gcp_client,
 )
 from pulsar.managers.util.tes import TesClient
 
+
+log = logging.getLogger(__name__)
 
 DEFAULT_GCP_WALLTIME_LIMIT = 60 * 60 * 24  # Default wall time limit in seconds
 
@@ -124,7 +130,13 @@ class GcpJobParams(BaseModel):
         375, description="Size of the shared local SSD disk in GB (must be a multiple of 375). Maps to AllocationPolicy.Disk.size_gb."
     )
     machine_type: str = Field(
-        "n1-standard-1", description="Machine type for the job's VM."
+        "n1-standard-1", description="Machine type for the job's VM. Overridden by dynamic sizing when cores/mem are provided."
+    )
+    cores: Optional[str] = Field(
+        None, description="CPU cores requested (e.g., '4', '1.5', '500m'). When set, machine_type is computed dynamically."
+    )
+    mem: Optional[str] = Field(
+        None, description="Memory requested in GB (e.g., '8', '16'). When set, machine_type is computed dynamically."
     )
     labels: Optional[Dict[str, str]] = Field(None)
 
@@ -132,8 +144,53 @@ class GcpJobParams(BaseModel):
 def parse_gcp_job_params(params: dict) -> GcpJobParams:
     """
     Parse GCP job parameters from a dictionary (e.g., Galaxy's job destination/environment params).
+
+    If cores and/or mem are provided, machine_type is computed dynamically
+    using compute_machine_type() to select an appropriate GCP VM size.
     """
-    return GcpJobParams(**params)
+    gcp_params = GcpJobParams(**params)
+    if gcp_params.cores is not None or gcp_params.mem is not None:
+        cpu_milli = convert_cpu_to_milli(gcp_params.cores)
+        # mem is in GB from TPV, convert to MiB
+        if gcp_params.mem is not None:
+            try:
+                memory_mib = int(float(gcp_params.mem) * 1024)
+            except (ValueError, TypeError):
+                memory_mib = convert_memory_to_mib(gcp_params.mem)
+        else:
+            memory_mib = convert_memory_to_mib(None)
+        gcp_params.machine_type = compute_machine_type(cpu_milli, memory_mib)
+    return gcp_params
+
+
+def _validate_ssd_size(disk_size_gb, machine_type):
+    """Validate and adjust local SSD size for the given machine type.
+
+    Each local SSD is 375 GB. N1 machines accept any count from 1-24,
+    but N2/N2D machines require an even number of SSDs (multiples of 2).
+    See: https://cloud.google.com/compute/docs/disks/local-ssd#choose_number_local_ssds
+
+    Returns the adjusted disk_size_gb (rounded up if necessary).
+    """
+    if disk_size_gb % 375 != 0:
+        disk_size_gb = ((disk_size_gb + 374) // 375) * 375
+        log.warning("disk_size must be a multiple of 375 GB, rounded up to %d GB", disk_size_gb)
+
+    ssd_count = disk_size_gb // 375
+    family = machine_type.split("-")[0].lower() if machine_type else ""
+
+    # N2 and N2D require an even number of local SSDs
+    if family in ("n2", "n2d") and ssd_count % 2 != 0:
+        ssd_count += 1
+        adjusted = ssd_count * 375
+        log.info(
+            "Adjusted local SSD size from %d GB to %d GB (%d SSDs) for machine type %s "
+            "(n2/n2d require an even number of local SSDs)",
+            disk_size_gb, adjusted, ssd_count, machine_type,
+        )
+        disk_size_gb = adjusted
+
+    return disk_size_gb
 
 
 def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
@@ -154,11 +211,26 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
 
     # override the staging directory since we cannot set the location of this mount path
     # the way we can in K8S based on @jmchilton's initial testing.
-    environment = batch_v1.Environment(
-        variables={
-            "PULSAR_CONFIG_OVERRIDE_STAGING_DIRECTORY": mount_path,
-        }
-    )
+    env_vars = {
+        "PULSAR_CONFIG_OVERRIDE_STAGING_DIRECTORY": mount_path,
+    }
+
+    # Inject GALAXY_SLOTS and GALAXY_MEMORY_MB so that Galaxy tool wrappers
+    # (which read $GALAXY_SLOTS for -t/--threads) use the full available cores
+    # on the right-sized VM.  Without this, CLUSTER_SLOTS_STATEMENT.sh falls
+    # through to GALAXY_SLOTS="1" on GCP Batch VMs (no SLURM/PBS/SGE env).
+    if params.cores is not None:
+        cpu_milli = convert_cpu_to_milli(params.cores)
+        galaxy_slots = max(1, cpu_milli // 1000)
+        env_vars["GALAXY_SLOTS"] = str(galaxy_slots)
+    if params.mem is not None:
+        try:
+            memory_mib = int(float(params.mem) * 1024)
+        except (ValueError, TypeError):
+            memory_mib = convert_memory_to_mib(params.mem)
+        env_vars["GALAXY_MEMORY_MB"] = str(memory_mib)
+
+    environment = batch_v1.Environment(variables=env_vars)
     task.environment = environment
 
     # Tasks are grouped inside a job using TaskGroups.
@@ -172,12 +244,12 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
     # The size of all the local SSDs in GB. Each local SSD is 375 GB,
     # so this value must be a multiple of 375 GB.
     # For example, for 2 local SSDs, set this value to 750 GB.
-    disk.size_gb = params.disk_size
-    assert disk.size_gb % 375 == 0
+    # The allowed number of local SSDs depends on the machine type:
+    # n1 allows any count 1-24, n2/n2d require an even number.
+    disk.size_gb = _validate_ssd_size(params.disk_size, params.machine_type)
 
     # Policies are used to define on what kind of virtual machines the tasks will run on.
     # The allowed number of local SSDs depends on the machine type for your job's VMs.
-    # In this case, we tell the system to use "n1-standard-1" machine type, which require to attach local ssd manually.
     # Read more about local disks here: https://cloud.google.com/compute/docs/disks/local-ssd#lssd_disk_options
     policy = batch_v1.AllocationPolicy.InstancePolicy()
     policy.machine_type = params.machine_type
@@ -223,8 +295,8 @@ def container_command_to_gcp_runnable(name: str, container: CoexecutionContainer
     return runnable
 
 
-def gcp_galaxy_instance_id(destination_params: Dict[str, str]) -> Optional[str]:
-    return destination_params.get("galaxy_instance_id")
+def gcp_job_id_prefix(destination_params: Dict[str, str]) -> str:
+    return destination_params.get("job_id_prefix") or destination_params.get("galaxy_instance_id") or "pulsar"
 
 
 class BasicAuth(BaseModel):
