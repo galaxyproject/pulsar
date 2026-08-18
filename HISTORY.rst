@@ -24,6 +24,9 @@ History
 * Report DRM-side job failures as ``failed`` instead of ``complete`` (thanks to
   `@gkr0110`_), and make ``failed`` terminal in ``StatefulManagerProxy`` so such
   jobs are deactivated, staged back, and reported to the client.
+* Add a ``queued_htcondor`` manager built on the htcondor2 Python bindings,
+  sharing its HTCondor support code (``pulsar.managers.util.condor.htcondor``)
+  with Galaxy's ``htcondor`` job runner.
 
 ---------------------
 0.15.15 (2026-07-13)
