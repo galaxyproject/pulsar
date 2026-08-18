@@ -153,6 +153,9 @@ History
   `@nuwang`_). `Pull Request 487`_, `Pull Request 488`_, `Pull Request 509`_,
   `Pull Request 525`_, `Pull Request 528`_, `Pull Request 531`_,
   `Pull Request 534`_
+* Add a ``queued_htcondor`` manager built on the htcondor2 Python bindings,
+  sharing its HTCondor support code (``pulsar.managers.util.condor.htcondor``)
+  with Galaxy's ``htcondor`` job runner.
 
 ---------------------
 0.15.15 (2026-07-13)
