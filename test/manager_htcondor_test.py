@@ -1,11 +1,14 @@
 import os
 import sys
+import time
 from os.path import (
     dirname,
     join,
 )
 
 from pulsar.managers import status
+from pulsar.managers.stateful import StatefulManagerProxy
+from pulsar.managers.util.condor.htcondor import MAX_MISSING_LOG_COUNT
 
 from .test_utils import BaseManagerTestCase
 
@@ -195,11 +198,37 @@ class HTCondorManagerTest(BaseManagerTestCase):
             self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=1), manager=manager)
             assert manager.get_status(job_id) == status.QUEUED
 
-    def test_missing_event_log_escalates_to_lost(self):
+    def test_missing_event_log_escalates_to_failed(self):
         job_id = self._launch()
         os.unlink(self._user_log(job_id))
         for _ in range(4):
             assert self.manager.get_status(job_id) == status.QUEUED
+        # FAILED, not LOST - LOST is not terminal for the stateful proxy, so the
+        # job would never be deactivated and its event log never closed.
+        assert self.manager.get_status(job_id) == status.FAILED
+
+    def test_status_errors_escalate_to_failed(self):
+        job_id = self._launch()
+        self.htcondor2.JobEventLog.error = OSError("Test event log failure")
+        for _ in range(2):
+            assert self.manager.get_status(job_id) == status.QUEUED
+        assert self.manager.get_status(job_id) == status.FAILED
+
+    def test_status_errors_recover_before_escalating(self):
+        job_id = self._launch()
+        self._push_events(job_id, self._event("EXECUTE"))
+        assert self.manager.get_status(job_id) == status.RUNNING
+        self.htcondor2.JobEventLog.error = OSError("Test event log failure")
+        # A transient error keeps the last known state rather than resetting it.
+        assert self.manager.get_status(job_id) == status.RUNNING
+        self.htcondor2.JobEventLog.error = None
+        self._push_events(job_id, self._event("JOB_TERMINATED"))
+        assert self.manager.get_status(job_id) == status.COMPLETE
+
+    def test_missing_external_id_is_lost(self):
+        # Never launched, so the external id is genuinely unknown rather than
+        # exhausted - LOST lets the proxy keep the job and recover it.
+        job_id = self.manager.setup_job("456", "tool1", "1.0.0")
         assert self.manager.get_status(job_id) == status.LOST
 
     def test_missing_event_log_recovers_if_log_reappears(self):
@@ -222,3 +251,39 @@ class HTCondorManagerTest(BaseManagerTestCase):
         assert removal["job_spec"] == int(external_id)
         assert removal["reason"] == "Pulsar job stop request"
         assert self.manager.get_status(job_id) == status.CANCELLED
+
+    # -- behind the stateful proxy ----------------------------------------
+
+    def test_escalated_failure_finishes_job_behind_stateful_proxy(self):
+        # The escalation is only useful if the layer every manager runs behind
+        # acts on it - LOST here would leave the job active and unreported.
+        proxy, callbacks = self._stateful_proxy()
+        job_id = proxy.setup_job("789", "tool1", "1.0.0")
+        proxy.preprocess_and_launch(job_id, {"command_line": "true", "remote_staging": {}})
+        os.unlink(self._user_log(job_id))
+        for _ in range(MAX_MISSING_LOG_COUNT):
+            proxy.get_status(job_id)
+        self._wait_for_callback(callbacks)
+        assert callbacks == [(status.FAILED, job_id)], callbacks
+        assert proxy.active_jobs.active_job_ids() == []
+        # Deactivation is what closes the event log handle.
+        assert self.manager._job_states == {}
+
+    def _stateful_proxy(self):
+        callbacks = []
+
+        class _RecordingStatefulManagerProxy(StatefulManagerProxy):
+            """Records state changes without starting a monitor thread."""
+
+            def _default_status_change_callback(self, job_status, job_id):
+                callbacks.append((job_status, job_id))
+
+        return _RecordingStatefulManagerProxy(self.manager), callbacks
+
+    def _wait_for_callback(self, callbacks, timeout=5):
+        time_end = time.time() + timeout
+        while time.time() < time_end:
+            if callbacks:
+                return
+            time.sleep(.01)
+        raise AssertionError("Timed out waiting for a state change callback.")

@@ -41,6 +41,12 @@ log = logging.getLogger(__name__)
 
 HTCONDOR_REMOVE_REASON = "Pulsar job stop request"
 
+# The escalations below report FAILED rather than LOST. StatefulManagerProxy
+# treats LOST as possibly transient - a manager also returns it for a job whose
+# external id has not been recovered yet - so it never deactivates a job
+# reported LOST. These escalations only fire once the retry budget is spent, at
+# which point the job really is over and has to be finished.
+
 
 class _HTCondorJobState(HTCondorEventLogTracker):
     """Event-log bookkeeping for a single job, keyed by external (cluster) id."""
@@ -177,7 +183,7 @@ class HTCondorQueueManager(ExternalBaseManager):
                     )
                     return status.RUNNING if job_state.running else status.QUEUED
                 log.exception("Failed to check status of job %s (external id %s)", job_id, external_id)
-                return status.LOST
+                return status.FAILED
             return self.__summary_to_status(job_id, external_id, job_state, summary)
 
     def __summary_to_status(self, job_id, external_id, job_state, summary):
@@ -185,7 +191,7 @@ class HTCondorQueueManager(ExternalBaseManager):
             job_state.missing_log_count += 1
             if job_state.missing_log_count >= MAX_MISSING_LOG_COUNT:
                 log.warning("Job %s (external id %s): %s", job_id, external_id, MISSING_LOG_MESSAGE)
-                return status.LOST
+                return status.FAILED
             return status.QUEUED
         job_state.missing_log_count = 0
 
