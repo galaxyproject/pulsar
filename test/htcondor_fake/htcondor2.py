@@ -14,6 +14,7 @@ import os
 import re
 import subprocess
 import threading
+from typing import Optional
 
 AUTO_COMPLETE = os.environ.get("PULSAR_TEST_FAKE_HTCONDOR_AUTO_COMPLETE", "") == "1"
 
@@ -31,6 +32,7 @@ def reset():
     SUBMISSIONS[:] = []
     REMOVALS[:] = []
     JobEventLog.events_by_log.clear()
+    JobEventLog.error = None
 
 
 def _next_cluster_id():
@@ -148,6 +150,8 @@ class Collector:
 
 class JobEventLog:
     events_by_log: dict = {}
+    # Set to an exception to make events() raise, for escalation tests.
+    error: Optional[Exception] = None
 
     def __init__(self, filename):
         self.filename = filename
@@ -158,6 +162,8 @@ class JobEventLog:
         cls.events_by_log[filename] = list(events)
 
     def events(self, stop_after=None):
+        if self.error is not None:
+            raise self.error
         # Like the real API, only events not yet consumed are returned.
         pending = self.events_by_log.pop(self.filename, [])
         yield from pending
