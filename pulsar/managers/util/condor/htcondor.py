@@ -20,6 +20,7 @@ import select
 import subprocess
 import sys
 import threading
+import time
 from collections import deque
 from typing import (
     Any,
@@ -54,14 +55,19 @@ HTCONDOR_HELPER_MODULE = f"{__package__}.htcondor_helper"
 HTCONDOR_HELPER_TIMEOUT = 30
 DEFAULT_REMOVE_REASON = "Job stop request"
 
-# Number of consecutive status-check errors before a job is failed.  A small
-# count absorbs transient filesystem hiccups (e.g. NFS timeouts reading the
-# event log) without masking genuine persistent failures.
-MAX_STATUS_ERROR_COUNT = 3
-# Number of consecutive monitor cycles in which the event log is absent before
-# a job is failed.  Covers the case where the log was never written (e.g.
-# filesystem full at submit time) or was lost after the application restarted.
-MAX_MISSING_LOG_COUNT = 5
+# Escalation thresholds for conditions that are usually transient.  These are
+# wall-clock seconds rather than poll counts because the polling interval is
+# configurable in both applications (and a Pulsar job is polled by both the
+# Pulsar monitor and Galaxy), so a count of cycles has no fixed meaning.
+#
+# How long status checks may keep failing - absorbs transient filesystem
+# hiccups (e.g. NFS timeouts reading the event log) without masking genuine
+# persistent failures.
+STATUS_ERROR_GRACE_SECONDS = 30.0
+# How long the event log may be absent.  Covers a log not yet visible after
+# submission (NFS attribute caching defaults to 60s) as well as one that was
+# never written or was lost while the application was down.
+MISSING_LOG_GRACE_SECONDS = 60.0
 # Number of distinct JOB_HELD events tolerated before a job is failed
 # permanently.  0 disables the escalation.
 DEFAULT_MAX_HELD_COUNT = 3
@@ -336,12 +342,34 @@ class HTCondorEventLogTracker:
     share the escalation bookkeeping as well as the parsing.
     """
 
-    def __init__(self, user_log: str) -> None:
+    def __init__(self, user_log: str, clock=time.monotonic) -> None:
         self.user_log = user_log
         self._event_log: Any = None
-        self.status_error_count = 0
         self.held_count = 0
-        self.missing_log_count = 0
+        # Injectable so tests can drive escalation without sleeping.
+        self.clock = clock
+        self.status_error_since: float | None = None
+        self.missing_log_since: float | None = None
+
+    def note_status_error(self) -> float:
+        """Record a failed status check, returning seconds since the first one."""
+        now = self.clock()
+        if self.status_error_since is None:
+            self.status_error_since = now
+        return now - self.status_error_since
+
+    def clear_status_errors(self) -> None:
+        self.status_error_since = None
+
+    def note_missing_log(self) -> float:
+        """Record an absent event log, returning seconds since it went missing."""
+        now = self.clock()
+        if self.missing_log_since is None:
+            self.missing_log_since = now
+        return now - self.missing_log_since
+
+    def clear_missing_log(self) -> None:
+        self.missing_log_since = None
 
     def event_log(self, htcondor):
         if self._event_log is None:
