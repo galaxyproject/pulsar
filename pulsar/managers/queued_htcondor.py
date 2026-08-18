@@ -10,6 +10,7 @@ Unlike :mod:`pulsar.managers.queued_condor` this manager never shells out to
 """
 import logging
 import threading
+import time
 
 from .base.external import ExternalBaseManager
 from .util.condor import (
@@ -28,12 +29,12 @@ from .util.condor.htcondor import (
     HTCondorEventLogTracker,
     held_message,
     import_htcondor,
-    MAX_MISSING_LOG_COUNT,
-    MAX_STATUS_ERROR_COUNT,
+    MISSING_LOG_GRACE_SECONDS,
     MISSING_LOG_MESSAGE,
     normalize_condor_config,
     parse_walltime_seconds,
     periodic_hold_expression,
+    STATUS_ERROR_GRACE_SECONDS,
 )
 from ..managers import status
 
@@ -44,15 +45,15 @@ HTCONDOR_REMOVE_REASON = "Pulsar job stop request"
 # The escalations below report FAILED rather than LOST. StatefulManagerProxy
 # treats LOST as possibly transient - a manager also returns it for a job whose
 # external id has not been recovered yet - so it never deactivates a job
-# reported LOST. These escalations only fire once the retry budget is spent, at
-# which point the job really is over and has to be finished.
+# reported LOST. These escalations only fire once the grace period has elapsed,
+# at which point the job really is over and has to be finished.
 
 
 class _HTCondorJobState(HTCondorEventLogTracker):
     """Event-log bookkeeping for a single job, keyed by external (cluster) id."""
 
-    def __init__(self, user_log, external_id, max_held_count):
-        super().__init__(user_log)
+    def __init__(self, user_log, external_id, max_held_count, clock=time.monotonic):
+        super().__init__(user_log, clock=clock)
         self.cluster_id = int(external_id)
         self.max_held_count = max_held_count
         self.running = False
@@ -76,6 +77,8 @@ class HTCondorQueueManager(ExternalBaseManager):
         self._clients = HTCondorClientCache(self.htcondor, remove_reason=HTCONDOR_REMOVE_REASON)
         self._job_states = {}
         self._lock = threading.Lock()
+        # Injectable so tests can drive escalation without sleeping.
+        self.clock = time.monotonic
 
     def launch(self, job_id, command_line, submit_params={}, dependencies_description=None, env=[], setup_params=None):
         self._check_execution_with_tool_file(job_id, command_line)
@@ -117,7 +120,7 @@ class HTCondorQueueManager(ExternalBaseManager):
         log.info("Submitted HTCondor job with Pulsar job id %s and external id %s", job_id, external_id)
         self._register_external_id(job_id, external_id)
         with self._lock:
-            self._job_states[job_id] = _HTCondorJobState(log_path, external_id, max_held_count)
+            self._job_states[job_id] = _HTCondorJobState(log_path, external_id, max_held_count, clock=self.clock)
 
     def get_status(self, job_id):
         if self._was_cancelled(job_id):
@@ -164,7 +167,9 @@ class HTCondorQueueManager(ExternalBaseManager):
         # fresh event log handle without any extra recovery hook.
         job_state = self._job_states.get(job_id)
         if job_state is None:
-            job_state = _HTCondorJobState(self.__condor_user_log(job_id), external_id, self.max_held_count)
+            job_state = _HTCondorJobState(
+                self.__condor_user_log(job_id), external_id, self.max_held_count, clock=self.clock
+            )
             self._job_states[job_id] = job_state
         return job_state
 
@@ -173,27 +178,32 @@ class HTCondorQueueManager(ExternalBaseManager):
             job_state = self.__job_state(job_id, external_id)
             try:
                 summary = job_state.summarize(self.htcondor, job_state.cluster_id, job_state.running)
-                job_state.status_error_count = 0
+                job_state.clear_status_errors()
             except Exception:
-                job_state.status_error_count += 1
-                if job_state.status_error_count < MAX_STATUS_ERROR_COUNT:
+                elapsed = job_state.note_status_error()
+                if elapsed < STATUS_ERROR_GRACE_SECONDS:
                     log.warning(
-                        "Transient error checking status of job %s (external id %s), attempt %s/%s",
-                        job_id, external_id, job_state.status_error_count, MAX_STATUS_ERROR_COUNT
+                        "Transient error checking status of job %s (external id %s), failing after %ss",
+                        job_id, external_id, STATUS_ERROR_GRACE_SECONDS
                     )
                     return status.RUNNING if job_state.running else status.QUEUED
-                log.exception("Failed to check status of job %s (external id %s)", job_id, external_id)
+                log.exception(
+                    "Failed to check status of job %s (external id %s) for %.0fs", job_id, external_id, elapsed
+                )
                 return status.FAILED
             return self.__summary_to_status(job_id, external_id, job_state, summary)
 
     def __summary_to_status(self, job_id, external_id, job_state, summary):
         if summary.log_missing:
-            job_state.missing_log_count += 1
-            if job_state.missing_log_count >= MAX_MISSING_LOG_COUNT:
-                log.warning("Job %s (external id %s): %s", job_id, external_id, MISSING_LOG_MESSAGE)
+            elapsed = job_state.note_missing_log()
+            if elapsed >= MISSING_LOG_GRACE_SECONDS:
+                log.warning(
+                    "Job %s (external id %s): %s (absent for %.0fs)",
+                    job_id, external_id, MISSING_LOG_MESSAGE, elapsed
+                )
                 return status.FAILED
-            return status.QUEUED
-        job_state.missing_log_count = 0
+            return status.RUNNING if job_state.running else status.QUEUED
+        job_state.clear_missing_log()
 
         if summary.job_released and job_state.held_count > 0:
             log.debug("Job %s (external id %s) released, resetting held count", job_id, external_id)

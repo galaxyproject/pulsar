@@ -8,7 +8,10 @@ from os.path import (
 
 from pulsar.managers import status
 from pulsar.managers.stateful import StatefulManagerProxy
-from pulsar.managers.util.condor.htcondor import MAX_MISSING_LOG_COUNT
+from pulsar.managers.util.condor.htcondor import (
+    MISSING_LOG_GRACE_SECONDS,
+    STATUS_ERROR_GRACE_SECONDS,
+)
 
 from .test_utils import BaseManagerTestCase
 
@@ -36,6 +39,8 @@ class HTCondorManagerTest(BaseManagerTestCase):
 
     def setUp(self):
         super().setUp()
+        # Drives the wall-clock escalation grace periods without sleeping.
+        self.now = 0.0
         self.htcondor2 = _install_fake_htcondor()
         # Imported after the fake is installed so import_htcondor() finds it.
         from pulsar.managers.queued_htcondor import HTCondorQueueManager
@@ -49,7 +54,9 @@ class HTCondorManagerTest(BaseManagerTestCase):
         super().tearDown()
 
     def _manager(self, **kwds):
-        return self.manager_class('_default_', self.app, **kwds)
+        manager = self.manager_class('_default_', self.app, **kwds)
+        manager.clock = lambda: self.now
+        return manager
 
     def _launch(self, manager=None, external_job_id="123", command_line="true", **launch_kwds):
         manager = manager or self.manager
@@ -201,17 +208,30 @@ class HTCondorManagerTest(BaseManagerTestCase):
     def test_missing_event_log_escalates_to_failed(self):
         job_id = self._launch()
         os.unlink(self._user_log(job_id))
-        for _ in range(4):
+        # Polling faster than the grace period must not escalate, however many
+        # times it happens - that is the point of tracking wall-clock time.
+        for _ in range(20):
+            self.now += MISSING_LOG_GRACE_SECONDS / 40
             assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += MISSING_LOG_GRACE_SECONDS
         # FAILED, not LOST - LOST is not terminal for the stateful proxy, so the
         # job would never be deactivated and its event log never closed.
         assert self.manager.get_status(job_id) == status.FAILED
 
+    def test_missing_event_log_preserves_running_state(self):
+        job_id = self._launch()
+        self._push_events(job_id, self._event("EXECUTE"))
+        assert self.manager.get_status(job_id) == status.RUNNING
+        os.unlink(self._user_log(job_id))
+        assert self.manager.get_status(job_id) == status.RUNNING
+
     def test_status_errors_escalate_to_failed(self):
         job_id = self._launch()
         self.htcondor2.JobEventLog.error = OSError("Test event log failure")
-        for _ in range(2):
+        for _ in range(20):
+            self.now += STATUS_ERROR_GRACE_SECONDS / 40
             assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += STATUS_ERROR_GRACE_SECONDS
         assert self.manager.get_status(job_id) == status.FAILED
 
     def test_status_errors_recover_before_escalating(self):
@@ -225,6 +245,18 @@ class HTCondorManagerTest(BaseManagerTestCase):
         self._push_events(job_id, self._event("JOB_TERMINATED"))
         assert self.manager.get_status(job_id) == status.COMPLETE
 
+    def test_status_error_grace_period_restarts_after_recovery(self):
+        job_id = self._launch()
+        self.htcondor2.JobEventLog.error = OSError("Test event log failure")
+        self.now += STATUS_ERROR_GRACE_SECONDS / 2
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.htcondor2.JobEventLog.error = None
+        assert self.manager.get_status(job_id) == status.QUEUED
+        # The clock restarts on recovery, so the earlier errors are not counted.
+        self.htcondor2.JobEventLog.error = OSError("Test event log failure")
+        self.now += STATUS_ERROR_GRACE_SECONDS * 0.75
+        assert self.manager.get_status(job_id) == status.QUEUED
+
     def test_missing_external_id_is_lost(self):
         # Never launched, so the external id is genuinely unknown rather than
         # exhausted - LOST lets the proxy keep the job and recover it.
@@ -235,6 +267,7 @@ class HTCondorManagerTest(BaseManagerTestCase):
         job_id = self._launch()
         user_log = self._user_log(job_id)
         os.unlink(user_log)
+        self.now += MISSING_LOG_GRACE_SECONDS / 2
         assert self.manager.get_status(job_id) == status.QUEUED
         open(user_log, "w").close()
         self._push_events(job_id, self._event("EXECUTE"))
@@ -261,8 +294,9 @@ class HTCondorManagerTest(BaseManagerTestCase):
         job_id = proxy.setup_job("789", "tool1", "1.0.0")
         proxy.preprocess_and_launch(job_id, {"command_line": "true", "remote_staging": {}})
         os.unlink(self._user_log(job_id))
-        for _ in range(MAX_MISSING_LOG_COUNT):
-            proxy.get_status(job_id)
+        proxy.get_status(job_id)
+        self.now += MISSING_LOG_GRACE_SECONDS
+        proxy.get_status(job_id)
         self._wait_for_callback(callbacks)
         assert callbacks == [(status.FAILED, job_id)], callbacks
         assert proxy.active_jobs.active_job_ids() == []
