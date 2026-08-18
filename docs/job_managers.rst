@@ -22,8 +22,8 @@ a configuration of
 
 The ``type`` of ``queued_python`` is indicating that the jobs are queued but
 that the queue is managed locally by Pulsar. Other possible values for
-``type`` include ``queued_drmaa``, ``queued_condor``, ``queued_cli``,
-``queued_external_drmaa`` (examples of each follow).
+``type`` include ``queued_drmaa``, ``queued_condor``, ``queued_htcondor``,
+``queued_cli``, ``queued_external_drmaa`` (examples of each follow).
 
 Named Managers
 -------------------------------
@@ -98,6 +98,51 @@ submission file to the specified values. For more information on condor
 submission files see the `HTCondor quickstart
 <http://research.cs.wisc.edu/htcondor/quick-start.html>`__ for more
 information.
+
+HTCondor (Python bindings)
+--------------------------------
+
+The ``queued_htcondor`` manager talks to HTCondor through its version 2 Python
+bindings instead of shelling out to ``condor_submit``/``condor_rm``, and reads
+the job event log with ``htcondor2.JobEventLog`` rather than by scraping its
+text.  It shares its HTCondor support code with Galaxy's ``htcondor`` job
+runner, so hold classification (out-of-memory, walltime) and failure reporting
+behave the same on both sides.
+
+It requires the ``htcondor2`` package::
+
+    pip install htcondor2
+
+::
+
+    managers:
+      _default_:
+        type: queued_htcondor
+        # Optional attributes...
+        submit_universe: vanilla
+        submit_request_memory: 32
+        submit_request_cpus: 4
+        submit_requirements: 'OpSys == "LINUX" && Arch =="INTEL"'
+        # Wall time after which HTCondor holds the job (also accepts
+        # MM:SS, HH:MM:SS, D-HH:MM:SS or a plain number of seconds).
+        request_walltime: "24:00:00"
+        # Fail a job held this many times without being released (0 disables).
+        max_held_count: 3
+        # Remote collector/schedd and an alternate HTCondor configuration.
+        htcondor_collector: collector.example.org:9618
+        htcondor_schedd: schedd.example.org
+        htcondor_config: /etc/condor/remote.config
+
+``submit_``-prefixed options are written into the submit description exactly as
+they are for ``queued_condor``.  ``request_walltime`` and ``max_held_count``
+configure this manager rather than HTCondor and are never submitted; they can
+also be set per job from the Galaxy destination as ``submit_request_walltime``
+and ``submit_max_held_count``, which override the manager-wide values.
+
+Because ``htcondor2`` reads its configuration once per process, setting
+``htcondor_config`` makes the manager route submissions through a helper
+subprocess started with that ``CONDOR_CONFIG``; leaving it unset talks to the
+schedd in-process using Pulsar's own HTCondor configuration.
 
 CLI
 -------------------------------
