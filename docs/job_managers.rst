@@ -77,37 +77,39 @@ dependency ``drmaa`` will need to be installed as well to use the
 If you are using DRMAA, be sure to define ``DRMAA_LIBRARY_PATH`` in Pulsar's
 ``local_env.sh`` file.
 
-Condor
+HTCondor
 -------------------------------
 
-Condor_ can also be used as a backend.
+Condor_ can be used as a backend through either of two managers.
+``queued_htcondor`` talks to the scheduler through HTCondor's version 2 Python
+bindings; ``queued_condor`` runs ``condor_submit``/``condor_rm`` and determines
+job state by scraping the text of the job event log.
 
-::
+Prefer ``queued_htcondor`` unless the ``htcondor2`` package cannot be installed
+alongside Pulsar.  It is not merely the newer of the two - it reports outcomes
+``queued_condor`` cannot see:
 
-    managers:
-      _default_:
-        type: queued_condor
-        # Optional attributes...
-        submit_universe: vanilla
-        submit_request_memory: 32
-        submit_requirements: 'OpSys == "LINUX" && Arch =="INTEL"'
-        submit_rank: "Memory >= 64"
+* Held jobs.  ``queued_condor`` never inspects hold events, so a job held for
+  exceeding its memory or wall time stays ``queued`` indefinitely.
+  ``queued_htcondor`` classifies the hold, fails the job, and says which limit
+  to raise.
+* Jobs removed from the queue, jobs killed for using too much memory, and jobs
+  whose script could not be executed - all reported as ``complete`` by
+  ``queued_condor``.
+* A missing job event log, also reported as ``complete`` by ``queued_condor``.
 
-This would set universe, request_memory, requirements, and rank in the condor
-submission file to the specified values. For more information on condor
-submission files see the `HTCondor quickstart
-<http://research.cs.wisc.edu/htcondor/quick-start.html>`__ for more
-information.
+``queued_htcondor`` can additionally submit to a remote collector or schedd and
+hold jobs that exceed a wall time; ``queued_condor`` submits only through the
+local command line.  Both build their submit description the same way, so
+``submit_``-prefixed options carry over unchanged between them.
 
-HTCondor (Python bindings)
---------------------------------
+Python bindings (``queued_htcondor``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``queued_htcondor`` manager talks to HTCondor through its version 2 Python
-bindings instead of shelling out to ``condor_submit``/``condor_rm``, and reads
-the job event log with ``htcondor2.JobEventLog`` rather than by scraping its
-text.  It shares its HTCondor support code with Galaxy's ``htcondor`` job
-runner, so hold classification (out-of-memory, walltime) and failure reporting
-behave the same on both sides.
+This manager reads the job event log with ``htcondor2.JobEventLog`` rather than
+by scraping its text.  It shares its HTCondor support code with Galaxy's
+``htcondor`` job runner, so hold classification and failure reporting behave
+the same whether or not a job travelled through Pulsar.
 
 It requires the ``htcondor2`` package::
 
@@ -133,16 +135,37 @@ It requires the ``htcondor2`` package::
         htcondor_schedd: schedd.example.org
         htcondor_config: /etc/condor/remote.config
 
-``submit_``-prefixed options are written into the submit description exactly as
-they are for ``queued_condor``.  ``request_walltime`` and ``max_held_count``
-configure this manager rather than HTCondor and are never submitted; they can
-also be set per job from the Galaxy destination as ``submit_request_walltime``
-and ``submit_max_held_count``, which override the manager-wide values.
+``request_walltime`` and ``max_held_count`` configure this manager rather than
+HTCondor and are never submitted; they can also be set per job from the Galaxy
+destination as ``submit_request_walltime`` and ``submit_max_held_count``.
 
 Because ``htcondor2`` reads its configuration once per process, setting
 ``htcondor_config`` makes the manager route submissions through a helper
 subprocess started with that ``CONDOR_CONFIG``; leaving it unset talks to the
 schedd in-process using Pulsar's own HTCondor configuration.
+
+Command line (``queued_condor``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This manager requires the HTCondor command-line tools on Pulsar's ``PATH`` but
+no Python dependency beyond Pulsar's own.
+
+::
+
+    managers:
+      _default_:
+        type: queued_condor
+        # Optional attributes...
+        submit_universe: vanilla
+        submit_request_memory: 32
+        submit_requirements: 'OpSys == "LINUX" && Arch =="INTEL"'
+        submit_rank: "Memory >= 64"
+
+This would set universe, request_memory, requirements, and rank in the condor
+submission file to the specified values. For more information on condor
+submission files see the `HTCondor quickstart
+<http://research.cs.wisc.edu/htcondor/quick-start.html>`__ for more
+information.
 
 CLI
 -------------------------------
