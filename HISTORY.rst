@@ -27,6 +27,8 @@ History
 * Add a ``queued_htcondor`` manager built on the htcondor2 Python bindings,
   sharing its HTCondor support code (``pulsar.managers.util.condor.htcondor``)
   with Galaxy's ``htcondor`` job runner.
+* Fix ``queued_condor`` leaking a job's ``submit_`` parameters into subsequent
+  jobs, which could submit one manager's configuration under another's.
 
 ---------------------
 0.15.15 (2026-07-13)
