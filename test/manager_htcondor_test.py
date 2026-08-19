@@ -146,6 +146,36 @@ class HTCondorManagerTest(BaseManagerTestCase):
         self._push_events(job_id, self._event("EXECUTE"), self._event("JOB_TERMINATED"))
         assert self.manager.get_status(job_id) == status.COMPLETE
 
+    def test_sigkill_termination_fails_job(self):
+        job_id = self._launch()
+        self._push_events(
+            job_id,
+            self._event("EXECUTE"),
+            self._event("JOB_TERMINATED", TerminatedNormally=False, TermSignal=9),
+        )
+        assert self.manager.get_status(job_id) == status.FAILED
+
+    def test_non_sigkill_termination_completes(self):
+        # Only SIGKILL is treated as a failure - other signals leave the outcome
+        # to the exit code Pulsar reports back.
+        job_id = self._launch()
+        self._push_events(
+            job_id,
+            self._event("JOB_TERMINATED", TerminatedNormally=False, TermSignal=15),
+        )
+        assert self.manager.get_status(job_id) == status.COMPLETE
+
+    def test_cancelled_job_sigkill_is_not_a_failure(self):
+        # Why this manager needs no equivalent of the Galaxy runner's
+        # STOPPED/DELETED guard - get_status short-circuits cancelled jobs.
+        job_id = self._launch()
+        self.manager.kill(job_id)
+        self._push_events(
+            job_id,
+            self._event("JOB_TERMINATED", TerminatedNormally=False, TermSignal=9),
+        )
+        assert self.manager.get_status(job_id) == status.CANCELLED
+
     def test_aborted_event_fails_job(self):
         job_id = self._launch()
         self._push_events(job_id, self._event("JOB_ABORTED"))

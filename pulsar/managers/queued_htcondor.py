@@ -34,6 +34,8 @@ from .util.condor.htcondor import (
     normalize_condor_config,
     parse_walltime_seconds,
     periodic_hold_expression,
+    SIGKILL,
+    SIGKILL_MESSAGE,
     STATUS_ERROR_GRACE_SECONDS,
 )
 from ..managers import status
@@ -90,7 +92,7 @@ class HTCondorQueueManager(ExternalBaseManager):
             setup_params=setup_params
         )
         log_path = self.__condor_user_log(job_id)
-        open(log_path, 'w')  # Touch log file
+        open(log_path, 'w').close()  # Touch log file
 
         query_params = dict(submit_params)
         query_params.update(self.submission_params)
@@ -134,10 +136,7 @@ class HTCondorQueueManager(ExternalBaseManager):
     def shutdown(self, timeout=None):
         """Shut down HTCondor clients (and any helper subprocesses)."""
         try:
-            # ExternalBaseManager has no shutdown - only some manager bases do.
-            parent_shutdown = getattr(super(), "shutdown", None)
-            if parent_shutdown is not None:
-                parent_shutdown(timeout)
+            super().shutdown(timeout)
         finally:
             self._clients.shutdown()
 
@@ -211,6 +210,11 @@ class HTCondorQueueManager(ExternalBaseManager):
 
         if summary.job_complete:
             job_state.running = False
+            if summary.term_signal == SIGKILL:
+                # get_status short-circuits cancelled jobs, so a SIGKILL that
+                # reaches here was not requested by us - most likely an OOM kill.
+                log.warning("Job %s (external id %s): %s", job_id, external_id, SIGKILL_MESSAGE)
+                return status.FAILED
             return status.COMPLETE
         if summary.failure_event is not None:
             job_state.running = False
