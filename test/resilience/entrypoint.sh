@@ -21,4 +21,6 @@ cp /etc/pulsar/server.ini "$runtime/server.ini"
 cp "$src" "$runtime/app.yml"
 
 export PULSAR_CONFIG_DIR="$runtime"
-exec pulsar --mode webless --config_dir "$runtime" --port 8913
+# No --port: webless mode binds no port, so the flag is not one of the
+# pulsar-main arguments this mode accepts.
+exec pulsar --mode webless --config_dir "$runtime"
