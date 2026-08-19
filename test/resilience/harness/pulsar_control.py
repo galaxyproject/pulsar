@@ -26,23 +26,12 @@ RABBITMQ_AUTH = ("guest", "guest")
 RELAY_HTTP = "http://localhost:8081"
 RELAY_ADMIN_USERNAME = "admin"
 RELAY_ADMIN_PASSWORD = "admin1234"
-# Has to cover the time the relay takes to notice the dropped consumer plus
-# RELAY_DRAIN_CONFIRM_SECONDS below.
-RELAY_DRAIN_TIMEOUT = 10.0
-# The relay registers a poll-waiter only while a long poll is parked in its
-# storage loop, so /messages/poll/stats reports a live consumer intermittently:
-# holding a single long poll open and sampling every 50ms showed the waiter in
-# 16-60% of samples, with gaps up to ~0.5s. Neither readiness nor drain may
-# treat one sample as the truth.
-#
-# Readiness therefore jitters its poll interval. A fixed interval can beat
-# against the relay's ~2s poll cycle and land in the invisible part of every
-# one - the failure mode this replaces spent 60s reporting no consumer while
-# the relay was creating a waiter every 2.004s without a break.
+# Poll stats expose a waiter only while its long poll is parked, not for the
+# consumer's entire lifetime. Jitter avoids repeatedly sampling between polls.
 RELAY_WAITER_POLL_JITTER = 0.5
-# Zeros have to persist well past the largest gap observed above before the
-# old waiter counts as gone.
+# Live consumers have produced gaps of up to 0.5 seconds in poll stats.
 RELAY_DRAIN_CONFIRM_SECONDS = 2.0
+RELAY_DRAIN_TIMEOUT = 10.0
 _admin_token_cache = {"token": None, "exp": 0.0}
 
 
@@ -227,12 +216,15 @@ class PulsarControl:
                     # AMQP modes: also confirm the broker sees the consumer.
                     if _amqp_setup_has_consumer():
                         return
-            # Jittered so the sampling cannot lock to the relay's poll cycle.
-            time.sleep(poll_interval * random.uniform(1 - RELAY_WAITER_POLL_JITTER, 1 + RELAY_WAITER_POLL_JITTER))
+            jitter = 1
+            if self.mode == "relay":
+                jitter = random.uniform(1 - RELAY_WAITER_POLL_JITTER, 1 + RELAY_WAITER_POLL_JITTER)
+            time.sleep(poll_interval * jitter)
+        details = f"bind log seen: {bind_seen}, consumer checks: {samples}"
+        if self.mode == "relay":
+            details += f", last relay stats: {last_stats!r}"
         raise TimeoutError(
-            f"Pulsar did not bind {self.mode} consumers within {timeout}s "
-            f"(bind log seen: {bind_seen}, consumer checks: {samples}, "
-            f"last relay stats: {last_stats!r})"
+            f"Pulsar did not bind {self.mode} consumers within {timeout}s ({details})"
         )
 
 
@@ -266,11 +258,7 @@ def _relay_admin_token():
 
 
 def _relay_poll_stats():
-    """Body of the relay's ``/messages/poll/stats``, or None if unreachable.
-
-    Returned rather than reduced to a count so a readiness timeout can report
-    what the relay actually said.
-    """
+    """Return the relay's poll stats, or ``None`` if unavailable."""
     try:
         token = _relay_admin_token()
     except Exception:
@@ -285,19 +273,23 @@ def _relay_poll_stats():
         return None
     if r.status_code != 200:
         return None
-    return r.json()
+    try:
+        return r.json()
+    except ValueError:
+        return None
 
 
 def _setup_waiter_count(stats):
-    """Poll-waiters across all ``*/job_setup`` topics in a stats body.
-
-    Topics are namespaced per client (``<uuid>/job_setup``).  Returns None for
-    an unusable body so callers can tell "unknown" apart from a confirmed zero.
-    """
-    if stats is None:
+    """Count ``*/job_setup`` waiters, preserving invalid data as unknown."""
+    if not isinstance(stats, dict):
         return None
-    counts = stats.get("topic_subscriber_counts") or {}
-    return sum(n for t, n in counts.items() if t.endswith("/job_setup"))
+    counts = stats.get("topic_subscriber_counts")
+    if not isinstance(counts, dict):
+        return None
+    try:
+        return sum(n for t, n in counts.items() if t.endswith("/job_setup"))
+    except (AttributeError, TypeError):
+        return None
 
 
 def _relay_setup_waiter_count():
@@ -316,8 +308,6 @@ def _wait_relay_setup_waiters_drained(timeout=RELAY_DRAIN_TIMEOUT, poll_interval
     zero_since = None
     while time.time() < deadline:
         if _relay_setup_waiter_count() == 0:
-            # One zero proves nothing - a live consumer reads as zero between
-            # long polls. Require the zeros to persist.
             if zero_since is None:
                 zero_since = time.time()
             if time.time() - zero_since >= RELAY_DRAIN_CONFIRM_SECONDS:

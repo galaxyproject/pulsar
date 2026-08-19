@@ -35,10 +35,8 @@ services:
     networks: [pulsar-net]
 
   relay:
-    # Pinned by digest: the readiness checks in harness/pulsar_control.py
-    # depend on the shape of /messages/poll/stats, so an unpinned :latest
-    # can change harness behaviour with no commit here. Override with
-    # RELAY_IMAGE to test against a newer relay.
+    # The harness depends on the undocumented /messages/poll/stats response.
+    # RELAY_IMAGE can override this pin when testing newer relay versions.
     image: ${RELAY_IMAGE:-ghcr.io/mvdbeek/pulsar-relay:0.2.1@sha256:b677658c3585bc21a1a3eb8ed7403d55dea3b72d0dd859b2c3b606abf876fb78}
     volumes:
       - ./config/relay-config.yaml:/etc/pulsar-relay/config.yaml:ro
