@@ -120,6 +120,7 @@ class BaseJobClient:
         self.cvmfsexec = destination_params.get("cvmfsexec", None)
         self.files_endpoint = destination_params.get("files_endpoint", None)
         self.token_endpoint = destination_params.get("token_endpoint", None)
+        self.external_id = destination_params.get("external_id", None)
 
         default_file_action = self.destination_params.get("default_file_action", "transfer")
         if default_file_action not in actions:
@@ -874,17 +875,22 @@ class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
         job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
         return job_name
 
+    @property
+    def _tes_task_id(self):
+        """Return the provider-assigned TES id when Galaxy recorded one."""
+        return self.external_id or self.job_id
+
     def _setup_tes_client_properties(self, destination_params):
         self.instance_id = tes_galaxy_instance_id(destination_params)
 
     def kill(self):
-        self._tes_client.cancel_task(self.job_id)
+        self._tes_client.cancel_task(self._tes_task_id)
 
     def clean(self):
         pass
 
     def raw_check_complete(self) -> Dict[str, Any]:
-        tes_task: TesTask = self._tes_client.get_task(self.job_id, "FULL")
+        tes_task: TesTask = self._tes_client.get_task(self._tes_task_id, "FULL")
         tes_state = tes_task.state
         return {
             "status": tes_state_to_pulsar_status(tes_state),
