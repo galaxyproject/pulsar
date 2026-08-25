@@ -91,8 +91,12 @@ alongside Pulsar.  It is not merely the newer of the two - it reports outcomes
 
 * Held jobs.  ``queued_condor`` never inspects hold events, so a job held for
   exceeding its memory or wall time stays ``queued`` indefinitely.
-  ``queued_htcondor`` classifies the hold, fails the job, and says which limit
-  to raise.
+  ``queued_htcondor`` classifies the hold.  A memory or wall time hold fails the
+  job with a message saying which limit to raise, since releasing such a job only
+  runs it again against the same limit.  Any other hold leaves the job ``queued``
+  and increments a counter, failing it only once it has been held
+  ``max_held_count`` times without a release; a release resets that counter, so a
+  hold the pool recovers from on its own never fails the job.
 * Jobs removed from the queue, jobs killed for using too much memory, and jobs
   whose script could not be executed - all reported as ``complete`` by
   ``queued_condor``.
