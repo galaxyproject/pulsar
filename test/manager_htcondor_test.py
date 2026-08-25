@@ -12,7 +12,6 @@ from pulsar.managers.util.condor.htcondor import (
     MISSING_LOG_GRACE_SECONDS,
     STATUS_ERROR_GRACE_SECONDS,
 )
-
 from .test_utils import BaseManagerTestCase
 
 FAKE_MODULE_PATH = join(dirname(__file__), "htcondor_fake")
