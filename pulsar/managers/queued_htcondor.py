@@ -22,10 +22,10 @@ from .util.condor.htcondor import (
     classify_hold,
     DEFAULT_MAX_HELD_COUNT,
     FAILURE_MESSAGES,
+    HELD_GRACE_SECONDS,
     held_message,
+    HELD_TOO_LONG_MESSAGE,
     HOLD_MESSAGES,
-    HOLD_REASON_MEMORY_LIMIT,
-    HOLD_REASON_WALLTIME,
     HTCondorClientCache,
     HTCondorEventLogTracker,
     import_htcondor,
@@ -54,11 +54,13 @@ HTCONDOR_REMOVE_REASON = "Pulsar job stop request"
 class _HTCondorJobState(HTCondorEventLogTracker):
     """Event-log bookkeeping for a single job, keyed by external (cluster) id."""
 
-    def __init__(self, user_log, external_id, max_held_count, clock=time.monotonic):
+    def __init__(self, user_log, external_id, max_held_count, held_grace_seconds, clock=time.monotonic):
         super().__init__(user_log, clock=clock)
         self.cluster_id = int(external_id)
         self.max_held_count = max_held_count
+        self.held_grace_seconds = held_grace_seconds
         self.running = False
+        self.held = False
 
 
 class HTCondorQueueManager(ExternalBaseManager):
@@ -75,6 +77,7 @@ class HTCondorQueueManager(ExternalBaseManager):
         self.condor_config = normalize_condor_config(kwds.get("htcondor_config", None))
         self.request_walltime = kwds.get("request_walltime", None)
         self.max_held_count = int(kwds.get("max_held_count", DEFAULT_MAX_HELD_COUNT))
+        self.held_grace_seconds = float(kwds.get("held_grace_seconds", HELD_GRACE_SECONDS))
         self.htcondor = import_htcondor()
         self._clients = HTCondorClientCache(self.htcondor, remove_reason=HTCONDOR_REMOVE_REASON)
         self._job_states = {}
@@ -100,6 +103,7 @@ class HTCondorQueueManager(ExternalBaseManager):
         # out before the rest of the params become the submit description.
         walltime = query_params.pop("request_walltime", self.request_walltime)
         max_held_count = int(query_params.pop("max_held_count", self.max_held_count))
+        held_grace_seconds = float(query_params.pop("held_grace_seconds", self.held_grace_seconds))
         if walltime is not None and "periodic_hold" not in query_params:
             walltime_seconds = parse_walltime_seconds(str(walltime))
             if walltime_seconds is not None:
@@ -122,7 +126,9 @@ class HTCondorQueueManager(ExternalBaseManager):
         log.info("Submitted HTCondor job with Pulsar job id %s and external id %s", job_id, external_id)
         self._register_external_id(job_id, external_id)
         with self._lock:
-            self._job_states[job_id] = _HTCondorJobState(log_path, external_id, max_held_count, clock=self.clock)
+            self._job_states[job_id] = _HTCondorJobState(
+                log_path, external_id, max_held_count, held_grace_seconds, clock=self.clock
+            )
 
     def get_status(self, job_id):
         if self._was_cancelled(job_id):
@@ -167,7 +173,11 @@ class HTCondorQueueManager(ExternalBaseManager):
         job_state = self._job_states.get(job_id)
         if job_state is None:
             job_state = _HTCondorJobState(
-                self.__condor_user_log(job_id), external_id, self.max_held_count, clock=self.clock
+                self.__condor_user_log(job_id),
+                external_id,
+                self.max_held_count,
+                self.held_grace_seconds,
+                clock=self.clock,
             )
             self._job_states[job_id] = job_state
         return job_state
@@ -176,7 +186,9 @@ class HTCondorQueueManager(ExternalBaseManager):
         with self._lock:
             job_state = self.__job_state(job_id, external_id)
             try:
-                summary = job_state.summarize(self.htcondor, job_state.cluster_id, job_state.running)
+                summary = job_state.summarize(
+                    self.htcondor, job_state.cluster_id, job_state.running, job_state.held
+                )
                 job_state.clear_status_errors()
             except Exception:
                 elapsed = job_state.note_status_error()
@@ -204,12 +216,19 @@ class HTCondorQueueManager(ExternalBaseManager):
             return status.RUNNING if job_state.running else status.QUEUED
         job_state.clear_missing_log()
 
-        if summary.job_released and job_state.held_count > 0:
-            log.debug("Job %s (external id %s) released, resetting held count", job_id, external_id)
-            job_state.held_count = 0
+        if summary.job_released:
+            if job_state.held_count > 0:
+                log.debug("Job %s (external id %s) released, resetting held count", job_id, external_id)
+                job_state.held_count = 0
+            # A release restarts the grace window - the pool is retrying the
+            # job, possibly against raised resources.
+            job_state.held = False
+            job_state.clear_held()
 
         if summary.job_complete:
             job_state.running = False
+            job_state.held = False
+            job_state.clear_held()
             if summary.term_signal == SIGKILL:
                 # get_status short-circuits cancelled jobs, so a SIGKILL that
                 # reaches here was not requested by us - most likely an OOM kill.
@@ -218,6 +237,8 @@ class HTCondorQueueManager(ExternalBaseManager):
             return status.COMPLETE
         if summary.failure_event is not None:
             job_state.running = False
+            job_state.held = False
+            job_state.clear_held()
             failure = classify_failure_event(self.htcondor, summary.failure_event)
             log.warning(
                 "Job %s (external id %s) failed: %s", job_id, external_id, FAILURE_MESSAGES[failure]
@@ -225,27 +246,44 @@ class HTCondorQueueManager(ExternalBaseManager):
             return status.FAILED
         if summary.job_held:
             job_state.running = False
-            return self.__held_status(job_id, external_id, job_state, summary.hold_reason_code)
+            return self.__held_status(job_id, external_id, job_state, summary)
 
         job_state.running = summary.job_running
+        job_state.held = False
+        job_state.clear_held()
         return status.RUNNING if summary.job_running else status.QUEUED
 
-    def __held_status(self, job_id, external_id, job_state, hold_reason_code):
-        hold_reason = classify_hold(hold_reason_code)
-        if hold_reason in (HOLD_REASON_MEMORY_LIMIT, HOLD_REASON_WALLTIME):
+    def __held_status(self, job_id, external_id, job_state, summary):
+        """Apply the hold policy: a hold is not by itself terminal.
+
+        The pool may release the job on its own - sites commonly configure
+        periodic_release to retry a held job, sometimes against a raised
+        request_memory - so failing on the hold reason alone would pre-empt that
+        policy. The job is failed once it has stayed held for
+        held_grace_seconds without a release, or once it has been held
+        max_held_count separate times (thrashing the grace window cannot catch,
+        because each release restarts it).
+        """
+        job_state.held = True
+        if summary.job_held_event:
+            job_state.held_count += 1
+            if 0 < job_state.max_held_count <= job_state.held_count:
+                log.warning(
+                    "Job %s (external id %s): %s", job_id, external_id, held_message(job_state.held_count)
+                )
+                return status.FAILED
+        elapsed = job_state.note_held(summary.hold_reason_code)
+        if elapsed >= job_state.held_grace_seconds:
+            hold_reason = classify_hold(job_state.held_reason_code)
             log.warning(
-                "Job %s (external id %s) held (HoldReasonCode=%s): %s",
-                job_id, external_id, hold_reason_code, HOLD_MESSAGES[hold_reason]
-            )
-            return status.FAILED
-        job_state.held_count += 1
-        if 0 < job_state.max_held_count <= job_state.held_count:
-            log.warning(
-                "Job %s (external id %s): %s", job_id, external_id, held_message(job_state.held_count)
+                "Job %s (external id %s) held %.0fs without release (HoldReasonCode=%s): %s",
+                job_id, external_id, elapsed, job_state.held_reason_code,
+                HOLD_MESSAGES.get(hold_reason, HELD_TOO_LONG_MESSAGE)
             )
             return status.FAILED
         log.debug(
-            "Job %s (external id %s) held (HoldReasonCode=%s), held count %s/%s",
-            job_id, external_id, hold_reason_code, job_state.held_count, job_state.max_held_count
+            "Job %s (external id %s) held %.0fs (HoldReasonCode=%s), held count %s/%s",
+            job_id, external_id, elapsed, job_state.held_reason_code,
+            job_state.held_count, job_state.max_held_count
         )
         return status.QUEUED
