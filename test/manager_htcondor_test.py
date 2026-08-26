@@ -9,6 +9,7 @@ from os.path import (
 from pulsar.managers import status
 from pulsar.managers.stateful import StatefulManagerProxy
 from pulsar.managers.util.condor.htcondor import (
+    HELD_GRACE_SECONDS,
     MISSING_LOG_GRACE_SECONDS,
     STATUS_ERROR_GRACE_SECONDS,
 )
@@ -116,6 +117,7 @@ class HTCondorManagerTest(BaseManagerTestCase):
         description = self.htcondor2.SUBMISSIONS[-1]["submit_description"]
         assert "request_walltime" not in description, description
         assert "max_held_count" not in description, description
+        assert "held_grace_seconds" not in description, description
 
     def test_unparseable_walltime_is_ignored(self):
         manager = self._manager(request_walltime="forever")
@@ -185,15 +187,89 @@ class HTCondorManagerTest(BaseManagerTestCase):
         self._push_events(job_id, self._event("SHADOW_EXCEPTION"))
         assert self.manager.get_status(job_id) == status.FAILED
 
-    def test_memory_hold_fails_job_immediately(self):
+    def test_memory_hold_fails_only_after_the_grace_window(self):
+        # A hold is not terminal on sight - the pool may release the job - so
+        # the job stays queued until it has been held too long without release.
         job_id = self._launch()
         self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34))
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += HELD_GRACE_SECONDS
         assert self.manager.get_status(job_id) == status.FAILED
 
-    def test_walltime_hold_fails_job_immediately(self):
+    def test_walltime_hold_fails_only_after_the_grace_window(self):
         job_id = self._launch()
         self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=16))
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += HELD_GRACE_SECONDS
         assert self.manager.get_status(job_id) == status.FAILED
+
+    def test_released_memory_hold_lets_the_job_finish(self):
+        # Sites commonly configure periodic_release to retry a held job, at
+        # times against a raised request_memory. Failing on the hold reason
+        # alone would pre-empt that policy.
+        job_id = self._launch()
+        self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34))
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += HELD_GRACE_SECONDS / 2
+        self._push_events(job_id, self._event("JOB_RELEASED"))
+        assert self.manager.get_status(job_id) == status.QUEUED
+        # Well past the window the first hold opened, but it was cleared.
+        self.now += HELD_GRACE_SECONDS
+        self._push_events(job_id, self._event("EXECUTE"))
+        assert self.manager.get_status(job_id) == status.RUNNING
+        self._push_events(job_id, self._event("JOB_TERMINATED", TerminatedNormally=True))
+        assert self.manager.get_status(job_id) == status.COMPLETE
+
+    def test_grace_window_restarts_after_a_release(self):
+        job_id = self._launch()
+        self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34))
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += HELD_GRACE_SECONDS - 1
+        self._push_events(job_id, self._event("JOB_RELEASED"))
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34))
+        # This poll opens a fresh window; time served under the previous hold
+        # does not count toward it.
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += HELD_GRACE_SECONDS - 1
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += 1
+        assert self.manager.get_status(job_id) == status.FAILED
+
+    def test_hold_reason_survives_cycles_without_new_events(self):
+        # The JOB_HELD event carrying the reason arrives once. Later cycles see
+        # no events at all, so the reason has to be remembered for the failure
+        # message to name the right limit.
+        job_id = self._launch()
+        self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34))
+        assert self.manager.get_status(job_id) == status.QUEUED
+        job_state = self.manager._job_states[job_id]
+        assert job_state.held_reason_code == 34
+        self.now += HELD_GRACE_SECONDS
+        assert self.manager.get_status(job_id) == status.FAILED
+        assert job_state.held_reason_code == 34
+
+    def test_per_job_held_grace_seconds_overrides_manager_default(self):
+        job_id = self._launch(submit_params=dict(held_grace_seconds=10))
+        self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34))
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += 9
+        assert self.manager.get_status(job_id) == status.QUEUED
+        self.now += 1
+        assert self.manager.get_status(job_id) == status.FAILED
+
+    def test_repeated_holds_still_escalate_within_the_grace_window(self):
+        # Thrashing the grace window cannot catch: each release restarts it.
+        manager = self._manager(max_held_count=2)
+        job_id = self._launch(manager=manager)
+        self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34), manager=manager)
+        assert manager.get_status(job_id) == status.QUEUED
+        self._push_events(job_id, self._event("JOB_RELEASED"), manager=manager)
+        assert manager.get_status(job_id) == status.QUEUED
+        self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34), manager=manager)
+        assert manager.get_status(job_id) == status.QUEUED
+        self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34), manager=manager)
+        assert manager.get_status(job_id) == status.FAILED
 
     def test_generic_hold_escalates_after_max_held_count(self):
         manager = self._manager(max_held_count=3)
