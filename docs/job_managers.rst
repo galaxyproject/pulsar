@@ -91,12 +91,16 @@ alongside Pulsar.  It is not merely the newer of the two - it reports outcomes
 
 * Held jobs.  ``queued_condor`` never inspects hold events, so a job held for
   exceeding its memory or wall time stays ``queued`` indefinitely.
-  ``queued_htcondor`` classifies the hold.  A memory or wall time hold fails the
-  job with a message saying which limit to raise, since releasing such a job only
-  runs it again against the same limit.  Any other hold leaves the job ``queued``
-  and increments a counter, failing it only once it has been held
-  ``max_held_count`` times without a release; a release resets that counter, so a
-  hold the pool recovers from on its own never fails the job.
+  ``queued_htcondor`` classifies the hold and bounds it.  A hold is not by
+  itself terminal: the pool may release the job on its own, and sites commonly
+  configure ``periodic_release`` to retry a held job - at times against a raised
+  ``request_memory``, so that the retry succeeds where the first attempt was
+  held.  Failing on the hold reason alone would pre-empt that policy, so a held
+  job stays ``queued`` and is failed only once it has either stayed held for
+  ``held_grace_seconds`` without a release, or been held ``max_held_count``
+  separate times - thrashing the grace window cannot catch, because each release
+  restarts it.  A release resets both.  When the job is finally failed, the
+  classified hold reason supplies the message naming the limit to raise.
 * Jobs removed from the queue, jobs killed for using too much memory, and jobs
   whose script could not be executed - all reported as ``complete`` by
   ``queued_condor``.
@@ -134,14 +138,18 @@ It requires the ``htcondor2`` package::
         request_walltime: "24:00:00"
         # Fail a job held this many times without being released (0 disables).
         max_held_count: 3
+        # Fail a job that stays held this long without being released. Give a
+        # pool that releases held jobs itself room to do so before giving up.
+        held_grace_seconds: 300
         # Remote collector/schedd and an alternate HTCondor configuration.
         htcondor_collector: collector.example.org:9618
         htcondor_schedd: schedd.example.org
         htcondor_config: /etc/condor/remote.config
 
-``request_walltime`` and ``max_held_count`` configure this manager rather than
-HTCondor and are never submitted; they can also be set per job from the Galaxy
-destination as ``submit_request_walltime`` and ``submit_max_held_count``.
+``request_walltime``, ``max_held_count`` and ``held_grace_seconds`` configure
+this manager rather than HTCondor and are never submitted; they can also be set
+per job from the Galaxy destination as ``submit_request_walltime``,
+``submit_max_held_count`` and ``submit_held_grace_seconds``.
 
 Because ``htcondor2`` reads its configuration once per process, setting
 ``htcondor_config`` makes the manager route submissions through a helper

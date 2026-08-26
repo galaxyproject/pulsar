@@ -26,7 +26,10 @@ History
   jobs are deactivated, staged back, and reported to the client.
 * Add a ``queued_htcondor`` manager built on the htcondor2 Python bindings,
   sharing its HTCondor support code (``pulsar.managers.util.condor.htcondor``)
-  with Galaxy's ``htcondor`` job runner.
+  with Galaxy's ``htcondor`` job runner. A held job is bounded by a new
+  ``held_grace_seconds`` window rather than failed on its hold reason, so a pool
+  that releases held jobs itself (``periodic_release``, at times against a
+  raised ``request_memory``) keeps working.
 * Fix ``queued_condor`` leaking a job's ``submit_`` parameters into subsequent
   jobs, which could submit one manager's configuration under another's.
 
