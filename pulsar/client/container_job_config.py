@@ -21,6 +21,7 @@ from galaxy.util import listify
 from pydantic import (
     BaseModel,
     Field,
+    PrivateAttr,
 )
 from pydantictes.models import TesResources
 from typing_extensions import Literal
@@ -37,6 +38,19 @@ from pulsar.managers.util.tes import TesClient
 log = logging.getLogger(__name__)
 
 DEFAULT_GCP_WALLTIME_LIMIT = 60 * 60 * 24  # Default wall time limit in seconds
+N2_LOCAL_SSD_COUNTS = (
+    (10, [1, 2, 4, 8, 16, 24]),
+    (20, [2, 4, 8, 16, 24]),
+    (40, [4, 8, 16, 24]),
+    (80, [8, 16, 24]),
+    (128, [16, 24]),
+)
+N2D_LOCAL_SSD_COUNTS = (
+    (16, [1, 2, 4, 8, 16, 24]),
+    (48, [2, 4, 8, 16, 24]),
+    (80, [4, 8, 16, 24]),
+    (224, [8, 16, 24]),
+)
 
 
 class CoexecutionContainerCommand(NamedTuple):
@@ -106,6 +120,9 @@ def attribute_docs(gcp_class_name: str, attribute: str) -> Optional[str]:
 
 
 class GcpJobParams(BaseModel):
+    _cpu_milli: Optional[int] = PrivateAttr(default=None)
+    _memory_mib: Optional[int] = PrivateAttr(default=None)
+
     project_id: str = Field(
         ..., description="GCP project ID to use for job creation."
     )
@@ -129,7 +146,8 @@ class GcpJobParams(BaseModel):
         375, description="Size of the shared local SSD disk in GB (must be a multiple of 375). Maps to AllocationPolicy.Disk.size_gb."
     )
     machine_type: str = Field(
-        "n1-standard-1", description="Machine type for the job's VM. Overridden by dynamic sizing when cores/mem are provided."
+        "n1-standard-1",
+        description="Machine type for the job's VM. When omitted, cores/mem enable dynamic N2 sizing.",
     )
     cores: Optional[str] = Field(
         None, description="CPU cores requested (e.g., '4', '1.5', '500m'). When set, machine_type is computed dynamically."
@@ -145,57 +163,112 @@ class GcpJobParams(BaseModel):
     )
     labels: Optional[Dict[str, str]] = Field(None)
 
+    @property
+    def cpu_milli(self) -> Optional[int]:
+        return self._cpu_milli
+
+    @property
+    def memory_mib(self) -> Optional[int]:
+        return self._memory_mib
+
+
+def _requested_memory_to_mib(memory) -> int:
+    """Convert a TPV ``mem`` value to MiB.
+
+    TPV expresses bare numeric memory values in GiB. Explicitly suffixed values
+    use the more general conversion rules shared with Galaxy's Batch runner.
+    """
+    try:
+        memory_gib = float(memory)
+    except (TypeError, ValueError):
+        return convert_memory_to_mib(memory)
+    if memory_gib <= 0:
+        raise ValueError("GCP Batch memory must be greater than zero")
+    return int(memory_gib * 1024)
+
 
 def parse_gcp_job_params(params: dict) -> GcpJobParams:
     """
     Parse GCP job parameters from a dictionary (e.g., Galaxy's job destination/environment params).
 
-    If cores and/or mem are provided, machine_type is computed dynamically
-    using compute_machine_type() to select an appropriate GCP VM size.
+    If cores and/or mem are provided and machine_type is omitted, machine_type
+    is computed dynamically using compute_machine_type(). Explicit machine
+    types are never replaced.
     """
     gcp_params = GcpJobParams(**params)
     if gcp_params.cores is not None or gcp_params.mem is not None:
         cpu_milli = convert_cpu_to_milli(gcp_params.cores)
-        # mem is in GB from TPV, convert to MiB
-        if gcp_params.mem is not None:
-            try:
-                memory_mib = int(float(gcp_params.mem) * 1024)
-            except (ValueError, TypeError):
-                memory_mib = convert_memory_to_mib(gcp_params.mem)
-        else:
-            memory_mib = convert_memory_to_mib(None)
-        gcp_params.machine_type = compute_machine_type(cpu_milli, memory_mib)
+        memory_mib = _requested_memory_to_mib(gcp_params.mem) if gcp_params.mem is not None else convert_memory_to_mib(None)
+        if cpu_milli <= 0:
+            raise ValueError("GCP Batch cores must be greater than zero")
+        gcp_params._cpu_milli = cpu_milli
+        gcp_params._memory_mib = memory_mib
+        if "machine_type" not in params:
+            gcp_params.machine_type = compute_machine_type(cpu_milli, memory_mib)
     return gcp_params
+
+
+def _machine_family_and_vcpus(machine_type):
+    parts = machine_type.split("-") if machine_type else []
+    family = parts[0].lower() if parts else ""
+    if family not in ("n2", "n2d"):
+        return family, None
+    try:
+        vcpus = int(parts[2] if len(parts) > 2 and parts[1] == "custom" else parts[-1])
+    except (IndexError, ValueError):
+        raise ValueError(f"Cannot determine vCPU count from machine type {machine_type!r}")
+    return family, vcpus
+
+
+def _allowed_local_ssd_counts(machine_type):
+    family, vcpus = _machine_family_and_vcpus(machine_type)
+    if vcpus is None:
+        return None
+    count_table = N2_LOCAL_SSD_COUNTS if family == "n2" else N2D_LOCAL_SSD_COUNTS
+    for max_vcpus, allowed_counts in count_table:
+        if vcpus <= max_vcpus:
+            return allowed_counts
+    raise ValueError(f"Unsupported {family.upper()} vCPU count in machine type {machine_type!r}")
 
 
 def _validate_ssd_size(disk_size_gb, machine_type):
     """Validate and adjust local SSD size for the given machine type.
 
-    Each local SSD is 375 GB. N1 machines accept any count from 1-24,
-    but N2/N2D machines require an even number of SSDs (multiples of 2).
+    Each local SSD is 375 GB. N2/N2D allowed counts depend on the VM's
+    vCPU count. Round up to the next supported count rather than emitting a
+    configuration that the Compute Engine API will reject.
     See: https://cloud.google.com/compute/docs/disks/local-ssd#choose_number_local_ssds
 
     Returns the adjusted disk_size_gb (rounded up if necessary).
     """
-    if disk_size_gb % 375 != 0:
-        disk_size_gb = ((disk_size_gb + 374) // 375) * 375
-        log.warning("disk_size must be a multiple of 375 GB, rounded up to %d GB", disk_size_gb)
+    if disk_size_gb <= 0:
+        raise ValueError("disk_size must be greater than zero")
 
-    ssd_count = disk_size_gb // 375
-    family = machine_type.split("-")[0].lower() if machine_type else ""
+    requested_count = (disk_size_gb + 374) // 375
+    allowed_counts = _allowed_local_ssd_counts(machine_type)
+    if allowed_counts is None:
+        adjusted_size = requested_count * 375
+        if adjusted_size != disk_size_gb:
+            log.warning("disk_size must be a multiple of 375 GB, rounded up to %d GB", adjusted_size)
+        return adjusted_size
 
-    # N2 and N2D require an even number of local SSDs
-    if family in ("n2", "n2d") and ssd_count % 2 != 0:
-        ssd_count += 1
-        adjusted = ssd_count * 375
-        log.info(
-            "Adjusted local SSD size from %d GB to %d GB (%d SSDs) for machine type %s "
-            "(n2/n2d require an even number of local SSDs)",
-            disk_size_gb, adjusted, ssd_count, machine_type,
+    adjusted_count = next((count for count in allowed_counts if count >= requested_count), None)
+    if adjusted_count is None:
+        raise ValueError(
+            f"Machine type {machine_type!r} does not support {requested_count} local SSDs; "
+            f"allowed counts are {allowed_counts}"
         )
-        disk_size_gb = adjusted
 
-    return disk_size_gb
+    adjusted_size = adjusted_count * 375
+    if adjusted_size != disk_size_gb:
+        log.warning(
+            "Adjusted local SSD size from %d GB to %d GB (%d SSDs) for machine type %s",
+            disk_size_gb,
+            adjusted_size,
+            adjusted_count,
+            machine_type,
+        )
+    return adjusted_size
 
 
 def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
@@ -205,6 +278,13 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
     task = batch_v1.TaskSpec()
     task.max_retry_count = params.retry_count
     task.max_run_duration = f"{params.walltime_limit}s"
+
+    if params.cpu_milli is not None:
+        assert params.memory_mib is not None
+        compute_resource = batch_v1.ComputeResource()
+        compute_resource.cpu_milli = params.cpu_milli
+        compute_resource.memory_mib = params.memory_mib
+        task.compute_resource = compute_resource
 
     ssd_name = params.ssd_name or "pulsar_staging"
 
@@ -220,20 +300,14 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
         "PULSAR_CONFIG_OVERRIDE_STAGING_DIRECTORY": mount_path,
     }
 
-    # Inject GALAXY_SLOTS and GALAXY_MEMORY_MB so that Galaxy tool wrappers
-    # (which read $GALAXY_SLOTS for -t/--threads) use the full available cores
-    # on the right-sized VM.  Without this, CLUSTER_SLOTS_STATEMENT.sh falls
+    # Inject GALAXY_SLOTS and GALAXY_MEMORY_MB so that Galaxy tool wrappers use
+    # the same resource contract declared to Batch. Without this,
+    # CLUSTER_SLOTS_STATEMENT.sh falls
     # through to GALAXY_SLOTS="1" on GCP Batch VMs (no SLURM/PBS/SGE env).
-    if params.cores is not None:
-        cpu_milli = convert_cpu_to_milli(params.cores)
-        galaxy_slots = max(1, cpu_milli // 1000)
+    if params.cpu_milli is not None:
+        galaxy_slots = max(1, params.cpu_milli // 1000)
         env_vars["GALAXY_SLOTS"] = str(galaxy_slots)
-    if params.mem is not None:
-        try:
-            memory_mib = int(float(params.mem) * 1024)
-        except (ValueError, TypeError):
-            memory_mib = convert_memory_to_mib(params.mem)
-        env_vars["GALAXY_MEMORY_MB"] = str(memory_mib)
+        env_vars["GALAXY_MEMORY_MB"] = str(params.memory_mib)
 
     environment = batch_v1.Environment(variables=env_vars)
     task.environment = environment
@@ -249,8 +323,7 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
     # The size of all the local SSDs in GB. Each local SSD is 375 GB,
     # so this value must be a multiple of 375 GB.
     # For example, for 2 local SSDs, set this value to 750 GB.
-    # The allowed number of local SSDs depends on the machine type:
-    # n1 allows any count 1-24, n2/n2d require an even number.
+    # The allowed number of local SSDs depends on the machine family and vCPU count.
     disk.size_gb = _validate_ssd_size(params.disk_size, params.machine_type)
 
     # Policies are used to define on what kind of virtual machines the tasks will run on.

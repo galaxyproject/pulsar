@@ -23,6 +23,14 @@ log = logging.getLogger(__name__)
 DEFAULT_MEMORY_MIB = 2048
 DEFAULT_CPU_MILLI = 1000
 
+# Predefined N2 shapes, expressed as (vCPUs, memory GiB). N2 highmem-128
+# is the one exception to the otherwise regular 8 GiB/vCPU highmem ratio.
+N2_MACHINE_SHAPES = {
+    "highcpu": [(size, size) for size in [2, 4, 8, 16, 32, 48, 64, 80, 96]],
+    "standard": [(size, size * 4) for size in [2, 4, 8, 16, 32, 48, 64, 80, 96, 128]],
+    "highmem": [(size, size * 8) for size in [2, 4, 8, 16, 32, 48, 64, 80, 96]] + [(128, 864)],
+}
+
 
 def convert_cpu_to_milli(cpu_str):
     """
@@ -96,10 +104,8 @@ def compute_machine_type(cpu_milli, memory_mib, machine_type_family="n2"):
     """
     Compute an appropriate GCP machine type based on resource requirements.
 
-    Selects the appropriate machine type variant based on CPU-to-memory ratio:
-    - highcpu: ~0.9 GB per vCPU (CPU-intensive workloads)
-    - standard: 4 GB per vCPU (balanced workloads)
-    - highmem: 8 GB per vCPU (memory-intensive workloads)
+    Selects the appropriate N2 variant based on CPU-to-memory ratio, then
+    chooses the smallest predefined shape that satisfies both requirements.
 
     Args:
         cpu_milli: CPU requirement in milli-cores (1000 = 1 vCPU)
@@ -109,75 +115,44 @@ def compute_machine_type(cpu_milli, memory_mib, machine_type_family="n2"):
     Returns:
         Machine type string (e.g., "n2-standard-8", "n2-highmem-16")
     """
-    # Valid sizes for n2 machine types
-    valid_sizes = [2, 4, 8, 16, 32, 48, 64, 80, 96, 128]
-
-    # Memory per vCPU for each variant (in GB)
-    variants = {
-        "highcpu": 0.9,  # ~0.9 GB per vCPU
-        "standard": 4.0,  # 4 GB per vCPU
-        "highmem": 8.0,  # 8 GB per vCPU
-    }
+    if machine_type_family != "n2":
+        raise ValueError("Dynamic machine sizing currently supports only the n2 family")
+    if cpu_milli <= 0 or memory_mib <= 0:
+        raise ValueError("CPU and memory requirements must both be greater than zero")
 
     # Calculate minimum vCPUs needed for CPU requirement
     cpu_vcpus = max(1, (cpu_milli + 999) // 1000)  # Round up, minimum 1
 
-    # Convert memory to GB
-    memory_gb = memory_mib / 1024.0
+    memory_gib = memory_mib / 1024.0
+    requested_mem_per_vcpu = memory_gib / cpu_vcpus
 
-    # Calculate memory per vCPU ratio based on request
-    if cpu_vcpus > 0:
-        requested_mem_per_vcpu = memory_gb / cpu_vcpus
+    # Prefer the least memory-rich family that naturally fits the requested
+    # ratio. If that family tops out before the CPU request, fall through to a
+    # larger family rather than inventing an unsupported machine type.
+    if requested_mem_per_vcpu <= 1.0:
+        variants = ["highcpu", "standard", "highmem"]
+    elif requested_mem_per_vcpu <= 4.0:
+        variants = ["standard", "highmem"]
     else:
-        requested_mem_per_vcpu = memory_gb
+        variants = ["highmem"]
 
-    # Select variant based on memory-per-vCPU ratio
-    if requested_mem_per_vcpu <= 2.0:
-        variant = "highcpu"
-        mem_per_vcpu = variants["highcpu"]
-    elif requested_mem_per_vcpu <= 6.0:
-        variant = "standard"
-        mem_per_vcpu = variants["standard"]
-    else:
-        variant = "highmem"
-        mem_per_vcpu = variants["highmem"]
+    for variant in variants:
+        for vcpus, memory_gib_capacity in N2_MACHINE_SHAPES[variant]:
+            if vcpus >= cpu_vcpus and memory_gib_capacity >= memory_gib:
+                machine_type = f"n2-{variant}-{vcpus}"
+                log.debug(
+                    "Computed machine type %s for resources: %d mCPU, %d MiB (%.1f GiB/vCPU ratio)",
+                    machine_type,
+                    cpu_milli,
+                    memory_mib,
+                    requested_mem_per_vcpu,
+                )
+                return machine_type
 
-    # Calculate minimum vCPUs needed for memory with selected variant
-    memory_vcpus = max(1, int((memory_gb + mem_per_vcpu - 0.001) // mem_per_vcpu))
-
-    # Take the larger of CPU and memory requirements
-    min_vcpus = max(cpu_vcpus, memory_vcpus)
-
-    # Find the smallest valid size that meets the requirement
-    selected_size = None
-    for size in valid_sizes:
-        if size >= min_vcpus:
-            selected_size = size
-            break
-
-    # If requirements exceed largest size, use the largest
-    if selected_size is None:
-        selected_size = valid_sizes[-1]
-        log.warning(
-            "Resource requirements (CPU: %d mCPU, Memory: %d MiB) exceed largest %s-%s size, using %s-%s-%d",
-            cpu_milli,
-            memory_mib,
-            machine_type_family,
-            variant,
-            machine_type_family,
-            variant,
-            selected_size,
-        )
-
-    machine_type = f"{machine_type_family}-{variant}-{selected_size}"
-    log.debug(
-        "Computed machine type %s for resources: %d mCPU, %d MiB (%.1f GB/vCPU ratio)",
-        machine_type,
-        cpu_milli,
-        memory_mib,
-        requested_mem_per_vcpu,
+    raise ValueError(
+        "Predefined N2 machine types cannot satisfy resource requirements "
+        f"(CPU: {cpu_milli} mCPU, memory: {memory_mib} MiB)"
     )
-    return machine_type
 
 
 def ensure_client():
