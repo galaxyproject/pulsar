@@ -1,4 +1,5 @@
 import logging
+import math
 import re
 from typing import (
     Any,
@@ -22,6 +23,21 @@ log = logging.getLogger(__name__)
 # Default values for GCP Batch resource configuration
 DEFAULT_MEMORY_MIB = 2048
 DEFAULT_CPU_MILLI = 1000
+BYTES_PER_MIB = 1024 * 1024
+MEMORY_UNIT_TO_MIB = {
+    "k": 1000 / BYTES_PER_MIB,
+    "kb": 1000 / BYTES_PER_MIB,
+    "ki": 1 / 1024,
+    "kib": 1 / 1024,
+    "m": 1000 * 1000 / BYTES_PER_MIB,
+    "mb": 1000 * 1000 / BYTES_PER_MIB,
+    "mi": 1,
+    "mib": 1,
+    "g": 1000 * 1000 * 1000 / BYTES_PER_MIB,
+    "gb": 1000 * 1000 * 1000 / BYTES_PER_MIB,
+    "gi": 1024,
+    "gib": 1024,
+}
 
 # Predefined N2 shapes, expressed as (vCPUs, memory GiB). N2 highmem-128
 # is the one exception to the otherwise regular 8 GiB/vCPU highmem ratio.
@@ -32,80 +48,86 @@ N2_MACHINE_SHAPES = {
 }
 
 
-def convert_cpu_to_milli(cpu_str):
+def convert_cpu_to_milli(cpu):
     """
     Convert CPU specification to milli-cores.
     Supports formats like: "1", "1.5", "500m", "0.5"
     """
-    if not cpu_str:
+    if cpu is None:
         return DEFAULT_CPU_MILLI
 
-    cpu_str = str(cpu_str).strip()
+    cpu_str = str(cpu).strip()
+    if not cpu_str:
+        raise ValueError("CPU specification cannot be empty")
 
     # Handle milli-core format (e.g., "500m")
     if cpu_str.endswith("m"):
         try:
-            return int(cpu_str[:-1])
-        except ValueError:
-            log.warning("Invalid CPU format: %s, using default", cpu_str)
-            return DEFAULT_CPU_MILLI
+            cpu_milli = int(cpu_str[:-1])
+        except ValueError as exc:
+            raise ValueError(f"Invalid CPU specification: {cpu!r}") from exc
+        if cpu_milli <= 0:
+            raise ValueError("CPU specification must be greater than zero")
+        return cpu_milli
 
     # Handle decimal format (e.g., "1.5", "0.5")
     try:
         cpu_float = float(cpu_str)
-        return int(cpu_float * 1000)
-    except ValueError:
-        log.warning("Invalid CPU format: %s, using default", cpu_str)
-        return DEFAULT_CPU_MILLI
+    except ValueError as exc:
+        raise ValueError(f"Invalid CPU specification: {cpu!r}") from exc
+    if not math.isfinite(cpu_float) or cpu_float <= 0:
+        raise ValueError("CPU specification must be a finite number greater than zero")
+    cpu_milli = int(cpu_float * 1000)
+    if cpu_milli <= 0:
+        raise ValueError("CPU specification must be at least one milli-core")
+    return cpu_milli
 
 
-def convert_memory_to_mib(memory_str):
+def convert_memory_to_mib(memory, bare_unit="mib"):
     """
-    Convert memory specification to MiB.
+    Convert a memory specification to MiB.
+
+    ``bare_unit`` controls the meaning of an unsuffixed number. Generic GCP
+    resource strings use MiB, while TPV's ``mem`` destination parameter uses
+    GiB.
     Supports formats like: "1Gi", "512Mi", "1024M", "1G", "2048"
     """
-    if not memory_str:
+    if memory is None:
         return DEFAULT_MEMORY_MIB
 
-    memory_str = str(memory_str).strip()
+    if bare_unit not in ("mib", "gib"):
+        raise ValueError(f"Unsupported bare memory unit: {bare_unit!r}")
 
-    # Handle plain numbers (assume MiB)
-    if memory_str.isdigit():
-        return int(memory_str)
+    memory_str = str(memory).strip()
+    if not memory_str:
+        raise ValueError("Memory specification cannot be empty")
 
     # Extract number and unit
-    match = re.match(r"^(\d+(?:\.\d+)?)\s*([A-Za-z]*)$", memory_str)
+    match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*([A-Za-z]*)", memory_str)
     if not match:
-        log.warning("Invalid memory format: %s, using default", memory_str)
-        return DEFAULT_MEMORY_MIB
+        raise ValueError(f"Invalid memory specification: {memory!r}")
 
     value = float(match.group(1))
-    unit = match.group(2).lower()
-
-    # Convert to MiB based on unit
-    if unit in ["", "mib", "mi"]:
-        return int(value)
-    elif unit in ["gib", "gi"]:
-        return int(value * 1024)  # GiB to MiB
-    elif unit in ["mb", "m"]:
-        return int(value * 1000 / 1024)  # MB to MiB (decimal to binary)
-    elif unit in ["gb", "g"]:
-        return int(value * 1000 * 1000 / 1024 / 1024)  # GB to MiB
-    elif unit in ["kib", "ki"]:
-        return int(value / 1024)  # KiB to MiB
-    elif unit in ["kb", "k"]:
-        return int(value * 1000 / 1024 / 1024)  # KB to MiB
-    else:
-        log.warning("Unknown memory unit: %s, treating as MiB", unit)
-        return int(value)
+    unit = match.group(2).lower() or bare_unit
+    try:
+        factor = MEMORY_UNIT_TO_MIB[unit]
+    except KeyError as exc:
+        raise ValueError(f"Unknown memory unit in specification: {memory!r}") from exc
+    if not math.isfinite(value):
+        raise ValueError("Memory specification must be a finite number")
+    memory_mib = int(value * factor)
+    if memory_mib <= 0:
+        raise ValueError("Memory specification must resolve to at least one MiB")
+    return memory_mib
 
 
 def compute_machine_type(cpu_milli, memory_mib, machine_type_family="n2"):
     """
     Compute an appropriate GCP machine type based on resource requirements.
 
-    Selects the appropriate N2 variant based on CPU-to-memory ratio, then
-    chooses the smallest predefined shape that satisfies both requirements.
+    Chooses the smallest predefined N2 shape that satisfies both requirements,
+    preferring the least memory-rich variant when multiple shapes have the
+    same vCPU count.
 
     Args:
         cpu_milli: CPU requirement in milli-cores (1000 = 1 vCPU)
@@ -124,30 +146,29 @@ def compute_machine_type(cpu_milli, memory_mib, machine_type_family="n2"):
     cpu_vcpus = max(1, (cpu_milli + 999) // 1000)  # Round up, minimum 1
 
     memory_gib = memory_mib / 1024.0
-    requested_mem_per_vcpu = memory_gib / cpu_vcpus
 
-    # Prefer the least memory-rich family that naturally fits the requested
-    # ratio. If that family tops out before the CPU request, fall through to a
-    # larger family rather than inventing an unsupported machine type.
-    if requested_mem_per_vcpu <= 1.0:
-        variants = ["highcpu", "standard", "highmem"]
-    elif requested_mem_per_vcpu <= 4.0:
-        variants = ["standard", "highmem"]
-    else:
-        variants = ["highmem"]
-
-    for variant in variants:
-        for vcpus, memory_gib_capacity in N2_MACHINE_SHAPES[variant]:
+    # Choose the smallest-vCPU shape that satisfies the request, then the
+    # least memory-rich variant at that size. The ratio of the request alone
+    # is insufficient: a larger standard shape can be smaller and cheaper
+    # than the high-memory shape selected from that ratio.
+    candidates = []
+    for variant, shapes in N2_MACHINE_SHAPES.items():
+        for vcpus, memory_gib_capacity in shapes:
             if vcpus >= cpu_vcpus and memory_gib_capacity >= memory_gib:
-                machine_type = f"n2-{variant}-{vcpus}"
-                log.debug(
-                    "Computed machine type %s for resources: %d mCPU, %d MiB (%.1f GiB/vCPU ratio)",
-                    machine_type,
-                    cpu_milli,
-                    memory_mib,
-                    requested_mem_per_vcpu,
-                )
-                return machine_type
+                candidates.append((vcpus, memory_gib_capacity, variant))
+
+    if candidates:
+        vcpus, memory_gib_capacity, variant = min(candidates)
+        machine_type = f"n2-{variant}-{vcpus}"
+        log.debug(
+            "Computed machine type %s for resources: %d mCPU, %d MiB (capacity: %d vCPU, %.1f GiB)",
+            machine_type,
+            cpu_milli,
+            memory_mib,
+            vcpus,
+            memory_gib_capacity,
+        )
+        return machine_type
 
     raise ValueError(
         "Predefined N2 machine types cannot satisfy resource requirements "

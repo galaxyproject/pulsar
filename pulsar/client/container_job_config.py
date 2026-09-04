@@ -8,13 +8,13 @@ documents how to map Galaxy job environment configuration objects to the contain
 infrastructure.
 """
 import base64
-import logging
 import re
 from typing import (
     Dict,
     List,
     NamedTuple,
     Optional,
+    Union,
 )
 
 from galaxy.util import listify
@@ -35,9 +35,9 @@ from pulsar.managers.util.gcp_util import (
 )
 from pulsar.managers.util.tes import TesClient
 
-log = logging.getLogger(__name__)
-
 DEFAULT_GCP_WALLTIME_LIMIT = 60 * 60 * 24  # Default wall time limit in seconds
+DEFAULT_GCP_MACHINE_TYPE = "n1-standard-1"
+ResourceValue = Union[str, int, float]
 N2_LOCAL_SSD_COUNTS = (
     (10, [1, 2, 4, 8, 16, 24]),
     (20, [2, 4, 8, 16, 24]),
@@ -122,6 +122,7 @@ def attribute_docs(gcp_class_name: str, attribute: str) -> Optional[str]:
 class GcpJobParams(BaseModel):
     _cpu_milli: Optional[int] = PrivateAttr(default=None)
     _memory_mib: Optional[int] = PrivateAttr(default=None)
+    _resolved_machine_type: Optional[str] = PrivateAttr(default=None)
 
     project_id: str = Field(
         ..., description="GCP project ID to use for job creation."
@@ -145,22 +146,28 @@ class GcpJobParams(BaseModel):
     disk_size: int = Field(
         375, description="Size of the shared local SSD disk in GB (must be a multiple of 375). Maps to AllocationPolicy.Disk.size_gb."
     )
-    machine_type: str = Field(
-        "n1-standard-1",
-        description="Machine type for the job's VM. When omitted, cores/mem enable dynamic N2 sizing.",
+    machine_type: Optional[str] = Field(
+        None,
+        description="Explicit machine type for the job's VM. When omitted, resource requests enable dynamic N2 sizing.",
     )
-    cores: Optional[str] = Field(
+    cores: Optional[ResourceValue] = Field(
         None, description="CPU cores requested (e.g., '4', '1.5', '500m'). When set, machine_type is computed dynamically."
     )
-    mem: Optional[str] = Field(
-        None, description="Memory requested in GB (e.g., '8', '16'). When set, machine_type is computed dynamically."
+    mem: Optional[ResourceValue] = Field(
+        None, description="Memory requested in GiB (e.g., '8', '16'). When set, machine_type is computed dynamically."
     )
     custom_vm_image: Optional[str] = Field(
         None, description="Custom VM boot disk image URI (e.g. 'projects/my-project/global/images/my-image'). When set, VMs boot from this image."
     )
     boot_disk_size_gb: Optional[int] = Field(
-        None, description="Boot disk size in GB. Required when custom_vm_image is larger than the default 30 GB boot disk."
+        None,
+        gt=0,
+        description="Boot disk size in GB. Required when custom_vm_image is larger than the default 30 GB boot disk.",
     )
+    requests_cpu: Optional[ResourceValue] = Field(None, description="Requested CPU cores, using Kubernetes resource syntax.")
+    limits_cpu: Optional[ResourceValue] = Field(None, description="CPU limit, used when requests_cpu is omitted.")
+    requests_memory: Optional[ResourceValue] = Field(None, description="Requested memory, using GCP resource syntax.")
+    limits_memory: Optional[ResourceValue] = Field(None, description="Memory limit, used when requests_memory is omitted.")
     labels: Optional[Dict[str, str]] = Field(None)
 
     @property
@@ -171,40 +178,41 @@ class GcpJobParams(BaseModel):
     def memory_mib(self) -> Optional[int]:
         return self._memory_mib
 
-
-def _requested_memory_to_mib(memory) -> int:
-    """Convert a TPV ``mem`` value to MiB.
-
-    TPV expresses bare numeric memory values in GiB. Explicitly suffixed values
-    use the more general conversion rules shared with Galaxy's Batch runner.
-    """
-    try:
-        memory_gib = float(memory)
-    except (TypeError, ValueError):
-        return convert_memory_to_mib(memory)
-    if memory_gib <= 0:
-        raise ValueError("GCP Batch memory must be greater than zero")
-    return int(memory_gib * 1024)
+    @property
+    def resolved_machine_type(self) -> str:
+        return self._resolved_machine_type or self.machine_type or DEFAULT_GCP_MACHINE_TYPE
 
 
 def parse_gcp_job_params(params: dict) -> GcpJobParams:
     """
     Parse GCP job parameters from a dictionary (e.g., Galaxy's job destination/environment params).
 
-    If cores and/or mem are provided and machine_type is omitted, machine_type
-    is computed dynamically using compute_machine_type(). Explicit machine
-    types are never replaced.
+    Resource requests dynamically select a machine type. An explicit machine
+    type cannot be combined with resource requests because that could declare
+    a task resource contract the VM cannot satisfy.
     """
     gcp_params = GcpJobParams(**params)
-    if gcp_params.cores is not None or gcp_params.mem is not None:
-        cpu_milli = convert_cpu_to_milli(gcp_params.cores)
-        memory_mib = _requested_memory_to_mib(gcp_params.mem) if gcp_params.mem is not None else convert_memory_to_mib(None)
-        if cpu_milli <= 0:
-            raise ValueError("GCP Batch cores must be greater than zero")
+    if gcp_params.machine_type is not None:
+        gcp_params.machine_type = gcp_params.machine_type.strip()
+        if not gcp_params.machine_type:
+            raise ValueError("GCP Batch machine_type cannot be empty")
+
+    cpu = gcp_params.requests_cpu if gcp_params.requests_cpu is not None else gcp_params.limits_cpu
+    if cpu is None:
+        cpu = gcp_params.cores
+    memory = gcp_params.requests_memory if gcp_params.requests_memory is not None else gcp_params.limits_memory
+    memory_is_tpv_mem = memory is None
+    if memory is None:
+        memory = gcp_params.mem
+
+    if cpu is not None or memory is not None:
+        if gcp_params.machine_type is not None:
+            raise ValueError("GCP Batch machine_type cannot be combined with CPU or memory resource requests")
+        cpu_milli = convert_cpu_to_milli(cpu)
+        memory_mib = convert_memory_to_mib(memory, bare_unit="gib" if memory_is_tpv_mem else "mib")
         gcp_params._cpu_milli = cpu_milli
         gcp_params._memory_mib = memory_mib
-        if "machine_type" not in params:
-            gcp_params.machine_type = compute_machine_type(cpu_milli, memory_mib)
+        gcp_params._resolved_machine_type = compute_machine_type(cpu_milli, memory_mib)
     return gcp_params
 
 
@@ -232,43 +240,33 @@ def _allowed_local_ssd_counts(machine_type):
 
 
 def _validate_ssd_size(disk_size_gb, machine_type):
-    """Validate and adjust local SSD size for the given machine type.
+    """Validate local SSD size for the given machine type.
 
     Each local SSD is 375 GB. N2/N2D allowed counts depend on the VM's
-    vCPU count. Round up to the next supported count rather than emitting a
-    configuration that the Compute Engine API will reject.
+    vCPU count. Invalid values are rejected rather than silently provisioning
+    more storage than requested.
     See: https://cloud.google.com/compute/docs/disks/local-ssd#choose_number_local_ssds
 
-    Returns the adjusted disk_size_gb (rounded up if necessary).
+    Returns the unchanged disk size when it is supported.
     """
     if disk_size_gb <= 0:
         raise ValueError("disk_size must be greater than zero")
 
-    requested_count = (disk_size_gb + 374) // 375
+    if disk_size_gb % 375:
+        raise ValueError("disk_size must be a multiple of 375 GB")
+
+    requested_count = disk_size_gb // 375
     allowed_counts = _allowed_local_ssd_counts(machine_type)
     if allowed_counts is None:
-        adjusted_size = requested_count * 375
-        if adjusted_size != disk_size_gb:
-            log.warning("disk_size must be a multiple of 375 GB, rounded up to %d GB", adjusted_size)
-        return adjusted_size
+        return disk_size_gb
 
-    adjusted_count = next((count for count in allowed_counts if count >= requested_count), None)
-    if adjusted_count is None:
+    if requested_count not in allowed_counts:
         raise ValueError(
-            f"Machine type {machine_type!r} does not support {requested_count} local SSDs; "
-            f"allowed counts are {allowed_counts}"
+            f"Machine type {machine_type!r} does not support {requested_count} local SSD(s); "
+            f"allowed counts are {allowed_counts}. Set disk_size to one of "
+            f"{[count * 375 for count in allowed_counts]} GB"
         )
-
-    adjusted_size = adjusted_count * 375
-    if adjusted_size != disk_size_gb:
-        log.warning(
-            "Adjusted local SSD size from %d GB to %d GB (%d SSDs) for machine type %s",
-            disk_size_gb,
-            adjusted_size,
-            adjusted_count,
-            machine_type,
-        )
-    return adjusted_size
+    return disk_size_gb
 
 
 def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
@@ -324,18 +322,18 @@ def gcp_job_template(params: GcpJobParams) -> "batch_v1.Job":
     # so this value must be a multiple of 375 GB.
     # For example, for 2 local SSDs, set this value to 750 GB.
     # The allowed number of local SSDs depends on the machine family and vCPU count.
-    disk.size_gb = _validate_ssd_size(params.disk_size, params.machine_type)
+    disk.size_gb = _validate_ssd_size(params.disk_size, params.resolved_machine_type)
 
     # Policies are used to define on what kind of virtual machines the tasks will run on.
     # The allowed number of local SSDs depends on the machine type for your job's VMs.
     # Read more about local disks here: https://cloud.google.com/compute/docs/disks/local-ssd#lssd_disk_options
     policy = batch_v1.AllocationPolicy.InstancePolicy()
-    policy.machine_type = params.machine_type
+    policy.machine_type = params.resolved_machine_type
 
     if params.custom_vm_image:
         boot_disk = batch_v1.AllocationPolicy.Disk()
         boot_disk.image = params.custom_vm_image
-        if params.boot_disk_size_gb:
+        if params.boot_disk_size_gb is not None:
             boot_disk.size_gb = params.boot_disk_size_gb
         policy.boot_disk = boot_disk
 
