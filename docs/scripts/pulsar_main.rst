@@ -5,8 +5,9 @@
 **Usage**::
 
     pulsar-main [-h] [-c CONFIG_DIR] [--ini_path INI_PATH]
-                [--app_conf_path APP_CONF_PATH] [--app APP] [-d]
-                [--daemon-log-file DAEMON_LOG_FILE] [--pid-file PID_FILE]
+                [--app_conf_path APP_CONF_PATH]
+                [--app_conf_base64 APP_CONF_BASE64] [--app APP] [-d]
+                [--log-file DAEMON_LOG_FILE] [--pid PID_FILE] [--stop-daemon]
 
 **Help**
 
@@ -41,9 +42,14 @@ delegate to this script.
       --app_conf_path APP_CONF_PATH
                             Specify an explicit path to Pulsar's app.yml
                             configuration file.
+      --app_conf_base64 APP_CONF_BASE64
+                            Specify an application configuration as a base64
+                            encoded JSON blob.
       --app APP
-      -d, --daemonize       Daemonzie process (requires daemonize library).
-      --daemon-log-file DAEMON_LOG_FILE
-                            Log file for daemon, if --daemonize supplied.
-      --pid-file PID_FILE   Pid file for daemon, if --daemonize supplied (default
-                            is pulsar.pid).
+      -d, --daemon, --daemonize
+                            Run as a daemon process.
+      --log-file, --daemon-log-file DAEMON_LOG_FILE
+                            Log file for daemon (default is pulsar.log).
+      --pid, --pid-file PID_FILE
+                            Pid file for daemon (default is pulsar.pid).
+      --stop-daemon         Stop a running daemon by reading the PID file.
