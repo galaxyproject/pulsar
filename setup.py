@@ -105,6 +105,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'amqp': ['kombu'],
+        'daemon': ['daemonize; sys_platform != "win32"'],
         'web': ['gunicorn'],
         'galaxy_extended_metadata': ['galaxy-job-execution', 'galaxy-util[template]'],
     },

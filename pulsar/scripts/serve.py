@@ -43,7 +43,7 @@ def main(argv=None):
     log_file = args.log_file
 
     if args.stop_daemon:
-        return _stop_daemon(pid_file or "pulsar.pid")
+        return stop_daemon(pid_file or "pulsar.pid")
 
     # Read server settings from INI
     host, port, ssl_pem = _read_server_config(config_file)
@@ -123,8 +123,8 @@ def _daemonize(pid_file, log_file):
     os.close(log_fd)
 
 
-def _stop_daemon(pid_file):
-    """Stop a daemonized pulsar-serve process."""
+def stop_daemon(pid_file):
+    """Stop a daemonized Pulsar process."""
     if not os.path.exists(pid_file):
         print("No PID file found at %s" % pid_file, file=sys.stderr)
         return 1

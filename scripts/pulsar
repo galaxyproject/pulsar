@@ -140,15 +140,15 @@ elif [ "$MODE" == "webless" ]; then
     if hash pulsar-main 2>/dev/null; then
         # Running from pip install since
         # pulsar-main is available on PATH.
-        echo "Starting pulsar with command [pulsar-main]"
-        pulsar-main
+        echo "Starting pulsar with command [pulsar-main \"$@\"]"
+        pulsar-main "$@"
     else
         # Running locally.
-        PROJECT_DIRECTORY=$PULSAR_SCRIPTS_DIR/..
+        PROJECT_DIRECTORY=$SCRIPTS_DIRECTORY/..
         cd $PROJECT_DIRECTORY
         export PYTHONPATH=.:$PYTHONPATH
-        echo "Starting pulsar with command [python pulsar/main.py]"
-        python pulsar/main.py
+        echo "Starting pulsar with command [python pulsar/main.py \"$@\"]"
+        python pulsar/main.py "$@"
     fi
 else
     echo "Unknown mode passed to --mode argument." 1>&2

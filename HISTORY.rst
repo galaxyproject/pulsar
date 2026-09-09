@@ -9,6 +9,9 @@ History
 0.15.16.dev0
 ---------------------
 
+* Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
+  in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
+  `@gkr0110`_).
 * Add native ``cvmfsexec`` support to Pulsar managers (``mountrepo`` and
   ``namespace`` modes), configured via a ``cvmfsexec`` manager option or a
   per-job override, for accessing CVMFS repositories (and CVMFS-hosted
