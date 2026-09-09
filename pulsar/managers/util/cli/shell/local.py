@@ -50,11 +50,23 @@ class LocalShell(BaseShellExec):
         pass
 
     def execute(
-        self, cmd, persist=False, timeout=DEFAULT_TIMEOUT, timeout_check_interval=DEFAULT_TIMEOUT_CHECK_INTERVAL, **kwds
+        self,
+        cmd,
+        persist=False,
+        timeout=DEFAULT_TIMEOUT,
+        timeout_check_interval=DEFAULT_TIMEOUT_CHECK_INTERVAL,
+        **kwds
     ):
         is_cmd_string = isinstance(cmd, str)
         outf = TemporaryFile()
-        p = Popen(cmd, stdin=None, stdout=outf, stderr=PIPE, shell=is_cmd_string, preexec_fn=os.setpgrp)
+        p = Popen(
+            cmd,
+            stdin=None,
+            stdout=outf,
+            stderr=PIPE,
+            shell=is_cmd_string,
+            preexec_fn=os.setpgrp,
+        )
         # check process group until timeout
 
         for _ in range(int(timeout / timeout_check_interval)):
@@ -64,11 +76,15 @@ class LocalShell(BaseShellExec):
             sleep(timeout_check_interval)
         else:
             kill_pg(p.pid)
-            return Bunch(stdout="", stderr=TIMEOUT_ERROR_MESSAGE, returncode=TIMEOUT_RETURN_CODE)
+            return Bunch(
+                stdout="", stderr=TIMEOUT_ERROR_MESSAGE, returncode=TIMEOUT_RETURN_CODE
+            )
         outf.seek(0)
         # Need to poll once to establish return code
         p.poll()
-        return Bunch(stdout=_read_str(outf), stderr=_read_str(p.stderr), returncode=p.returncode)
+        return Bunch(
+            stdout=_read_str(outf), stderr=_read_str(p.stderr), returncode=p.returncode
+        )
 
 
 def _read_str(stream):

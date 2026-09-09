@@ -76,7 +76,7 @@ class ClientJobDescription:
     metadata_directory : str
         Local path created by Galaxy for running this job (job_wrapper.working_directory).
     dependencies_description : list
-        galaxy.tools.deps.dependencies.DependencyDescription object describing
+        galaxy.tool_util.deps.dependencies.DependenciesDescription object describing
         tool dependency context for remote depenency resolution.
     env: list
         List of dict object describing environment variables to populate.

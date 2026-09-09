@@ -1,13 +1,18 @@
 """
 """
+
 import json
 
 from galaxy.util.plugin_config import plugins_dict
 
 DEFAULT_SHELL_PLUGIN = "LocalShell"
 
-ERROR_MESSAGE_NO_JOB_PLUGIN = "No job plugin parameter found, cannot create CLI job interface"
-ERROR_MESSAGE_NO_SUCH_JOB_PLUGIN = "Failed to find job_plugin of type %s, available types include %s"
+ERROR_MESSAGE_NO_JOB_PLUGIN = (
+    "No job plugin parameter found, cannot create CLI job interface"
+)
+ERROR_MESSAGE_NO_SUCH_JOB_PLUGIN = (
+    "Failed to find job_plugin of type %s, available types include %s"
+)
 
 
 class CliInterface:
@@ -41,7 +46,9 @@ class CliInterface:
                 raise ValueError(
                     f"Unknown shell_plugin [{shell_plugin}], available plugins are {list(self.cli_shells.keys())}"
                 )
-            self.active_cli_shells[requested_shell_settings] = shell_plugin_class(**shell_params)
+            self.active_cli_shells[requested_shell_settings] = shell_plugin_class(
+                **shell_params
+            )
         return self.active_cli_shells[requested_shell_settings]
 
     def get_job_interface(self, job_params):
@@ -50,11 +57,20 @@ class CliInterface:
             raise ValueError(ERROR_MESSAGE_NO_JOB_PLUGIN)
         job_plugin_class = self.cli_job_interfaces.get(job_plugin)
         if not job_plugin_class:
-            raise ValueError(ERROR_MESSAGE_NO_SUCH_JOB_PLUGIN % (job_plugin, list(self.cli_job_interfaces.keys())))
+            raise ValueError(
+                ERROR_MESSAGE_NO_SUCH_JOB_PLUGIN
+                % (job_plugin, list(self.cli_job_interfaces.keys()))
+            )
         return job_plugin_class(**job_params)
 
 
 def split_params(params):
-    shell_params = {k.replace("shell_", "", 1): v for k, v in params.items() if k.startswith("shell_")}
-    job_params = {k.replace("job_", "", 1): v for k, v in params.items() if k.startswith("job_")}
+    shell_params = {
+        k.replace("shell_", "", 1): v
+        for k, v in params.items()
+        if k.startswith("shell_")
+    }
+    job_params = {
+        k.replace("job_", "", 1): v for k, v in params.items() if k.startswith("job_")
+    }
     return shell_params, job_params
