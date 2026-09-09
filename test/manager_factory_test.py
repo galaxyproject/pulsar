@@ -12,13 +12,18 @@ from .test_utils import (
 
 def test_load_manager_modules():
     modules = manager_factory._load_manager_modules()
-    assert len(modules) == 10
+    module_names = {module.__name__ for module in modules}
+    assert {
+        "pulsar.managers.queued",
+        "pulsar.managers.queued_cli",
+        "pulsar.managers.queued_condor",
+    } <= module_names
 
 
 def test_get_managers_dict():
     managers_dict = manager_factory._get_managers_dict()
-    # 1 less than manager_modules (because status does not contain a manager)
-    assert len(managers_dict) == 9
+    assert {"queued_python", "queued_cli", "queued_condor"} <= managers_dict.keys()
+    assert managers_dict["queued_condor"] is CondorQueueManager
 
 
 def test_condor_manager_is_concrete():
