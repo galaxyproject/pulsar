@@ -41,7 +41,13 @@ def get_exchange(connection_string, manager_name, conf):
     return pulsar_exchange
 
 
-def bind_manager_to_queue(manager, queue_state, connection_string, conf):
+def bind_manager_to_queue(
+    manager,
+    queue_state,
+    connection_string,
+    conf,
+    start_monitor=True,
+):
     manager_name = manager.name
     log.info("bind_manager_to_queue called for [{}] and manager [{}]".format(mask_password_from_url(connection_string), manager_name))
     pulsar_exchange = get_exchange(connection_string, manager_name, conf)
@@ -91,7 +97,10 @@ def bind_manager_to_queue(manager, queue_state, connection_string, conf):
                     "(no outbox configured; status update may be lost).", job_id,
                 )
 
-        manager.set_state_change_callback(bind_on_status_change)
+        manager.set_state_change_callback(
+            bind_on_status_change,
+            start_monitor=start_monitor,
+        )
 
 
 def __start_consumer(name, exchange, target):
