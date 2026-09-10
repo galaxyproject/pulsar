@@ -151,9 +151,9 @@ run DRMAA jobs via the user requested by the client (e.g. the Galaxy user).
         #drmaa_kill_script: scripts/drmaa_kill.bash
         #drmaa_launch_script: scripts/drmaa_launch.bash
 
-In addition one needs to set the ``submit_user`` parameter to ``$__user_name__``, see
-documentation in the `sample job_conf.yml file
-<https://github.com/galaxyproject/galaxy/blob/dev/lib/galaxy/config/sample/job_conf.sample.yml>`__
+Additionally, set ``submit_user`` to ``$__user_name__`` in Galaxy's Pulsar job
+destination. See Galaxy's `sample job configuration
+<https://github.com/galaxyproject/galaxy/blob/dev/lib/galaxy/config/sample/job_conf.sample.yml>`__.
 
 
 More Options
