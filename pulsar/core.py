@@ -50,8 +50,11 @@ class PulsarApp:
         self.__setup_user_auth_manager(conf)
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
-        self.__setup_bind_to_message_queue(conf)
+        # Recovery failures need the status callback, but the monitor must not
+        # poll until external job IDs have been restored.
+        self.__setup_bind_to_message_queue(conf, start_monitor=False)
         self.__recover_jobs()
+        self.__start_manager_monitors(conf)
         self.ensure_cleanup = conf.get("ensure_cleanup", False)
 
     def shutdown(self, timeout=None):
@@ -66,12 +69,22 @@ class PulsarApp:
             if self.ensure_cleanup:
                 self.__queue_state.join(timeout)
 
-    def __setup_bind_to_message_queue(self, conf):
+    def __setup_bind_to_message_queue(self, conf, start_monitor=True):
         message_queue_url = conf.get("message_queue_url", None)
         queue_state = None
         if message_queue_url:
-            queue_state = messaging.bind_app(self, message_queue_url, conf)
+            queue_state = messaging.bind_app(
+                self,
+                message_queue_url,
+                conf,
+                start_monitor=start_monitor,
+            )
         self.__queue_state = queue_state
+
+    def __start_manager_monitors(self, conf):
+        if self.__queue_state and conf.get("message_queue_publish", True):
+            for manager in self.managers.values():
+                manager.start_monitor()
 
     def __setup_user_auth_manager(self, conf):
         self.user_auth_manager = UserAuthManager(conf)

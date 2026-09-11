@@ -60,7 +60,14 @@ def build_relay_transport(manager, relay_url, conf):
     )
 
 
-def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf, relay_transport=None):
+def bind_manager_to_relay(
+    manager,
+    relay_state: RelayState,
+    relay_url,
+    conf,
+    relay_transport=None,
+    start_monitor=True,
+):
     """Bind a specific manager to the relay.
 
     Args:
@@ -148,7 +155,10 @@ def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf, rel
                     job_id,
                 )
 
-        manager.set_state_change_callback(bind_on_status_change)
+        manager.set_state_change_callback(
+            bind_on_status_change,
+            start_monitor=start_monitor,
+        )
 
 
 def start_consumer(
