@@ -10,7 +10,8 @@ def main(argv=None):
     arg_parser = ArgumentParser(description=DESCRIPTION)
     arg_parser.add_argument("--job_attributes", required=True)
     args = arg_parser.parse_args(argv)
-    job_attributes = load(open(args.job_attributes))
+    with open(args.job_attributes) as fh:
+        job_attributes = load(fh)
     session = DrmaaSessionFactory().get()
     external_id = session.run_job(**job_attributes)
     print(external_id)

@@ -2,6 +2,7 @@ import contextlib
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from unittest import mock
 from uuid import uuid4
 
 import requests as requests_module
@@ -9,7 +10,11 @@ from simplejobfiles.app import JobFilesApp
 from webtest import TestApp
 
 from pulsar.client.exceptions import PulsarClientTransportError
-from pulsar.client.transport import get_transport
+from pulsar.client.transport import (
+    curl as curl_transport,
+    get_transport,
+    requests as requests_transport,
+)
 from pulsar.client.transport.curl import (
     get_file,
     post_file,
@@ -38,6 +43,50 @@ def test_urllib_transports():
 @skip_unless_module("pycurl")
 def test_pycurl_transport():
     _test_transport(PycurlTransport())
+
+
+def test_curl_object_is_closed():
+    curl = mock.Mock()
+    with mock.patch.object(curl_transport, "_new_curl_object", return_value=curl):
+        with curl_transport._curl_object_for_url("https://example.org") as opened:
+            assert opened is curl
+
+    curl.close.assert_called_once_with()
+
+
+def test_curl_object_is_closed_on_error():
+    curl = mock.Mock()
+    with mock.patch.object(curl_transport, "_new_curl_object", return_value=curl):
+        try:
+            with curl_transport._curl_object_for_url("https://example.org"):
+                raise RuntimeError("test error")
+        except RuntimeError:
+            pass
+
+    curl.close.assert_called_once_with()
+
+
+def test_requests_download_response_is_closed(tmp_path):
+    response = mock.MagicMock()
+    response.__enter__.return_value = response
+    response.iter_content.return_value = [b"downloaded"]
+    with mock.patch.object(requests_transport.requests, "get", return_value=response):
+        requests_transport.get_file("https://example.org", tmp_path / "output")
+
+    response.__exit__.assert_called_once()
+
+
+def test_requests_download_response_is_closed_on_error(tmp_path):
+    response = mock.MagicMock()
+    response.__enter__.return_value = response
+    response.raise_for_status.side_effect = requests_module.HTTPError("test error")
+    with mock.patch.object(requests_transport.requests, "get", return_value=response):
+        try:
+            requests_transport.get_file("https://example.org", tmp_path / "output")
+        except requests_module.HTTPError:
+            pass
+
+    response.__exit__.assert_called_once()
 
 
 @contextlib.contextmanager
