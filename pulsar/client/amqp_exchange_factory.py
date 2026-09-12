@@ -1,4 +1,7 @@
-from .amqp_exchange import PulsarExchange
+from .amqp_exchange import (
+    DEFAULT_HEARTBEAT,
+    PulsarExchange,
+)
 from .util import (
     filter_destination_params,
     MessageQueueUUIDStore,
@@ -23,13 +26,35 @@ def get_exchange(url, manager_name, params):
     exchange_kwds["durable"] = bool(durable_param)
     if params.get('amqp_acknowledge', False):
         exchange_kwds.update(parse_ack_kwds(params, manager_name))
-    if params.get("amqp_heartbeat") is not None:
-        exchange_kwds["heartbeat"] = params.get("amqp_heartbeat")
+    heartbeat_param = params.get("amqp_heartbeat")
+    if heartbeat_param is not None:
+        exchange_kwds["heartbeat"] = parse_amqp_heartbeat(heartbeat_param)
     timeout = params.get('amqp_consumer_timeout', False)
     if timeout is not False:
         exchange_kwds['timeout'] = timeout
     exchange = PulsarExchange(url, **exchange_kwds)
     return exchange
+
+
+def parse_amqp_heartbeat(value):
+    """Coerce an ``amqp_heartbeat`` config value to an interval in seconds.
+
+    Zero disables heartbeats. Strings have to be handled explicitly: Galaxy
+    destination params and Pulsar's ini config both arrive as strings, and a
+    non-numeric heartbeat raises ``TypeError`` inside py-amqp's tune handshake
+    - which is not a recoverable exception, so it kills the consumer thread.
+    """
+    if value is True:
+        return DEFAULT_HEARTBEAT
+    if value is False:
+        return 0
+    if isinstance(value, str):
+        value = value.strip()
+        if value.lower() in ("false", "none", "off", "no", ""):
+            return 0
+        if value.lower() in ("true", "on", "yes"):
+            return DEFAULT_HEARTBEAT
+    return int(value)
 
 
 def parse_amqp_connect_ssl_params(params):

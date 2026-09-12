@@ -146,8 +146,10 @@
 ## this value is used as the timeout argument to the producer.publish function.
 #amqp_publish_timeout: 2.0
 
-# AMQP heartbeat interval (see: https://www.rabbitmq.com/docs/heartbeats). Set
-# to false or 0 to disable heartbeats.
+## Interval in seconds at which Pulsar requests AMQP heartbeats on its consumer
+## connections (see: https://www.rabbitmq.com/docs/heartbeats). The broker may
+## negotiate a shorter interval - RabbitMQ proposes 60 by default, and the lower
+## of the two wins. Set to false or 0 to disable heartbeats entirely.
 #amqp_heartbeat: 580
 
 # AMQP does not guarantee that a published message is received by the AMQP

@@ -142,7 +142,8 @@ class PulsarControl:
         _docker_compose("kill", "-s", signal, self.service, project_dir=self.project_dir)
         if self.mode in ("amqp", "amqp_ack"):
             # RabbitMQ doesn't notice the TCP drop until the AMQP heartbeat
-            # times out (default 580s) so the queue's `consumers` count
+            # times out (two missed intervals; the negotiated interval is the
+            # broker's 60s here) so the queue's `consumers` count
             # stays at 1 long after the container is dead. The next
             # ``start.wait_until_consuming`` would then see the stale count
             # and return before the new pulsar has actually attached. Force
@@ -322,7 +323,7 @@ def _force_drop_setup_consumer_connections():
     """Close every connection currently consuming from pulsar control queues.
 
     pulsar.kill leaves AMQP heartbeats unacknowledged but the broker won't
-    drop the dead consumer until heartbeat timeout (~580s by default). Use
+    drop the dead consumer until heartbeat timeout (two missed intervals). Use
     the RabbitMQ management API to look up consumers on the pulsar control
     queues and explicitly close their connections. Idempotent and safe to
     call when no consumers are present.
