@@ -148,6 +148,15 @@ When Pulsar talks to RabbitMQ:
   ``interval_start: 1``, ``interval_step: 2``, ``interval_max: 30``) so a
   single transient hiccup is absorbed in-band without round-tripping
   through the outbox drain loop.
+* ``amqp_heartbeat`` (``580`` by default) is the heartbeat interval Pulsar
+  requests on its consumer connections; the broker negotiates the lower of
+  its own proposal and this one, so the effective interval is 60 seconds on
+  a stock RabbitMQ. Heartbeats are how a blackholed or firewall-dropped
+  connection gets *detected* - without them a half-open connection is only
+  noticed on the next write, and the broker keeps counting the dead
+  consumer. Setting ``amqp_heartbeat: false`` (or ``0``) disables them in
+  both directions; only do that if something else is keeping the connection
+  observably alive.
 * ``amqp_acknowledge: true`` (off by default) layers an additional
   publisher-confirms protocol on top, with its own UUID store under
   ``<persistence_directory>/amqp_ack-<manager>/``. This is independent of
@@ -395,6 +404,7 @@ Setting                           Default                                  Effec
 ``amqp_publish_retry``            unset (off)                              kombu publish retry; defaults bounded when on
 ``amqp_acknowledge``              ``false``                                additional publisher-confirms layer
 ``amqp_consumer_timeout``         ``0.2``                                  consumer drain_events timeout (responsiveness)
+``amqp_heartbeat``                ``580`` (negotiated down)                consumer-connection heartbeat interval; false/0 disables
 ``message_queue_publish``         ``true``                                 disable to make Pulsar receive-only
 ``message_queue_consume``         ``true``                                 disable to make Pulsar send-only
 ``ensure_cleanup``                ``false``                                join consumer threads on shutdown

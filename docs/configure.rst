@@ -222,6 +222,13 @@ In the event that the connection to the AMQP server is lost during message
 publish, the Pulsar server can retry the connection, governed by the
 ``amqp_publish*`` options documented in `app.yml.sample`_.
 
+By default, Pulsar requests `AMQP heartbeats`_ on its consumer connections at
+an interval of 580 seconds. The broker may negotiate a shorter interval -
+RabbitMQ proposes 60 seconds by default and the lower of the two values wins.
+The requested interval can be adjusted by setting ``amqp_heartbeat``, or
+heartbeats disabled altogether by setting it to ``false`` or ``0``. Publisher
+connections are pooled and do not use heartbeats.
+
 Message Queue (pulsar-relay)
 -----------------------------
 
@@ -561,3 +568,4 @@ and future plans and progress can be tracked on `this Trello card <https://trell
 .. _RabbitMQ: https://www.rabbitmq.com/
 .. _app.yml.sample: https://github.com/galaxyproject/pulsar/blob/master/app.yml.sample
 .. _Two Generals Problem: https://en.wikipedia.org/wiki/Two_Generals%27_Problem
+.. _AMQP heartbeats: https://www.rabbitmq.com/docs/heartbeats
