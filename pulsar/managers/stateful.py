@@ -67,6 +67,7 @@ JOB_FILE_FINAL_STATUS = "final_status"
 JOB_FILE_POSTPROCESSED = "postprocessed"
 JOB_FILE_PREPROCESSED = "preprocessed"
 JOB_FILE_PREPROCESSING_FAILED = "preprocessing_failed"
+JOB_FILE_LIVE_OUTPUT_STATE = "live_output_state"
 JOB_METADATA_RUNNING = "running"
 
 # LOST is excluded because the monitor starts before external job IDs are
@@ -121,9 +122,6 @@ class StatefulManagerProxy(ManagerProxy):
                 )
             ),
         )
-        self.__stdout_file_pointer_map = dict()
-        self.__stderr_file_pointer_map = dict()
-        self.__live_update_delivered = dict()
 
     def set_state_change_callback(
         self, state_change_callback: Callable[[str, str], None]
@@ -156,12 +154,18 @@ class StatefulManagerProxy(ManagerProxy):
     def is_live_stdout_update(self, job_id: str) -> bool:
         """Whether this job's streams were already delivered to Galaxy.
 
-        Only true once a live update for ``job_id`` has actually been
-        accepted by Galaxy. Enabling ``send_stdout_update`` is not enough:
-        if every POST failed, the completion status must still carry the
-        streams or the output would be lost entirely.
+        Only true once a live update for ``job_id`` has actually been accepted
+        by Galaxy. Enabling ``send_stdout_update`` is not enough: if every POST
+        failed, the completion status must still carry the streams or the
+        output would be lost entirely.
         """
-        return self.send_stdout and self.__live_update_delivered.get(job_id, False)
+        if not self.send_stdout:
+            return False
+        try:
+            job_directory = self._proxied_manager.job_directory(job_id)
+            return bool(self._load_live_output_state(job_directory)["delivered"])
+        except Exception:
+            return False
 
     def setup_job(self, *args, **kwargs) -> str:
         job_id = self._proxied_manager.setup_job(*args, **kwargs)
@@ -251,8 +255,6 @@ class StatefulManagerProxy(ManagerProxy):
             )
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
-            self.__stdout_file_pointer_map[job_id] = 0
-            self.__stderr_file_pointer_map[job_id] = 0
             self.active_jobs.activate_job(job_id)
         except Exception as e:
             with job_directory.lock("status"):
@@ -283,37 +285,53 @@ class StatefulManagerProxy(ManagerProxy):
     def _post_remote_output(self, job_id, force_empty=False):
         """Send the unsent tail of the tool streams to Galaxy's files endpoint."""
         job_directory = self._proxied_manager.job_directory(job_id)
-        remote_staging = job_directory.load_metadata("launch_config")["remote_staging"]
+        launch_config = job_directory.load_metadata("launch_config")
+        remote_staging = launch_config["remote_staging"]
         files_endpoint = remote_staging["action_mapper"]["files_endpoint"]
         galaxy_file_dir = (
             Path(remote_staging["client_outputs"]["working_directory"]).parent / "outputs"
         )
-        for filename in [TOOL_FILE_STANDARD_OUTPUT, TOOL_FILE_STANDARD_ERROR]:
-            file_contents = self._prepare_file_output(job_id, job_directory, filename)
-            if file_contents or force_empty:
-                self._post_file(
-                    file_contents,
-                    galaxy_file_dir / Path(filename).name,
-                    files_endpoint,
-                )
-                self.__live_update_delivered[job_id] = True
+        # The read offsets live in the job directory so they survive a Pulsar
+        # restart: an in-memory pointer would resend the whole stream from zero
+        # (duplicating output, since Galaxy appends) or be lost entirely.
+        with job_directory.lock(JOB_FILE_LIVE_OUTPUT_STATE):
+            state = self._load_live_output_state(job_directory)
+            for filename in [TOOL_FILE_STANDARD_OUTPUT, TOOL_FILE_STANDARD_ERROR]:
+                file_contents = self._prepare_file_output(job_directory, filename, state)
+                if file_contents or force_empty:
+                    self._post_file(
+                        file_contents,
+                        galaxy_file_dir / Path(filename).name,
+                        files_endpoint,
+                    )
+                    state["delivered"] = True
+            self._store_live_output_state(job_directory, state)
 
-    def _prepare_file_output(self, job_id, job_directory, filename):
+    def _load_live_output_state(self, job_directory):
+        state = job_directory.load_metadata(JOB_FILE_LIVE_OUTPUT_STATE, None)
+        if not isinstance(state, dict):
+            state = {}
+        return {
+            TOOL_FILE_STANDARD_OUTPUT: int(state.get(TOOL_FILE_STANDARD_OUTPUT, 0)),
+            TOOL_FILE_STANDARD_ERROR: int(state.get(TOOL_FILE_STANDARD_ERROR, 0)),
+            "delivered": bool(state.get("delivered", False)),
+        }
+
+    def _store_live_output_state(self, job_directory, state):
+        job_directory.store_metadata(JOB_FILE_LIVE_OUTPUT_STATE, state)
+
+    def _prepare_file_output(self, job_directory, filename, state):
         """Read and return the bytes appended since the last update for this job.
 
         Returns raw bytes: a chunk boundary can fall inside a multi-byte UTF-8
         sequence, so decoding here would raise and permanently drop that chunk.
         Galaxy appends the upload to the file verbatim, so no decoding is needed.
         """
-        if filename == TOOL_FILE_STANDARD_ERROR:
-            pointer_map = self.__stderr_file_pointer_map
-        else:
-            pointer_map = self.__stdout_file_pointer_map
-        offset = pointer_map.get(job_id, 0)
+        offset = state[filename]
         with contextlib.closing(job_directory.open_file(filename, mode="rb")) as file_output:
             file_output.seek(offset)
             diff = file_output.read()
-        pointer_map[job_id] = offset + len(diff)
+        state[filename] = offset + len(diff)
         return diff
 
     def _post_file(self, remote_file, path, endpoint):
@@ -458,9 +476,6 @@ class StatefulManagerProxy(ManagerProxy):
             if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
                 final_status = status.FAILED
             self.__state_change_callback(final_status, job_id)
-            self.__stdout_file_pointer_map.pop(job_id, None)
-            self.__stderr_file_pointer_map.pop(job_id, None)
-            self.__live_update_delivered.pop(job_id, None)
 
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
