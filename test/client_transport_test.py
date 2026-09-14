@@ -5,6 +5,7 @@ from tempfile import NamedTemporaryFile
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 import requests as requests_module
 from simplejobfiles.app import JobFilesApp
 from webtest import TestApp
@@ -361,3 +362,43 @@ class FakeOsModule:
 
     def getenv(self, key, default):
         return self.env_val
+
+
+@skip_unless_module("pycurl")
+def test_curl_post_file_converts_connection_error():
+    """A connection-level pycurl failure in post_file must surface as a
+    structured PulsarClientTransportError, not a raw pycurl.error. Callers
+    classify transport failures by that type; a bare pycurl.error is invisible
+    to them."""
+    import pycurl
+
+    curl = mock.Mock()
+    curl.perform.side_effect = pycurl.error(pycurl.E_COULDNT_CONNECT, "Couldn't connect to server")
+    with NamedTemporaryFile() as f:
+        with mock.patch.object(curl_transport, "_new_curl_object", return_value=curl):
+            with pytest.raises(PulsarClientTransportError) as exc_info:
+                curl_transport.post_file("http://galaxy.test/api/jobs/1/files", f.name)
+    assert exc_info.value.code == PulsarClientTransportError.CONNECTION_REFUSED
+    assert exc_info.value.transport_code == pycurl.E_COULDNT_CONNECT
+
+
+@skip_unless_module("pycurl")
+def test_curl_get_file_converts_connection_error(tmp_path):
+    """Same conversion on the download half of staging."""
+    import pycurl
+
+    curl = mock.Mock()
+    curl.perform.side_effect = pycurl.error(pycurl.E_OPERATION_TIMEDOUT, "Operation timed out")
+    with mock.patch.object(curl_transport, "_new_curl_object", return_value=curl):
+        with mock.patch.object(curl_transport, "get_size", return_value=-1):
+            with pytest.raises(PulsarClientTransportError) as exc_info:
+                curl_transport.get_file("http://galaxy.test/files/out.dat", str(tmp_path / "out.dat"))
+    assert exc_info.value.code == PulsarClientTransportError.TIMEOUT
+
+
+def test_post_file_missing_file_raises_file_not_found():
+    """A missing local file is FileNotFoundError, matching the requests transport
+    and the builtin. Staging policy keys on FileNotFoundError to decide what
+    stays recoverable, so a bare Exception here is not interchangeable."""
+    with pytest.raises(FileNotFoundError):
+        curl_transport.post_file("http://galaxy.test/api/jobs/1/files", "/does/not/exist")
