@@ -16,7 +16,6 @@ from typing import (
     Tuple,
     TYPE_CHECKING,
 )
-
 from urllib.parse import urlencode
 
 from typing_extensions import Literal
