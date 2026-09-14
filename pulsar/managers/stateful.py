@@ -25,6 +25,9 @@ except ImportError:
     # If galaxy-tool-util or Galaxy 19.09 present.
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
 
+from pathlib import Path
+import requests
+
 import logging
 
 from pulsar.client.transport.transient import is_transient_http_error
@@ -33,6 +36,7 @@ from pulsar.managers import (
     ManagerProxy,
     status,
 )
+from pulsar.managers.base.directory import  TOOL_FILE_STANDARD_ERROR, TOOL_FILE_STANDARD_OUTPUT
 from pulsar.managers.util.retry import RetryActionExecutor
 from .staging import (
     postprocess,
@@ -72,7 +76,8 @@ ACTIVE_STATUS_PREPROCESSING = "preprocessing"
 ACTIVE_STATUS_LAUNCHED = "launched"
 
 DEFAULT_MIN_POLLING_INTERVAL = 0.5
-
+DEFAULT_SEND_STDOUT = False
+DEFAULT_STDOUT_INTERVAL = 3.0
 
 class StatefulManagerProxy(ManagerProxy):
     """ """
@@ -100,6 +105,19 @@ class StatefulManagerProxy(ManagerProxy):
         self.active_jobs = ActiveJobs.from_manager(manager)
         self.__state_change_callback = self._default_status_change_callback
         self.__monitor = None
+        self.send_stdout = bool(
+            manager_options.get("send_stdout_update", DEFAULT_SEND_STDOUT)
+        )
+        self.stdout_update_interval = datetime.timedelta(
+            0,
+            float(
+                manager_options.get(
+                    "stdout_update_interval", DEFAULT_STDOUT_INTERVAL
+                )
+            ),
+        )
+        self.__stdout_file_pointer_map = dict()
+        self.__stderr_file_pointer_map = dict()
 
     def set_state_change_callback(
         self, state_change_callback: Callable[[str, str], None]
@@ -128,6 +146,12 @@ class StatefulManagerProxy(ManagerProxy):
     @property
     def name(self) -> str:
         return self._proxied_manager.name
+
+    def is_live_stdout_update(self) -> bool:
+        """
+        Whether this manager is sending Stdout while the job is running (true if so)
+        """
+        return self.send_stdout
 
     def setup_job(self, *args, **kwargs) -> str:
         job_id = self._proxied_manager.setup_job(*args, **kwargs)
@@ -217,6 +241,8 @@ class StatefulManagerProxy(ManagerProxy):
             )
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
+            self.__stdout_file_pointer_map[job_id] = 0
+            self.__stderr_file_pointer_map[job_id] = 0
             self.active_jobs.activate_job(job_id)
         except Exception as e:
             with job_directory.lock("status"):
@@ -228,6 +254,58 @@ class StatefulManagerProxy(ManagerProxy):
 
     def handle_failure_before_launch(self, job_id: str) -> None:
         self.__state_change_callback(status.FAILED, job_id)
+
+    def post_remote_output(self, job_id, force_empty=False):
+        """
+        Send output file back to Galaxy server via Galaxy API
+        """
+        job_directory = self._proxied_manager.job_directory(job_id)
+        try:
+            files_endpoint = job_directory.load_metadata("launch_config")["remote_staging"]["action_mapper"][
+                "files_endpoint"]
+            galaxy_file_dir = Path(job_directory.load_metadata("launch_config")["remote_staging"]["client_outputs"][
+                                       "working_directory"]).parent / "outputs"
+            for filename in [TOOL_FILE_STANDARD_OUTPUT, TOOL_FILE_STANDARD_ERROR]:
+                file_contents = self._prepare_file_output(job_id, job_directory, filename)
+                if file_contents != "" or force_empty:
+                    self._post_file(file_contents, galaxy_file_dir / (Path(filename).name), files_endpoint)
+        except Exception as e:
+            log.error("Error sending output to Galaxy server while job is running. Error: %s", e)
+
+    def _prepare_file_output(self, job_id, job_directory, filename):
+        file_output = job_directory.open_file(filename, mode="rb")
+        if filename == TOOL_FILE_STANDARD_ERROR:
+            file_output.seek(self.__stderr_file_pointer_map.get(job_id, 0))
+            diff = file_output.read()
+            self.__stderr_file_pointer_map[job_id] = self.__stderr_file_pointer_map[job_id] + len(diff)
+            return diff.decode("utf-8")
+        else:
+            file_output.seek(self.__stdout_file_pointer_map.get(job_id, 0))
+            diff = file_output.read()
+            self.__stdout_file_pointer_map[job_id] = self.__stdout_file_pointer_map[job_id] + len(diff)
+            return diff.decode("utf-8")
+
+    def _post_file(self, remote_file, path, endpoint):
+        file = {"file": (path.name, (remote_file))}
+        values = {"path": path, "file_type": "output"}
+        r = requests.post(url=endpoint, files=file, data=values)
+        log.debug("Successfully posted file to %s. Status Code: %d", path, r.status_code)
+
+    def stdout_update(self, job_id):
+        def do_stdout_update():
+            while self._proxied_manager.get_status(job_id) == status.RUNNING:
+                try:
+                    microseconds = self.stdout_update_interval.microseconds \
+                                   + (self.stdout_update_interval.seconds + self.stdout_update_interval.days * 24 * 3600) * (
+                                           10 ** 6)
+                    total_seconds = microseconds / (10 ** 6)
+                    time.sleep(total_seconds)
+                    self.post_remote_output(job_id)
+                except Exception as e:
+                    log.error("Error doing stdout update for job id: %s. Error: %s", job_id, e)
+                    break
+        if self.send_stdout:
+            new_thread_for_job(self, "stdout_update", job_id, do_stdout_update, daemon=False)
 
     def get_status(self, job_id: str) -> "StateLiteral":
         """Compute status used proxied manager and handle state transitions
@@ -247,7 +325,7 @@ class StatefulManagerProxy(ManagerProxy):
             self.__deactivate(job_id)
         elif state_change == "to_running":
             self.__state_change_callback(status.RUNNING, job_id)
-
+            self.stdout_update(job_id)
         return self.__status(job_directory, proxy_status)
 
     def __proxy_status(
@@ -326,6 +404,7 @@ class StatefulManagerProxy(ManagerProxy):
             job_directory = self._proxied_manager.job_directory(job_id)
             was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
             try:
+                self.post_remote_output(job_id, True)
                 postprocess_success = postprocess(
                     job_directory, self.__postprocess_action_executor, was_cancelled
                 )
@@ -335,6 +414,8 @@ class StatefulManagerProxy(ManagerProxy):
             if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
                 final_status = status.FAILED
             self.__state_change_callback(final_status, job_id)
+            self.__stdout_file_pointer_map.pop(job_id)
+            self.__stderr_file_pointer_map.pop(job_id)
 
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
@@ -507,13 +588,14 @@ class ManagerMonitor:
         iteration_start = datetime.datetime.now()
         for active_job_id in active_job_ids:
             try:
-                self._check_active_job_status(active_job_id)
+                job_status = self._check_active_job_status(active_job_id)
             except Exception:
                 log.exception(
                     "Failed checking active job status for job_id %s" % active_job_id
                 )
         iteration_end = datetime.datetime.now()
         iteration_length = iteration_end - iteration_start
+
         if iteration_length < self.stateful_manager.min_polling_interval:
             to_sleep = self.stateful_manager.min_polling_interval - iteration_length
             microseconds = to_sleep.microseconds + (
@@ -525,7 +607,7 @@ class ManagerMonitor:
     def _check_active_job_status(self, active_job_id: str) -> None:
         # Manager itself will handle state transitions when status changes,
         # just need to poll get_status
-        self.stateful_manager.get_status(active_job_id)
+        return self.stateful_manager.get_status(active_job_id)
 
 
 def new_thread_for_job(
