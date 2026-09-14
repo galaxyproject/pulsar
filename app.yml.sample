@@ -209,3 +209,14 @@
 ## Determines the minimum log level that will be sent as an event to
 ## Sentry. Possible values are DEBUG, INFO, WARNING, ERROR or CRITICAL.
 ##sentry_event_level: WARNING
+
+## Stream tool stdout/stderr to Galaxy while the job is still running, so
+## Galaxy can display live tool output instead of only showing it once the
+## job completes. Off by default. Galaxy must also enable the feature on the
+## job destination (`live_tool_output_reporting: true` in its job config) for
+## the output to be shown in the UI.
+#send_stdout_update: false
+
+## Seconds between live stdout/stderr updates when send_stdout_update is
+## enabled. Each update posts only the bytes written since the last one.
+#stdout_update_interval: 3.0

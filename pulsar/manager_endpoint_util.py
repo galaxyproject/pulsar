@@ -27,8 +27,8 @@ def status_dict(manager, job_id):
 def full_status(manager, job_status, job_id):
     if status.is_job_done(job_status):
         full_status = __job_complete_dict(job_status, manager, job_id)
-        if manager.is_live_stdout_update():
-            # Stdout has already been sent, no need to send again.
+        if manager.is_live_stdout_update(job_id):
+            # Streams were already delivered live; don't send them twice.
             full_status["stdout"] = None
             full_status["stderr"] = None
 

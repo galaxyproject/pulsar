@@ -148,14 +148,13 @@ class ManagerProxy:
     def job_stderr_contents(self, *args, **kwargs) -> bytes:
         return self._proxied_manager.job_stderr_contents(*args, **kwargs)
 
-    def is_live_stdout_update(self) -> bool:
+    def is_live_stdout_update(self, job_id: str) -> bool:
         """ Optional.
-         Whether this manager is sending Stdout while the job is running (true if so)
+         Whether this job's streams were already delivered to Galaxy live.
         """
         try:
             # only present in stateful manager currently
-            stdout_live_update = self._proxied_manager.is_live_stdout_update()
-            return stdout_live_update
+            return self._proxied_manager.is_live_stdout_update(job_id)
         except AttributeError:
             return False
 

@@ -28,6 +28,16 @@ def post_file(url, path):
             response.raise_for_status()
 
 
+def post_bytes(url, name, data):
+    """POST an in-memory byte string as a multipart file upload.
+
+    Companion to :func:`post_file` for callers that hold bytes rather than a
+    path — e.g. streaming the growing tail of a job's stdout while it runs.
+    """
+    with requests.post(url, files={"file": (name, data)}) as response:
+        response.raise_for_status()
+
+
 def get_file(url, path):
     with requests.get(url, stream=True) as response:
         response.raise_for_status()
