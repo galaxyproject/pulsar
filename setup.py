@@ -107,6 +107,7 @@ setup(
         'amqp': ['kombu'],
         'daemon': ['daemonize; sys_platform != "win32"'],
         'web': ['gunicorn'],
+        'htcondor': ['htcondor2'],
         'galaxy_extended_metadata': ['galaxy-job-execution', 'galaxy-util[template]'],
     },
     license="Apache License 2.0",
