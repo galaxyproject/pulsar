@@ -12,6 +12,7 @@ from pulsar.client import (
     ClientOutputs,
     submit_job,
 )
+from pulsar.client.exceptions import PulsarClientTransportError
 from pulsar.client.staging.down import ResultsCollector
 from pulsar.client.test.test_common import write_config
 from .test_utils import TempDirectoryTestCase
@@ -252,3 +253,25 @@ def test_collect_output_tolerates_missing_workdir_output():
     rc = _results_collector_with_failing_collect(FileNotFoundError("out.dat"))
     action = SimpleNamespace(path="/pulsar/working/out.dat")
     assert rc._collect_output("output_workdir", action, "out1") is None
+
+
+def test_collect_output_reraises_transport_error_for_workdir_output():
+    """A transport failure staging out a working-directory output must fail the
+    job. Downgrading it is how a successful job ends up green in Galaxy with
+    zero-length outputs. PulsarClientTransportError is not an OSError, so it has
+    to be recognized explicitly."""
+    rc = _results_collector_with_failing_collect(
+        PulsarClientTransportError(transport_code=500, transport_message="POST failed")
+    )
+    action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
+    with pytest.raises(PulsarClientTransportError):
+        rc._collect_output("output_workdir", action, "out1")
+
+
+def test_collect_output_tolerates_403_transport_error_for_workdir_output():
+    """The 403 carve-out is keyed on the status code, not the exception class, so
+    it applies to a transport error carrying 403 just as it does to a
+    requests.HTTPError."""
+    rc = _results_collector_with_failing_collect(PulsarClientTransportError(transport_code=403))
+    action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
+    assert rc._collect_output("output_workdir", action, "out1") is False
