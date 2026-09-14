@@ -6,7 +6,6 @@ import re
 import subprocess
 import sys
 
-
 DEV_RELEASE = os.environ.get("DEV_RELEASE", None) == "1"
 PROJECT_DIRECTORY = os.path.join(os.path.dirname(__file__), "..")
 

@@ -18,6 +18,7 @@ Contents:
    job_managers
    containers
    galaxy_conf
+   error_handling
    scripts
    conduct
    contributing

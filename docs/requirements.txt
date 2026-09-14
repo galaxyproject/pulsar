@@ -1,2 +1,4 @@
 sphinx>=2
 sphinx-rtd-theme>=0.5.2
+# Required by sphinx.builders.latex
+roman

@@ -77,7 +77,8 @@ def _load_job_config(args):
         base64_job_config = args.base64
         job_config = from_base64_json(base64_job_config)
     else:
-        job_config = json.load(open(args.file))
+        with open(args.file) as fh:
+            job_config = json.load(fh)
     return job_config
 
 

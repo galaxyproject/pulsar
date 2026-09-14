@@ -1,9 +1,14 @@
 from hashlib import sha256
-from os.path import exists, join
+from os.path import (
+    exists,
+    join,
+)
 
 from .persistence import PersistenceStore
-from .util import atomicish_move
-from .util import Time
+from .util import (
+    atomicish_move,
+    Time,
+)
 
 
 class CacheFileMapper:

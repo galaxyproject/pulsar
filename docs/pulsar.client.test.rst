@@ -20,6 +20,14 @@ pulsar.client.test.test\_common module
    :undoc-members:
    :show-inheritance:
 
+pulsar.client.test.test\_relay\_transport module
+------------------------------------------------
+
+.. automodule:: pulsar.client.test.test_relay_transport
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

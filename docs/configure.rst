@@ -29,7 +29,7 @@ Security
 
 Out of the box, **Pulsar essentially allows anyone with network access to the
 Pulsar server to execute arbitrary code and read and write any files the web
-server can access.** Hence, in most settings steps should be taken to secure the
+server can access.** Hence, in most settings, steps should be taken to secure the
 Pulsar server.
 
 Private Token
@@ -52,19 +52,19 @@ use.
 
 .. tip::
 
-    SSL support is built in to `uWSGI`_, an alternate webserver that can be
+    SSL support is built in to `uWSGI`_, an alternate web server that can be
     installed (see :ref:`install`).
 
-``pyOpenSSL`` is required to configure a Pulsar web server to server content via
+``pyOpenSSL`` is required to configure a Pulsar web server to serve content via
 HTTPS/SSL. This dependency can be difficult to install and seems to be getting
 more difficult. Under Linux you will want to ensure the needed dependencies to
-compile pyOpenSSL are available - for instance in a fresh Ubuntu image you
+compile pyOpenSSL are available - for instance, in a fresh Ubuntu image, you
 will likely need::
 
     $ sudo apt-get install libffi-dev python3-dev libssl-dev
 
 Then pyOpenSSL can be installed with the following command (be sure to source
-your virtualenv if setup above)::
+your virtualenv if set up above)::
 
     $ pip install pyOpenSSL
 
@@ -113,14 +113,14 @@ You can consult the `Kombu documentation
 even more information.
 
 User Authentication/Authorization
-`````````````
+`````````````````````````````````
 
 You can configure Pulsar to authenticate user during request processing and check
 if this user is allowed to run a job.
 
 Various authentication/authorization plugins can be configured in `app.yml` to
-do that and plugin parameters depend on auth type. For example, the following
-configuration uses `oidc` plugin for authentication and `userlist` for
+do that and plugin parameters depend on the auth type. For example, the following
+configuration uses the `oidc` plugin for authentication and `userlist` for
 authorization::
 
     user_auth:
@@ -136,7 +136,7 @@ authorization::
             - xxx
 
 
-see `plugins folder
+See the `plugins folder
 <https://github.com/galaxyproject/pulsar/blob/master/pulsar/user_auth/methods>`_
 for available plugins and their parameters.
 
@@ -145,12 +145,12 @@ Customizing the Pulsar Environment (\*nix only)
 
 For many deployments, Pulsar's environment will need to be tweaked. For
 instance to define a ``DRMAA_LIBRARY_PATH`` environment variable for the
-``drmaa`` Python module or to define the location to a find a location of
+``drmaa`` Python module or to define the location of
 Galaxy (via ``GALAXY_HOME``) if certain Galaxy tools require it or if Galaxy
 metadata is being set by the Pulsar.
 
 The file ``local_env.sh`` (created automatically by ``pulsar-config``) will be
-source by ``pulsar`` before launching the application and by child process
+sourced by ``pulsar`` before launching the application and by child processes
 created by Pulsar that require this configuration.
 
 Job Managers (Queues)
@@ -221,6 +221,326 @@ been acknowledged, using the ``amqp_ack*`` options documented in
 In the event that the connection to the AMQP server is lost during message
 publish, the Pulsar server can retry the connection, governed by the
 ``amqp_publish*`` options documented in `app.yml.sample`_.
+
+Message Queue (pulsar-relay)
+-----------------------------
+
+Pulsar can also communicate with Galaxy via an experimental **pulsar-relay** server,
+an HTTP-based message relay. This mode is similar to the AMQP message queue mode but uses
+HTTP long-polling instead of a message broker like RabbitMQ. This can help when:
+
+* Galaxy cannot directly reach Pulsar (e.g., due to firewall restrictions)
+* You want to avoid deploying and managing a RabbitMQ server
+* You prefer HTTP-based communication for simplicity and observability
+
+Architecture
+````````````
+
+In this mode:
+
+1. **Galaxy → Relay**: Galaxy posts control messages (job setup, status requests,
+   kill commands) to the relay via HTTP POST
+2. **Relay → Pulsar**: Pulsar polls the relay via HTTP long-polling to receive
+   these messages
+3. **Pulsar → Relay**: Pulsar posts status updates to the relay
+4. **Relay → Galaxy**: Galaxy polls the relay to receive status updates
+5. **File Transfers**: Pulsar transfers files directly to/from Galaxy via HTTP
+   (not through the relay)
+6. **Pulsar → Relay (capabilities)**: On startup Pulsar publishes a one-shot,
+   advisory snapshot of its configuration and host capabilities (staging
+   directories, dependency resolvers, available container runtimes, manager
+   type) to the ``pulsar_capabilities`` topic. Galaxy reads the latest snapshot
+   to auto-fill destination parameters and to downgrade per-job requests the
+   remote Pulsar cannot satisfy. This publish is fire-and-forget — a failure
+   never blocks Pulsar startup.
+
+::
+
+    Galaxy ──POST messages──> pulsar-relay ──poll──> Pulsar Server
+                                                           │
+                                                           │
+    Galaxy <────────direct HTTP for file transfers─────────┘
+
+Pulsar Configuration
+````````````````````
+
+To configure Pulsar to use pulsar-relay, set the ``message_queue_url`` in
+``app.yml`` with a ``http://`` or ``https://`` prefix::
+
+    message_queue_url: http://proxy-server.example.org:9000
+    message_queue_username: admin
+    message_queue_password: your_secure_password
+
+The ``http://`` / ``https://`` prefix tells Pulsar to use the relay communication mode instead
+of AMQP.
+
+**Optional Topic Prefix**
+
+You can optionally set a ``relay_topic_prefix`` to namespace your topics. This is useful
+when multiple independent Galaxy/Pulsar instance pairs share the same relay::
+
+    message_queue_url: http://proxy-server.example.org:9000
+    message_queue_username: admin
+    message_queue_password: your_secure_password
+    relay_topic_prefix: production
+
+.. note::
+
+    Unlike AMQP mode, the pulsar-relay mode does **not** require the ``kombu``
+    Python dependency. It only requires the ``requests`` library, which is a
+    standard dependency of Pulsar.
+
+Galaxy Configuration
+````````````````````
+
+In Galaxy's job configuration (``job_conf.yml``), configure a Pulsar destination
+with proxy parameters::
+
+    runners:
+      pulsar:
+        load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+        # Proxy connection
+        proxy_url: http://proxy-server.example.org:9000
+        proxy_username: your_username
+        proxy_password: your_secure_password
+        # Optional topic prefix (must match Pulsar configuration)
+        # relay_topic_prefix: production
+
+
+    execution:
+      default: pulsar_relay
+      environments:
+        pulsar_relay:
+          runner: pulsar
+          # Galaxy's URL (for Pulsar to reach back for file transfers)
+          url: http://galaxy-server.example.org:8080
+          # Remote job staging directory
+          jobs_directory: /data/pulsar/staging
+
+.. note::
+
+    The ``relay_topic_prefix`` must match on both Galaxy and Pulsar sides.
+    If set on one side but not the other, messages will not be routed correctly.
+
+
+Capability Snapshot
+```````````````````
+
+When using relay mode, Pulsar publishes a single capability snapshot per
+manager when it binds to the relay at startup. Galaxy's "bring your own
+compute" integration reads the most recent snapshot to pre-fill destination
+parameters and to refuse or downgrade jobs that request something the remote
+Pulsar does not provide (e.g. a container runtime that is not on ``PATH``).
+
+The snapshot is published to the ``pulsar_capabilities`` topic — or
+``<relay_topic_prefix>_pulsar_capabilities[_<manager>]`` when a topic prefix
+or non-default manager name is configured, mirroring the other relay topics.
+
+This behavior is on by default and can be disabled::
+
+    message_queue_publish_capabilities: false
+
+.. note::
+
+    The snapshot is advisory. A publish failure is logged and swallowed — it
+    never blocks Pulsar startup — and if no snapshot is available Galaxy falls
+    back to the operator-supplied destination parameters. The data is collected
+    once at startup and is static for the lifetime of the process.
+
+
+Authentication
+``````````````
+
+The pulsar-relay uses JWT (JSON Web Token) authentication. Galaxy and Pulsar
+authenticate with the relay using the username and password provided in the
+configuration. Tokens are automatically managed and refreshed as needed.
+
+.. tip::
+
+    In production, always use HTTPS for the relay URL to encrypt credentials
+    and message content during transit::
+
+        message_queue_url: https://proxy-server.example.org:443
+
+Security Considerations
+```````````````````````
+
+* **Use HTTPS**: Always use HTTPS for the relay URL in production
+* **Strong Passwords**: Use strong, unique passwords for relay authentication
+* **Network Isolation**: Deploy the relay in a DMZ accessible to both Galaxy
+  and Pulsar
+* **Firewall Rules**:
+    * Galaxy → Relay: Allow outbound HTTPS
+    * Pulsar → Relay: Allow outbound HTTPS
+    * Pulsar → Galaxy: Allow outbound HTTP/HTTPS for file transfers
+
+Multiple Pulsar Instances
+``````````````````````````
+
+You can deploy multiple Pulsar instances with different managers, all using the
+same relay. Messages are routed by topic names that include the manager name.
+
+For example, configure two Pulsar servers:
+
+**Pulsar Server 1** (``app.yml``)::
+
+    message_queue_url: http://proxy-server:9000
+    message_queue_username: admin
+    message_queue_password: password
+    managers:
+      cluster_a:
+        type: queued_slurm
+
+**Pulsar Server 2** (``app.yml``)::
+
+    message_queue_url: http://proxy-server:9000
+    message_queue_username: admin
+    message_queue_password: password
+    managers:
+      cluster_b:
+        type: queued_condor
+
+In Galaxy's job configuration, route jobs to specific clusters using the
+``manager`` parameter::
+
+    execution:
+      environments:
+        cluster_a_jobs:
+          runner: pulsar
+          proxy_url: http://proxy-server:9000
+          manager: cluster_a
+          # ... other settings
+
+        cluster_b_jobs:
+          runner: pulsar
+          proxy_url: http://proxy-server:9000
+          manager: cluster_b
+          # ... other settings
+
+Multiple Galaxy/Pulsar Instance Pairs
+``````````````````````````````````````
+
+You can have multiple independent Galaxy and Pulsar instance pairs all sharing
+the same relay by using different topic prefixes. This is useful for:
+
+* Running separate production and staging environments
+* Supporting multiple research groups with isolated instances
+* Multi-tenant deployments
+
+**Example: Production and Staging Environments**
+
+**Production Pulsar** (``app.yml``)::
+
+    message_queue_url: https://shared-relay:9000
+    message_queue_username: admin
+    message_queue_password: password
+    relay_topic_prefix: production
+    managers:
+      cluster_a:
+        type: queued_slurm
+
+**Staging Pulsar** (``app.yml``)::
+
+    message_queue_url: https://shared-relay:9000
+    message_queue_username: admin
+    message_queue_password: password
+    relay_topic_prefix: staging
+    managers:
+      cluster_a:
+        type: queued_slurm
+
+**Production Galaxy** (``job_conf.yml``)::
+
+    runners:
+      pulsar:
+        load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+        proxy_url: https://shared-relay:9000
+        proxy_username: admin
+        proxy_password: password
+        relay_topic_prefix: production
+
+    execution:
+      environments:
+        pulsar_jobs:
+          runner: pulsar
+          manager: cluster_a
+          # ... other settings
+
+**Staging Galaxy** (``job_conf.yml``)::
+
+    runners:
+      pulsar:
+        load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+        proxy_url: https://shared-relay:9000
+        proxy_username: admin
+        proxy_password: password
+        relay_topic_prefix: staging
+
+    execution:
+      environments:
+        pulsar_jobs:
+          runner: pulsar
+          manager: cluster_a
+          # ... other settings
+
+In this setup, the topics will be completely isolated:
+
+* **Production**: ``production_job_setup_cluster_a``, ``production_job_status_update_cluster_a``
+* **Staging**: ``staging_job_setup_cluster_a``, ``staging_job_status_update_cluster_a``
+
+Topic Naming
+````````````
+
+Messages are organized by topic with automatic naming based on the optional prefix
+and manager name:
+
+* Job setup: ``job_setup`` (default manager, no prefix)
+* Job setup: ``job_setup_{manager_name}`` (named manager, no prefix)
+* Job setup: ``{prefix}_job_setup`` (default manager, with prefix)
+* Job setup: ``{prefix}_job_setup_{manager_name}`` (named manager, with prefix)
+
+The same pattern applies to other message types:
+
+* Status requests: ``job_status_request``, ``job_status_request_{manager_name}``
+* Kill commands: ``job_kill``, ``job_kill_{manager_name}``
+* Status updates: ``job_status_update``, ``job_status_update_{manager_name}``
+
+When a ``relay_topic_prefix`` is configured, it is prepended to all topic names:
+
+* ``production_job_setup``
+* ``production_job_setup_cluster_a``
+* ``production_job_status_update_cluster_a``
+
+This allows:
+
+* Multiple Pulsar instances to share the same relay (using different manager names)
+* Multiple independent Galaxy/Pulsar instance pairs to share the same relay
+  (using different topic prefixes)
+
+Comparison with AMQP Mode
+``````````````````````````
+
++------------------------+---------------------------+-------------------------+
+| Feature                | AMQP (RabbitMQ)           | pulsar-relay            |
++========================+===========================+=========================+
+| Protocol               | AMQP over TCP             | HTTP/HTTPS              |
++------------------------+---------------------------+-------------------------+
+| Dependencies           | kombu, RabbitMQ server    | requests (built-in)     |
++------------------------+---------------------------+-------------------------+
+| Deployment Complexity  | Moderate (broker setup)   | Simple (HTTP service)   |
++------------------------+---------------------------+-------------------------+
+| Message Delivery       | Push-based                | Long-polling            |
++------------------------+---------------------------+-------------------------+
+| Observability          | Queue monitoring tools    | HTTP access logs        |
++------------------------+---------------------------+-------------------------+
+| SSL/TLS                | Via AMQPS                 | Via HTTPS               |
++------------------------+---------------------------+-------------------------+
+| Firewall Friendly      | Moderate                  | High (standard HTTP)    |
++------------------------+---------------------------+-------------------------+
+
+For more information on deploying pulsar-relay, see the `pulsar-relay documentation`_.
+
+.. _pulsar-relay documentation: https://github.com/mvdbeek/pulsar-relay
 
 Caching (Experimental)
 ----------------------

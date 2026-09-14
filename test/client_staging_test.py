@@ -1,12 +1,20 @@
-from collections import deque
 import os
+from collections import deque
+from types import SimpleNamespace
 
-from .test_utils import TempDirectoryTestCase
-from pulsar.client.test.test_common import write_config
-from pulsar.client import submit_job, ClientJobDescription
-from pulsar.client import ClientOutputs
+import pytest
+import requests
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
+
+from pulsar.client import (
+    ClientJobDescription,
+    ClientOutputs,
+    submit_job,
+)
+from pulsar.client.staging.down import ResultsCollector
+from pulsar.client.test.test_common import write_config
+from .test_utils import TempDirectoryTestCase
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
 TEST_REQUIREMENT_2 = ToolRequirement("test2", "1.0")
@@ -193,3 +201,54 @@ class MockClient:
     def put_file(self, path, type, name, contents, action_type='transfer'):
         self.put_files.append((path, type, name, contents))
         return {"path": self.put_paths.popleft()}
+
+
+def _results_collector_with_failing_collect(exc):
+    """Build a minimal ResultsCollector whose output collection raises ``exc``."""
+    output_collector = SimpleNamespace(collect_output=lambda *a, **k: (_ for _ in ()).throw(exc))
+    client_outputs = SimpleNamespace(output_files=[])
+    pulsar_outputs = SimpleNamespace(
+        working_directory_contents=[], metadata_directory_contents=[], job_directory_contents=[]
+    )
+    return ResultsCollector(output_collector, action_mapper=None, client_outputs=client_outputs, pulsar_outputs=pulsar_outputs)
+
+
+def _http_error(status_code):
+    response = requests.Response()
+    response.status_code = status_code
+    return requests.HTTPError(response=response)
+
+
+def test_collect_output_tolerates_403_without_failing_job():
+    """A 403 means Galaxy authoritatively refused the upload (e.g. the output
+    dataset was purged mid-job). Even for a normally-fatal output type this
+    must not fail the job — _collect_output returns without raising, so the
+    exception tracker records no failure."""
+    rc = _results_collector_with_failing_collect(_http_error(403))
+    action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
+    assert rc._collect_output("output", action, "out1") is False
+
+
+def test_collect_output_reraises_non_403_for_fatal_output_type():
+    rc = _results_collector_with_failing_collect(_http_error(500))
+    action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
+    with pytest.raises(requests.HTTPError):
+        rc._collect_output("output", action, "out1")
+
+
+def test_collect_output_reraises_infra_oserror_for_workdir_output():
+    """An infrastructure OSError (e.g. disk full) collecting a working-directory
+    output must fail the job rather than be downgraded to an allowed failure."""
+    rc = _results_collector_with_failing_collect(OSError("No space left on device"))
+    action = SimpleNamespace(path="/pulsar/working/out.dat")
+    with pytest.raises(OSError):
+        rc._collect_output("output_workdir", action, "out1")
+
+
+def test_collect_output_tolerates_missing_workdir_output():
+    """A missing from_work_dir output (FileNotFoundError) is an expected,
+    recoverable condition for a working-directory output, so it is an allowed
+    failure and must not raise."""
+    rc = _results_collector_with_failing_collect(FileNotFoundError("out.dat"))
+    action = SimpleNamespace(path="/pulsar/working/out.dat")
+    assert rc._collect_output("output_workdir", action, "out1") is None

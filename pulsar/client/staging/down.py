@@ -10,6 +10,7 @@ from os.path import (
 
 from ..action_mapper import FileActionMapper
 from ..staging import COMMAND_VERSION_FILENAME
+from ..transport.transient import http_status_code
 
 log = getLogger(__name__)
 
@@ -79,20 +80,35 @@ class ResultsCollector:
         # Fetch explicit working directory outputs.
         for source_file, output_file in self.client_outputs.work_dir_outputs:
             name = relpath(source_file, working_directory)
-            if name not in self.working_directory_contents:
-                # Could be a glob
-                matching = fnmatch.filter(self.working_directory_contents, name)
-                if matching:
-                    name = matching[0]
-                    source_file = join(working_directory, name)
-            pulsar = self.pulsar_outputs.path_helper.remote_name(name)
-            if self._attempt_collect_output('output_workdir', path=output_file, name=pulsar):
-                self.downloaded_working_directory_files.append(pulsar)
-            # Remove from full output_files list so don't try to download directly.
-            try:
-                self.output_files.remove(output_file)
-            except ValueError:
-                raise Exception("Failed to remove {} from {}".format(output_file, self.output_files))
+
+            # Check if this represents a directory by looking for files under this path in remote contents
+            directory_pattern = name + "/"
+            directory_files = [f for f in self.working_directory_contents if f.startswith(directory_pattern)]
+
+            if directory_files:
+                # Download all files in the directory
+                for remote_file_name in directory_files:
+                    # Calculate local output path relative to the output_file directory
+                    relative_path_in_dir = relpath(remote_file_name, name)
+                    local_output_path = join(output_file, relative_path_in_dir)
+                    pulsar = self.pulsar_outputs.path_helper.remote_name(remote_file_name)
+                    if self._attempt_collect_output('output_workdir', path=local_output_path, name=pulsar):
+                        self.downloaded_working_directory_files.append((pulsar, local_output_path))
+            else:
+                if name not in self.working_directory_contents:
+                    # Could be a glob
+                    matching = fnmatch.filter(self.working_directory_contents, name)
+                    if matching:
+                        name = matching[0]
+                        source_file = join(working_directory, name)
+                pulsar = self.pulsar_outputs.path_helper.remote_name(name)
+                if self._attempt_collect_output('output_workdir', path=output_file, name=pulsar):
+                    self.downloaded_working_directory_files.append((pulsar, output_file))
+                # Remove from full output_files list so don't try to download directly.
+                try:
+                    self.output_files.remove(output_file)
+                except ValueError:
+                    raise Exception("Failed to remove {} from {}".format(output_file, self.output_files))
 
     def __collect_outputs(self):
         # Legacy Pulsar not returning list of files, iterate over the list of
@@ -178,18 +194,18 @@ class ResultsCollector:
         # Fetch remaining working directory outputs of interest.
         for name in contents:
             collect = False
-            if name in self.downloaded_working_directory_files:
-                continue
             if self.client_outputs.dynamic_match(name):
                 collect = True
             elif name in dynamic_file_source_references["filename"] or any(name.startswith(r) for r in dynamic_file_source_references["extra_files"]):
                 collect = True
 
             if collect:
-                log.debug("collecting dynamic {} file {}".format(output_type, name))
                 output_file = join(directory, self.pulsar_outputs.path_helper.local_name(name))
+                if (name, output_file) in self.downloaded_working_directory_files:
+                    continue
+                log.debug("collecting dynamic {} file {}".format(output_type, name))
                 if self._attempt_collect_output(output_type=output_type, path=output_file, name=name):
-                    self.downloaded_working_directory_files.append(name)
+                    self.downloaded_working_directory_files.append((name, output_file))
 
     def _attempt_collect_output(self, output_type, path, name=None):
         # path is final path on galaxy server (client)
@@ -207,8 +223,29 @@ class ResultsCollector:
         log.info("collecting output {} with action {}".format(name, action))
         try:
             return self.output_collector.collect_output(self, output_type, action, name)
+        except (ImportError, MemoryError, SystemError):
+            # Genuine infrastructure failures must never be downgraded.
+            raise
         except Exception as e:
-            if _allow_collect_failure(output_type):
+            if http_status_code(e) == 403:
+                # The Galaxy server authoritatively refused this upload (HTTP
+                # 403). The usual cause is the output's dataset being purged or
+                # deleted while the job ran — Galaxy is the source of truth for
+                # the dataset's state, retrying cannot help, and the tool itself
+                # ran, so this must not fail the job. Surface the path/output so
+                # the reason is visible rather than a generic failure.
+                #
+                # Checked before the OSError branch below because
+                # requests.HTTPError is itself an OSError subclass.
+                log.warning(
+                    "Galaxy refused output '%s' (HTTP 403) at %s; not failing the job. "
+                    "This is expected when the output dataset was purged or deleted "
+                    "while the job was running.",
+                    name,
+                    getattr(action, "url", None) or getattr(action, "path", action),
+                )
+                return False
+            if _allow_collect_failure(output_type, e):
                 log.warning(
                     "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
                     f" failure: {e}")
@@ -244,8 +281,25 @@ def _clean(collection_failure_exceptions, cleanup_job, client):
             log.warn("Failed to cleanup remote Pulsar job")
 
 
-def _allow_collect_failure(output_type):
-    return output_type in ['output_workdir']
+def _allow_collect_failure(output_type, exception):
+    """Whether a collection failure may be downgraded to a warning instead of failing the job.
+
+    Only working-directory outputs are eligible: a failure collecting one
+    generally indicates a tool problem rather than an infrastructure one, so it
+    should not force the job to fail.
+
+    Infrastructure ``OSError``s (disk full, I/O errors) are never downgraded,
+    even for working-directory outputs — they must fail the job. A missing
+    output file (``FileNotFoundError``) is excluded from that rule: it is an
+    expected, recoverable condition — e.g. a ``from_work_dir`` output a tool
+    legitimately did not produce, which Galaxy represents as an empty dataset —
+    so it remains an allowed failure.
+    """
+    if output_type not in ['output_workdir']:
+        return False
+    if isinstance(exception, OSError) and not isinstance(exception, FileNotFoundError):
+        return False
+    return True
 
 
 __all__ = ('finish_job',)

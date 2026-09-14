@@ -161,5 +161,5 @@ def __posix_to_local_path(path, local_path_module=os.path):
 def verify_is_in_directory(path, directory, local_path_module=os.path):
     if not in_directory(path, directory, local_path_module):
         msg = "Attempt to read or write file outside an authorized directory."
-        log.warn("{} Attempted path: {}, valid directory: {}".format(msg, path, directory))
+        log.warning("{} Attempted path: {}, valid directory: {}".format(msg, path, directory))
         raise Exception(msg)

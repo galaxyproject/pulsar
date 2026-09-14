@@ -1,36 +1,48 @@
 name: pulsar
 on: [push, pull_request]
+permissions: {}
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
-        tox-env: [py37-lint, py37-dist, py37-docs]
+        python-version: ['3.7']
+        tox-env: [lint, docs]
+        include:
+          - python-version: '3.14'
+            tox-env: lint
+          - python-version: '3.14'
+            tox-env: format
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v3
+    - uses: actions/checkout@v7.0.1
       with:
-        python-version: 3.7
+        persist-credentials: false
+    - uses: actions/setup-python@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: pip
     - name: Install tox
       run: pip install tox
     - name: Run lint
       run: tox -e ${{ matrix.tox-env }}
   mypy:
     name: MyPy
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        include:
-        - tox-env: py36-mypy
-          python: 3.6
-        - tox-env: py311-mypy
-          python: 3.11
+        tox-env: [mypy]
+        python-version: ['3.14']
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v3
+    - uses: actions/checkout@v7.0.1
       with:
-        python-version: ${{ matrix.python }}
+        persist-credentials: false
+    - uses: actions/setup-python@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: pip
     - name: Install tox
       run: pip install tox
     - name: Setup pycurl
@@ -39,23 +51,18 @@ jobs:
       run: tox -e ${{ matrix.tox-env }}
   test:
     name: Run Tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
+        tox-env: [test-ci, test-unit]
+        python-version: ['3.7', '3.11', '3.12', '3.13', '3.14']
         include:
-        - tox-env: py36-test-ci
-          python: 3.6
-        - tox-env: py36-test-unit
-          python: 3.6
-        - tox-env: py311-test-ci
-          python: 3.11
-        - tox-env: py311-test-unit
-          python: 3.11
-        - tox-env: py37-install_wheel
-          python: 3.7
+        - tox-env: install_wheel
+          python-version: '3.10'
     services:
       job-files:
-        image: galaxy/simple-job-files:latest
+        image: galaxy/simple-job-files@sha256:b8d92c4d6b547b27f8c4ae42a53f7b43b3c680aa56232151a1ecf4671ee2cb69
         env:
           JOB_FILES_ROOT_DIRECTORY: /tmp
         ports:
@@ -63,10 +70,13 @@ jobs:
         volumes:
           - '/tmp:/tmp:rw'
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v3
+    - uses: actions/checkout@v7.0.1
       with:
-        python-version: ${{ matrix.python }}
+        persist-credentials: false
+    - uses: actions/setup-python@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: pip
     - name: Install tox
       run: pip install tox
     - name: Run setup
@@ -78,6 +88,66 @@ jobs:
         PULSAR_TEST_EXTERNAL_JOB_FILES_URL: "http://localhost:8000"
         PULSAR_TEST_EXTERNAL_JOB_FILES_DIRECTORY: "/tmp"
         TEST_WEBAPP_POST_SHUTDOWN_SLEEP: 1
+  resilience:
+    name: Resilience Suite
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@v7
+      with:
+        python-version: '3.11'
+        cache: pip
+    - name: Install test runner deps
+      run: pip install pytest pytest-timeout requests
+    - name: Build images
+      run: docker compose -f test/resilience/docker-compose.yml build
+    - name: Bring up the docker-compose stack
+      run: docker compose -f test/resilience/docker-compose.yml up -d
+    - name: Wait for stack
+      run: |
+        # Toxiproxy admin API is the readiness signal — when it answers,
+        # rabbitmq, relay, valkey and mock-galaxy have all reached a usable
+        # state because they're toxiproxy's depends_on chain.
+        for i in $(seq 1 60); do
+          if curl -sf http://localhost:8474/version >/dev/null; then
+            echo "stack ready"; exit 0;
+          fi
+          sleep 2
+        done
+        echo "stack did not become ready" >&2
+        docker compose -f test/resilience/docker-compose.yml ps
+        docker compose -f test/resilience/docker-compose.yml logs
+        exit 1
+    - name: Run resilience suite
+      # Fail-fast (-x) for the first CI run on this job: if a scenario
+      # fails we want diagnostics quickly, not 45 minutes of cascade. The
+      # captured docker logs from the next step are scoped to whatever
+      # was happening when the first failure hit. Drop -x once the job
+      # is stable.
+      run: pytest test/resilience -v -x --keep-stack
+      env:
+        PYTHONUNBUFFERED: "1"
+    - name: Show stack logs on failure
+      if: failure()
+      run: |
+        echo "=== ps ==="
+        docker compose -f test/resilience/docker-compose.yml ps
+        echo "=== pulsar ==="
+        docker compose -f test/resilience/docker-compose.yml logs --no-color --timestamps pulsar | tail -800
+        echo "=== mock-galaxy ==="
+        docker compose -f test/resilience/docker-compose.yml logs --no-color --timestamps mock-galaxy | grep -vE "GET /_recorder/events" | tail -400
+        echo "=== rabbitmq ==="
+        docker compose -f test/resilience/docker-compose.yml logs --tail=100 rabbitmq
+        echo "=== relay ==="
+        docker compose -f test/resilience/docker-compose.yml logs --no-color --timestamps relay | tail -400
+        echo "=== toxiproxy ==="
+        docker compose -f test/resilience/docker-compose.yml logs --no-color --timestamps toxiproxy | tail -200
+    - name: Tear down
+      if: always()
+      run: docker compose -f test/resilience/docker-compose.yml down -v
   ## Can't get the following tests to work - they fall over on the containerized job not being able to
   ## connect to the host running the Pulsar server for file transfers in stage out/in.
   # tes-test:
@@ -86,13 +156,16 @@ jobs:
   #   strategy:
   #     matrix:
   #       include:
-  #       - tox-env: py37-test-funnel
-  #         python: 3.7
+  #       - tox-env: test-funnel
+  #         python-version: 3.7
   #   steps:
-  #   - uses: actions/checkout@v2
-  #   - uses: actions/setup-python@v3
+  #   - uses: actions/checkout@v7.0.1
   #     with:
-  #       python-version: ${{ matrix.python }}
+  #       persist-credentials: false
+  #   - uses: actions/setup-python@v7
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #       cache: pip
   #   - name: Set up Go 1.x
   #     uses: actions/setup-go@v2
   #     with:

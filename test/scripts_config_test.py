@@ -7,7 +7,6 @@ from io import StringIO
 
 import yaml
 
-
 from pulsar.scripts import config
 from pulsar.scripts.config import main
 from .test_utils import (

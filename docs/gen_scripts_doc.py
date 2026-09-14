@@ -4,7 +4,6 @@ import os
 import subprocess
 from string import Template
 
-
 COMMAND_TEMPLATE = Template('''
 ${header}
 ======================================

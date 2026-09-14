@@ -1,16 +1,15 @@
+import platform
 from os import environ
 from pathlib import Path
-import platform
 from typing import (
     Dict,
     Optional,
 )
 
+import pytest
 from galaxy.util.bunch import Bunch
 from pydantictes.api import TesClient
 from pydantictes.funnelfixture import funnel_client
-import pytest
-
 
 from pulsar.client.test.check import run
 from .test_utils import (
@@ -18,7 +17,6 @@ from .test_utils import (
     integration_test,
     IntegrationTestConfiguration,
     mark,
-    skip_unless_any_module,
     skip_unless_environ,
     skip_unless_executable,
     skip_unless_module,
@@ -420,7 +418,6 @@ def test_integration_tes_mq(external_queue_test_configuration: IntegrationTestCo
     )
 
 
-@skip_unless_any_module(["pycurl", "poster", "requests_toolbelt"])
 @integration_test
 def test_integration_remote_transfer(direct_test_configuration: IntegrationTestConfiguration):
     run_job(
@@ -450,7 +447,9 @@ def _run_in_app(test_configuration: IntegrationTestConfiguration, direct_interfa
         # server for Pulsar - webtest doesn't seem to like having two test
         # servers alive at same time.
         with files_server("/") as test_files_server:
-            files_endpoint = to_infrastructure_uri(test_files_server.application_url)
+            files_endpoint = to_infrastructure_uri(
+                environ.get("PULSAR_TEST_INTERNAL_JOB_FILES_URL", test_files_server.application_url)
+            )
             if direct_interface:
                 _run_direct(test_configuration, files_endpoint=files_endpoint, **kwds)
             else:

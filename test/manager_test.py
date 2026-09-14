@@ -1,8 +1,10 @@
-from pulsar.managers.unqueued import Manager
-
 from os.path import join
 
-from .test_utils import BaseManagerTestCase, get_failing_user_auth_manager
+from pulsar.managers.unqueued import Manager
+from .test_utils import (
+    BaseManagerTestCase,
+    get_failing_user_auth_manager,
+)
 
 
 class ManagerTest(BaseManagerTestCase):

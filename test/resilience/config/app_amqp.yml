@@ -1,0 +1,31 @@
+# Pulsar app config for AMQP-mode resilience tests.
+#
+# Connection goes through toxiproxy so the test harness can disable, blackhole,
+# or add latency to the broker. The persistent outbox under
+# persistence_directory keeps status updates safe during outages.
+
+managers:
+  _default_:
+    type: queued_python
+
+staging_directory: /pulsar/staging
+persistence_directory: /pulsar/persisted
+
+message_queue_url: amqp://guest:guest@toxiproxy:5672//
+amqp_durable: true
+amqp_publish_retry: true
+
+conda_auto_init: false
+conda_auto_install: false
+
+logging:
+  version: 1
+  disable_existing_loggers: false
+  formatters:
+    default: {format: "%(asctime)s %(name)s %(levelname)s %(message)s"}
+  handlers:
+    console: {class: logging.StreamHandler, formatter: default, stream: ext://sys.stdout}
+  root: {level: INFO, handlers: [console]}
+  loggers:
+    pulsar: {level: INFO}
+    pulsar.client: {level: INFO}

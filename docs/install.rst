@@ -18,7 +18,7 @@ using the standard pip_ and venv_ Python tools.
 
 The older method also requires these tools to install Pulsar's dependencies
 but Pulsar itself is served directly from a clone of the Pulsar source tree -
-this mirrors how `Galaxy`_ is most typically deployed. This may be beneficial
+this mirrors how Galaxy_ is most typically deployed. This may be beneficial
 during Pulsar development and is required for certain experimental features such
 as Mesos support.
 
@@ -29,7 +29,7 @@ Both methods presented here require a Python 3.5 (or later) runtime for either
 no longer supported as of the 0.14.0 release of Pulsar**.
 
 These instructions also require venv_. Open a console on your machine and
-type ``python3 -m venv`` - if the module is missing you will need to install it.
+type ``python3 -m venv`` - if the module is missing, you will need to install it.
 It is part of any full Python installation, but some Linux distributions (such
 as Debian and its derivatives) package it separately. On Debian systems, you can
 
@@ -97,6 +97,32 @@ be called with an explicit URL using the argument
 ``--url=http://localhost:8913``. Likewise if a private token has been configured
 it can be supplied using ``--private_token=<token>``.
 
+From a Helm chart
+----------------------
+
+Pulsar can be deployed to a Kubernetes cluster using the `Pulsar Helm chart
+<https://github.com/galaxyproject/pulsar-helm>`_. Currently, the only supported
+method of authentication to Pulsar when deployed via Helm is using a private
+token. The token can be set in the ``values.yaml`` via ``api_key``.
+
+The Helm chart can be installed using the following commands::
+
+    $ git clone https://github.com/galaxyproject/pulsar-helm
+    $ cd pulsar-helm
+    $ helm install -n pulsar mypulsar .
+
+Pulsar will be available on port 80.
+
+Building a container image for Kubernetes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, the chart uses ``galaxy/pulsar-kubernetes`` on Docker Hub as the
+container image. To update or customize this image, use the Kubernetes-specific
+Dockerfile (``docker/kubernetes/Dockerfile``)::
+
+    $ cd docker/kubernetes
+    $ make all
+
 From Source
 ----------------------
 
@@ -129,9 +155,9 @@ Finally, install Pulsar's required dependencies into the virtual environment::
 
     $ pip install -r requirements.txt
 
-If using the standard webserver, it can be installed with::
+If using the standard web server, install gunicorn with::
 
-    $ pip install Paste PasteScript
+    $ pip install gunicorn
 
 Launching Pulsar
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -151,7 +177,7 @@ Pulsar can be launched with::
     $ ./run.sh [--daemon]
 
 This daemon can be stopped using ``./run.sh --stop-daemon``. When run as a
-daemon, Pulsar will log to the file ``paster.log``.  If ``--daemon`` is not
+daemon, Pulsar will log to the file ``pulsar.log``.  If ``--daemon`` is not
 supplied, Pulsar will just run in the foreground.
 
 Under Windows, Pulsar can be started using::
@@ -166,13 +192,13 @@ job can be submitted using the command::
 If Pulsar's ``server.ini`` has been modified and it is not running on the
 default port ``8913``, ``run_client_tests.py`` should be called with an
 explicit URL using the argument ``--url=http://localhost:8913``. Likewise if a
-private token has been configured it can be supplied using
+private token has been configured, it can be supplied using
 ``--private_token=<token>``.
 
 Pulsar Webservers
 ----------------------
 
-Pulsar's default webserver (if web dependencies are installed) is `Paste`_.
+Pulsar's default web server (if web dependencies are installed) is `gunicorn`_.
 However, `uWSGI`_ or `circus`_ will be used instead, if found.
 
 A precompiled version of uWSGI can be installed with::
@@ -188,9 +214,9 @@ Pulsar Dependencies
 
 Several Python packages must be installed to run the Pulsar server. The core set
 of required dependencies were installed during the Pulsar installation in the
-previous section. Additional dependencies are required for features such
+previous section. Additional dependencies are required for features such as
 submitting to a cluster (``drmaa``), communicating via message queue
-(``kombu``), etc.... Most of the time these can just be installed with ``pip
+(``kombu``), etc. Most of the time, these can just be installed with ``pip
 install <dependency_name>``.
 
 .. TODO better optional dependency handling/docs
@@ -200,6 +226,6 @@ install <dependency_name>``.
 .. _venv: https://docs.python.org/3/library/venv.html
 .. _pip: https://pip.pypa.io/
 .. _Supervisord: http://supervisord.org/
-.. _Paste: https://pythonpaste.readthedocs.io/en/latest/
+.. _gunicorn: https://gunicorn.org/
 .. _uWSGI: https://uwsgi-docs.readthedocs.io/
 .. _circus: http://circus.readthedocs.org/

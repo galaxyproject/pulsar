@@ -1,9 +1,20 @@
 import os
 import tempfile
 from collections import deque
+from types import SimpleNamespace
+from unittest.mock import (
+    patch,
+    PropertyMock,
+)
 
-from pulsar.client.client import JobClient
-from pulsar.client.decorators import MAX_RETRY_COUNT, retry
+from pulsar.client.client import (
+    JobClient,
+    TesPollingCoexecutionJobClient,
+)
+from pulsar.client.decorators import (
+    MAX_RETRY_COUNT,
+    retry,
+)
 from pulsar.client.manager import HttpPulsarInterface
 from pulsar.client.transport import UrllibTransport
 
@@ -180,7 +191,7 @@ def test_download_output():
 
     with open(temp_file.name) as f:
         contents = f.read(1024)
-        assert contents == "test output contents", "Unxpected contents %s" % contents
+        assert contents == "test output contents", "Unexpected contents %s" % contents
 
 
 def test_get_status_queued():
@@ -205,3 +216,53 @@ def test_clean():
     client.expect_open(request_checker, 'OK')
     client.clean()
     request_checker.assert_called()
+
+
+def _tes_client_stub(job_id="543", external_id=None):
+    client = object.__new__(TesPollingCoexecutionJobClient)
+    client.job_id = job_id
+    client.external_id = external_id
+    return client
+
+
+class RecordingTesClient:
+    def __init__(self):
+        self.cancelled = []
+        self.polled = []
+
+    def cancel_task(self, task_id):
+        self.cancelled.append(task_id)
+
+    def get_task(self, task_id, view):
+        self.polled.append((task_id, view))
+        return SimpleNamespace(state=None)
+
+
+def test_client_reads_external_id():
+    interface = HttpPulsarInterface({"url": "http://test:803/"}, TestTransport(None))
+    client = JobClient({"external_id": "tes-task-abc"}, "543", interface)
+    assert client.external_id == "tes-task-abc"
+    assert JobClient({}, "543", interface).external_id is None
+
+
+def test_tes_task_id_falls_back_to_galaxy_job_id():
+    client = _tes_client_stub()
+    assert client._tes_task_id == "543"
+
+
+def test_tes_poll_and_cancel_use_recorded_external_id():
+    client = _tes_client_stub(external_id="tes-task-abc")
+    tes_client = RecordingTesClient()
+    with patch.object(
+        TesPollingCoexecutionJobClient,
+        "_tes_client",
+        new_callable=PropertyMock,
+        return_value=tes_client,
+    ), patch("pulsar.client.client.tes_state_to_pulsar_status", return_value="running"), patch(
+        "pulsar.client.client.tes_state_is_complete", return_value=False
+    ):
+        client.kill()
+        client.raw_check_complete()
+
+    assert tes_client.cancelled == ["tes-task-abc"]
+    assert tes_client.polled == [("tes-task-abc", "FULL")]

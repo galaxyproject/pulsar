@@ -10,8 +10,8 @@ init_temp_dir
 init_pulsar
 
 cd pulsar
-echo "Running pulsar-config with --auto_conda"
-pulsar-config --auto_conda
+echo "Running pulsar-config"
+pulsar-config
 
 cd ..
 

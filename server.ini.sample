@@ -1,24 +1,17 @@
-### server:main section used by paster web server. More advanced,
-### Python3 compatible circus setup configured using sections after
+### server:main section used by pulsar-serve (gunicorn). More advanced,
+### circus setup configured using sections after
 ### app:main (circus, watcher:web, socket:web).
 
 [server:main]
-use = egg:Paste#http
-## To use chaussette w/paster deploy (no circus), use follwoing: 
-# use = egg:chaussette#main
-
 ## The port on which to listen.
 port = 8913
 ## The interface(s) on which to listen. Use '0.0.0.0' for all interfaces.
 host = localhost
 
-## pem file to use to enable SSL. Set to * to generate one
-## automatically.
+## pem file to use to enable SSL.
 # ssl_pem = host.pem
 
 [app:main]
-paste.app_factory = pulsar.web.wsgi:app_factory
-
 app_config=%(here)s/app.yml
 
 ## Configure uWSGI (if used).
@@ -34,7 +27,7 @@ enable-threads = True
 [circus]
 endpoint = tcp://127.0.0.1:5555
 pubsub_endpoint = tcp://127.0.0.1:5556
-#stats_endpoint = tcp://127.0.0.1:5557                                                                                    
+#stats_endpoint = tcp://127.0.0.1:5557
 
 [watcher:web]
 cmd = chaussette --fd $(circus.sockets.web) paste:server.ini

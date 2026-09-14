@@ -40,9 +40,11 @@ from argparse import (
     RawDescriptionHelpFormatter,
 )
 
+from pulsar.scripts.serve import stop_daemon
+
 log = logging.getLogger(__name__)
 
-REQUIRES_DAEMONIZE_MESSAGE = "Attempted to use Pulsar in daemon mode, but daemonize is unavailable."
+REQUIRES_DAEMONIZE_MESSAGE = "Daemon mode requires daemonize. Install it with: pip install 'pulsar-app[daemon]'"
 
 PULSAR_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if "PULSAR_CONFIG_DIR" in os.environ:
@@ -56,12 +58,13 @@ DEFAULT_APP_YAML = "app.yml"
 DEFAULT_MANAGER = "_default_"
 
 DEFAULT_PID = "pulsar.pid"
+DEFAULT_DAEMON_LOG = "pulsar.log"
 DEFAULT_VERBOSE = True
 HELP_CONFIG_DIR = "Default directory to search for relevant Pulsar configuration files (e.g. app.yml, server.ini)."
 HELP_INI_PATH = "Specify an explicit path to Pulsar's server.ini configuration file."
 HELP_APP_CONF_PATH = "Specify an explicit path to Pulsar's app.yml configuration file."
 HELP_APP_CONF_BASE64 = "Specify an application configuration as a base64 encoded JSON blob."
-HELP_DAEMONIZE = "Daemonzie process (requires daemonize library)."
+HELP_DAEMONIZE = "Run as a daemon process."
 CONFIG_PREFIX = "PULSAR_CONFIG_"
 
 
@@ -197,11 +200,24 @@ def apply_env_overrides_and_defaults(conf):
 
 
 def load_app_configuration(ini_path=None, app_conf_path=None, app_name=None, local_conf=None, config_dir=PULSAR_CONFIG_DIR):
+    if app_name is None:
+        app_name = DEFAULT_INI_APP
     """
     """
     if ini_path and local_conf is None:
-        from pulsar.util.pastescript.loadwsgi import ConfigLoader
-        local_conf = ConfigLoader(ini_path).app_context(app_name).config()
+        # Simple ini parsing without loadwsgi dependencies
+        ini_path_abs = os.path.abspath(ini_path)
+        defaults = {
+            'here': os.path.dirname(ini_path_abs),
+            '__file__': ini_path_abs
+        }
+        config = configparser.ConfigParser(defaults=defaults)
+        config.read(ini_path)
+        section_name = f"app:{app_name}"
+        if config.has_section(section_name):
+            local_conf = dict(config.items(section_name))
+        else:
+            local_conf = {}
     local_conf = local_conf or {}
     local_conf['config_dir'] = config_dir
     if app_conf_path is None and "app_config" in local_conf:
@@ -268,9 +284,16 @@ class PulsarConfigBuilder:
         arg_parser.add_argument("--app_conf_base64", default=None, help=HELP_APP_CONF_BASE64)
         arg_parser.add_argument("--app", default=DEFAULT_INI_APP)
         # daemon related options...
-        arg_parser.add_argument("-d", "--daemonize", default=False, help=HELP_DAEMONIZE, action="store_true")
-        arg_parser.add_argument("--daemon-log-file", default=None, help="Log file for daemon, if --daemonize supplied.")
-        arg_parser.add_argument("--pid-file", default=DEFAULT_PID, help="Pid file for daemon, if --daemonize supplied (default is %s)." % DEFAULT_PID)
+        arg_parser.add_argument("-d", "--daemon", "--daemonize", dest="daemonize", default=False, help=HELP_DAEMONIZE, action="store_true")
+        arg_parser.add_argument(
+            "--log-file", "--daemon-log-file", dest="daemon_log_file", default=None,
+            help="Log file for daemon (default is %s)." % DEFAULT_DAEMON_LOG,
+        )
+        arg_parser.add_argument(
+            "--pid", "--pid-file", dest="pid_file", default=DEFAULT_PID,
+            help="Pid file for daemon (default is %s)." % DEFAULT_PID,
+        )
+        arg_parser.add_argument("--stop-daemon", default=False, help="Stop a running daemon by reading the PID file.", action="store_true")
 
     def load(self):
         load_kwds = dict(
@@ -346,36 +369,43 @@ def main(argv=None, config_env=False):
 
     pid_file = args.pid_file
 
+    if args.stop_daemon:
+        return stop_daemon(pid_file)
+
     log.setLevel(logging.DEBUG)
     log.propagate = False
 
     if args.daemonize:
         if Daemonize is None:
-            raise ImportError(REQUIRES_DAEMONIZE_MESSAGE)
+            arg_parser.error(REQUIRES_DAEMONIZE_MESSAGE)
 
-        keep_fds = []
-        if args.daemon_log_file:
-            fh = logging.FileHandler(args.daemon_log_file, "w")
-            fh.setLevel(logging.DEBUG)
-            log.addHandler(fh)
-            keep_fds.append(fh.stream.fileno())
-        else:
-            fh = logging.StreamHandler(sys.stderr)
-            fh.setLevel(logging.DEBUG)
-            log.addHandler(fh)
+        daemon_log_file = os.path.abspath(args.daemon_log_file or DEFAULT_DAEMON_LOG)
+        fh = logging.FileHandler(daemon_log_file, "a")
+        fh.setLevel(logging.DEBUG)
+        log.addHandler(fh)
+        output_fd = fh.stream.fileno()
 
         daemon = Daemonize(
             app="pulsar",
             pid=pid_file,
-            action=functools.partial(app_loop, args, log, config_env),
+            action=functools.partial(_daemon_app_loop, args, log, config_env, output_fd),
             verbose=DEFAULT_VERBOSE,
             logger=log,
-            keep_fds=keep_fds,
+            keep_fds=[output_fd],
         )
         daemon.start()
     else:
         app_loop(args, log, config_env)
 
 
+def _daemon_app_loop(args, log, config_env, output_fd):
+    """Restore daemon output after daemonize redirects standard streams."""
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os.dup2(output_fd, sys.stdout.fileno())
+    os.dup2(output_fd, sys.stderr.fileno())
+    app_loop(args, log, config_env)
+
+
 if __name__ == "__main__":
-    main(config_env=True)
+    sys.exit(main(config_env=True))

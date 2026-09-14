@@ -1,7 +1,9 @@
+from typing import Dict
+
 RAW_VALUE_BY_DEFAULT = False
 
 
-def env_to_statement(env):
+def env_to_statement(env: Dict[str, str]) -> str:
     """Return the abstraction description of an environment variable definition
     into a statement for shell script.
 
@@ -32,7 +34,7 @@ def env_to_statement(env):
     return f"{name}={value}; export {name}"
 
 
-def __escape(value, env):
+def __escape(value: str, env: Dict[str, str]) -> str:
     raw = env.get("raw", RAW_VALUE_BY_DEFAULT)
     if not raw:
         value = '"' + value.replace('"', '\\"') + '"'

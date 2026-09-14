@@ -21,6 +21,11 @@ docker/coexecutor/*whl
 app.yml
 server.ini
 job_managers.ini
+# The resilience suite under test/resilience/ ships its own deterministic
+# configs that share these filenames; un-ignore them so CI can build an
+# image that mounts them at /etc/pulsar.
+!test/resilience/config/app_*.yml
+!test/resilience/config/server.ini
 *.pem
 *.cert
 *.key

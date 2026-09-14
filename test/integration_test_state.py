@@ -3,20 +3,20 @@ import os
 import threading
 import time
 
-from .test_utils import (
-    TempDirectoryTestCase,
-    skip_unless_module,
-    skip_without_drmaa,
-    restartable_pulsar_app_provider,
-    integration_test,
-)
+from pulsar.client.amqp_exchange import ACK_FORCE_NOACK_KEY
+from pulsar.client.amqp_exchange_factory import get_exchange
 from pulsar.manager_endpoint_util import (
     submit_job,
 )
 from pulsar.managers.stateful import ActiveJobs
-from pulsar.client.amqp_exchange import ACK_FORCE_NOACK_KEY
-from pulsar.client.amqp_exchange_factory import get_exchange
 from pulsar.managers.util.drmaa import DrmaaSessionFactory
+from .test_utils import (
+    integration_test,
+    restartable_pulsar_app_provider,
+    skip_unless_module,
+    skip_without_drmaa,
+    TempDirectoryTestCase,
+)
 
 
 class StateIntegrationTestCase(TempDirectoryTestCase):
@@ -58,7 +58,9 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
 
             consumer.join()
             assert len(consumer.messages) == 1, len(consumer.messages)
-            assert consumer.messages[0]["status"] == "complete"
+            # Killed through the DRMAA session rather than through the manager,
+            # so this is a DRM-side failure and not a cancellation.
+            assert consumer.messages[0]["status"] == "failed"
 
     @skip_unless_module("drmaa")
     @skip_unless_module("kombu")

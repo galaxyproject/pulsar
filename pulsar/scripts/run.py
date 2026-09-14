@@ -97,7 +97,8 @@ def _run_client_for_job(args):
         result_status = waiter.wait()
         pulsar_outputs = PulsarOutputs.from_status_response(result_status)
         if args.result_json:
-            open(args.result_json, "w").write(json_dumps(result_status))
+            with open(args.result_json, "w") as fh:
+                fh.write(json_dumps(result_status))
         finish_args = dict(
             client=client,
             job_completed_normally=True,

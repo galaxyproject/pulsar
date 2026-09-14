@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        libcurl4-openssl-dev \
+        libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /pulsar
+
+COPY requirements.txt /pulsar/requirements.txt
+COPY setup.py /pulsar/setup.py
+COPY setup.cfg /pulsar/setup.cfg
+COPY README.rst /pulsar/README.rst
+COPY HISTORY.rst /pulsar/HISTORY.rst
+COPY pulsar /pulsar/pulsar
+COPY scripts /pulsar/scripts
+COPY test/resilience/entrypoint.sh /pulsar/entrypoint.sh
+
+RUN pip install --no-cache-dir -e . \
+    && pip install --no-cache-dir kombu==5.3.7 amqp==5.2.0 requests requests-toolbelt pycurl \
+    && chmod +x /pulsar/entrypoint.sh
+
+ENTRYPOINT ["/pulsar/entrypoint.sh"]

@@ -18,7 +18,6 @@ from pulsar.cache import Cache
 from pulsar.manager_factory import build_managers
 from pulsar.tools import ToolBox
 from pulsar.tools.authorization import get_authorizer
-
 from pulsar.user_auth.manager import UserAuthManager
 
 log = getLogger(__name__)
@@ -166,6 +165,12 @@ class PulsarApp:
     def __setup_dependency_manager(self, conf):
         default_tool_dependency_dir = "dependencies"
         resolvers_config_file = os.path.join(self.config_dir, conf.get("dependency_resolvers_config_file", "dependency_resolvers_conf.xml"))
+        # Auto-init / auto-install of conda is opt-in. The first-startup
+        # download of miniconda blocks the manager bind for tens of seconds
+        # (sometimes minutes) on a fresh runner; admins who want it should
+        # set conda_auto_init / conda_auto_install explicitly. Closes #415.
+        conf.setdefault("conda_auto_init", False)
+        conf.setdefault("conda_auto_install", False)
         self.dependency_manager = build_dependency_manager(
             app_config_dict=conf,
             conf_file=resolvers_config_file,

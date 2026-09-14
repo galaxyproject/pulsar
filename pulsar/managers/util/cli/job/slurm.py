@@ -25,7 +25,9 @@ class Slurm(BaseJobExec):
                     k = argmap[k]
                 scriptargs[k] = v
             except Exception:
-                log.warning(f"Unrecognized long argument passed to Slurm CLI plugin: {k}")
+                log.warning(
+                    f"Unrecognized long argument passed to Slurm CLI plugin: {k}"
+                )
 
         # Generated template.
         template_scriptargs = ""

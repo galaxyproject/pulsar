@@ -1,11 +1,18 @@
 from os import makedirs
-from os.path import join, dirname, exists
+from os.path import (
+    dirname,
+    exists,
+    join,
+)
 from string import Template
-from galaxy.util.bunch import Bunch
-from galaxy.objectstore import build_object_store_from_config
 
-from .test_utils import TempDirectoryTestCase
-from .test_utils import skip
+from galaxy.objectstore import build_object_store_from_config
+from galaxy.util.bunch import Bunch
+
+from .test_utils import (
+    skip,
+    TempDirectoryTestCase,
+)
 
 
 class MockDataset:

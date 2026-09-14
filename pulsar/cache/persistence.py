@@ -1,6 +1,6 @@
 import shelve
+import sqlite3
 import traceback
-
 from threading import Lock
 
 
@@ -13,7 +13,23 @@ class PersistenceStore:
         self.__shelf_lock = Lock()
 
     def __open_shelf(self):
-        self.shelf = shelve.open(self.shelf_filename, writeback=self.__require_sync) if self.shelf_filename else None
+        if not self.shelf_filename:
+            self.shelf = None
+            return
+        self.shelf = shelve.open(self.shelf_filename, writeback=self.__require_sync)
+        self.__make_shelf_thread_safe()
+
+    def __make_shelf_thread_safe(self):
+        # Python 3.13 added dbm.sqlite3 as a default backend candidate; its
+        # sqlite3 connection rejects cross-thread use. We serialise all
+        # shelf access via __shelf_lock, so it is safe to drop that check.
+        db = self.shelf.dict
+        if type(db).__module__ != "dbm.sqlite3":
+            return
+        path_row = db._cx.execute("PRAGMA database_list").fetchone()
+        path = path_row[2]
+        db._cx.close()
+        db._cx = sqlite3.connect(path, autocommit=True, check_same_thread=False)
 
     def close(self):
         self.shelf.close()

@@ -4,6 +4,7 @@ from json import loads
 
 from webob import exc
 
+from pulsar import __version__ as pulsar_version
 from pulsar.client.action_mapper import path_type
 from pulsar.client.job_directory import verify_is_in_directory
 from pulsar.manager_endpoint_util import (
@@ -61,7 +62,7 @@ def clean(manager, job_id):
 
 @PulsarController(path="/jobs/{job_id}/submit", method="POST")
 def submit(manager, job_id, command_line, params='{}', dependencies_description='null', setup_params='{}',
-           remote_staging='{}', env='[]', submit_extras='{}', dynamic_file_sources='null'):
+           remote_staging='{}', env='[]', submit_extras='{}', dynamic_file_sources='null', cvmfsexec='null'):
     submit_params = loads(params)
     setup_params = loads(setup_params)
     dependencies_description = loads(dependencies_description)
@@ -69,6 +70,7 @@ def submit(manager, job_id, command_line, params='{}', dependencies_description=
     remote_staging = loads(remote_staging)
     submit_extras = loads(submit_extras)
     dynamic_file_sources = loads(dynamic_file_sources)
+    cvmfsexec = loads(cvmfsexec)
     submit_config = dict(
         job_id=job_id,
         command_line=command_line,
@@ -78,6 +80,7 @@ def submit(manager, job_id, command_line, params='{}', dependencies_description=
         env=env,
         remote_staging=remote_staging,
         dynamic_file_sources=dynamic_file_sources,
+        cvmfsexec=cvmfsexec,
     )
     submit_config.update(submit_extras)
     submit_job(manager, submit_config)
@@ -224,6 +227,11 @@ def object_store_get_store_usage_percent(object_store):
     return object_store.get_store_usage_percent()
 
 
+@PulsarController(path="/healthz", method="GET", response_type='json')
+def healthz():
+    return {'version': pulsar_version}
+
+
 class PulsarDataset:
     """Intermediary between Pulsar and objectstore."""
 
@@ -233,10 +241,11 @@ class PulsarDataset:
 
 
 def _handle_upload(file_cache, path, body, cache_token=None):
-    source = body
     if cache_token:
         cached_file = file_cache.destination(cache_token)
-        source = open(cached_file, 'rb')
-        log.info("Copying cached file {} to {}".format(cached_file, path))
-    copy_to_path(source, path)
+        with open(cached_file, 'rb') as source:
+            log.info("Copying cached file {} to {}".format(cached_file, path))
+            copy_to_path(source, path)
+    else:
+        copy_to_path(body, path)
     return {"path": path}

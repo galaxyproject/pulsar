@@ -1,11 +1,10 @@
 import subprocess
 import threading
 
+from pulsar.managers.unqueued import CoexecutionManager
 from .test_utils import (
     BaseManagerTestCase,
 )
-
-from pulsar.managers.unqueued import CoexecutionManager
 
 
 class Coexecutor:

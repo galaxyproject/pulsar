@@ -6,7 +6,10 @@ Pulsar HTTP Client layer based on Python Standard Library (urllib)
 import mmap
 import socket
 from os.path import getsize
-from urllib.error import URLError
+from urllib.error import (
+    HTTPError,
+    URLError,
+)
 from urllib.request import (
     Request,
     urlopen,
@@ -43,6 +46,11 @@ class UrllibTransport:
                 response = self._url_open(request, data)
             except (socket.timeout, TimeoutError):
                 raise PulsarClientTransportError(code=PulsarClientTransportError.TIMEOUT)
+            except HTTPError as exc:
+                raise PulsarClientTransportError(
+                    transport_code=exc.code,
+                    transport_message=exc.reason,
+                )
             except URLError as exc:
                 raise PulsarClientTransportError(transport_message=exc.reason)
         finally:

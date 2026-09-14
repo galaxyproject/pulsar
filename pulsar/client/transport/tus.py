@@ -44,7 +44,7 @@ def tus_upload_file(url: str, path: str) -> None:
 def find_tus_endpoint(job_files_endpoint: str) -> str:
     parsed = urlparse(job_files_endpoint)
     job_files_url_path = parsed.path
-    tus_endpoint = re.sub(r"jobs/[^/]*/files", "job_files/resumable_upload", job_files_url_path, 1)
+    tus_endpoint = re.sub(r"jobs/[^/]*/files", "job_files/resumable_upload", job_files_url_path, count=1)
 
     new_url = parsed._replace(path=tus_endpoint)
     return new_url.geturl()

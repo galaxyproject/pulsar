@@ -10,6 +10,7 @@ from time import (
 from typing import Optional
 
 from packaging.version import parse as parse_version
+
 try:
     import kombu
     import kombu.exceptions
@@ -74,6 +75,7 @@ class PulsarExchange:
         publish_uuid_store=None,
         consume_uuid_store=None,
         republish_time=DEFAULT_REPUBLISH_TIME,
+        durable=True,
     ):
         """
         """
@@ -99,7 +101,10 @@ class PulsarExchange:
         self.__manager_name = manager_name
         self.__amqp_key_prefix = amqp_key_prefix
         self.__connect_ssl = connect_ssl
-        self.__exchange = kombu.Exchange(DEFAULT_EXCHANGE_NAME, DEFAULT_EXCHANGE_TYPE)
+        self.__durable = bool(durable)
+        self.__exchange = kombu.Exchange(
+            DEFAULT_EXCHANGE_NAME, DEFAULT_EXCHANGE_TYPE, durable=self.__durable,
+        )
         self.__timeout = timeout
         self.__republish_time = republish_time
         # Be sure to log message publishing failures.
@@ -230,7 +235,7 @@ class PulsarExchange:
             self.publish_uuid_store[ack_uuid] = payload
             log.debug('Requesting acknowledgement of UUID %s on queue %s', ack_uuid, ack_queue)
         with self.connection(self.__url) as connection:
-            with pools.producers[connection].acquire() as producer:
+            with pools.producers[connection].acquire(block=True) as producer:
                 log.debug("%sHave producer for publishing to key %s", publish_log_prefix, key)
                 publish_kwds = self.__prepare_publish_kwds(publish_log_prefix)
                 producer.publish(
@@ -301,10 +306,12 @@ class PulsarExchange:
                 return PulsarExchange.__publish_errback(exc, interval, publish_log_prefix)
             publish_kwds["retry_policy"]["errback"] = errback
         else:
-            publish_kwds = self.__publish_kwds
+            publish_kwds = dict(self.__publish_kwds)
         if self.__kombu_version < MINIMUM_KOMBU_VERSION_PUBLISH_TIMEOUT:
             log.warning(f"kombu version {kombu.__version__} does not support timeout argument to publish. Consider updating to 5.2.0 or newer")
             publish_kwds.pop("timeout", None)
+        if self.__durable and "delivery_mode" not in publish_kwds:
+            publish_kwds["delivery_mode"] = 2
         return publish_kwds
 
     def __publish_log_prefex(self, transaction_uuid=None):
@@ -320,7 +327,12 @@ class PulsarExchange:
 
     def __queue(self, name):
         queue_name = self.__queue_name(name)
-        queue = kombu.Queue(queue_name, self.__exchange, routing_key=queue_name)
+        queue = kombu.Queue(
+            queue_name,
+            self.__exchange,
+            routing_key=queue_name,
+            durable=self.__durable,
+        )
         return queue
 
     def __queue_name(self, name):

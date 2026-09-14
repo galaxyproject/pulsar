@@ -6,12 +6,17 @@ from os.path import (
     basename,
     dirname,
     exists,
+    isdir,
     join,
     relpath,
 )
 from re import (
     escape,
     findall,
+)
+from typing import (
+    Optional,
+    TYPE_CHECKING,
 )
 
 from ..action_mapper import (
@@ -30,12 +35,13 @@ from ..util import (
     PathHelper,
 )
 
+if TYPE_CHECKING:
+    from pulsar.client.staging import ClientJobDescription
+
 log = getLogger(__name__)
 
 
-def submit_job(client, client_job_description, job_config=None):
-    """
-    """
+def submit_job(client, client_job_description: "ClientJobDescription", job_config=None):
     file_stager = FileStager(client, client_job_description, job_config)
     rebuilt_command_line = file_stager.get_command_line()
     job_id = file_stager.job_id
@@ -97,7 +103,7 @@ class FileStager:
         Description of client view of job to stage and execute remotely.
     """
 
-    def __init__(self, client, client_job_description, job_config):
+    def __init__(self, client, client_job_description: "ClientJobDescription", job_config):
         """
         """
         self.client = client
@@ -208,7 +214,7 @@ class FileStager:
             self.referenced_tool_files = [(join(self.tool_dir, x), x) for x in self.tool_directory_required_files.find_required_files(self.tool_dir)]
         else:
             # Was this following line only for interpreter, should we disable it of 16.04+ tools
-            self.referenced_tool_files = [(x, None) for x in self.job_inputs.find_referenced_subfiles(self.tool_dir)]
+            self.referenced_tool_files = [(x, relpath(x, self.tool_dir)) for x in self.job_inputs.find_referenced_subfiles(self.tool_dir)]
             # If the tool was created with a correct $__tool_directory__ find those files and transfer
             new_tool_directory = self.new_tool_directory
             if not new_tool_directory:
@@ -217,7 +223,7 @@ class FileStager:
             for potential_tool_file in self.job_inputs.find_referenced_subfiles(new_tool_directory):
                 local_file = potential_tool_file.replace(new_tool_directory, self.tool_dir)
                 if exists(local_file):
-                    self.referenced_tool_files.append((local_file, None))
+                    self.referenced_tool_files.append((local_file, relpath(local_file, self.tool_dir)))
 
     def __initialize_referenced_arbitrary_files(self):
         referenced_arbitrary_path_mappers = dict()
@@ -235,8 +241,18 @@ class FileStager:
             self.arbitrary_files.update(unstructured_map)
 
     def __upload_tool_files(self):
-        for (referenced_tool_file, name) in self.referenced_tool_files:
-            self.transfer_tracker.handle_transfer_path(referenced_tool_file, path_type.TOOL, name=name)
+        for referenced_tool_file, name in self.referenced_tool_files:
+            if isdir(referenced_tool_file):
+                self.transfer_tracker.handle_transfer_directory(
+                    path_type.TOOL,
+                    directory=referenced_tool_file,
+                    mode=StageDirectoryType.WHOLE_DIRECTORY,
+                    rel_path_to=self.tool_dir,
+                )
+            else:
+                self.transfer_tracker.handle_transfer_path(
+                    referenced_tool_file, path_type.TOOL, name=name
+                )
 
     def __upload_job_directory_files(self):
         for job_directory_file in self.job_directory_files:
@@ -466,7 +482,14 @@ class TransferTracker:
         source = {"path": path}
         return self.handle_transfer_source(source, type, name=name, contents=contents)
 
-    def handle_transfer_directory(self, type, directory=None, action_source=None, mode: StageDirectoryType = StageDirectoryType.CONTENTS):
+    def handle_transfer_directory(
+        self,
+        type,
+        directory=None,
+        action_source=None,
+        mode: StageDirectoryType = StageDirectoryType.CONTENTS,
+        rel_path_to: Optional[str] = None,
+    ):
         # TODO: needs to happen else where if using remote object store staging
         # but we don't have the action type yet.
         if directory is None:
@@ -481,14 +504,21 @@ class TransferTracker:
                 self.__add_remote_staging_input(action, None, type)
                 return
 
-            directory = action_source['path']
+            directory = action_source["path"]
         else:
             assert action_source is None
 
         for directory_file_name in directory_files(directory):
             directory_file_path = join(directory, directory_file_name)
-            rel_path_to = directory if mode == StageDirectoryType.CONTENTS else dirname(directory)
-            remote_name = self.path_helper.remote_name(relpath(directory_file_path, rel_path_to))
+            if not rel_path_to:
+                rel_path_to = (
+                    directory
+                    if mode == StageDirectoryType.CONTENTS
+                    else dirname(directory)
+                )
+            remote_name = self.path_helper.remote_name(
+                relpath(directory_file_path, rel_path_to)
+            )
             self.handle_transfer_path(directory_file_path, type, name=remote_name)
 
     def handle_transfer_source(self, source, type, name=None, contents=None):

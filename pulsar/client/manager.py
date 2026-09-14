@@ -6,14 +6,18 @@ specific actions.
 """
 
 import functools
+import os
 import threading
 from logging import getLogger
 from os import getenv
 from queue import Queue
 from typing import (
     Any,
+    Callable,
     Dict,
+    Optional,
     Type,
+    TYPE_CHECKING,
 )
 
 from typing_extensions import Protocol
@@ -21,12 +25,15 @@ from typing_extensions import Protocol
 from .amqp_exchange_factory import get_exchange
 from .client import (
     BaseJobClient,
+    GcpMessageCoexecutionJobClient,
+    GcpPollingCoexecutionJobClient,
     InputCachingJobClient,
     JobClient,
     K8sMessageCoexecutionJobClient,
     K8sPollingCoexecutionJobClient,
     MessageCLIJobClient,
     MessageJobClient,
+    RelayJobClient,
     TesMessageCoexecutionJobClient,
     TesPollingCoexecutionJobClient,
 )
@@ -40,9 +47,62 @@ from .server_interface import (
 from .transport import get_transport
 from .util import TransferEventManager
 
+if TYPE_CHECKING:
+    from pulsar.managers import ManagerInterface
+
 log = getLogger(__name__)
 
 DEFAULT_TRANSFER_THREADS = 2
+
+
+def _per_handler_cursor_path(
+    base_path: Optional[str],
+    handler_id: Optional[str] = None,
+    manager_name: Optional[str] = None,
+) -> Optional[str]:
+    """Insert a stable per-(handler, manager) suffix before the file extension.
+
+    Galaxy job handlers run as separate processes, each polling the relay
+    independently with its own cursor. Sharing one file would let
+    concurrent ``os.replace`` writes drop another handler's progress, but
+    the suffix must also be **stable across restarts** — otherwise the
+    cursor is read once on first start and then orphaned, defeating the
+    point of persisting it.
+
+    With BYOC compute resources, one Galaxy handler may also drive *many*
+    Pulsar managers from a single process via a multi-tenant runner;
+    including ``manager_name`` in the suffix keeps each manager's cursor
+    distinct so two tenants on the same handler can't overwrite each
+    other.
+
+    Resolution order for the handler portion of the suffix:
+
+    1. ``handler_id`` argument (typically ``app.config.server_name`` from
+       the caller — stable across restarts).
+    2. ``GALAXY_SERVER_NAME`` env var (Galaxy's standard handler tag).
+    3. ``os.getpid()`` as a last resort, with a warning: PID is unique
+       per process but changes on every restart, so the persisted cursor
+       will not be loaded by the next run.
+    """
+    if not base_path:
+        return base_path
+    handler_suffix = handler_id or os.environ.get("GALAXY_SERVER_NAME")
+    if not handler_suffix:
+        handler_suffix = f"pid{os.getpid()}"
+        log.warning(
+            "relay_cursor_path is set but no stable handler id was supplied "
+            "(neither relay_handler_id kwarg nor GALAXY_SERVER_NAME env). "
+            "Falling back to %s; this cursor will not be picked up after a "
+            "process restart, so status updates published while the handler "
+            "was down may be skipped.",
+            handler_suffix,
+        )
+    suffix_parts = [handler_suffix]
+    if manager_name and manager_name != "_default_":
+        suffix_parts.append(manager_name)
+    suffix = "-".join(suffix_parts)
+    root, ext = os.path.splitext(base_path)
+    return f"{root}-{suffix}{ext}"
 
 
 class ClientManagerInterface(Protocol):
@@ -64,12 +124,11 @@ class ClientManager(ClientManagerInterface):
     job_manager_interface_class: Type[PulsarInterface]
     client_class: Type[BaseJobClient]
 
-    def __init__(self, **kwds: Dict[str, Any]):
+    def __init__(self, job_manager: Optional["ManagerInterface"] = None, **kwds: Any):
         """Build a HTTP client or a local client that talks directly to a job manger."""
-        if 'pulsar_app' in kwds or 'job_manager' in kwds:
+        if 'pulsar_app' in kwds or job_manager:
             self.job_manager_interface_class = LocalPulsarInterface
             pulsar_app = kwds.get('pulsar_app', None)
-            job_manager = kwds.get('job_manager', None)
             file_cache = kwds.get('file_cache', None)
             self.job_manager_interface_args = dict(
                 job_manager=job_manager,
@@ -114,7 +173,7 @@ except ImportError:
 
 class BaseRemoteConfiguredJobClientManager(ClientManagerInterface):
 
-    def __init__(self, **kwds: Dict[str, Any]):
+    def __init__(self, **kwds: Any):
         self.manager_name = kwds.get("manager", None) or "_default_"
 
 
@@ -122,9 +181,9 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
     status_cache: Dict[str, Any]
     ack_consumer_threads: Dict[str, threading.Thread]
 
-    def __init__(self, **kwds: Dict[str, Any]):
+    def __init__(self, amqp_url: str, **kwds: Any):
         super().__init__(**kwds)
-        self.url = kwds.get('amqp_url')
+        self.url = amqp_url
         self.amqp_key_prefix = kwds.get("amqp_key_prefix", None)
         self.exchange = get_exchange(self.url, self.manager_name, kwds)
         self.status_cache = {}
@@ -240,8 +299,230 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
             return K8sMessageCoexecutionJobClient(destination_params, job_id, self)
         elif destination_params.get("tes_url", False):
             return TesMessageCoexecutionJobClient(destination_params, job_id, self)
+        elif destination_params.get("project_id", False):
+            return GcpMessageCoexecutionJobClient(destination_params, job_id, self)
         else:
             return MessageJobClient(destination_params, job_id, self)
+
+
+class RelayClientManager(BaseRemoteConfiguredJobClientManager):
+    """Client manager that communicates with Pulsar via pulsar-relay.
+
+    This manager uses HTTP-based long-polling to receive status updates from
+    Pulsar through the relay, while posting control messages (setup, status
+    requests, kill) to the relay for Pulsar to consume.
+    """
+    status_cache: Dict[str, Any]
+
+    def __init__(
+        self,
+        relay_url: str,
+        relay_username: Optional[str] = None,
+        relay_password: Optional[str] = None,
+        relay_topic_prefix: str = '',
+        relay_cursor_path: Optional[str] = None,
+        relay_handler_id: Optional[str] = None,
+        relay_credentials_file: Optional[str] = None,
+        relay_refresh_token: Optional[str] = None,
+        on_refresh_token_rotated: Optional[Callable[[Dict[str, Any]], None]] = None,
+        **kwds: Any,
+    ):
+        # Imported lazily so pulsar still installs on Pythons that don't meet
+        # pulsar-relay-client's requires-python (currently 3.10+); the relay
+        # code path is simply unreachable on those interpreters.
+        from pulsar_relay_client import (
+            InMemoryCredentialsStore,
+            RelayAuthManager,
+            RelayTransport,
+        )
+
+        super().__init__(**kwds)
+
+        if not relay_url:
+            raise Exception("relay_url is required for RelayClientManager")
+
+        # Initialize relay transport. ``relay_cursor_path`` persists the long-poll
+        # cursor across Galaxy restarts so we don't silently skip messages
+        # published by Pulsar while Galaxy was down. Galaxy job handlers run as
+        # separate processes — each one polls the relay independently and so
+        # tracks its own cursor — so we expand the operator-supplied path with
+        # a stable per-(handler, manager) suffix (``relay_handler_id`` or
+        # ``GALAXY_SERVER_NAME``, plus ``manager_name``) to give every handler
+        # + tenant its own file. A shared cursor would suffer last-writer-wins
+        # corruption when handlers persist concurrently and could silently
+        # rewind another handler's progress.
+        auth_manager: Optional[RelayAuthManager] = None
+        if relay_refresh_token is not None:
+            # In-memory refresh-token path used by multi-tenant callers
+            # (e.g. Galaxy BYOC) that hold the token in their own secret store
+            # and want rotations persisted via a callback rather than to disk.
+            store = InMemoryCredentialsStore(
+                relay_url=relay_url,
+                refresh_token=relay_refresh_token,
+                on_save=on_refresh_token_rotated,
+                label=f"<in-memory:{self.manager_name}>",
+            )
+            auth_manager = RelayAuthManager(relay_url, credentials_store=store)
+
+        # Keep a handle on the explicit refresh-token auth manager so read-only
+        # relay probes (e.g. Galaxy's capability-snapshot fetch) can reuse this
+        # manager's centrally-cached access token instead of exchanging the
+        # refresh token themselves — see ``get_relay_access_token``.
+        self._relay_auth_manager = auth_manager
+        self.relay_transport = RelayTransport(
+            relay_url,
+            username=relay_username,
+            password=relay_password,
+            cursor_path=_per_handler_cursor_path(
+                relay_cursor_path, relay_handler_id, manager_name=self.manager_name
+            ),
+            credentials_file=relay_credentials_file,
+            auth_manager=auth_manager,
+        )
+        self.relay_topic_prefix = relay_topic_prefix
+        self.status_cache = {}
+        self.callback_lock = threading.Lock()
+        self.callback_thread = None
+        self.active = True
+        self.shutdown_event = threading.Event()
+
+    def get_relay_access_token(self) -> Optional[str]:
+        """Return a relay access token from this manager's central auth cache.
+
+        Read-only relay probes (e.g. Galaxy's capability-snapshot fetch) must
+        reuse this token rather than exchanging the refresh token on their own:
+        the relay rotates refresh tokens single-use and revokes the entire
+        chain on replay, so a second, independent exchange of the same token
+        would tear down this manager's credentials mid-flight. Routing every
+        consumer through the one :class:`RelayAuthManager` keeps the exchange
+        count at one (it caches the access token until expiry).
+
+        Returns ``None`` when this manager was not built with refresh-token
+        auth (e.g. credentials-file / password auth), in which case callers
+        fall back to their own credential handling.
+        """
+        if self._relay_auth_manager is None:
+            return None
+        return self._relay_auth_manager.get_token()
+
+    def callback_wrapper(self, callback, message_data):
+        """Process status update messages from the relay."""
+        if not self.active:
+            log.debug("Obtained update message for inactive client manager, ignoring.")
+            return
+
+        try:
+            payload = message_data.get('payload', {})
+            if "job_id" in payload:
+                job_id = payload["job_id"]
+                self.status_cache[job_id] = payload
+            log.debug("Handling asynchronous status update from Pulsar via relay.")
+            callback(payload)
+        except Exception:
+            log.exception("Failure processing job status update message.")
+        except BaseException as e:
+            log.exception("Failure processing job status update message - BaseException type %s" % type(e))
+
+    def status_consumer(self, callback_wrapper):
+        """Long-poll the relay for status update messages."""
+        manager_name = self.manager_name
+        topic = self._make_topic_name("job_status_update", manager_name)
+
+        log.info("Starting relay status consumer for topic '%s'", topic)
+
+        while self.active:
+            try:
+                # Long poll for status updates (30 second timeout)
+                messages = self.relay_transport.long_poll([topic], timeout=30)
+
+                for message in messages:
+                    callback_wrapper(message)
+
+            except Exception:
+                if self.active:
+                    log.exception("Exception while polling for status updates from relay, will retry.")
+                    # Brief sleep before retrying to avoid tight loop on persistent errors
+                    # Use wait() instead of sleep() to allow immediate interruption on shutdown
+                    if self.shutdown_event.wait(timeout=5):
+                        break
+                else:
+                    log.debug("Exception during shutdown, ignoring.")
+                    break
+
+        log.info("Done consuming relay status updates for topic %s", topic)
+
+    def ensure_has_status_update_callback(self, callback):
+        """Start a thread to poll for status updates if not already running."""
+        with self.callback_lock:
+            if self.callback_thread is not None:
+                return
+
+            callback_wrapper = functools.partial(self.callback_wrapper, callback)
+            run = functools.partial(self.status_consumer, callback_wrapper)
+            thread = threading.Thread(
+                name="pulsar_client_%s_relay_status_consumer" % self.manager_name,
+                target=run
+            )
+            # Make daemon so Python can exit even if thread is blocked in HTTP request.
+            # Unlike MessageQueueClientManager which uses AMQP connections that can be
+            # interrupted cleanly, HTTP long-poll requests block until timeout.
+            thread.daemon = True
+            thread.start()
+            self.callback_thread = thread
+
+    def ensure_has_ack_consumers(self):
+        """No-op for relay client manager, as acknowledgements are handled via HTTP."""
+        pass
+
+    def _make_topic_name(self, base_topic: str, manager_name: str) -> str:
+        """Create a topic name with optional prefix and manager suffix.
+
+        Args:
+            base_topic: Base topic name (e.g., 'job_setup', 'job_status_update')
+            manager_name: Manager name (e.g., '_default_', 'cluster_a')
+
+        Returns:
+            Fully qualified topic name
+        """
+        parts = []
+
+        # Add prefix if provided
+        if self.relay_topic_prefix:
+            parts.append(self.relay_topic_prefix)
+
+        # Add base topic
+        parts.append(base_topic)
+
+        # Add manager name if not default
+        if manager_name != "_default_":
+            parts.append(manager_name)
+
+        return "_".join(parts)
+
+    def shutdown(self, ensure_cleanup: bool = False):
+        """Shutdown the client manager and cleanup resources."""
+        self.active = False
+        # Signal the shutdown event to interrupt any waiting threads
+        self.shutdown_event.set()
+        if ensure_cleanup:
+            if self.callback_thread is not None:
+                self.callback_thread.join()
+        # Close relay transport
+        if hasattr(self, 'relay_transport'):
+            self.relay_transport.close()
+
+    def __nonzero__(self):
+        return self.active
+
+    __bool__ = __nonzero__  # Both needed Py2 v 3
+
+    def get_client(self, destination_params, job_id, **kwargs):
+        """Create a RelayJobClient for the given job."""
+        if job_id is None:
+            raise Exception("Cannot generate Pulsar client for empty job_id.")
+        destination_params = _parse_destination_params(destination_params)
+        destination_params.update(**kwargs)
+        return RelayJobClient(destination_params, job_id, self)
 
 
 class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
@@ -256,6 +537,8 @@ class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
             return K8sPollingCoexecutionJobClient(destination_params, job_id, self)
         elif destination_params.get("tes_url", False):
             return TesPollingCoexecutionJobClient(destination_params, job_id, self)
+        elif destination_params.get("project_id", False):
+            return GcpPollingCoexecutionJobClient(destination_params, job_id, self)
         else:
             raise Exception("Unknown client configuration")
 
@@ -263,12 +546,40 @@ class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
         pass
 
 
-def build_client_manager(**kwargs: Dict[str, Any]) -> ClientManagerInterface:
-    if 'job_manager' in kwargs:
-        return ClientManager(**kwargs)  # TODO: Consider more separation here.
-    elif kwargs.get('amqp_url', None):
-        return MessageQueueClientManager(**kwargs)
-    elif kwargs.get("k8s_enabled") or kwargs.get("tes_url"):
+def build_client_manager(
+    job_manager: Optional["ManagerInterface"] = None,
+    relay_url: Optional[str] = None,
+    relay_username: Optional[str] = None,
+    relay_password: Optional[str] = None,
+    relay_topic_prefix: Optional[str] = None,
+    relay_refresh_token: Optional[str] = None,
+    amqp_url: Optional[str] = None,
+    k8s_enabled: Optional[bool] = None,
+    tes_enabled: Optional[bool] = None,
+    gcp_batch_enabled: Optional[bool] = None,
+    **kwargs
+) -> ClientManagerInterface:
+    if job_manager:
+        return ClientManager(job_manager=job_manager, **kwargs)  # TODO: Consider more separation here.
+    elif relay_url:
+        if relay_refresh_token is None:
+            # Legacy password auth path. Callers using the in-memory
+            # refresh-token path supply only ``relay_refresh_token``.
+            assert relay_password and relay_username, (
+                "relay_url set, but neither relay_refresh_token nor "
+                "relay_username+relay_password were supplied"
+            )
+        return RelayClientManager(
+            relay_url=relay_url,
+            relay_username=relay_username,
+            relay_password=relay_password,
+            relay_topic_prefix=relay_topic_prefix or '',
+            relay_refresh_token=relay_refresh_token,
+            **kwargs
+        )
+    elif amqp_url:
+        return MessageQueueClientManager(amqp_url=amqp_url, **kwargs)
+    elif k8s_enabled or tes_enabled or gcp_batch_enabled:
         return PollingJobClientManager(**kwargs)
     else:
         return ClientManager(**kwargs)

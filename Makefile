@@ -1,5 +1,5 @@
 # Default tests run with make test
-NOSE_TESTS?=test pulsar
+PYTEST_TESTS?=test pulsar
 # Default environment for make tox
 ENV?=py27
 # Extra arguments supplied to tox command
@@ -26,7 +26,7 @@ help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "clean-test - remove test and coverage artifacts"
-	@echo "setup-venv - setup a development virutalenv in current directory."
+	@echo "setup-venv - setup a development virtualenv in current directory."
 	@echo "lint - check style with flake8"
 	@echo "lint-dist - twine check dist results, including validating README content"
 	@echo "lint-docs - check sphinx docs for warnings"
@@ -81,13 +81,13 @@ _lint-dist:
 lint-dist: dist _lint-dist
 
 tests:
-	$(IN_VENV) nosetests $(NOSE_TESTS)
+	$(IN_VENV) pytest $(PYTEST_TESTS)
 
 test-install-pypi:
-	bash install_test/test_install_conda.bash
+	bash install_test/test_install_docker.bash
 
 test-install-wheel: dist
-	PULSAR_INSTALL_TARGET=$(wildcard $(shell pwd)/dist/pulsar_app*.whl)[web] bash install_test/test_install_conda.bash
+	PULSAR_INSTALL_TARGET=$(wildcard $(shell pwd)/dist/pulsar_app*.whl)[web] bash install_test/test_install_docker.bash
 
 coverage:
 	coverage run --source $(SOURCE_DIR) setup.py $(TEST_DIR)
@@ -112,7 +112,7 @@ docs: ready-docs
 
 lint-docs: ready-docs
 	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; $(MAKE) -C docs clean
-	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; ! (make -C docs html 2>&1 | grep -v 'nonlocal image URI found\|included in any toctree' | grep WARNING)
+	if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi; ! (make -C docs html 2>&1 | grep -v 'more than one target found\|nonlocal image URI found\|included in any toctree' | grep WARNING)
 
 _open-docs:
 	open docs/_build/html/index.html || xdg-open docs/_build/html/index.html
@@ -129,7 +129,7 @@ format:  ## Format Python code base
 	$(IN_VENV) isort .
 
 dist: clean-build clean-pyc
-	$(IN_VENV) python setup.py sdist bdist_wheel
+	$(IN_VENV) python -m build
 	ls -l dist
 
 _release-test-artifacts:
@@ -168,7 +168,7 @@ add-history:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/bootstrap_history.py $(ITEM)
 
 _dist-lib:
-	$(IN_VENV) PULSAR_GALAXY_LIB=1 python setup.py sdist bdist_wheel
+	$(IN_VENV) PULSAR_GALAXY_LIB=1 python -m build
 	ls -l dist
 
 dist-lib: clean-pyc clean-build _dist-lib

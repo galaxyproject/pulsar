@@ -1,0 +1,20 @@
+[
+  {
+    "name": "rabbitmq",
+    "listen": "0.0.0.0:5672",
+    "upstream": "rabbitmq:5672",
+    "enabled": true
+  },
+  {
+    "name": "relay",
+    "listen": "0.0.0.0:9000",
+    "upstream": "relay:8080",
+    "enabled": true
+  },
+  {
+    "name": "galaxy_http",
+    "listen": "0.0.0.0:8088",
+    "upstream": "mock-galaxy:8088",
+    "enabled": true
+  }
+]

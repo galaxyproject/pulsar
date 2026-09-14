@@ -12,10 +12,10 @@ pulsar.client.transport.curl module
    :undoc-members:
    :show-inheritance:
 
-pulsar.client.transport.poster module
--------------------------------------
+pulsar.client.transport.relay module
+------------------------------------
 
-.. automodule:: pulsar.client.transport.poster
+.. automodule:: pulsar.client.transport.relay
    :members:
    :undoc-members:
    :show-inheritance:
@@ -40,6 +40,14 @@ pulsar.client.transport.standard module
 ---------------------------------------
 
 .. automodule:: pulsar.client.transport.standard
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.transport.tus module
+----------------------------------
+
+.. automodule:: pulsar.client.transport.tus
    :members:
    :undoc-members:
    :show-inheritance:

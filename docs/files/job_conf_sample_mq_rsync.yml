@@ -1,0 +1,42 @@
+runners:
+  pulsar_mq:
+    load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+    # Must tell Pulsar where to send files.
+    galaxy_url: https://galaxyserver
+    # Message Queue Connection (should match message_queue_url in Pulsar's
+    # app.yml). pyamqp may be necessary over amqp if SSL is used.
+    amqp_url: pyamqp://rabbituser:rabb8pa8sw0d@mqserver:5671//?ssl=1
+
+execution:
+  default: remote_cluster
+  environments:
+    remote_cluster:
+      runner: pulsar_mq
+      # This string is replaced by Pulsar, removing the requirement of
+      # coordinating the Pulsar installation directory between the cluster
+      # admin and the Galaxy admin.
+      jobs_directory: __PULSAR_JOBS_DIRECTORY__
+      # Provide connection information, should look like:
+      #
+      #     paths:
+      #         - path: /home/vagrant/  # Home directory for galaxy user
+      #           action: remote_rsync_transfer # _rsync_ and _scp_ are available
+      #           ssh_user: vagrant
+      #           ssh_host: galaxy-vm.host.edu
+      #           ssh_port: 22
+      file_action_config: file_actions.yaml
+      # Provide an SSH key for access to the local $GALAXY_ROOT, should be
+      # accessible with the username/hostname provided in file_actions.yaml.
+      ssh_key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        .............
+      # Allow the remote end to know who is running the job, may need to
+      # append @domain.edu after it. Only used if the "DRMAA (via external
+      # users) manager" is used.
+      submit_user: $__user_name__
+
+tools:
+- id: trinity
+  environment: remote_cluster
+- id: abyss
+  environment: remote_cluster

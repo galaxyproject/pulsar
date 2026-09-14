@@ -1,7 +1,7 @@
 import os
 
-from .test_utils import files_server
 from pulsar.client.action_mapper import RemoteTransferAction
+from .test_utils import files_server
 
 
 def test_write_to_file():

@@ -2,7 +2,6 @@
 [run]
 branch = True
 include = pulsar/*
-omit = pulsar/util/pastescript/*
 
 [report]
 # Regexes for lines to exclude from consideration

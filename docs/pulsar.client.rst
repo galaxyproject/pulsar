@@ -54,6 +54,14 @@ pulsar.client.config\_util module
    :undoc-members:
    :show-inheritance:
 
+pulsar.client.container\_job\_config module
+-------------------------------------------
+
+.. automodule:: pulsar.client.container_job_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pulsar.client.decorators module
 -------------------------------
 
@@ -106,6 +114,14 @@ pulsar.client.path\_mapper module
 ---------------------------------
 
 .. automodule:: pulsar.client.path_mapper
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.relay\_auth module
+--------------------------------
+
+.. automodule:: pulsar.client.relay_auth
    :members:
    :undoc-members:
    :show-inheritance:

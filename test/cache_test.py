@@ -1,10 +1,13 @@
 from os import remove
 from os.path import exists
-from tempfile import mkdtemp, NamedTemporaryFile
-from .test_utils import TestCase
+from shutil import rmtree
+from tempfile import (
+    mkdtemp,
+    NamedTemporaryFile,
+)
 
 from pulsar.cache import Cache
-from shutil import rmtree
+from .test_utils import TestCase
 
 
 class CacheTest(TestCase):

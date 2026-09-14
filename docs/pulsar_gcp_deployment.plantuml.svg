@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="680px" preserveAspectRatio="none" style="width:560px;height:680px;background:#FFFFFF;" version="1.1" viewBox="0 0 560 680" width="560px" zoomAndPan="magnify"><defs/><g><!--MD5=[ae7709657f611b622ade1638c535e86e]
+cluster cluster--><g id="cluster_cluster"><path d="M34.8528,20.8093 C38.6843,12.4992 47.8808,8.6474 54.0236,18.3494 C60.6753,10.7049 68.0608,8.8678 73.3216,19.7947 C77.7516,8.8891 87.3812,8.3653 93.6018,18.0292 C100.8414,8.6372 107.4531,11.0129 113.1286,19.7169 C117.5365,8.1312 124.8273,7.5116 133.1771,15.7254 C140.1691,6.0196 147.2127,6 152.9591,16.9201 C158.8584,9.3087 166.0285,9.7134 171.2606,17.7027 C178.771,7.7848 184.963,8.6268 191.4733,18.7132 C196.1268,6.879 205.7611,6.0728 213.058,16.1037 C219.3097,7.8942 228.6102,7.9857 232.5419,18.5158 C237.5787,10.525 243.2007,8.2145 249.7506,16.9599 C257.7019,7.8145 265.516,6.5732 271.9674,18.5384 C277.5421,9.8103 286.7247,10.708 290.5972,20.272 C300.5904,10.9417 309.4367,9.6613 315.6589,24.2269 C316.3708,23.5543 316.9354,23.5825 317.4779,24.4298 C327.5505,31.5919 328.2185,38.575 318.6335,46.7546 C328.1019,52.686 327.9583,58.887 319.9137,65.9843 C330.5509,71.5757 330.3604,82.2603 319.535,87.4734 C328.0488,94.143 328.9954,101.8426 319.5525,108.5271 C329.1307,116.8737 327.6576,124.9398 317.077,131.0731 C327.1501,135.2465 328.2173,144.9064 319.332,151.2036 C328.388,157.1247 325.9049,165.9773 317.2739,169.9573 C326.9146,176.5534 329.3402,184.512 318.4871,192.2246 C327.7682,198.6979 326.6599,208.8523 316.8018,213.8328 C324.7418,219.3075 324.078,224.9788 317.3547,230.9277 C328.8456,239.5771 326.1441,246.6195 316.0057,254.0045 C323.8238,264.7459 323.0907,274.9442 308.6589,279.1969 C310.0244,279.1187 310.6372,279.9751 310.1793,281.2483 C304.6295,289.0644 295.9796,289.1646 291.686,279.889 C288.1095,290.7846 277.7287,291.9883 270.5059,283.9728 C263.9091,291.1646 255.0137,291.5549 250.9495,281.157 C245.3305,289.4244 239.6433,290.9795 232.4069,283.0033 C228.0835,293.4565 219.705,292.2868 213.4984,285.0118 C205.192,296.6577 197.1614,295.6923 190.7501,283.224 C187.1182,291.946 179.2087,294.8259 172.6763,286.2555 C167.2966,295.8524 158.2944,294.7836 153.0027,286.1605 C145.5938,293.8949 138.5605,293.0405 134.3715,282.8195 C129.3189,291.6101 119.6203,291.98 113.9364,283.5694 C108.2842,294.1779 97.2716,293.5495 91.357,283.8614 C85.0645,293.3133 76.1713,293.6054 71.2745,282.498 C66.3106,290.3797 60.0849,291.1297 55.1286,282.4905 C41.6878,292.1566 29.2868,288.6179 24.6589,272.1969 C26.7029,270.9384 28.3517,272.1415 28.0871,274.4289 C15.6475,270.0624 14.5014,260.9114 23.1149,251.8987 C12.9918,246.1209 13.6532,237.6055 23.5225,232.2422 C12.7479,227.7406 12.7553,220.992 21.1206,213.9739 C11.4199,208.4431 10.2413,200.877 18.1409,192.8622 C6.8532,185.2228 6,177.7939 18.0305,170.0418 C7.9024,164.7574 7.3546,155.7999 16.1171,148.8128 C8.2245,143.3614 7.5196,135.035 16.8181,130.2321 C7.3528,122.7927 9.9768,115.8398 18.8528,110.2699 C11.2129,103.8889 10.2349,93.6372 21.6491,89.8678 C11.8802,81.8401 10.6268,72.6752 23.8133,66.8013 C14.0685,60.3047 15.1402,52.0655 25.4509,47.2486 C12.465,36.0759 17.2231,22.7292 31.6589,17.2269 C34.1077,16.8105 35.944,18.0696 34.8528,20.8093 " fill="none" style="stroke:#FF8C00;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="165" x="87.6589" y="35.7621">Google Cloud Platform</text></g><!--MD5=[a59b4262d7ac0b9dcf3b2bb90ca83b91]
+cluster pod--><g id="cluster_pod"><rect fill="none" height="113.49" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:1.0;" width="243" x="48.6589" y="141.7069"/><path d="M82.6589,141.7069 L82.6589,151.1952 L72.6589,161.1952 L48.6589,161.1952 " fill="none" style="stroke:#FF8C00;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="24" x="51.6589" y="156.2421">Job</text></g><!--MD5=[7aa1830f6d3a10daacf1e4a3019ccce0]
+entity galaxy--><g id="elem_galaxy"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="85" x="230.1589" y="350.1969"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="295.1589" y="355.1969"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="293.1589" y="357.1969"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="293.1589" y="361.1969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="245.1589" y="383.7321">galaxy</text></g><!--MD5=[3aef3466144a60d8e52f82544e729ce7]
+entity disk--><g id="elem_disk"><rect fill="#FFEFD5" height="36.4883" rx="35" ry="35" style="stroke:#FF8C00;stroke-width:0.5;" width="104" x="220.6589" y="457.6869"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="84" x="230.6589" y="481.2221">Object Store</text></g><!--MD5=[e2307af040e3f87d22824e7603ca28ec]
+entity api--><g id="elem_api"><path d="M156.6589,44.2269 L302.6589,44.2269 C307.6589,44.2269 307.6589,57.4711 307.6589,57.4711 C307.6589,57.4711 307.6589,70.7152 302.6589,70.7152 L156.6589,70.7152 C151.6589,70.7152 151.6589,57.4711 151.6589,57.4711 C151.6589,57.4711 151.6589,44.2269 156.6589,44.2269 " fill="#FFEFD5" style="stroke:#FF8C00;stroke-width:0.5;"/><path d="M302.6589,44.2269 C297.6589,44.2269 297.6589,57.4711 297.6589,57.4711 C297.6589,70.7152 302.6589,70.7152 302.6589,70.7152 " fill="none" style="stroke:#FF8C00;stroke-width:0.5;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="136" x="156.6589" y="62.7621">Google Batch v1 API</text></g><!--MD5=[2a18fe44646d9882a8aae1fdc76eaba2]
+entity staging--><g id="elem_staging"><rect fill="#FFEFD5" height="46.4883" rx="2.5" ry="2.5" style="stroke:#FF8C00;stroke-width:0.5;" width="172" x="72.6589" y="184.7069"/><rect fill="#FFEFD5" height="10" style="stroke:#FF8C00;stroke-width:0.5;" width="15" x="224.6589" y="189.7069"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="222.6589" y="191.7069"/><rect fill="#FFEFD5" height="2" style="stroke:#FF8C00;stroke-width:0.5;" width="4" x="222.6589" y="195.7069"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="132" x="87.6589" y="218.2421">pulsar+conda Task</text></g><g id="elem_disknote"><path d="M165.6589,617.1769 L165.6589,673.1086 L379.6589,673.1086 L379.6589,627.1769 L369.6589,617.1769 L165.6589,617.1769 " fill="#FFEFD5" style="stroke:#181818;stroke-width:0.5;"/><path d="M369.6589,617.1769 L369.6589,627.1769 L379.6589,627.1769 L369.6589,617.1769 " fill="#FFEFD5" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="185" x="171.6589" y="634.7453">Disk is unrestricted and does</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="193" x="171.6589" y="650.0558">not need to be shared between</text><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="115" x="171.6589" y="665.3664">Pulsar and Galaxy.</text></g><!--MD5=[31b1a11f9f0ac216f9afbe294b045677]
+link disk to disknote--><g id="link_disk_disknote"><path codeLine="18" d="M272.6589,494.5069 C272.6589,523.6869 272.6589,582.3269 272.6589,616.8969 " fill="none" id="disk-disknote" style="stroke:#FFA500;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[444112ceeb685652cf6a950142e9793e]
+link galaxy to disk--><g id="link_galaxy_disk"><path d="M272.6589,396.9969 C272.6589,413.1369 272.6589,434.8269 272.6589,451.2269 " fill="none" id="galaxy-to-disk" style="stroke:#FFA500;stroke-width:1.0;"/><polygon fill="#FFA500" points="272.6589,455.9369,276.6589,446.9369,272.6589,450.9369,268.6589,446.9369,272.6589,455.9369" style="stroke:#FFA500;stroke-width:1.0;"/></g><!--MD5=[451fccf17c1492a785cfb73c80b2ead7]
+link galaxy to api--><g id="link_galaxy_api"><path d="M307.9189,349.7269 C317.4189,341.6469 326.4889,331.6769 331.6589,320.1969 C371.7089,231.2469 384.9189,181.7769 330.6589,100.7069 C322.5189,88.5469 310.1389,79.8769 296.8089,73.7069 " fill="none" id="galaxy-to-api" style="stroke:#FFA500;stroke-width:1.0;"/><polygon fill="#FFA500" points="292.4289,71.8069,299.1066,79.0463,297.0195,73.7886,302.2772,71.7014,292.4289,71.8069" style="stroke:#FFA500;stroke-width:1.0;"/><text fill="#FF8C00" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="185" x="367.6689" y="213.0253">create, delete, get (for status)</text></g><!--MD5=[5f341783c97d3cb4f4e39898b2608251]
+link api to pod--><g id="link_api_pod"><path d="M236.2989,71.0769 C243.1089,84.3769 253.6689,106.0969 260.6589,125.7069 C262.0777,129.6869 263.4445,133.8079 264.7531,137.9867 C265.0802,139.0315 265.4037,140.0798 265.7234,141.1305 C265.7634,141.2618 265.8033,141.3932 265.8432,141.5246 " fill="none" id="api-to-pod" style="stroke:#FFA500;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#FFA500" points="265.8432,141.5246,267.0591,131.751,264.3921,136.7397,259.4034,134.0728,265.8432,141.5246" style="stroke:#FFA500;stroke-width:1.0;"/><text fill="#FF8C00" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="64" x="258.1089" y="114.2753">[manages]</text></g><!--MD5=[56d4096adb5ffafc69d1d1ea09937780]
+link staging to galaxy--><g id="link_staging_galaxy"><path d="M169.9689,231.6169 C181.9689,254.7769 202.1189,291.3369 223.6589,320.1969 C229.9989,328.6969 237.5589,337.3369 244.8189,345.0769 " fill="none" id="staging-to-galaxy" style="stroke:#FFA500;stroke-width:1.0;"/><polygon fill="#FFA500" points="248.2389,348.6669,244.9267,339.3917,244.7899,345.0469,239.1347,344.9101,248.2389,348.6669" style="stroke:#FFA500;stroke-width:1.0;"/><text fill="#FF8C00" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="102" x="224.6589" y="316.7653">stage in and out</text></g><!--MD5=[f4b57045c645786c781fbb5742e14536]
+@startuml
+
+
+!include plantuml_options.txt
+
+component galaxy as "galaxy" {
+
+}
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+cloud cluster as "Google Cloud Platform" {
+    queue api as "Google Batch v1 API" {
+        
+    }
+
+    frame pod as "Job" {
+
+        component staging as "pulsar+conda Task" {
+        }
+
+    }
+
+}
+
+galaxy - -> disk
+galaxy - -> api : create, delete, get (for status)
+api -[dashed]-> pod : [manages]
+staging - -> galaxy : stage in and out
+@enduml
+
+@startuml
+
+
+
+skinparam class {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam object {
+    ArrowFontColor DarkOrange
+    BackgroundColor #FFEFD5
+    BackgroundColor #FFEFD5
+    ArrowColor Orange
+    BorderColor DarkOrange
+}
+
+skinparam ComponentBackgroundColor #FFEFD5
+skinparam ComponentBorderColor DarkOrange
+
+skinparam DatabaseBackgroundColor #FFEFD5
+skinparam DatabaseBorderColor DarkOrange
+
+skinparam StorageBackgroundColor #FFEFD5
+skinparam StorageBorderColor DarkOrange
+
+skinparam QueueBackgroundColor #FFEFD5
+skinparam QueueBorderColor DarkOrange
+
+skinparam note {
+    BackgroundColor #FFEFD5
+    BorderColor #BF5700
+}
+
+skinparam sequence {
+    ArrowColor Orange
+    ArrowFontColor DarkOrange
+    ActorBorderColor DarkOrange
+    ActorBackgroundColor #FFEFD5
+
+    ParticipantBorderColor DarkOrange
+    ParticipantBackgroundColor #FFEFD5
+
+    LifeLineBorderColor DarkOrange
+    LifeLineBackgroundColor #FFEFD5
+
+    DividerBorderColor DarkOrange
+    GroupBorderColor DarkOrange
+}
+
+
+component galaxy as "galaxy" {
+
+}
+
+storage disk as "Object Store" {
+
+}
+
+note as disknote
+    Disk is unrestricted and does
+    not need to be shared between
+    Pulsar and Galaxy.
+end note
+
+disk ... disknote
+
+cloud cluster as "Google Cloud Platform" {
+    queue api as "Google Batch v1 API" {
+        
+    }
+
+    frame pod as "Job" {
+
+        component staging as "pulsar+conda Task" {
+        }
+
+    }
+
+}
+
+galaxy - -> disk
+galaxy - -> api : create, delete, get (for status)
+api -[dashed]-> pod : [manages]
+staging - -> galaxy : stage in and out
+@enduml
+
+PlantUML version 1.2022.8(Sun Sep 25 05:00:33 EDT 2022)
+(GPL source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>

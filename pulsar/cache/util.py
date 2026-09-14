@@ -1,7 +1,9 @@
 import os
 import shutil
-
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 
 def atomicish_move(source, destination, tmp_suffix="_TMP"):
@@ -32,4 +34,4 @@ class Time:
     @classmethod
     def now(cls):
         """Return the current datetime."""
-        return datetime.utcnow()
+        return datetime.now(timezone.utc)

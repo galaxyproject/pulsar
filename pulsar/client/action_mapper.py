@@ -79,6 +79,10 @@ path_type = Bunch(
     # Other fixed tool parameter paths (likely coming from tool data, but not
     # necessarily).
     UNSTRUCTURED="unstructured",
+    # Resolved container image path (e.g. a Singularity/Apptainer image on
+    # CVMFS). Resolved on the Galaxy host but read on the compute node, which
+    # may expose the image at a different path. Never staged.
+    CONTAINER="container",
 )
 
 
@@ -94,7 +98,7 @@ ACTION_DEFAULT_PATH_TYPES = [
     path_type.OUTPUT_METADATA,
     path_type.OUTPUT_JOBDIR,
 ]
-ALL_PATH_TYPES = ACTION_DEFAULT_PATH_TYPES + [path_type.UNSTRUCTURED]
+ALL_PATH_TYPES = ACTION_DEFAULT_PATH_TYPES + [path_type.UNSTRUCTURED, path_type.CONTAINER]
 
 MISSING_FILES_ENDPOINT_ERROR = "Attempted to use remote_transfer action without defining a files_endpoint."
 MISSING_SSH_KEY_ERROR = "Attempt to use file transfer action requiring an SSH key without specifying a ssh_key."
@@ -137,6 +141,12 @@ class FileActionMapper:
     True
     >>> # Always at least copy work_dir outputs.
     >>> action = mapper.action({'path': '/opt/galaxy/database/working_directory/45.sh'}, 'workdir')
+    >>> action.action_type == u'copy'
+    True
+    >>> action.staging_needed
+    True
+    >>> # Always at least copy input metadata files.
+    >>> action = mapper.action({'path': '/opt/galaxy/database/working_directory/metadata'}, 'metadata')
     >>> action.action_type == u'copy'
     True
     >>> action.staging_needed
@@ -250,7 +260,7 @@ class FileActionMapper:
         action_type = self.default_action if type in ACTION_DEFAULT_PATH_TYPES else "none"
         if mapper:
             action_type = mapper.action_type
-        if type in ["workdir", "jobdir", "output_workdir", "output_metadata", "output_jobdir"] and action_type == "none":
+        if type in ["workdir", "jobdir", "metadata", "output_workdir", "output_metadata", "output_jobdir"] and action_type == "none":
             # We are changing the working_directory/job_directory relative to what
             # Galaxy would use, these need to be copied over.
             action_type = "copy"
@@ -332,6 +342,13 @@ class BaseAction:
     @property
     def staging_action_local(self):
         return self.staging == STAGING_ACTION_LOCAL
+
+    def write_from_path(self, pulsar_path):
+        if not self.staging_needed:
+            return  # No-op for actions that don't require staging (e.g., shared filesystem)
+        raise NotImplementedError(
+            f"{self.__class__.__name__} with staging={self.staging} must implement write_from_path"
+        )
 
     def _extend_base_dict(self, **kwds):
         base_dict = dict(
@@ -446,7 +463,8 @@ class RemoteCopyAction(BaseAction):
         return RemoteCopyAction(source=action_dict["source"])
 
     def write_to_path(self, path):
-        copy_to_path(open(self.path, "rb"), path)
+        with open(self.path, "rb") as f:
+            copy_to_path(f, path)
 
     def write_from_path(self, pulsar_path):
         destination = self.path
@@ -534,7 +552,8 @@ class RemoteObjectStoreCopyAction(BaseAction):
             object_store_id=object_store_ref["object_store_id"],
         )
         filename = self.object_store.get_filename(dataset_object)
-        copy_to_path(open(filename, 'rb'), path)
+        with open(filename, "rb") as f:
+            copy_to_path(f, path)
 
     def write_from_path(self, pulsar_path):
         raise NotImplementedError("Writing raw files to object store not supported at this time.")
@@ -660,7 +679,8 @@ class MessageAction:
         return MessageAction(contents=action_dict["contents"])
 
     def write_to_path(self, path):
-        open(path, "w").write(self.contents)
+        with open(path, "w") as f:
+            f.write(self.contents)
 
 
 DICTIFIABLE_ACTION_CLASSES = [

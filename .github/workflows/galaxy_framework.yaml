@@ -2,17 +2,19 @@ name: Framework tests
 on: [push, pull_request]
 env:
   GALAXY_TEST_DBURI: 'postgresql://postgres:postgres@localhost:5432/galaxy?client_encoding=utf8'
+permissions: {}
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.8']
+        python-version: ['3.10']
         galaxy-branch: ['dev', 'master']
         metadata-strategy: ['directory']
         include:
-          - python-version: '3.8'
+          - python-version: '3.10'
             galaxy-branch: 'dev'
             metadata-strategy: 'extended'
     services:
@@ -25,34 +27,31 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7.0.1
         with:
           path: 'pulsar'
+          persist-credentials: false
       - name: Checkout tools repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7.0.1
         with:
           repository: galaxyproject/galaxy
           ref: ${{ matrix.galaxy-branch }}
           path: galaxy
-      - uses: actions/setup-python@v2
+          persist-credentials: false
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
       - name: Build Pulsar wheel and replace Galaxy's requirements.
         run: python tools/replace_galaxy_requirements_for_ci.py
         working-directory: 'pulsar'
-      - name: Cache pip dir
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('galaxy/requirements.txt') }}
       - name: Run tests
         run: ./run_tests.sh --framework
         working-directory: 'galaxy'
         env:
           GALAXY_TEST_JOB_CONFIG_FILE: ../pulsar/test_data/test_job_conf.yaml
           GALAXY_CONFIG_OVERRIDE_METADATA_STRATEGY: ${{ matrix.metadata-strategy }}
-        continue-on-error: ${{ matrix.galaxy-branch == 'master' }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: Framework test results (${{ matrix.python-version }})
+          name: Framework test results (${{ matrix.galaxy-branch }} ${{ matrix.metadata-strategy  }} ${{ matrix.python-version }})
           path: 'galaxy/run_framework_tests.html'

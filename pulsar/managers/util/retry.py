@@ -10,6 +10,13 @@ DEFAULT_INTERVAL_MAX = 30.0
 DEFAULT_INTERVAL_STEP = 2.0
 DEFAULT_CATCH = (Exception,)
 
+
+def _always_retry(_exc):
+    return True
+
+
+DEFAULT_SHOULD_RETRY = _always_retry
+
 DEFAULT_DESCRIPTION = "action"
 
 
@@ -26,6 +33,7 @@ class RetryActionExecutor:
         self.interval_max = float(kwds.get("interval_max", DEFAULT_INTERVAL_MAX))
         self.errback = kwds.get("errback", self.__default_errback)
         self.catch = kwds.get("catch", DEFAULT_CATCH)
+        self.should_retry = kwds.get("should_retry", DEFAULT_SHOULD_RETRY)
 
         self.default_description = kwds.get("description", DEFAULT_DESCRIPTION)
 
@@ -47,6 +55,7 @@ class RetryActionExecutor:
             interval_step=self.interval_step,
             interval_max=self.interval_max,
             errback=on_error,
+            should_retry=self.should_retry,
         )
 
     def __default_errback(self, exc, interval, description=None):
@@ -55,16 +64,25 @@ class RetryActionExecutor:
             "Failed to execute %s, retrying in %s seconds.",
             description,
             interval,
-            exc_info=True
+            exc_info=True,
         )
 
 
 # Following functions are derived from Kombu versions @
 # https://github.com/celery/kombu/blob/master/kombu/utils/__init__.py
 # BSD License (https://github.com/celery/kombu/blob/master/LICENSE)
-def _retry_over_time(fun, catch, args=[], kwargs={}, errback=None,
-                     max_retries=None, interval_start=2, interval_step=2,
-                     interval_max=30):
+def _retry_over_time(
+    fun,
+    catch,
+    args=[],
+    kwargs={},
+    errback=None,
+    max_retries=None,
+    interval_start=2,
+    interval_step=2,
+    interval_max=30,
+    should_retry=DEFAULT_SHOULD_RETRY,
+):
     """Retry the function over and over until max retries is exceeded.
 
     For each retry we sleep a for a while before we try again, this interval
@@ -82,20 +100,29 @@ def _retry_over_time(fun, catch, args=[], kwargs={}, errback=None,
     :keyword interval_step: By how much the interval is increased for each
         retry.
     :keyword interval_max: Maximum number of seconds to sleep between retries.
+    :keyword should_retry: Predicate ``(exc) -> bool`` evaluated on each
+        caught exception. If it returns False the exception is re-raised
+        immediately without sleeping. Defaults to retrying on every caught
+        exception.
 
     """
     retries = 0
-    interval_range = __fxrange(interval_start,
-                               interval_max + interval_start,
-                               interval_step, repeatlast=True)
+    interval_range = __fxrange(
+        interval_start, interval_max + interval_start, interval_step, repeatlast=True
+    )
     for retries in count():
         try:
             return fun(*args, **kwargs)
         except catch as exc:
+            if not should_retry(exc):
+                raise
             if max_retries and retries >= max_retries:
                 raise
-            tts = float(errback(exc, interval_range, retries) if errback
-                        else next(interval_range))
+            tts = float(
+                errback(exc, interval_range, retries)
+                if errback
+                else next(interval_range)
+            )
             if tts:
                 sleep(tts)
 

@@ -11,7 +11,7 @@ qsub/qstat CLI commands, or Condor_).
 
 To configure job managers, uncomment the ``managers`` section of ``app.yml``
 and modify it as needed. For instance, the default job manager corresponds to
-a configuration of 
+a configuration of
 
 .. code-block:: YAML
 
@@ -113,7 +113,7 @@ Pulsar can manage jobs via command-line execution of ``qsub``, ``qdel``,
         job_plugin: Torque
 
 ``job_plugin`` can also be ``Slurm`` (to use ``srun``, etc...) or
-``SlurmTorque`` (to use the Slurm varaint of ``qsub``, etc...).
+``SlurmTorque`` (to use the Slurm variant of ``qsub``, etc...).
 
 Pulsar can also login into a remote host before executing these commands if
 the job manager is not accessible from the Pulsar host.
@@ -151,14 +151,15 @@ run DRMAA jobs via the user requested by the client (e.g. the Galaxy user).
         #drmaa_kill_script: scripts/drmaa_kill.bash
         #drmaa_launch_script: scripts/drmaa_launch.bash
 
-For more information on running jobs as the real user, check out `this discussion
-<http://dev.list.galaxyproject.org/Managing-Data-Locality-tp4662438.html>`__ from
-the Galaxy mailing list.
+Additionally, set ``submit_user`` to ``$__user_name__`` in Galaxy's Pulsar job
+destination. See Galaxy's `sample job configuration
+<https://github.com/galaxyproject/galaxy/blob/dev/lib/galaxy/config/sample/job_conf.sample.yml>`__.
+
 
 More Options
 -------------------------------
 
-Any manager can override the ``staging_directory`` used by setting this
+Most managers can override the ``staging_directory`` used by setting this
 property in its configuration section.
 
 The ``min_polling_interval: 0.5`` option can be set on any manager to control

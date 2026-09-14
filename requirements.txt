@@ -1,16 +1,18 @@
-webob
+webob>=1.8.8
 psutil
-PasteDeploy
 pyyaml
 galaxy-job-metrics>=21.9.0
 galaxy-objectstore>=19.9.0
 galaxy-tool-util>=19.9.0
-galaxy-util>=22.1.2
+galaxy-util>=23.0
 paramiko
 typing-extensions
 pydantic-tes>=0.1.5
 pyjwt
+pulsar-relay-client>=0.2.1; python_version >= "3.10"
+requests
 tuspy
+google-cloud-batch
 
 ## Uncomment if using DRMAA queue manager.
 #drmaa
