@@ -150,18 +150,26 @@ run DRMAA jobs via the user requested by the client (e.g. the Galaxy user).
         #chown_working_directory_script: scripts/chown_working_directory.bash
         #drmaa_kill_script: scripts/drmaa_kill.bash
         #drmaa_launch_script: scripts/drmaa_launch.bash
-        #user_mapping_script: 
+        #user_mapping_script:
+        #user_mapping_timeout: 30
 
 Additionally, set ``submit_user`` to ``$__user_name__`` in Galaxy's Pulsar job
 destination. See Galaxy's `sample job configuration
 <https://github.com/galaxyproject/galaxy/blob/dev/lib/galaxy/config/sample/job_conf.sample.yml>`__.
 
 
-A script that maps the user name that pulsr gets from the Galaxy server to a user name
-on the target system can be configured with the optional parameter ``user_mapping_script``.
-The script is supposed to get a single positional parameter and should output the
-desired user name to stdout. In can a mapping is not possible a non-zero exit code 
-be returned and an error message should be printed on stderr.
+A script that maps the user name Pulsar receives from the Galaxy server onto a user
+name on the target system can be configured with the optional parameter
+``user_mapping_script``. The script receives the client-supplied name as a single
+positional argument and should print the mapped name to stdout. If a mapping is not
+possible it should exit with a non-zero status and print an error message to stderr,
+which Pulsar logs.
+
+The mapped name is passed to ``sudo -u`` and to the working-directory chown, so it is
+validated before use: it must match ``[A-Za-z0-9._][A-Za-z0-9._-]*``. A script that
+exits successfully but prints nothing, or prints a name outside that set, fails the
+job rather than falling through to an unintended account. The script must return within
+``user_mapping_timeout`` seconds (default 30).
 
 More Options
 -------------------------------
