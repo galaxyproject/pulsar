@@ -18,7 +18,6 @@ from pulsar.cache import Cache
 from pulsar.manager_factory import build_managers
 from pulsar.tools import ToolBox
 from pulsar.tools.authorization import get_authorizer
-
 from pulsar.user_auth.manager import UserAuthManager
 
 log = getLogger(__name__)

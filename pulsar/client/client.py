@@ -3,20 +3,32 @@ import os
 from enum import Enum
 from typing import (
     Any,
-    cast,
     Callable,
+    cast,
     Dict,
     Optional,
 )
+
 from typing_extensions import Protocol
 
-from pulsar.managers.util.tes import (
-    ensure_tes_client,
-    TesClient,
-    TesExecutor,
-    TesState,
-    TesTask,
-    tes_galaxy_instance_id,
+from pulsar.client.container_job_config import (
+    CoexecutionContainerCommand,
+    container_command_to_gcp_runnable,
+    gcp_galaxy_instance_id,
+    gcp_job_request,
+    gcp_job_template,
+    parse_gcp_job_params,
+    parse_tes_job_params,
+    tes_client_from_params,
+    tes_resources,
+)
+from pulsar.managers import status as manager_status
+from pulsar.managers.util.gcp_util import (
+    batch_v1,
+    delete_gcp_job,
+    ensure_client as ensure_gcp_client,
+    gcp_client,
+    get_gcp_job,
 )
 from pulsar.managers.util.pykube_util import (
     ensure_pykube,
@@ -30,26 +42,14 @@ from pulsar.managers.util.pykube_util import (
     pykube_client_from_dict,
     stop_job,
 )
-from pulsar.managers.util.gcp_util import (
-    batch_v1,
-    delete_gcp_job,
-    ensure_client as ensure_gcp_client,
-    gcp_client,
-    get_gcp_job,
+from pulsar.managers.util.tes import (
+    ensure_tes_client,
+    tes_galaxy_instance_id,
+    TesClient,
+    TesExecutor,
+    TesState,
+    TesTask,
 )
-from pulsar.client.container_job_config import (
-    CoexecutionContainerCommand,
-    container_command_to_gcp_runnable,
-    gcp_galaxy_instance_id,
-    gcp_job_request,
-    gcp_job_template,
-    parse_gcp_job_params,
-    parse_tes_job_params,
-    tes_client_from_params,
-    tes_resources,
-)
-
-from pulsar.managers import status as manager_status
 from .action_mapper import (
     actions,
     path_type,
@@ -115,8 +115,12 @@ class BaseJobClient:
         for attr in ["ssh_key", "ssh_user", "ssh_host", "ssh_port"]:
             setattr(self, attr, destination_params.get(attr, None))
         self.env = destination_params.get("env", [])
+        # Optional cvmfsexec configuration; delivered to the Pulsar manager via
+        # setup_params so it can override the manager's app.yml default.
+        self.cvmfsexec = destination_params.get("cvmfsexec", None)
         self.files_endpoint = destination_params.get("files_endpoint", None)
         self.token_endpoint = destination_params.get("token_endpoint", None)
+        self.external_id = destination_params.get("external_id", None)
 
         default_file_action = self.destination_params.get("default_file_action", "transfer")
         if default_file_action not in actions:
@@ -210,6 +214,8 @@ class JobClient(BaseJobClient):
             launch_params['submit_extras'] = json_dumps({'touch_outputs': job_config['touch_outputs']})
         if token_endpoint is not None:
             launch_params["token_endpoint"] = json_dumps({'token_endpoint': token_endpoint})
+        if self.cvmfsexec is not None:
+            launch_params['cvmfsexec'] = json_dumps(self.cvmfsexec)
 
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
@@ -385,6 +391,8 @@ class BaseRemoteConfiguredJobClient(BaseJobClient):
             launch_params['remote_staging']['ssh_key'] = self.ssh_key
         launch_params['dynamic_file_sources'] = dynamic_file_sources
         launch_params['token_endpoint'] = token_endpoint
+        if self.cvmfsexec is not None:
+            launch_params['cvmfsexec'] = self.cvmfsexec
 
         if job_config and self.setup_handler.local:
             # Setup not yet called, job properties were inferred from
@@ -496,7 +504,7 @@ class BaseMessageJobClient(BaseRemoteConfiguredJobClient):
         job_id = self.job_id
         full_status = self.client_manager.status_cache.get(job_id, None)
         if full_status is None:
-            raise Exception("full_status() called for [%s] before a final status was properly cached with cilent manager." % job_id)
+            raise Exception("full_status() called for [%s] before a final status was properly cached with client manager." % job_id)
         return full_status
 
     def _build_status_request_message(self):
@@ -867,17 +875,22 @@ class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
         job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
         return job_name
 
+    @property
+    def _tes_task_id(self):
+        """Return the provider-assigned TES id when Galaxy recorded one."""
+        return self.external_id or self.job_id
+
     def _setup_tes_client_properties(self, destination_params):
         self.instance_id = tes_galaxy_instance_id(destination_params)
 
     def kill(self):
-        self._tes_client.cancel_task(self.job_id)
+        self._tes_client.cancel_task(self._tes_task_id)
 
     def clean(self):
         pass
 
     def raw_check_complete(self) -> Dict[str, Any]:
-        tes_task: TesTask = self._tes_client.get_task(self.job_id, "FULL")
+        tes_task: TesTask = self._tes_client.get_task(self._tes_task_id, "FULL")
         tes_state = tes_task.state
         return {
             "status": tes_state_to_pulsar_status(tes_state),
@@ -1120,12 +1133,32 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
         assert pulsar_finish_container is None
         gcp_job_params = self._gcp_job_params
         job = gcp_job_template(gcp_job_params)
-        runnable = container_command_to_gcp_runnable("pulsar-container", pulsar_submit_container)
-        job.task_groups[0].task_spec.runnables.append(runnable)
 
+        # Parse docker_extra_volumes (comma-separated Docker -v style strings)
+        # into a list for GCP Batch Runnable.Container.volumes
+        extra_volumes = []
+        raw = self.destination_params.get("docker_extra_volumes", "")
+        if raw:
+            extra_volumes = [v.strip() for v in raw.split(",") if v.strip()]
+
+        # Order matters: GCP Batch runs runnables sequentially. A background
+        # runnable starts and immediately yields to the next runnable. We need:
+        #   1. Tool (background) — starts polling for command_line file
+        #   2. Sidecar (foreground) — stages inputs, writes command_line, polls
+        #      for return_code, collects outputs, sends AMQP callback
+        # The sidecar must be foreground so it survives after the tool finishes
+        # (GCP Batch kills background runnables when all foreground ones exit).
         if tool_container:
             tool_runnable = container_command_to_gcp_runnable("tool-container", tool_container)
+            tool_runnable.background = True
+            if extra_volumes:
+                tool_runnable.container.volumes = extra_volumes
             job.task_groups[0].task_spec.runnables.append(tool_runnable)
+
+        runnable = container_command_to_gcp_runnable("pulsar-container", pulsar_submit_container)
+        if extra_volumes:
+            runnable.container.volumes = extra_volumes
+        job.task_groups[0].task_spec.runnables.append(runnable)
 
         job_name = self._job_name
         create_request = gcp_job_request(gcp_job_params, job, job_name)

@@ -7,40 +7,38 @@ Galaxy Configuration
 Examples
 --------
 
-The most complete and updated documentation for configuring Galaxy job
-destinations is Galaxy's ``job_conf.xml.sample_advanced`` file (check it out on
+The most complete and up-to-date documentation for configuring Galaxy job
+destinations is Galaxy's ``job_conf.sample.yml`` file (check it out on
 `GitHub
-<https://github.com/galaxyproject/galaxy/blob/dev/lib/galaxy/config/sample/job_conf.xml.sample_advanced>`_).
-These examples just provide a different Pulsar-centric perspective on some of the documentation in that file.
+<https://github.com/galaxyproject/galaxy/blob/dev/lib/galaxy/config/sample/job_conf.sample.yml>`_).
+These examples just provide a different Pulsar-centric perspective on some of
+the documentation in that file.
 
-Simple Windows Pulsar Web Server
-````````````````````````````````
+.. note::
 
-The following Galaxy ``job_conf.xml`` assumes you have deployed a simple Pulsar
-web server to the Windows host ``windowshost.examle.com`` on the default port
-(``8913``) with a ``private_token`` (defined in ``app.yml``) of
-``123456789changeme``. Most Galaxy jobs will just route use Galaxy's local job
-runner but ``msconvert`` and ``proteinpilot`` will be sent to the Pulsar server
-on ``windowshost.examle.com``. Sophisticated tool dependency resolution is not
-available for Windows-based Pulsar servers so ensure the underlying application
-are on the Pulsar's path.
+    Galaxy's job configuration was historically expressed as XML
+    (``job_conf.xml``). The YAML format (``job_conf.yml``) is now the
+    recommended form and is used throughout the examples below. The XML
+    form remains supported but is deprecated.
 
-.. literalinclude:: files/job_conf_sample_windows.xml
-   :language: xml
+In the YAML schema, what used to be called a *plugin* is configured under
+``runners``, and what used to be called a *destination* is configured under
+``execution.environments``. Tools are mapped to environments under the
+top-level ``tools`` list.
 
 Targeting a Linux Cluster (Pulsar Web Server)
 `````````````````````````````````````````````
 
-The following Galaxy ``job_conf.xml`` assumes you have a very typical Galaxy
+The following Galaxy ``job_conf.yml`` assumes you have a very typical Galaxy
 setup - there is a local, smaller cluster that mounts all of Galaxy's data (so
 no need for the Pulsar) and a bigger shared resource that cannot mount Galaxy's
 files requiring the use of the Pulsar. This variant routes some larger assembly
 jobs to the remote cluster - namely the ``trinity`` and ``abyss`` tools.
 
-.. literalinclude:: files/job_conf_sample_remote_cluster.xml
-   :language: xml
+.. literalinclude:: files/job_conf_sample_remote_cluster.yml
+   :language: yaml
 
-For this configuration, on the Pulsar side be sure to also set a
+For this configuration, on the Pulsar side, be sure to also set a
 ``DRMAA_LIBRARY_PATH`` in ``local_env.sh``, install the Python ``drmaa``
 module, and configure a DRMAA job manager for Pulsar in ``app.yml`` as described
 in :ref:`job_managers`.
@@ -56,10 +54,10 @@ queue to be used for communication. This is also likely better for large file
 transfers since typically your production Galaxy server will be sitting behind
 a high-performance proxy while Pulsar will not.
 
-.. literalinclude:: files/job_conf_sample_mq.xml
-   :language: xml
+.. literalinclude:: files/job_conf_sample_mq.yml
+   :language: yaml
 
-The ``manager`` param to the ``PulsarMQJobRunner`` plugin allows for using the
+The ``manager`` param on the ``pulsar_hugenodes`` runner allows for using the
 same AMQP server and vhost (in this example, the default ``/`` vhost) between
 multiple Pulsar servers, or submitting jobs to multiple managers (see:
 :ref:`job_managers`) on the same Pulsar server.
@@ -70,12 +68,12 @@ jobs, and the ``hugenodes`` job manager will be used for ``abyss`` jobs.
 .. note::
 
     If you only need to define different ``submit_native_specification`` params
-    on the same cluster for these tools/destinations, it is not necessary to use
-    a separate manager - multiple destinations can reference the same plugin.
+    on the same cluster for these tools/environments, it is not necessary to use
+    a separate manager - multiple environments can reference the same runner.
     This example is for documentation purposes.
 
 All of the ``amqp_*`` options documented in `app.yml.sample`_ can be specified
-as params to the ``PulsarMQJobRunner`` plugin. These configure Galaxy's
+as parameters under a ``PulsarMQJobRunner`` runner. These configure Galaxy's
 connection to the AMQP server (rather than Pulsar's connection, which is
 configured in Pulsar's ``app.yml``). Additionally, specifying the
 ``persistence_directory`` param controls where AMQP acknowledgement receipts
@@ -87,14 +85,16 @@ is more documentation in :ref:`galaxy_with_rabbitmq_conf`.
 Additionally, Pulsar ships with an RSync and SCP transfer action rather than
 making use of the HTTP transport method:
 
-.. literalinclude:: files/job_conf_sample_mq_rsync.xml
-   :language: xml
+.. literalinclude:: files/job_conf_sample_mq_rsync.yml
+   :language: yaml
 
 Targeting GCP Batch, Kubernetes, or TES
 ```````````````````````````````````````
 
 Check out :ref:`containers` for information on using Pulsar with these
-container-native execution environments.
+container-native execution environments. The ``pulsar_k8s``, ``pulsar_tes``,
+and ``pulsar_gcp`` runners (and corresponding environments) in Galaxy's
+``job_conf.sample.yml`` give a starting point for each.
 
 Generating Galaxy Metadata in Pulsar Jobs
 `````````````````````````````````````````
@@ -123,28 +123,56 @@ In order to enable the remote metadata option:
    Galaxy server. This can either be done by setting ``GALAXY_HOME`` in
    ``local_env.sh``, or by setting ``galaxy_home`` in ``app.yml``.
 
-3. In the Galaxy ``job_conf.xml`` *destination(s)* you want to enable remote
-   metadata on, set the following params::
+3. In the Galaxy ``job_conf.yml`` execution environment(s) you want to enable
+   remote metadata on, set the following params:
 
-        <param id="remote_metadata">true</param>
-        <param id="remote_property_galaxy_home">/path/to/galaxy</param>
+   .. code-block:: yaml
 
-   and one of either::
+        remote_metadata: true
+        remote_property_galaxy_home: /path/to/galaxy
 
-        <param id="use_metadata_binary">true</param>
+   and one of either:
 
-   or::
+   .. code-block:: yaml
 
-        <param id="use_remote_datatypes">false</param>
+        use_metadata_binary: true
+
+   or:
+
+   .. code-block:: yaml
+
+        use_remote_datatypes: false
+
+Simple Windows Pulsar Web Server
+````````````````````````````````
+
+Pulsar deployment on Windows is uncommon, but supported. The following Galaxy
+``job_conf.yml`` assumes you have deployed a simple Pulsar web server to the
+Windows host ``windowshost.examle.com`` on the default port (``8913``) with a
+``private_token`` (defined in ``app.yml``) of ``123456789changeme``. Most
+Galaxy jobs will just use Galaxy's local job runner but ``msconvert`` and
+``proteinpilot`` will be sent to the Pulsar server on
+``windowshost.examle.com``. Sophisticated tool dependency resolution is not
+available for Windows-based Pulsar servers so ensure the underlying
+applications are on Pulsar's path.
+
+.. literalinclude:: files/job_conf_sample_windows.yml
+   :language: yaml
+
+This example uses ``PulsarLegacyJobRunner``, which is the Pulsar runner with
+default parameters matching those of the old LWR job runner. It disables
+features (such as remote dependency resolution and remote metadata) that newer
+Pulsar servers handle but Windows-based servers typically cannot. For Linux
+Pulsar servers, prefer ``PulsarRESTJobRunner`` (shown in the examples above).
 
 Data Staging
 ------------
 
 Most of the parameters settable in Galaxy's job configuration file
-``job_conf.xml`` are straight forward - but specifying how Galaxy and the Pulsar
+``job_conf.yml`` are straight forward - but specifying how Galaxy and the Pulsar
 stage various files may benefit from more explanation.
 
-``default_file_action`` defined in Galaxy's `job_conf.xml` describes how
+``default_file_action`` defined in Galaxy's ``job_conf.yml`` describes how
 inputs, outputs, indexed reference data, etc... are staged. The default
 ``transfer`` has Galaxy initiate HTTP transfers. This makes little sense in the
 context of message queues so this should be set to ``remote_transfer``, which
@@ -156,13 +184,39 @@ patterns to allow optimization of file transfers in production
 infrastructures where various systems mount different file stores and file
 stores with different paths on different systems.
 
-To do this, the defined Pulsar destination in Galaxy's ``job_conf.xml`` may
-specify a parameter named ``file_action_config``. This needs to be a config
-file path (if relative, relative to Galaxy's root) like
+To do this, the defined Pulsar execution environment in Galaxy's
+``job_conf.yml`` may specify a parameter named ``file_action_config``. This
+needs to be a config file path (if relative, relative to Galaxy's root) like
 ``config/pulsar_actions.yaml`` (can be YAML or JSON - but older Galaxy's only
 supported JSON). The following captures available options:
 
 .. literalinclude:: files/file_actions_sample_1.yaml
    :language: yaml
+
+Rewriting Container Image Paths for cvmfsexec
+`````````````````````````````````````````````
+
+The ``rewrite`` action is also how you remap a Singularity/Apptainer container
+image path when the compute node exposes CVMFS at a non-standard path via
+``cvmfsexec`` in ``mountrepo`` mode (see :ref:`containers`). Galaxy resolves the
+image against the real ``/cvmfs`` on the Galaxy server, but on the compute node
+the repository is bind-mounted under the per-job directory, so the image path
+baked into the job command must be rewritten. The resolved container image is
+remapped via the dedicated ``container`` path type (distinct from the
+``unstructured`` tool-parameter paths above). Add the following to the
+destination's ``file_actions`` (or ``file_action_config``):
+
+.. code-block:: yaml
+
+   paths:
+     - path: /cvmfs/singularity.galaxyproject.org
+       path_types: container
+       action: rewrite
+       source_directory: /cvmfs/singularity.galaxyproject.org
+       destination_directory: __PULSAR_JOB_DIRECTORY__/.cvmfsexec/dist/cvmfs/singularity.galaxyproject.org
+
+The ``container`` path type matches only the resolved container image path, so
+this rule never affects tool parameters. The ``__PULSAR_JOB_DIRECTORY__`` token
+is replaced by the Pulsar server with the absolute per-job directory.
 
 .. _app.yml.sample: https://github.com/galaxyproject/pulsar/blob/master/app.yml.sample

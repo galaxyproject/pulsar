@@ -10,6 +10,7 @@ from time import (
 from typing import Optional
 
 from packaging.version import parse as parse_version
+
 try:
     import kombu
     import kombu.exceptions
@@ -74,7 +75,7 @@ class PulsarExchange:
         publish_uuid_store=None,
         consume_uuid_store=None,
         republish_time=DEFAULT_REPUBLISH_TIME,
-        durable=False,
+        durable=True,
     ):
         """
         """
@@ -234,7 +235,7 @@ class PulsarExchange:
             self.publish_uuid_store[ack_uuid] = payload
             log.debug('Requesting acknowledgement of UUID %s on queue %s', ack_uuid, ack_queue)
         with self.connection(self.__url) as connection:
-            with pools.producers[connection].acquire() as producer:
+            with pools.producers[connection].acquire(block=True) as producer:
                 log.debug("%sHave producer for publishing to key %s", publish_log_prefix, key)
                 publish_kwds = self.__prepare_publish_kwds(publish_log_prefix)
                 producer.publish(

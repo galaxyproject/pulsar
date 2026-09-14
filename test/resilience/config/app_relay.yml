@@ -10,6 +10,7 @@ persistence_directory: /pulsar/persisted
 message_queue_url: http://toxiproxy:9000
 message_queue_username: admin
 message_queue_password: admin1234
+relay_long_poll_timeout: 2
 
 conda_auto_init: false
 conda_auto_install: false

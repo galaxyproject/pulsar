@@ -1,6 +1,10 @@
-from .test_utils import get_test_toolbox, temp_job_directory
-from os.path import join
 from os import makedirs
+from os.path import join
+
+from .test_utils import (
+    get_test_toolbox,
+    temp_job_directory,
+)
 
 
 def test_load_simple_tool():

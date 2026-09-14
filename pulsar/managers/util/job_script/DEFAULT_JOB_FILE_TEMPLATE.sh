@@ -25,6 +25,10 @@ _galaxy_setup_environment() {
     fi
 }
 
+# Cleanup registered at job-script generation time collected into a single
+# _galaxy_on_exit function run from one EXIT trap.
+$exit_handler_setup
+
 $integrity_injection
 $slots_statement
 export PYTHONWARNINGS="ignore"
@@ -51,6 +55,7 @@ TMPDIR="${TMPDIR:-$_GALAXY_JOB_TMP_DIR}"
 
 GALAXY_PYTHON=`command -v python`
 $prepare_dirs_statement
+$cvmfsexec_setup
 cd $working_directory
 $memory_statement
 $instrument_pre_commands

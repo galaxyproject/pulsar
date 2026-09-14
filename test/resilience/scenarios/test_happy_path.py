@@ -2,11 +2,14 @@
 
 If this test fails the harness is broken; nothing else in this suite is meaningful.
 """
-import requests
 import pytest
+import requests
 
+from harness.assertions import (
+    assert_exactly_once_terminal,
+    await_terminal,
+)
 from harness.job_factory import make_setup_message
-from harness.assertions import await_terminal, assert_exactly_once_terminal
 
 GALAXY_BASE = "http://localhost:8088"
 

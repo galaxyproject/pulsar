@@ -1,7 +1,8 @@
-import os
 import contextlib
+import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from unittest import mock
 from uuid import uuid4
 
 import requests as requests_module
@@ -9,21 +10,30 @@ from simplejobfiles.app import JobFilesApp
 from webtest import TestApp
 
 from pulsar.client.exceptions import PulsarClientTransportError
+from pulsar.client.transport import (
+    curl as curl_transport,
+    get_transport,
+    requests as requests_transport,
+)
+from pulsar.client.transport.curl import (
+    get_file,
+    post_file,
+    PycurlTransport,
+)
+from pulsar.client.transport.requests import (
+    get_file as requests_get_file,
+    post_file as requests_post_file,
+)
 from pulsar.client.transport.standard import UrllibTransport
-from pulsar.client.transport.curl import PycurlTransport
-from pulsar.client.transport.curl import post_file
-from pulsar.client.transport.curl import get_file
-from pulsar.client.transport.requests import get_file as requests_get_file
-from pulsar.client.transport.requests import post_file as requests_post_file
 from pulsar.client.transport.transient import is_transient_http_error
 from pulsar.client.transport.tus import find_tus_endpoint
-from pulsar.client.transport import get_transport
 from pulsar.managers.util.retry import RetryActionExecutor
-
-from .test_utils import files_server
-from .test_utils import server_for_test_app
-from .test_utils import skip_unless_module
-from .test_utils import temp_directory
+from .test_utils import (
+    files_server,
+    server_for_test_app,
+    skip_unless_module,
+    temp_directory,
+)
 
 
 def test_urllib_transports():
@@ -33,6 +43,50 @@ def test_urllib_transports():
 @skip_unless_module("pycurl")
 def test_pycurl_transport():
     _test_transport(PycurlTransport())
+
+
+def test_curl_object_is_closed():
+    curl = mock.Mock()
+    with mock.patch.object(curl_transport, "_new_curl_object", return_value=curl):
+        with curl_transport._curl_object_for_url("https://example.org") as opened:
+            assert opened is curl
+
+    curl.close.assert_called_once_with()
+
+
+def test_curl_object_is_closed_on_error():
+    curl = mock.Mock()
+    with mock.patch.object(curl_transport, "_new_curl_object", return_value=curl):
+        try:
+            with curl_transport._curl_object_for_url("https://example.org"):
+                raise RuntimeError("test error")
+        except RuntimeError:
+            pass
+
+    curl.close.assert_called_once_with()
+
+
+def test_requests_download_response_is_closed(tmp_path):
+    response = mock.MagicMock()
+    response.__enter__.return_value = response
+    response.iter_content.return_value = [b"downloaded"]
+    with mock.patch.object(requests_transport.requests, "get", return_value=response):
+        requests_transport.get_file("https://example.org", tmp_path / "output")
+
+    response.__exit__.assert_called_once()
+
+
+def test_requests_download_response_is_closed_on_error(tmp_path):
+    response = mock.MagicMock()
+    response.__enter__.return_value = response
+    response.raise_for_status.side_effect = requests_module.HTTPError("test error")
+    with mock.patch.object(requests_transport.requests, "get", return_value=response):
+        try:
+            requests_transport.get_file("https://example.org", tmp_path / "output")
+        except requests_module.HTTPError:
+            pass
+
+    response.__exit__.assert_called_once()
 
 
 @contextlib.contextmanager

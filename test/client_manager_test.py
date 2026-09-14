@@ -2,8 +2,8 @@ import os
 from os import environ
 
 from pulsar.client.manager import (
-    ClientManager,
     _per_handler_cursor_path,
+    ClientManager,
 )
 
 
@@ -62,3 +62,28 @@ def test_per_handler_cursor_path_falls_back_to_pid_with_warning(monkeypatch, cap
     assert path == f"/tmp/relay_cursor-pid{os.getpid()}.json"
     assert any("will not be picked up after a process restart" in rec.message
                for rec in caplog.records)
+
+
+def test_per_handler_cursor_path_includes_manager_name():
+    """Multi-tenant runners drive many managers from one handler; each
+    needs its own cursor file."""
+    assert _per_handler_cursor_path(
+        "/var/lib/galaxy/relay_cursor.json",
+        "handler0",
+        manager_name="byoc_7_lab",
+    ) == "/var/lib/galaxy/relay_cursor-handler0-byoc_7_lab.json"
+
+
+def test_per_handler_cursor_path_omits_default_manager_name():
+    """``_default_`` is the historical single-manager sentinel — its cursor
+    files must keep their existing path so single-Pulsar deployments
+    upgrading to this version don't orphan their persisted progress."""
+    assert _per_handler_cursor_path(
+        "/var/lib/galaxy/relay_cursor.json",
+        "handler0",
+        manager_name="_default_",
+    ) == "/var/lib/galaxy/relay_cursor-handler0.json"
+    # Also true when no manager_name is supplied at all.
+    assert _per_handler_cursor_path(
+        "/var/lib/galaxy/relay_cursor.json", "handler0",
+    ) == "/var/lib/galaxy/relay_cursor-handler0.json"

@@ -1,7 +1,7 @@
 #======================================================
 # Builder - Create virtualenv for Pulsar
 #======================================================
-FROM python:3.13-slim AS builder
+FROM python:3.13-slim-bookworm AS builder
 
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
@@ -17,7 +17,7 @@ RUN apt-get update \
 
 WORKDIR /pulsar
 
-COPY pulsar_app-*-py2.py3-none-any.whl .
+COPY pulsar_app-*py3-none-any.whl .
 COPY requirements.txt .
 
 # Install Pulsar Python requirements
@@ -25,7 +25,7 @@ RUN virtualenv .venv \
     && . .venv/bin/activate \
     && pip install wheel pykube-ng \
     && pip install -r requirements.txt Paste \
-    && pip install `ls pulsar_app-*-py2.py3-none-any.whl`\[galaxy_extended_metadata,web,amqp\]
+    && pip install `ls pulsar_app-*py3-none-any.whl`\[galaxy_extended_metadata,web,amqp\]
 
 # generate default pulsar config
 RUN .venv/bin/pulsar-config --host 0.0.0.0
@@ -33,7 +33,7 @@ RUN .venv/bin/pulsar-config --host 0.0.0.0
 #======================================================
 # Final image - Copy virtualenv for Pulsar
 #======================================================
-FROM python:3.13-slim
+FROM python:3.13-slim-bookworm
 
 ENV LC_ALL=en_US.UTF-8
 ENV LANG=en_US.UTF-8

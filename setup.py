@@ -16,7 +16,12 @@ readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 if os.path.exists("requirements.txt"):
-    requirements = [r for r in open("requirements.txt").read().split("\n") if ";" not in r]
+    # PEP 508 environment markers (``foo; python_version >= "3.10"``) are
+    # passed through to setuptools verbatim. Vestigial pre-3.6 versions of
+    # this loop split ";"-bearing lines into a Python-2.7 sidecar list and
+    # then dropped them from ``requirements`` — which silently swallowed
+    # every modern marker-bearing dep.
+    requirements = open("requirements.txt").read().split("\n")
 else:
     # In tox, it will cover them anyway.
     requirements = []
@@ -100,6 +105,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'amqp': ['kombu'],
+        'daemon': ['daemonize; sys_platform != "win32"'],
         'web': ['gunicorn'],
         'galaxy_extended_metadata': ['galaxy-job-execution', 'galaxy-util[template]'],
     },

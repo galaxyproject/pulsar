@@ -1,7 +1,6 @@
 import shelve
 import sqlite3
 import traceback
-
 from threading import Lock
 
 

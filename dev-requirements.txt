@@ -12,6 +12,7 @@ boto3
 simple-job-files
 pytest
 pytest-timeout
+responses
 webtest
 coverage
 # Used by the docker-compose resilience suite under test/resilience/. Imported

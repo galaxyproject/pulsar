@@ -1,0 +1,25 @@
+runners:
+  drmaa:
+    load: galaxy.jobs.runners.drmaa:DRMAAJobRunner
+  pulsar:
+    load: galaxy.jobs.runners.pulsar:PulsarRESTJobRunner
+
+execution:
+  default: local_cluster
+  environments:
+    local_cluster:
+      runner: drmaa
+      native_specification: '-P littlenodes -R y -pe threads 4'
+    remote_cluster:
+      runner: pulsar
+      url: http://remotelogin:8913/
+      submit_native_specification: '-P bignodes -R y -pe threads 16'
+      # Look for the trinity package at the remote location - define
+      # tool_dependency_dir in the Pulsar app.yml file.
+      dependency_resolution: remote
+
+tools:
+- id: trinity
+  environment: remote_cluster
+- id: abyss
+  environment: remote_cluster

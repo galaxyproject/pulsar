@@ -14,6 +14,7 @@ import requests
 
 from pulsar.client.exceptions import PulsarClientTransportError
 from pulsar.client.transport.transient import (
+    http_status_code,
     is_transient_http_error,
     TRANSIENT_HTTP_STATUS,
 )
@@ -86,6 +87,19 @@ def test_socket_and_builtin_connection_errors_are_transient():
     assert is_transient_http_error(socket.timeout())
     assert is_transient_http_error(TimeoutError())
     assert is_transient_http_error(ConnectionError())
+
+
+def test_http_status_code_extracts_across_exception_shapes():
+    assert http_status_code(_requests_http_error(403)) == 403
+    assert http_status_code(_urllib_http_error(403)) == 403
+    assert http_status_code(PulsarClientTransportError(transport_code=403)) == 403
+
+
+def test_http_status_code_none_when_unavailable():
+    # Connection-level / non-numeric transport codes have no HTTP status.
+    assert http_status_code(ConnectionError()) is None
+    assert http_status_code(PulsarClientTransportError(code=PulsarClientTransportError.TIMEOUT)) is None
+    assert http_status_code(requests.HTTPError()) is None
 
 
 def test_unknown_exception_defaults_to_transient():

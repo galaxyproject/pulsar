@@ -4,6 +4,10 @@ import os
 import string
 import sys
 
+from pulsar.client.galaxy_byoc import (
+    GalaxyBYOCRegistrationError,
+    register_with_galaxy,
+)
 from pulsar.main import (
     ArgumentParser,
     DEFAULT_APP_YAML,
@@ -40,6 +44,18 @@ HELP_LIBDRMAA = ("Configure Pulsar to submit jobs to a cluster via DRMAA by "
                  "supplying the path to a libdrmaa .so file using this argument.")
 HELP_INSTALL = ("Install optional dependencies required by specified configuration "
                 "(e.g. drmaa, supervisor, uwsgi, etc...).")
+HELP_LOGIN = ("Scaffold a relay-flavoured config directory (app.yml, "
+              "local_env.sh, ...) and bootstrap pulsar-relay credentials via "
+              "the device-authorization flow. Implies --mq. Refuses to "
+              "overwrite an existing app.yml without --force; if you already "
+              "have a config and only want the credentials file, use "
+              "--login-only.")
+HELP_LOGIN_ONLY = ("Bootstrap pulsar-relay credentials via the device-"
+                   "authorization flow only — do not write or modify "
+                   "app.yml. Use this when you already have a relay config.")
+HELP_RELAY_URL = ("Base URL of the pulsar-relay server. Required with --login "
+                  "or --login-only; also written into app.yml when --mq is set.")
+
 HELP_HOST = ("Host to bind Pulsar to - defaults to localhost. Specify 0.0.0.0 "
              "to listen on all interfaces.")
 HELP_TOKEN = ("Private token used to authorize clients. If Pulsar is not protected "
@@ -152,6 +168,19 @@ def main(argv=None):
                             action="store_true",
                             default=False,
                             help=HELP_MQ)
+    arg_parser.add_argument("--login",
+                            action="store_true",
+                            default=False,
+                            help=HELP_LOGIN)
+    arg_parser.add_argument("--login-only",
+                            dest="login_only",
+                            action="store_true",
+                            default=False,
+                            help=HELP_LOGIN_ONLY)
+    arg_parser.add_argument("--relay-url",
+                            dest="relay_url",
+                            default=None,
+                            help=HELP_RELAY_URL)
     arg_parser.add_argument("--no_logging",
                             dest="logging",
                             action="store_false",
@@ -186,6 +215,22 @@ def main(argv=None):
                             action="store_true",
                             default=False,
                             help=HELP_FORCE)
+    arg_parser.add_argument("--register-with-galaxy",
+                            dest="register_with_galaxy",
+                            default=None,
+                            metavar="GALAXY_URL",
+                            help=(
+                                "Bootstrap a BYOC Pulsar registration against a Galaxy "
+                                "server. Drives the relay device flow with pair-issuance "
+                                "and hands the secondary refresh token to Galaxy at "
+                                "/api/compute_resources/registrations/complete. Requires "
+                                "--relay-url and --galaxy-token (the one-shot token returned "
+                                "by POST /api/compute_resources/registrations)."
+                            ))
+    arg_parser.add_argument("--galaxy-token",
+                            dest="galaxy_token",
+                            default=None,
+                            help="One-shot bootstrap token from /api/compute_resources/registrations.")
     # arg_parser.add_argument("--pip_install_args",
     #                         default="pulsar-app",
     #                         help=HELP_PIP_INSTALL_ARGS_HELP)
@@ -193,6 +238,22 @@ def main(argv=None):
     directory = args.directory
     relative_directory = directory
     directory = os.path.abspath(directory)
+
+    _validate_relay_args(args, arg_parser, directory)
+
+    # --login-only: just run the device flow, no scaffolding.
+    if args.login_only:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        return _run_relay_login(args, directory)
+
+    # --register-with-galaxy: pair-issuance device flow + Galaxy callback.
+    # Scaffolds app.yml using the relay-supplied manager_name so the user's
+    # Pulsar binds to the same topics Galaxy publishes to.
+    if args.register_with_galaxy:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        return _run_register_with_galaxy(args, directory)
 
     mode = _determine_mode(args)
     if mode == "uwsgi":
@@ -213,6 +274,38 @@ def main(argv=None):
         _handle_supervisor(args, mode, directory, dependencies)
     _handle_install(args, dependencies)
     _print_config_summary(args, mode, relative_directory)
+
+    # If the operator asked to also sign in, run the device flow now so the
+    # credentials file lands next to the freshly-scaffolded app.yml.
+    if args.login:
+        return _run_relay_login(args, directory)
+
+
+def _validate_relay_args(args, arg_parser, directory):
+    if args.login and args.login_only:
+        arg_parser.error("--login and --login-only are mutually exclusive")
+    if (args.login or args.login_only) and not args.relay_url:
+        arg_parser.error("--login / --login-only require --relay-url")
+    if args.register_with_galaxy:
+        if not args.relay_url:
+            arg_parser.error("--register-with-galaxy requires --relay-url")
+        if not args.galaxy_token:
+            arg_parser.error("--register-with-galaxy requires --galaxy-token")
+
+    # --login implies --mq (relay is a message queue). Set it here so the
+    # downstream scaffold writes a relay-flavoured app.yml.
+    if args.login:
+        args.mq = True
+        # Refuse to clobber an existing app.yml unless --force is set —
+        # this is almost certainly the operator's hand-rolled config and
+        # they want --login-only instead.
+        existing_app_yaml = os.path.join(directory, DEFAULT_APP_YAML)
+        if os.path.isfile(existing_app_yaml) and not args.force:
+            arg_parser.error(
+                "{path} already exists. Use --login-only to bootstrap relay "
+                "credentials without touching app.yml, or --force to "
+                "regenerate the scaffold from scratch.".format(path=existing_app_yaml)
+            )
 
 
 def _print_config_summary(args, mode, relative_directory):
@@ -274,6 +367,103 @@ def _determine_mode(args):
     return mode
 
 
+RELAY_CREDENTIALS_FILENAME = "relay_credentials.json"
+
+
+def _run_register_with_galaxy(args, directory):
+    """Drive ``pulsar-config --register-with-galaxy`` end-to-end."""
+    credentials_path = os.path.join(directory, RELAY_CREDENTIALS_FILENAME)
+    try:
+        result = register_with_galaxy(
+            galaxy_url=args.register_with_galaxy,
+            bootstrap_token=args.galaxy_token,
+            relay_url=args.relay_url,
+            credentials_path=credentials_path,
+        )
+    except GalaxyBYOCRegistrationError as exc:
+        print("BYOC registration failed: {}".format(exc), file=sys.stderr)
+        return 1
+
+    # Write a minimal app.yml that binds Pulsar to the manager_name the
+    # relay handed us (= the JWT ``sub``), via the credentials file we
+    # just wrote.
+    manager_name = result["manager_name"]
+    app_yaml_path = os.path.join(directory, DEFAULT_APP_YAML)
+    if os.path.exists(app_yaml_path) and not args.force:
+        print(
+            " - {path} already exists; not overwriting. Configure your Pulsar to "
+            "use manager.name='{m}' and message_queue_credentials_file='{c}'.".format(
+                path=app_yaml_path, m=manager_name, c=credentials_path
+            )
+        )
+    else:
+        contents = (
+            "---\n"
+            "managers:\n"
+            "  {m}: {{}}\n"
+            'message_queue_url: "{url}"\n'
+            'message_queue_credentials_file: "{c}"\n'
+        ).format(m=manager_name, url=args.relay_url, c=credentials_path)
+        with open(app_yaml_path, "w") as fh:
+            fh.write(contents)
+        print(" - {path} written (manager.name='{m}').".format(path=app_yaml_path, m=manager_name))
+
+    print(
+        " - registered with Galaxy at {url} as manager '{m}'.".format(
+            url=args.register_with_galaxy, m=manager_name
+        )
+    )
+    print(" - relay credentials at {p} (primary refresh token).".format(p=credentials_path))
+    return 0
+
+
+def _run_relay_login(args, directory):
+    """Bootstrap a refresh-token credentials file via the device flow.
+
+    Imported lazily so that ``pulsar-config`` without ``--login`` does not
+    pay the import cost (and works even if ``requests`` is unavailable, which
+    matters for some bootstrap scripts).
+    """
+    from pulsar_relay_client import (
+        CredentialsFile,
+        DeviceFlowError,
+        RelayDeviceFlowAuthenticator,
+    )
+
+    credentials_path = os.path.join(directory, RELAY_CREDENTIALS_FILENAME)
+    cred_file = CredentialsFile(credentials_path)
+
+    print(
+        "Beginning pulsar-relay device-flow login against {url}.".format(url=args.relay_url)
+    )
+    print(
+        "If your terminal is on a different machine than your browser, "
+        "open the URL printed below in any browser and enter the user code shown."
+    )
+
+    flow = RelayDeviceFlowAuthenticator(
+        relay_url=args.relay_url,
+        credentials_file=cred_file,
+        client_hint="pulsar-config on {host}".format(host=os.uname().nodename),
+    )
+    try:
+        flow.run()
+    except DeviceFlowError as exc:
+        print("Login failed: {}".format(exc), file=sys.stderr)
+        return 1
+    print(" - relay credentials written to {path}".format(path=credentials_path))
+    if not args.mq:
+        # The app.yml scaffold was skipped (operator ran --login alone).
+        # Print the keys they need to add by hand.
+        print(
+            "Set ``message_queue_credentials_file: {path}`` (and "
+            "``message_queue_url: {url}``) in app.yml.".format(
+                path=credentials_path, url=args.relay_url
+            )
+        )
+    return 0
+
+
 def _handle_server_ini(args, directory):
     force = args.force
     ini_file = os.path.join(directory, DEFAULT_INI)
@@ -293,7 +483,8 @@ def _handle_server_ini(args, directory):
         server_config = SERVER_CONFIG_TEMPLATE.safe_substitute(
             **config_dict
         )
-        open(ini_file, "w").write(server_config)
+        with open(ini_file, "w") as fh:
+            fh.write(server_config)
 
 
 def _handle_app_yaml(args, directory):
@@ -304,13 +495,26 @@ def _handle_app_yaml(args, directory):
     if args.private_token:
         contents += 'private_token: %s\n' % args.private_token
     if args.mq:
-        contents += 'message_queue_url: "amqp://guest:guest@localhost:5672//"\n'
+        if args.relay_url:
+            # pulsar-relay (HTTP) mode. Use a refresh-token credentials file
+            # bootstrapped by `pulsar-config --login`, falling back to legacy
+            # username/password placeholders the operator can fill in by hand.
+            contents += 'message_queue_url: "{}"\n'.format(args.relay_url)
+            contents += 'message_queue_credentials_file: "{}"\n'.format(
+                os.path.join(directory, RELAY_CREDENTIALS_FILENAME)
+            )
+            contents += '## Or, for legacy password-based relay auth:\n'
+            contents += '#message_queue_username: admin\n'
+            contents += '#message_queue_password: changeme\n'
+        else:
+            contents += 'message_queue_url: "amqp://guest:guest@localhost:5672//"\n'
     auto_conda = 'true' if args.auto_conda else 'false'
     contents += 'conda_auto_init: {}\n'.format(auto_conda)
     contents += 'conda_auto_install: {}\n'.format(auto_conda)
     if not IS_WINDOWS and args.libdrmaa_path:
         contents += 'manager:\n  type: queued_drmaa\n'
-    open(yaml_file, "w").write(contents)
+    with open(yaml_file, "w") as fh:
+        fh.write(contents)
 
 
 def _handle_local_env(args, directory, dependencies):
@@ -325,7 +529,8 @@ def _handle_local_env(args, directory, dependencies):
     local_env_contents = LOCAL_ENV_TEMPLATE.safe_substitute(
         libdrmaa_line=libdrmaa_line,
     )
-    open(local_env_file, "w").write(local_env_contents)
+    with open(local_env_file, "w") as fh:
+        fh.write(local_env_contents)
 
 
 def _handle_supervisor(args, mode, directory, dependencies):
@@ -337,7 +542,8 @@ def _handle_supervisor(args, mode, directory, dependencies):
             mode=mode,
         )
         conf_path = os.path.join(directory, "supervisor.conf")
-        open(conf_path, "w").write(config)
+        with open(conf_path, "w") as fh:
+            fh.write(config)
         dependencies.append("supervisor")
 
 

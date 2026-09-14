@@ -1,17 +1,17 @@
 import os
-import yaml
 
-from .test_utils import (
-    TempDirectoryTestCase,
-    files_server,
-    integration_test,
-    skip_unless_module,
-    temp_directory_persist,
-)
+import yaml
 
 from pulsar.client import ClientOutputs
 from pulsar.client.util import to_base64_json
 from pulsar.scripts import submit
+from .test_utils import (
+    files_server,
+    integration_test,
+    skip_unless_module,
+    temp_directory_persist,
+    TempDirectoryTestCase,
+)
 
 
 class BaseCliTestCase(TempDirectoryTestCase):

@@ -1,5 +1,6 @@
 name: pulsar
 on: [push, pull_request]
+permissions: {}
 jobs:
   lint:
     name: Lint
@@ -12,11 +13,13 @@ jobs:
         include:
           - python-version: '3.14'
             tox-env: lint
+          - python-version: '3.14'
+            tox-env: format
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
@@ -33,10 +36,10 @@ jobs:
         tox-env: [mypy]
         python-version: ['3.14']
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
@@ -59,7 +62,7 @@ jobs:
           python-version: '3.10'
     services:
       job-files:
-        image: galaxy/simple-job-files:latest
+        image: galaxy/simple-job-files@sha256:b8d92c4d6b547b27f8c4ae42a53f7b43b3c680aa56232151a1ecf4671ee2cb69
         env:
           JOB_FILES_ROOT_DIRECTORY: /tmp
         ports:
@@ -67,10 +70,10 @@ jobs:
         volumes:
           - '/tmp:/tmp:rw'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
@@ -90,10 +93,10 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: '3.11'
         cache: pip
@@ -156,10 +159,10 @@ jobs:
   #       - tox-env: test-funnel
   #         python-version: 3.7
   #   steps:
-  #   - uses: actions/checkout@v6
+  #   - uses: actions/checkout@v7.0.1
   #     with:
   #       persist-credentials: false
-  #   - uses: actions/setup-python@v6
+  #   - uses: actions/setup-python@v7
   #     with:
   #       python-version: ${{ matrix.python-version }}
   #       cache: pip

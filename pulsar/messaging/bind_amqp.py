@@ -9,7 +9,6 @@ from galaxy.util import (
 
 from pulsar import manager_endpoint_util
 from pulsar.client import amqp_exchange_factory
-
 from .outbox import build_status_outbox
 
 log = logging.getLogger(__name__)

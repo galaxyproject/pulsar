@@ -6,24 +6,30 @@ from string import Template
 from typing import (
     Any,
     Dict,
+    List,
 )
-
-from typing_extensions import Protocol
 
 from galaxy.util import (
     RWXR_XR_X,
     unicodify,
 )
 from galaxy.util.resources import resource_string
+from typing_extensions import Protocol
 
 log = logging.getLogger(__name__)
 DEFAULT_SHELL = "/bin/bash"
 
-DEFAULT_JOB_FILE_TEMPLATE = Template(resource_string(__name__, "DEFAULT_JOB_FILE_TEMPLATE.sh"))
+DEFAULT_JOB_FILE_TEMPLATE = Template(
+    resource_string(__name__, "DEFAULT_JOB_FILE_TEMPLATE.sh")
+)
 
-SLOTS_STATEMENT_CLUSTER_DEFAULT = resource_string(__name__, "CLUSTER_SLOTS_STATEMENT.sh")
+SLOTS_STATEMENT_CLUSTER_DEFAULT = resource_string(
+    __name__, "CLUSTER_SLOTS_STATEMENT.sh"
+)
 
-MEMORY_STATEMENT_DEFAULT_TEMPLATE = Template(resource_string(__name__, "MEMORY_STATEMENT.sh"))
+MEMORY_STATEMENT_DEFAULT_TEMPLATE = Template(
+    resource_string(__name__, "MEMORY_STATEMENT.sh")
+)
 
 SLOTS_STATEMENT_SINGLE = """
 GALAXY_SLOTS="1"
@@ -66,7 +72,60 @@ OPTIONAL_TEMPLATE_PARAMS: Dict[str, Any] = {
     "preserve_python_environment": True,
     "tmp_dir_creation_statement": '""',
     "prepare_dirs_statement": PREPARE_DIRS,
+    "cvmfsexec_setup": "",
+    "exit_handler_setup": "",
 }
+
+
+def exit_handler_setup(commands: List[str]) -> str:
+    """Render an EXIT trap running each of ``commands`` when the job exits.
+
+    Cleanup that is known at job-script generation time is collected into a
+    single ``_galaxy_on_exit`` function driven by one ``trap`` rather than each
+    mechanism clobbering the single EXIT slot. Returns an empty string (no
+    function, no trap) when there is nothing to run.
+
+    >>> exit_handler_setup([])
+    ''
+    >>> print(exit_handler_setup(["/jobs/7/.cvmfsexec/umountrepo -a"]))
+    _galaxy_on_exit() {
+        /jobs/7/.cvmfsexec/umountrepo -a
+    }
+    trap _galaxy_on_exit EXIT
+    """
+    if not commands:
+        return ""
+    body = "\n".join("    %s" % command for command in commands)
+    return "_galaxy_on_exit() {\n%s\n}\ntrap _galaxy_on_exit EXIT" % body
+
+
+class ExitHandlers:
+    """Shell commands to run when the job script exits.
+
+    Job-setup mechanisms that need cleanup (e.g. cvmfsexec unmounting) ``add``
+    commands here; :meth:`render` collapses them into a single ``_galaxy_on_exit``
+    function driven by one ``trap`` (see :func:`exit_handler_setup`), suitable for
+    the template's ``$exit_handler_setup`` slot.
+
+    >>> handlers = ExitHandlers()
+    >>> handlers.render()
+    ''
+    >>> handlers.add("/jobs/7/.cvmfsexec/umountrepo -a")
+    >>> print(handlers.render())
+    _galaxy_on_exit() {
+        /jobs/7/.cvmfsexec/umountrepo -a
+    }
+    trap _galaxy_on_exit EXIT
+    """
+
+    def __init__(self) -> None:
+        self.commands: List[str] = []
+
+    def add(self, command: str) -> None:
+        self.commands.append(command)
+
+    def render(self) -> str:
+        return exit_handler_setup(self.commands)
 
 
 def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
@@ -101,15 +160,21 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     if job_instrumenter:
         del kwds["job_instrumenter"]
         working_directory = kwds.get("metadata_directory", kwds["working_directory"])
-        kwds["instrument_pre_commands"] = job_instrumenter.pre_execute_commands(working_directory) or ""
-        kwds["instrument_post_commands"] = job_instrumenter.post_execute_commands(working_directory) or ""
+        kwds["instrument_pre_commands"] = (
+            job_instrumenter.pre_execute_commands(working_directory) or ""
+        )
+        kwds["instrument_post_commands"] = (
+            job_instrumenter.post_execute_commands(working_directory) or ""
+        )
     if "memory_statement" not in kwds:
         kwds["memory_statement"] = MEMORY_STATEMENT_DEFAULT_TEMPLATE.safe_substitute(
             metadata_directory=metadata_directory
         )
 
     # Setup home directory var
-    kwds["home_directory"] = kwds.get("home_directory", os.path.join(kwds["working_directory"], "home"))
+    kwds["home_directory"] = kwds.get(
+        "home_directory", os.path.join(kwds["working_directory"], "home")
+    )
 
     template_params = OPTIONAL_TEMPLATE_PARAMS.copy()
     template_params.update(**kwds)
@@ -128,7 +193,9 @@ class DescribesScriptIntegrityChecks(Protocol):
     check_job_script_integrity_sleep: float
 
 
-def write_script(path, contents, job_io: DescribesScriptIntegrityChecks, mode=RWXR_XR_X) -> None:
+def write_script(
+    path, contents, job_io: DescribesScriptIntegrityChecks, mode=RWXR_XR_X
+) -> None:
     dir = os.path.dirname(path)
     if not os.path.exists(dir):
         os.makedirs(dir)
@@ -137,20 +204,32 @@ def write_script(path, contents, job_io: DescribesScriptIntegrityChecks, mode=RW
         f.write(unicodify(contents))
     os.chmod(path, mode)
     if job_io.check_job_script_integrity:
-        _handle_script_integrity(path, job_io.check_job_script_integrity_count, job_io.check_job_script_integrity_sleep)
+        _handle_script_integrity(
+            path,
+            job_io.check_job_script_integrity_count,
+            job_io.check_job_script_integrity_sleep,
+        )
 
 
-def _handle_script_integrity(path, check_job_script_integrity_count, check_job_script_integrity_sleep):
+def _handle_script_integrity(
+    path, check_job_script_integrity_count, check_job_script_integrity_sleep
+):
 
     script_integrity_verified = False
     for _ in range(check_job_script_integrity_count):
         try:
-            returncode = subprocess.call([path], env={"ABC_TEST_JOB_SCRIPT_INTEGRITY_XYZ": "1"})
+            returncode = subprocess.call(
+                [path], env={"ABC_TEST_JOB_SCRIPT_INTEGRITY_XYZ": "1"}
+            )
             if returncode == 42:
                 script_integrity_verified = True
                 break
 
-            log.debug("Script integrity error for file '%s': returncode was %d", path, returncode)
+            log.debug(
+                "Script integrity error for file '%s': returncode was %d",
+                path,
+                returncode,
+            )
 
             # Else we will sync and wait to see if the script becomes
             # executable.
@@ -168,7 +247,9 @@ def _handle_script_integrity(path, check_job_script_integrity_count, check_job_s
         time.sleep(check_job_script_integrity_sleep)
 
     if not script_integrity_verified:
-        raise Exception(f"Failed to write job script '{path}', could not verify job script integrity.")
+        raise Exception(
+            f"Failed to write job script '{path}', could not verify job script integrity."
+        )
 
 
 __all__ = (

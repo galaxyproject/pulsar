@@ -1,0 +1,21 @@
+runners:
+  local:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  pulsar:
+    load: galaxy.jobs.runners.pulsar:PulsarLegacyJobRunner
+
+execution:
+  default: local
+  environments:
+    local:
+      runner: local
+    win_pulsar:
+      runner: pulsar
+      url: https://windowshost.examle.com:8913/
+      private_token: 123456789changeme
+
+tools:
+- id: msconvert
+  environment: win_pulsar
+- id: proteinpilot
+  environment: win_pulsar

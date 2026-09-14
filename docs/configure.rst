@@ -29,7 +29,7 @@ Security
 
 Out of the box, **Pulsar essentially allows anyone with network access to the
 Pulsar server to execute arbitrary code and read and write any files the web
-server can access.** Hence, in most settings steps should be taken to secure the
+server can access.** Hence, in most settings, steps should be taken to secure the
 Pulsar server.
 
 Private Token
@@ -52,19 +52,19 @@ use.
 
 .. tip::
 
-    SSL support is built in to `uWSGI`_, an alternate webserver that can be
+    SSL support is built in to `uWSGI`_, an alternate web server that can be
     installed (see :ref:`install`).
 
-``pyOpenSSL`` is required to configure a Pulsar web server to server content via
+``pyOpenSSL`` is required to configure a Pulsar web server to serve content via
 HTTPS/SSL. This dependency can be difficult to install and seems to be getting
 more difficult. Under Linux you will want to ensure the needed dependencies to
-compile pyOpenSSL are available - for instance in a fresh Ubuntu image you
+compile pyOpenSSL are available - for instance, in a fresh Ubuntu image, you
 will likely need::
 
     $ sudo apt-get install libffi-dev python3-dev libssl-dev
 
 Then pyOpenSSL can be installed with the following command (be sure to source
-your virtualenv if setup above)::
+your virtualenv if set up above)::
 
     $ pip install pyOpenSSL
 
@@ -119,8 +119,8 @@ You can configure Pulsar to authenticate user during request processing and chec
 if this user is allowed to run a job.
 
 Various authentication/authorization plugins can be configured in `app.yml` to
-do that and plugin parameters depend on auth type. For example, the following
-configuration uses `oidc` plugin for authentication and `userlist` for
+do that and plugin parameters depend on the auth type. For example, the following
+configuration uses the `oidc` plugin for authentication and `userlist` for
 authorization::
 
     user_auth:
@@ -136,7 +136,7 @@ authorization::
             - xxx
 
 
-see `plugins folder
+See the `plugins folder
 <https://github.com/galaxyproject/pulsar/blob/master/pulsar/user_auth/methods>`_
 for available plugins and their parameters.
 
@@ -145,12 +145,12 @@ Customizing the Pulsar Environment (\*nix only)
 
 For many deployments, Pulsar's environment will need to be tweaked. For
 instance to define a ``DRMAA_LIBRARY_PATH`` environment variable for the
-``drmaa`` Python module or to define the location to a find a location of
+``drmaa`` Python module or to define the location of
 Galaxy (via ``GALAXY_HOME``) if certain Galaxy tools require it or if Galaxy
 metadata is being set by the Pulsar.
 
 The file ``local_env.sh`` (created automatically by ``pulsar-config``) will be
-source by ``pulsar`` before launching the application and by child process
+sourced by ``pulsar`` before launching the application and by child processes
 created by Pulsar that require this configuration.
 
 Job Managers (Queues)
@@ -246,6 +246,13 @@ In this mode:
 4. **Relay → Galaxy**: Galaxy polls the relay to receive status updates
 5. **File Transfers**: Pulsar transfers files directly to/from Galaxy via HTTP
    (not through the relay)
+6. **Pulsar → Relay (capabilities)**: On startup Pulsar publishes a one-shot,
+   advisory snapshot of its configuration and host capabilities (staging
+   directories, dependency resolvers, available container runtimes, manager
+   type) to the ``pulsar_capabilities`` topic. Galaxy reads the latest snapshot
+   to auto-fill destination parameters and to downgrade per-job requests the
+   remote Pulsar cannot satisfy. This publish is fire-and-forget — a failure
+   never blocks Pulsar startup.
 
 ::
 
@@ -314,6 +321,31 @@ with proxy parameters::
 
     The ``relay_topic_prefix`` must match on both Galaxy and Pulsar sides.
     If set on one side but not the other, messages will not be routed correctly.
+
+
+Capability Snapshot
+```````````````````
+
+When using relay mode, Pulsar publishes a single capability snapshot per
+manager when it binds to the relay at startup. Galaxy's "bring your own
+compute" integration reads the most recent snapshot to pre-fill destination
+parameters and to refuse or downgrade jobs that request something the remote
+Pulsar does not provide (e.g. a container runtime that is not on ``PATH``).
+
+The snapshot is published to the ``pulsar_capabilities`` topic — or
+``<relay_topic_prefix>_pulsar_capabilities[_<manager>]`` when a topic prefix
+or non-default manager name is configured, mirroring the other relay topics.
+
+This behavior is on by default and can be disabled::
+
+    message_queue_publish_capabilities: false
+
+.. note::
+
+    The snapshot is advisory. A publish failure is logged and swallowed — it
+    never blocks Pulsar startup — and if no snapshot is available Galaxy falls
+    back to the operator-supplied destination parameters. The data is collected
+    once at startup and is static for the lifetime of the process.
 
 
 Authentication

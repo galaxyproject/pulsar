@@ -34,7 +34,10 @@ import kombu
 import requests
 import uvicorn
 from a2wsgi import WSGIMiddleware
-from fastapi import FastAPI, Request
+from fastapi import (
+    FastAPI,
+    Request,
+)
 from fastapi.responses import JSONResponse
 from simplejobfiles.app import JobFilesApp
 from webob.exc import HTTPException as WebObHTTPException

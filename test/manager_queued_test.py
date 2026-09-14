@@ -1,10 +1,10 @@
 # import os
 # import time
 
+from pulsar.managers.queued import QueueManager
+
 # from .test_utils import BaseManagerTestCase, timed
 from .test_utils import BaseManagerTestCase
-
-from pulsar.managers.queued import QueueManager
 
 CANCEL_TEST_PROGRAM = """import os
 open('%s', 'w').write(str(os.getpid()))

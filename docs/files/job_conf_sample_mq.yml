@@ -1,0 +1,38 @@
+runners:
+  drmaa:
+    load: galaxy.jobs.runners.drmaa:DRMAAJobRunner
+  pulsar_default:
+    load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+    # Must tell Pulsar where to send files.
+    galaxy_url: https://galaxy.example.org
+    # Message Queue Connection (should match message_queue_url in Pulsar's app.yml).
+    amqp_url: amqp://rabbituser:rabb8pa8sw0d@mqserver.example.org:5672//
+  pulsar_hugenodes:
+    load: galaxy.jobs.runners.pulsar:PulsarMQJobRunner
+    galaxy_url: https://galaxy.example.org
+    amqp_url: amqp://rabbituser:rabb8pa8sw0d@mqserver.example.org:5672//
+    # Set 'manager' to reference a named Pulsar job manager.
+    manager: hugenodes
+
+execution:
+  default: local_cluster
+  environments:
+    local_cluster:
+      runner: drmaa
+      native_specification: '-P littlenodes -R y -pe threads 4'
+    bignodes_cluster:
+      runner: pulsar_default
+      # Tell Galaxy where files are being staged on the remote system so the
+      # web server can simply ask for this information.
+      jobs_directory: /path/to/remote/pulsar/files/staging/
+      submit_native_specification: '-P bignodes -R y -pe threads 16'
+    hugenodes_cluster:
+      runner: pulsar_hugenodes
+      jobs_directory: /path/to/remote/pulsar/files/staging/
+      submit_native_specification: '-P hugenodes -R y -pe threads 128'
+
+tools:
+- id: trinity
+  environment: bignodes_cluster
+- id: abyss
+  environment: hugenodes_cluster

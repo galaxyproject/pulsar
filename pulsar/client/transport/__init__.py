@@ -4,7 +4,6 @@ from .curl import (
     curl_available,
     PycurlTransport,
 )
-from .requests import requests_multipart_post_available
 from .ssh import (
     rsync_get_file,
     rsync_post_file,
@@ -18,13 +17,8 @@ if curl_available:
         get_file,
         post_file,
     )
-elif requests_multipart_post_available:
-    from .requests import (
-        get_file,
-        post_file,
-    )
 else:
-    from .poster import (
+    from .requests import (
         get_file,
         post_file,
     )

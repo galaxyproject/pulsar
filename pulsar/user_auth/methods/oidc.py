@@ -1,14 +1,14 @@
-import requests
 import base64
 import json
-import jwt
+import logging
 import re
+
+import jwt
+import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import load_der_x509_certificate
 
 from pulsar.user_auth.methods.interface import AuthMethod
-
-import logging
 
 log = logging.getLogger(__name__)
 

@@ -26,7 +26,7 @@ help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "clean-test - remove test and coverage artifacts"
-	@echo "setup-venv - setup a development virutalenv in current directory."
+	@echo "setup-venv - setup a development virtualenv in current directory."
 	@echo "lint - check style with flake8"
 	@echo "lint-dist - twine check dist results, including validating README content"
 	@echo "lint-docs - check sphinx docs for warnings"

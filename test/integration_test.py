@@ -1,16 +1,15 @@
+import platform
 from os import environ
 from pathlib import Path
-import platform
 from typing import (
     Dict,
     Optional,
 )
 
+import pytest
 from galaxy.util.bunch import Bunch
 from pydantictes.api import TesClient
 from pydantictes.funnelfixture import funnel_client
-import pytest
-
 
 from pulsar.client.test.check import run
 from .test_utils import (
@@ -18,7 +17,6 @@ from .test_utils import (
     integration_test,
     IntegrationTestConfiguration,
     mark,
-    skip_unless_any_module,
     skip_unless_environ,
     skip_unless_executable,
     skip_unless_module,
@@ -420,7 +418,6 @@ def test_integration_tes_mq(external_queue_test_configuration: IntegrationTestCo
     )
 
 
-@skip_unless_any_module(["pycurl", "poster", "requests_toolbelt"])
 @integration_test
 def test_integration_remote_transfer(direct_test_configuration: IntegrationTestConfiguration):
     run_job(

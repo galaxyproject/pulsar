@@ -1,9 +1,10 @@
 import os
+
+from pulsar.scripts import run
 from .test_utils import (
     TempDirectoryTestCase,
     test_pulsar_server,
 )
-from pulsar.scripts import run
 
 
 class ScriptRunTestCase(TempDirectoryTestCase):

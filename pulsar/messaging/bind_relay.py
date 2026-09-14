@@ -4,6 +4,7 @@ This module provides functionality to bind Pulsar job managers to the
 pulsar-relay, allowing them to receive control messages (setup, status
 requests, kill) and publish status updates.
 """
+import datetime
 import functools
 import logging
 import os
@@ -14,14 +15,13 @@ from typing import Optional
 import requests
 
 from pulsar import manager_endpoint_util
-from pulsar.client.transport.relay import (
-    RelayTransport,
-    RelayTransportError,
-)
+from pulsar.capabilities import collect_capabilities
 from .outbox import build_status_outbox
 from .relay_state import RelayState
 
 log = logging.getLogger(__name__)
+
+DEFAULT_RELAY_LONG_POLL_TIMEOUT = 30.0
 
 
 def _server_cursor_path(manager) -> Optional[str]:
@@ -31,7 +31,36 @@ def _server_cursor_path(manager) -> Optional[str]:
     return os.path.join(persistence_directory, "%s-relay-cursor.json" % manager.name)
 
 
-def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf):
+def _relay_long_poll_timeout(conf):
+    return float(conf.get("relay_long_poll_timeout", DEFAULT_RELAY_LONG_POLL_TIMEOUT))
+
+
+def build_relay_transport(manager, relay_url, conf):
+    """Construct a ``RelayTransport`` for ``manager``."""
+    from pulsar_relay_client import RelayTransport
+
+    # Relay credentials: prefer a refresh-token credentials file
+    # (written by ``pulsar-config --login``); fall back to legacy
+    # username/password for existing deployments.
+    credentials_file = conf.get('message_queue_credentials_file')
+    username = conf.get('message_queue_username')
+    password = conf.get('message_queue_password')
+    if not credentials_file and not password:
+        raise Exception(
+            "Relay auth not configured: set either message_queue_credentials_file "
+            "(recommended; run `pulsar-config --login`) or message_queue_username + "
+            "message_queue_password."
+        )
+    return RelayTransport(
+        relay_url,
+        username=username,
+        password=password,
+        cursor_path=_server_cursor_path(manager),
+        credentials_file=credentials_file,
+    )
+
+
+def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf, relay_transport=None):
     """Bind a specific manager to the relay.
 
     Args:
@@ -39,25 +68,22 @@ def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf):
         relay_state: RelayState for managing consumer threads
         relay_url: URL of the pulsar-relay server
         conf: Configuration dictionary with relay credentials
+        relay_transport: Optional pre-built ``RelayTransport``; if omitted,
+            one is constructed via :func:`build_relay_transport`.
     """
+    # Imported lazily so pulsar still installs on Pythons that don't meet
+    # pulsar-relay-client's requires-python (currently 3.10+); the relay
+    # code path is simply unreachable on those interpreters.
+    from pulsar_relay_client import RelayTransportError
+
     manager_name = manager.name
     log.info("bind_manager_to_relay called for relay [%s] and manager [%s]", relay_url, manager_name)
 
-    # Extract relay credentials
-    username = conf.get('message_queue_username', 'admin')
-    password = conf.get('message_queue_password')
-    if not password:
-        raise Exception("message_queue_password is required for relay communication")
+    if relay_transport is None:
+        relay_transport = build_relay_transport(manager, relay_url, conf)
 
     # Extract optional relay topic prefix
     relay_topic_prefix = conf.get('relay_topic_prefix', '')
-
-    # Create relay transport with a per-manager persistent cursor so a Pulsar
-    # restart resumes the long-poll exactly where it left off, rather than
-    # silently skipping any setup/kill messages published while it was down.
-    relay_transport = RelayTransport(
-        relay_url, username, password, cursor_path=_server_cursor_path(manager),
-    )
 
     # Define message handlers
     process_setup_messages = functools.partial(__process_setup_message, manager)
@@ -73,6 +99,7 @@ def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf):
     # Start consumer threads if message_queue_consume is enabled
     if conf.get("message_queue_consume", True):
         log.info("Starting relay consumer threads for manager '%s'", manager_name)
+        long_poll_timeout = _relay_long_poll_timeout(conf)
 
         # Single consumer thread for all control messages
         consumer_thread = start_consumer(
@@ -83,7 +110,8 @@ def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf):
                 setup_topic: process_setup_messages,
                 status_request_topic: process_status_messages,
                 kill_topic: process_kill_messages,
-            }
+            },
+            long_poll_timeout=long_poll_timeout,
         )
 
         relay_state.threads.append(consumer_thread)
@@ -123,7 +151,13 @@ def bind_manager_to_relay(manager, relay_state: RelayState, relay_url, conf):
         manager.set_state_change_callback(bind_on_status_change)
 
 
-def start_consumer(relay_transport, relay_state: RelayState, topics, handlers):
+def start_consumer(
+    relay_transport,
+    relay_state: RelayState,
+    topics,
+    handlers,
+    long_poll_timeout=DEFAULT_RELAY_LONG_POLL_TIMEOUT,
+):
     """Start a consumer thread that polls for messages.
 
     Args:
@@ -140,8 +174,7 @@ def start_consumer(relay_transport, relay_state: RelayState, topics, handlers):
 
         while relay_state.active:
             try:
-                # Long poll for messages (30 second timeout)
-                messages = relay_transport.long_poll(topics, timeout=30)
+                messages = relay_transport.long_poll(topics, timeout=long_poll_timeout)
 
                 for message in messages:
                     topic = message.get('topic')
@@ -245,6 +278,55 @@ def __client_job_id_from_body(body):
     """
     job_id = body.get("job_id", None)
     return job_id
+
+
+def publish_manager_capabilities_to_relay(app, manager, relay_transport, conf):
+    """Collect and POST this manager's capability snapshot to its relay topic.
+
+    Collection happens lazily here (not at app init) so non-relay deployments
+    do zero capability work. Both collection and POST failures are logged but
+    never raised: capabilities are advisory and must not prevent the manager's
+    control consumers from coming up.
+    """
+    # One POST per pulsar startup; the relay retains topic messages so
+    # Galaxy can fetch the snapshot synchronously via the REST messages
+    # endpoint. No heartbeat — the snapshot is static for the lifetime
+    # of the process.
+    if not conf.get("message_queue_publish_capabilities", True):
+        return
+    try:
+        capabilities = collect_capabilities(app, manager)
+    except Exception:
+        log.exception(
+            "Failed to collect capabilities for manager %s; skipping relay publish.",
+            manager.name,
+        )
+        return
+    relay_topic_prefix = conf.get('relay_topic_prefix', '')
+    topic = __make_capabilities_topic_name(relay_topic_prefix, manager.name)
+    payload = capabilities.to_dict()
+    payload["published_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    try:
+        relay_transport.post_message(topic, payload)
+        log.info("Published capabilities for manager %s to relay topic %s", manager.name, topic)
+    except Exception:
+        # Includes RelayTransportError, requests.RequestException, network errors.
+        # Swallow: capabilities are advisory and downstream Galaxy already handles a missing snapshot.
+        log.exception(
+            "Failed to publish capabilities for manager %s to relay topic %s",
+            manager.name, topic,
+        )
+
+
+def __make_capabilities_topic_name(prefix, manager_name):
+    """Topic name for capability snapshots.
+
+    Examples:
+        __make_capabilities_topic_name('', '_default_') -> 'pulsar_capabilities'
+        __make_capabilities_topic_name('', 'cluster_a') -> 'pulsar_capabilities_cluster_a'
+        __make_capabilities_topic_name('prod', '_default_') -> 'prod_pulsar_capabilities'
+    """
+    return __make_topic_name(prefix, "pulsar_capabilities", manager_name)
 
 
 def __make_topic_name(prefix, base_topic, manager_name):

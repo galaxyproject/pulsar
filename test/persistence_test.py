@@ -1,16 +1,21 @@
-from contextlib import contextmanager
-from os.path import exists, join
 import time
+from contextlib import contextmanager
+from os.path import (
+    exists,
+    join,
+)
+
+from galaxy.job_metrics import NULL_JOB_INSTRUMENTER
+from galaxy.util.bunch import Bunch
 
 from pulsar.managers.queued import QueueManager
 from pulsar.managers.stateful import StatefulManagerProxy
 from pulsar.tools.authorization import get_authorizer
 from .test_utils import (
+    get_test_user_auth_manager,
     temp_directory,
-    TestDependencyManager, get_test_user_auth_manager
+    TestDependencyManager,
 )
-from galaxy.job_metrics import NULL_JOB_INSTRUMENTER
-from galaxy.util.bunch import Bunch
 
 TEST_JOB_ID = "4"
 TEST_STAGED_FILE = "cow"

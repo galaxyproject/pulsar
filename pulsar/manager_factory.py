@@ -2,6 +2,7 @@ import configparser
 import inspect
 import logging
 import os
+from typing import List
 
 import pulsar.managers
 from pulsar.managers import stateful
@@ -84,7 +85,7 @@ def _build_manager(manager_class, app, name=DEFAULT_MANAGER_NAME, manager_option
     return stateful.StatefulManagerProxy(manager_class(name, app, **manager_options), **manager_options)
 
 
-def _get_manager_modules():
+def _get_manager_modules() -> List[str]:
     """
 
     >>> 'pulsar.managers.queued_pbs' in _get_manager_modules()

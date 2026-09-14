@@ -6,15 +6,68 @@ History
 .. to_doc
 
 ---------------------
-0.15.15.dev0
+0.15.16.dev0
 ---------------------
-* Add support for Python 3.12, 3.13, and 3.14. Make the persistence shelf
-  thread-safe under Python 3.13's new ``dbm.sqlite3`` default backend
-  (access is already serialised by a lock). Drop ``distutils`` usage in
-  ``setup.py``; replace deprecated ``datetime.utcnow()``,
-  ``ConfigParser.readfp()``, ``logging.warn()``, positional ``re.sub``
-  ``count`` argument, ``galaxy.tool_util.deps.commands`` import, and
-  Pydantic ``.schema()``. Pin ``webob>=1.8.8`` to drop its ``cgi`` import.
+
+* Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
+  in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
+  `@gkr0110`_).
+* Add native ``cvmfsexec`` support to Pulsar managers (``mountrepo`` and
+  ``namespace`` modes), configured via a ``cvmfsexec`` manager option or a
+  per-job override, for accessing CVMFS repositories (and CVMFS-hosted
+  container images) on hosts without a system-wide ``/cvmfs``.
+* Add a dedicated ``container`` file-action path type for rewriting resolved
+  container image paths (e.g. a Singularity/Apptainer image on CVMFS) via a
+  ``rewrite`` action, without overloading the ``unstructured`` tool-parameter
+  path type. **Note:** ``path_types: "*any*"`` now also matches container image
+  paths.
+* Report DRM-side job failures as ``failed`` instead of ``complete`` (thanks to
+  `@gkr0110`_), and make ``failed`` terminal in ``StatefulManagerProxy`` so such
+  jobs are deactivated, staged back, and reported to the client.
+
+---------------------
+0.15.15 (2026-07-13)
+---------------------
+* Bump up minimum Python versions for tests (thanks to `@mvdbeek`_). `Pull
+  Request 437`_
+* Drop use of ``distutils``, ``pkg_resources``, and ``stopit`` (thanks to
+  `@nsoranzo`_). `Pull Request 438`_
+* Paste to Gunicorn (thanks to `@mvdbeek`_). `Pull Request 440`_
+* Fail fast on permanent HTTP errors during staging (thanks to `@mvdbeek`_).
+  `Pull Request 444`_
+* Add Python 3.12, 3.13, and 3.14 support (thanks to `@mvdbeek`_). `Pull
+  Request 446`_
+* Force-copy input metadata files when ``default_file_action`` is ``none``
+  (thanks to `@mvdbeek`_). `Pull Request 449`_
+* Harden Pulsar's job lifecycle against restart, broker, and Galaxy outages
+  (thanks to `@mvdbeek`_). `Pull Request 448`_
+* Make sudo calls return stdout as ``str`` (thanks to `@bernt-matthias`_).
+  `Pull Request 450`_
+* Drop poster, default to requests-based transport (thanks to `@natefoo`_).
+  `Pull Request 453`_
+* Pin the Bookworm Docker image and restrict the wheel glob to Python 3
+  (thanks to `@martincarrere`_). `Pull Request 455`_
+* Use ``sphinx_rtd_theme`` for documentation (thanks to `@natefoo`_). `Pull
+  Request 456`_
+* Update Galaxy job configuration documentation to use YAML syntax (thanks to
+  `@natefoo`_). `Pull Request 457`_
+* Bootstrap pulsar-relay credentials through the OIDC device flow (thanks to
+  `@mvdbeek`_). `Pull Request 454`_
+* Publish capability snapshots to the relay for Galaxy BYOC (thanks to
+  `@mvdbeek`_). `Pull Request 458`_
+* Sync Galaxy BYOC bootstrap URLs with the ``compute_resources`` rename
+  (thanks to `@mvdbeek`_). `Pull Request 459`_
+* Block on Kombu producer-pool acquisition rather than raising
+  ``LimitExceeded`` (thanks to `@mvdbeek`_). `Pull Request 461`_
+* Fix pytest 9.1 duplicate parametrization error (thanks to `@ksuderman`_).
+  `Pull Request 464`_
+* Fix queued_cli Slurm completion detection (thanks to `@dSizovs`_). `Pull
+  Request 460`_
+* Fix documentation typos (thanks to `@jeis4wpi`_). `Pull Request 462`_
+* Fix GCP Batch co-execution deadlocks (thanks to `@ksuderman`_). `Pull
+  Request 466`_
+* Drain relay poll waiters on stop or kill (thanks to `@ksuderman`_). `Pull
+  Request 470`_
 
 ---------------------
 0.15.14 (2025-01-20)
@@ -589,6 +642,27 @@ History
 
 
 .. github_links
+.. _Pull Request 470: https://github.com/galaxyproject/pulsar/pull/470
+.. _Pull Request 466: https://github.com/galaxyproject/pulsar/pull/466
+.. _Pull Request 464: https://github.com/galaxyproject/pulsar/pull/464
+.. _Pull Request 462: https://github.com/galaxyproject/pulsar/pull/462
+.. _Pull Request 461: https://github.com/galaxyproject/pulsar/pull/461
+.. _Pull Request 460: https://github.com/galaxyproject/pulsar/pull/460
+.. _Pull Request 459: https://github.com/galaxyproject/pulsar/pull/459
+.. _Pull Request 458: https://github.com/galaxyproject/pulsar/pull/458
+.. _Pull Request 457: https://github.com/galaxyproject/pulsar/pull/457
+.. _Pull Request 456: https://github.com/galaxyproject/pulsar/pull/456
+.. _Pull Request 455: https://github.com/galaxyproject/pulsar/pull/455
+.. _Pull Request 454: https://github.com/galaxyproject/pulsar/pull/454
+.. _Pull Request 453: https://github.com/galaxyproject/pulsar/pull/453
+.. _Pull Request 450: https://github.com/galaxyproject/pulsar/pull/450
+.. _Pull Request 449: https://github.com/galaxyproject/pulsar/pull/449
+.. _Pull Request 448: https://github.com/galaxyproject/pulsar/pull/448
+.. _Pull Request 446: https://github.com/galaxyproject/pulsar/pull/446
+.. _Pull Request 444: https://github.com/galaxyproject/pulsar/pull/444
+.. _Pull Request 440: https://github.com/galaxyproject/pulsar/pull/440
+.. _Pull Request 438: https://github.com/galaxyproject/pulsar/pull/438
+.. _Pull Request 437: https://github.com/galaxyproject/pulsar/pull/437
 .. _Pull Request 436: https://github.com/galaxyproject/pulsar/pull/436
 .. _Pull Request 435: https://github.com/galaxyproject/pulsar/pull/435
 .. _Pull Request 432: https://github.com/galaxyproject/pulsar/pull/432
@@ -785,3 +859,8 @@ History
 .. _@bernt-matthias: https://github.com/bernt-matthias
 .. _@kysrpex: https://github.com/kysrpex
 .. _@jmchilton: https://github.com/jmchilton
+.. _@martincarrere: https://github.com/martincarrere
+.. _@ksuderman: https://github.com/ksuderman
+.. _@dSizovs: https://github.com/dSizovs
+.. _@jeis4wpi: https://github.com/jeis4wpi
+.. _@gkr0110: https://github.com/gkr0110

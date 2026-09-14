@@ -1,6 +1,5 @@
-from abc import ABC
-
 import inspect
+from abc import ABC
 
 
 class UserAuthManager(ABC):
