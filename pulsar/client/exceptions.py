@@ -1,6 +1,10 @@
 """
 Pulsar client exceptions
 """
+from typing import (
+    ClassVar,
+    Dict,
+)
 
 
 class PulsarClientTransportError(Exception):
@@ -8,7 +12,7 @@ class PulsarClientTransportError(Exception):
     CONNECTION_REFUSED = 'connection_refused'
     UNKNOWN = 'unknown'
 
-    messages = {
+    messages: ClassVar[Dict[str, str]] = {
         TIMEOUT: 'Connection timed out',
         CONNECTION_REFUSED: 'Connection refused',
         UNKNOWN: 'Unknown transport error'

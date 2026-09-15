@@ -38,7 +38,7 @@ class CondorQueueManager(ExternalBaseManager):
         super().__init__(name, app, **kwds)
         self.submission_params = submission_params(**kwds)
         self.user_log_sizes: Dict[str, int] = {}
-        self.state_cache: Dict[str, "StateLiteral"] = {}
+        self.state_cache: Dict[str, StateLiteral] = {}
 
     def launch(
         self,
@@ -63,13 +63,13 @@ class CondorQueueManager(ExternalBaseManager):
             pass
 
         submit_params.update(self.submission_params)
-        build_submit_params = dict(
-            executable=job_file_path,
-            output=self._job_stdout_path(job_id),
-            error=self._job_stderr_path(job_id),
-            user_log=log_path,
-            query_params=submit_params,
-        )
+        build_submit_params = {
+            "executable": job_file_path,
+            "output": self._job_stdout_path(job_id),
+            "error": self._job_stderr_path(job_id),
+            "user_log": log_path,
+            "query_params": submit_params,
+        }
         submit_file_contents = build_submit_description(**build_submit_params)
         submit_file = self._write_job_file(
             job_id, "job.condor.submit", submit_file_contents
@@ -86,9 +86,7 @@ class CondorQueueManager(ExternalBaseManager):
         failure_message = condor_stop(external_id)
         if failure_message:
             log.warn(
-                "Failed to stop condor job with id {} - {}".format(
-                    external_id, failure_message
-                )
+                f"Failed to stop condor job with id {external_id} - {failure_message}"
             )
 
     def get_status(self, job_id: str) -> "StateLiteral":

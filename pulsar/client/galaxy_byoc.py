@@ -127,6 +127,6 @@ def register_with_galaxy(
 
 
 __all__ = [
-    "register_with_galaxy",
     "GalaxyBYOCRegistrationError",
+    "register_with_galaxy",
 ]

@@ -241,7 +241,7 @@ class ValidatorTest(TempDirectoryTestCase):
         return self.__validator(xml).validate(self.job_directory, contents)
 
     def __assertValid(self, xml, contents):
-        self.assertTrue(self.__is_valid(xml, contents), "{} did not validate against {}".format(contents, xml))
+        self.assertTrue(self.__is_valid(xml, contents), f"{contents} did not validate against {xml}")
 
     def __assertInvalid(self, xml, contents):
-        self.assertFalse(self.__is_valid(xml, contents), "{} falsely validated against {}".format(contents, xml))
+        self.assertFalse(self.__is_valid(xml, contents), f"{contents} falsely validated against {xml}")

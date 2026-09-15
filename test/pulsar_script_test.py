@@ -21,7 +21,7 @@ def test_webless_mode_forwards_arguments_unchanged(tmp_path):
     ]
 
     subprocess.run(
-        [str(pulsar_script), "--mode", "webless"] + forwarded_args,
+        [str(pulsar_script), "--mode", "webless", *forwarded_args],
         cwd=str(tmp_path),
         env=env,
         check=True,

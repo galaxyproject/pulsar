@@ -27,13 +27,13 @@ log = logging.getLogger(__name__)
 NO_PYLOCKFILE_MESSAGE = "pylockfile module not found, skipping experimental lockfile handling."
 
 
-class LockManager():
+class LockManager:
 
     def __init__(self, lockfile: Optional[ModuleType] = lockfile):
         if not lockfile:
             log.info(NO_PYLOCKFILE_MESSAGE)
-            self.job_locks: Dict[str, "Lock"] = dict()
-            self.job_locks_lock: "Lock" = threading.Lock()
+            self.job_locks: Dict[str, Lock] = {}
+            self.job_locks_lock: Lock = threading.Lock()
         self.lockfile: Optional[ModuleType] = lockfile
 
     def get_lock(self, path: str) -> Union["Lock", "LockFile"]:

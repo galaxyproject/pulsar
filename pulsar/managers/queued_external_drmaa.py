@@ -46,15 +46,15 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
     def __init__(self, name: str, app: "PulsarApp", **kwds):
         super().__init__(name, app, **kwds)
         self.chown_working_directory_script = _handle_default(
-            kwds.get("chown_working_directory_script", None), "chown_working_directory"
+            kwds.get("chown_working_directory_script"), "chown_working_directory"
         )
         self.drmaa_kill_script = _handle_default(
-            kwds.get("drmaa_kill_script", None), "drmaa_kill"
+            kwds.get("drmaa_kill_script"), "drmaa_kill"
         )
         self.drmaa_launch_script = _handle_default(
-            kwds.get("drmaa_launch_script", None), "drmaa_launch"
+            kwds.get("drmaa_launch_script"), "drmaa_launch"
         )
-        self.user_mapping_script: Optional[str] = kwds.get("user_mapping_script", None)
+        self.user_mapping_script: Optional[str] = kwds.get("user_mapping_script")
         self.user_mapping_timeout = int(
             kwds.get("user_mapping_timeout", DEFAULT_USER_MAPPING_TIMEOUT)
         )
@@ -83,7 +83,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         with open(attributes["remoteCommand"]) as fh:
             print(fh.read())
         job_attributes_file = self._write_job_file(job_id, "jt.json", dumps(attributes))
-        user = submit_params.get("user", None)
+        user = submit_params.get("user")
         log.info("Submit as user %s" % user)
         if not user:
             raise Exception("Must specify user submit parameter with this manager.")
@@ -171,7 +171,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
     def __sudo(self, *cmds, **kwargs) -> str:
         p = sudo_popen(*cmds, **kwargs)
         stdout, stderr = p.communicate()
-        assert p.returncode == 0, "{}, {}".format(stdout, stderr)
+        assert p.returncode == 0, f"{stdout}, {stderr}"
         return stdout
 
     def _deactivate_job(self, job_id: str) -> None:

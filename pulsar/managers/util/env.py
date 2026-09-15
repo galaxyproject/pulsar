@@ -27,14 +27,14 @@ def env_to_statement(env: Dict[str, Any]) -> str:
     >>> env_to_statement(dict(execute="module load java/1.5.1"))
     'module load java/1.5.1'
     """
-    source_file = env.get("file", None)
+    source_file = env.get("file")
     if source_file:
         return f". {__escape(source_file, env)}"
-    execute = env.get("execute", None)
+    execute = env.get("execute")
     if execute:
         return execute
-    name = env.get("name", None)
-    value = env.get("value", None)
+    name = env.get("name")
+    value = env.get("value")
     if name and value is not None:
         return f"{name}={__escape(str(value), env)}; export {name}"
     raise RuntimeError(f"Invalid env definition, must be one of {VALID_ENV_OPTIONS}: {env}")

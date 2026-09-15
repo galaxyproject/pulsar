@@ -108,7 +108,7 @@ class ResultsCollector:
                 try:
                     self.output_files.remove(output_file)
                 except ValueError:
-                    raise Exception("Failed to remove {} from {}".format(output_file, self.output_files))
+                    raise Exception(f"Failed to remove {output_file} from {self.output_files}")
 
     def __collect_outputs(self):
         # Legacy Pulsar not returning list of files, iterate over the list of
@@ -170,7 +170,6 @@ class ResultsCollector:
                 record_references(as_dict)
             except Exception as e:
                 log.warning("problem parsing galaxy.json %s" % e)
-                pass
 
         realized_dynamic_file_sources = (self.pulsar_outputs.realized_dynamic_file_sources or [])
         for realized_dynamic_file_source in realized_dynamic_file_sources:
@@ -194,16 +193,18 @@ class ResultsCollector:
         # Fetch remaining working directory outputs of interest.
         for name in contents:
             collect = False
-            if self.client_outputs.dynamic_match(name):
-                collect = True
-            elif name in dynamic_file_source_references["filename"] or any(name.startswith(r) for r in dynamic_file_source_references["extra_files"]):
+            if (
+                self.client_outputs.dynamic_match(name)
+                or name in dynamic_file_source_references["filename"]
+                or any(name.startswith(r) for r in dynamic_file_source_references["extra_files"])
+            ):
                 collect = True
 
             if collect:
                 output_file = join(directory, self.pulsar_outputs.path_helper.local_name(name))
                 if (name, output_file) in self.downloaded_working_directory_files:
                     continue
-                log.debug("collecting dynamic {} file {}".format(output_type, name))
+                log.debug(f"collecting dynamic {output_type} file {name}")
                 if self._attempt_collect_output(output_type=output_type, path=output_file, name=name):
                     self.downloaded_working_directory_files.append((name, output_file))
 
@@ -220,7 +221,7 @@ class ResultsCollector:
         return collected
 
     def _collect_output(self, output_type, action, name):
-        log.info("collecting output {} with action {}".format(name, action))
+        log.info(f"collecting output {name} with action {action}")
         try:
             return self.output_collector.collect_output(self, output_type, action, name)
         except (ImportError, MemoryError, SystemError):
@@ -297,9 +298,7 @@ def _allow_collect_failure(output_type, exception):
     """
     if output_type not in ['output_workdir']:
         return False
-    if isinstance(exception, OSError) and not isinstance(exception, FileNotFoundError):
-        return False
-    return True
+    return not (isinstance(exception, OSError) and not isinstance(exception, FileNotFoundError))
 
 
 __all__ = ('finish_job',)

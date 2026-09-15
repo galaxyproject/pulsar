@@ -29,10 +29,14 @@ Pulsar status updates:
 import threading
 import time
 from collections import defaultdict
+from typing import (
+    ClassVar,
+    Set,
+)
 
 
 class StatusRecorder:
-    TERMINAL = {"complete", "failed", "cancelled", "lost"}
+    TERMINAL: ClassVar[Set[str]] = {"complete", "failed", "cancelled", "lost"}
 
     def __init__(self):
         self._lock = threading.Lock()

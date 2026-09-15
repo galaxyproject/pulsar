@@ -42,7 +42,7 @@ def test_gcp_job_template():
 
 def test_gcp_custom_walltime():
     custom_walltime = "7200"  # 2 hours in seconds
-    params = parse_gcp_job_params(dict(project_id="moo", credentials_file="path/to/credentials.json", walltime_limit=custom_walltime))
+    params = parse_gcp_job_params({"project_id": "moo", "credentials_file": "path/to/credentials.json", "walltime_limit": custom_walltime})
     assert params.credentials_file == "path/to/credentials.json"
     assert params.walltime_limit == int(custom_walltime)
 

@@ -30,7 +30,7 @@ class RoutingApp:
         req = Request(environ)
         req.app = self
         for route, method, controller, args in self.routes:
-            if method and not req.method == method:
+            if method and req.method != method:
                 continue
             match = route.match(req.path_info)
             if match:
@@ -53,7 +53,7 @@ class RoutingApp:
             regex += re.escape(template[last_pos:match.start()])
             var_name = match.group(1)
             expr = match.group(2) or '[^/]+'
-            expr = '(?P<{}>{})'.format(var_name, expr)
+            expr = f'(?P<{var_name}>{expr})'
             regex += expr
             last_pos = match.end()
         regex += re.escape(template[last_pos:])

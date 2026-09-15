@@ -133,7 +133,7 @@ class PulsarServerOutputCollector:
             name = os.path.basename(action.path)
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
-        description = "staging out file {} via {}".format(pulsar_path, action)
+        description = f"staging out file {pulsar_path} via {action}"
         self.action_executor.execute(action_if_not_cancelled, description)
 
 

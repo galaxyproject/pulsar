@@ -11,7 +11,7 @@ import pytest
 # Make sibling import work when invoked from the resilience root or via
 # `pytest test/resilience/mock_galaxy/recorder_test.py`.
 sys.path.insert(0, os.path.dirname(__file__))
-from recorder import StatusRecorder  # type: ignore  # noqa: E402
+from recorder import StatusRecorder  # type: ignore
 
 
 def _statuses(rec, job_id):

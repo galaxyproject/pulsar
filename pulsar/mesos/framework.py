@@ -127,10 +127,10 @@ class PulsarScheduler(Scheduler):
 
         # In case job itself wants to utilize Mesos
         # populate environment variables.
-        task_data = dict(
-            job=job,
-            manager=self.manager_options
-        )
+        task_data = {
+            "job": job,
+            "manager": self.manager_options
+        }
         task.data = to_base64_json(
             task_data
         )
@@ -140,7 +140,7 @@ class PulsarScheduler(Scheduler):
 
     def _mesos_env_vars(self):
         return [
-            dict(name="MESOS_URL", value=self.mesos_url),
+            {"name": "MESOS_URL", "value": self.mesos_url},
         ]
 
 

@@ -38,12 +38,10 @@ def preprocess(
         if getattr(action, "inject_object_store", False):
             action.object_store = object_store
         path = job_directory.calculate_path(name, input_type)
-        description = "Staging {} '{}' via {} to {}".format(
-            input_type, name, action, path
-        )
+        description = f"Staging {input_type} '{name}' via {action} to {path}"
         log.debug(description)
         action_executor.execute(
-            lambda: action.write_to_path(path), "action[%s]" % description
+            lambda action=action, path=path: action.write_to_path(path), "action[%s]" % description
         )
 
 

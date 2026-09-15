@@ -54,7 +54,7 @@ class Torque(BaseJobExec):
         template_pbsargs = ""
         for k, v in pbsargs.items():
             template_pbsargs += f"#PBS {k} {v}\n"
-        return dict(headers=template_pbsargs)
+        return {"headers": template_pbsargs}
 
     def submit(self, script_file):
         return f"qsub {script_file}"

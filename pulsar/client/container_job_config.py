@@ -373,7 +373,7 @@ def container_command_to_gcp_runnable(name: str, container: CoexecutionContainer
     runnable = batch_v1.Runnable()
     runnable.container = batch_v1.Runnable.Container()
     runnable.container.image_uri = container.image
-    runnable.container.commands = [container.command] + container.args
+    runnable.container.commands = [container.command, *container.args]
     # ports not supported currently
     return runnable
 

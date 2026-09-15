@@ -18,7 +18,7 @@ from .test_utils import TempDirectoryTestCase
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
 TEST_REQUIREMENT_2 = ToolRequirement("test2", "1.0")
-TEST_ENV_1 = dict(name="x", value="y")
+TEST_ENV_1 = {"name": "x", "value": "y"}
 TEST_TOKEN_ENDPOINT = "endpoint"
 
 
@@ -41,14 +41,14 @@ class TestStager(TempDirectoryTestCase):
             env=[TEST_ENV_1],
             rewrite_paths=False,
         )
-        self.job_config = dict(
-            configs_directory="/pulsar/staging/1/configs",
-            working_directory="/pulsar/staging/1/working",
-            outputs_directory="/pulsar/staging/1/outputs",
-            system_properties=dict(
-                separator="\\",
-            ),
-        )
+        self.job_config = {
+            "configs_directory": "/pulsar/staging/1/configs",
+            "working_directory": "/pulsar/staging/1/working",
+            "outputs_directory": "/pulsar/staging/1/outputs",
+            "system_properties": {
+                "separator": "\\",
+            },
+        }
 
     def __setup_inputs(self):
         files_directory = os.path.join(self.temp_directory, "files")
@@ -90,9 +90,9 @@ class TestStager(TempDirectoryTestCase):
 
     def test_unstructured_rewrite(self):
         self.client_job_description.rewrite_paths = True
-        self.client.set_action_map_config(dict(paths=[
-            dict(path=self.temp_directory, path_types="*any*")
-        ]))
+        self.client.set_action_map_config({"paths": [
+            {"path": self.temp_directory, "path_types": "*any*"}
+        ]})
         local_unstructured_file = os.path.join(self.temp_directory, "A_RANDOM_FILE")
         open(local_unstructured_file, "wb").write(b"Hello World!")
         command_line = "foo.exe %s" % local_unstructured_file
@@ -106,9 +106,9 @@ class TestStager(TempDirectoryTestCase):
 
     def test_file_actions_by_dict(self):
         self.client_job_description.rewrite_paths = True
-        self.client.set_action_map_config(dict(paths=[
-            dict(path=self.temp_directory, path_types="*any*"),
-        ]), by_path=False)
+        self.client.set_action_map_config({"paths": [
+            {"path": self.temp_directory, "path_types": "*any*"},
+        ]}, by_path=False)
         local_unstructured_file = os.path.join(self.temp_directory, "A_RANDOM_FILE")
         open(local_unstructured_file, "wb").write(b"Hello World!")
         command_line = "foo.exe %s" % local_unstructured_file
@@ -189,7 +189,7 @@ class MockClient:
     def launch(self, command_line, dependencies_description, job_config={}, remote_staging={}, env=[], dynamic_file_sources=None,
                token_endpoint=None):
         if self.expected_command_line is not None:
-            message = "Excepected command line {}, got {}".format(self.expected_command_line, command_line)
+            message = f"Excepected command line {self.expected_command_line}, got {command_line}"
             assert self.expected_command_line == command_line, message
         assert dependencies_description.requirements == [TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]
         assert token_endpoint == TEST_TOKEN_ENDPOINT

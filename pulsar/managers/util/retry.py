@@ -64,7 +64,7 @@ class RetryActionExecutor:
             "Failed to execute %s, retrying in %s seconds.",
             description,
             interval,
-            exc_info=True,
+            exc_info=exc,
         )
 
 

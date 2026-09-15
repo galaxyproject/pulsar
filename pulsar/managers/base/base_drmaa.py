@@ -51,7 +51,7 @@ class BaseDrmaaManager(ExternalBaseManager):
     def __init__(self, name: str, app: "PulsarApp", **kwds):
         """Setup native specification and drmaa session factory."""
         super().__init__(name, app, **kwds)
-        self.native_specification = kwds.get("native_specification", None)
+        self.native_specification = kwds.get("native_specification")
         drmaa_session_factory_class = kwds.get(
             "drmaa_session_factory_class", DrmaaSessionFactory
         )
@@ -131,7 +131,7 @@ class BaseDrmaaManager(ExternalBaseManager):
             "errorPath": ":%s" % stderr_path,
             "workingDirectory": working_directory,
         }
-        submit_native_specification = submit_params.get("native_specification", None)
+        submit_native_specification = submit_params.get("native_specification")
         native_specification = None
         if self.native_specification:
             native_specification = self.native_specification

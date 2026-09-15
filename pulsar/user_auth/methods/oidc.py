@@ -41,7 +41,7 @@ class OIDCAuth(AuthMethod):
         try:
             # Obtain appropriate cert from JWK URI
             key_set = requests.get(self._jwks_url, timeout=5)
-            encoded_header, rest = token.split('.', 1)
+            encoded_header, _rest = token.split('.', 1)
             headerobj = json.loads(base64.b64decode(encoded_header + '==').decode('utf8'))
             key_id = headerobj['kid']
             for key in key_set.json()['keys']:

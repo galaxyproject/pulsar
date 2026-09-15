@@ -199,7 +199,7 @@ class JobClient(BaseJobClient):
         command_line : str
             Command to execute.
         """
-        launch_params = dict(command_line=command_line, job_id=self.job_id)
+        launch_params = {"command_line": command_line, "job_id": self.job_id}
         submit_params_dict = submit_params(self.destination_params)
         if submit_params_dict:
             launch_params['params'] = json_dumps(submit_params_dict)
@@ -378,7 +378,7 @@ class BaseRemoteConfiguredJobClient(BaseJobClient):
                              dynamic_file_sources, token_endpoint):
         """
         """
-        launch_params = dict(command_line=command_line, job_id=self.job_id)
+        launch_params = {"command_line": command_line, "job_id": self.job_id}
         submit_params_dict = submit_params(self.destination_params)
         if submit_params_dict:
             launch_params['submit_params'] = submit_params_dict
@@ -543,7 +543,7 @@ class MessageJobClient(BaseMessageJobClient):
         return response
 
     def kill(self):
-        self.client_manager.exchange.publish("kill", dict(job_id=self.job_id))
+        self.client_manager.exchange.publish("kill", {"job_id": self.job_id})
 
 
 class MessageCLIJobClient(BaseMessageJobClient):
@@ -569,7 +569,7 @@ class MessageCLIJobClient(BaseMessageJobClient):
         base64_message = to_base64_json(launch_params)
         submit_command = os.path.join(self.remote_pulsar_path, "scripts", "submit.bash")
         # TODO: Allow configuration of manager, app, and ini path...
-        self.shell.execute("nohup {} --base64 {} &".format(submit_command, base64_message))
+        self.shell.execute(f"nohup {submit_command} --base64 {base64_message} &")
 
     def kill(self):
         # TODO
@@ -860,7 +860,7 @@ class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
             raise Exception("exposing container ports not possible via TES")
         return TesExecutor(
             image=container.image,
-            command=[container.command] + container.args,
+            command=[container.command, *container.args],
             workdir=container.working_directory,
         )
 
@@ -1342,10 +1342,10 @@ def _setup_params_from_job_config(job_config):
     preserve_galaxy_python_environment = job_config.get("preserve_galaxy_python_environment", None)
     # use_metadata ignored post Pulsar 0.14.12+ but keep setting it for older Pulsar's that
     # had hacks for pre-2017 Galaxies.
-    return dict(
-        job_id=job_id,
-        tool_id=tool_id,
-        tool_version=tool_version,
-        use_metadata=True,
-        preserve_galaxy_python_environment=preserve_galaxy_python_environment,
-    )
+    return {
+        "job_id": job_id,
+        "tool_id": tool_id,
+        "tool_version": tool_version,
+        "use_metadata": True,
+        "preserve_galaxy_python_environment": preserve_galaxy_python_environment,
+    }

@@ -38,7 +38,7 @@ class PulsarWebApp(RoutingApp):
         self.__setup_routes()
 
     def __setup_routes(self):
-        for func_name, func in inspect.getmembers(pulsar.web.routes, lambda x: getattr(x, '__controller__', False)):
+        for _func_name, func in inspect.getmembers(pulsar.web.routes, lambda x: getattr(x, '__controller__', False)):
             self.__add_route_for_function(func)
 
     def __add_route_for_function(self, function):

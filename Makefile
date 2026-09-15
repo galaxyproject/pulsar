@@ -27,7 +27,7 @@ help:
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "clean-test - remove test and coverage artifacts"
 	@echo "setup-venv - setup a development virtualenv in current directory."
-	@echo "lint - check style with flake8"
+	@echo "lint - check style with ruff"
 	@echo "lint-dist - twine check dist results, including validating README content"
 	@echo "lint-docs - check sphinx docs for warnings"
 	@echo "tests - run tests quickly with the default Python"
@@ -69,11 +69,11 @@ setup-git-hook-lint:
 setup-git-hook-lint-and-test:
 	cp $(BUILD_SCRIPTS_DIR)/pre-commit-lint-and-test .git/hooks/pre-commit
 
-flake8:
-	$(IN_VENV) flake8 --max-complexity 9 $(SOURCE_DIR) $(TEST_DIR)
+lint-code:
+	$(IN_VENV) ruff check .
 
 lint:
-	$(IN_VENV) tox -e py37-lint
+	$(IN_VENV) tox -e lint
 
 _lint-dist:
 	$(IN_VENV) twine check dist/*
