@@ -91,7 +91,7 @@ def test_requests_download_response_is_closed_on_error(tmp_path):
 
 @contextlib.contextmanager
 def path_to_get_fixture(directory):
-    path = Path(directory, f"test_for_GET_{str(uuid4())}")
+    path = Path(directory, f"test_for_GET_{uuid4()!s}")
     path.write_text(" Test123 ")
     path.chmod(0o755)
     yield path
@@ -102,14 +102,14 @@ def _test_transport(transport):
     with files_server() as (server, directory):
         server_url = server.application_url
         with path_to_get_fixture(directory) as path:
-            request_url = "{}?path={}".format(server_url, path)
+            request_url = f"{server_url}?path={path}"
 
             # Testing simple get
             response = transport.execute(request_url, data=None)
             assert response.find(b"Test123") >= 0
 
         with path_to_get_fixture(directory) as path:
-            request_url = "{}?path={}".format(server_url, path)
+            request_url = f"{server_url}?path={path}"
 
             # Testing writing to output file
             temp_file = NamedTemporaryFile(delete=True)
@@ -121,19 +121,18 @@ def _test_transport(transport):
 
 @skip_unless_module("pycurl")
 def test_curl_put_get():
-    with files_server() as (server, directory):
-        with path_to_get_fixture(directory) as path:
-            server_url = server.application_url
-            path = Path(directory, f"test_for_curl_io_{str(uuid4())}")
-            request_url = "{}?path={}".format(server_url, str(path))
+    with files_server() as (server, directory), path_to_get_fixture(directory) as path:
+        server_url = server.application_url
+        path = Path(directory, f"test_for_curl_io_{uuid4()!s}")
+        request_url = f"{server_url}?path={path!s}"
 
-            input = os.path.join(directory, f"test_for_curl_io_input_{str(uuid4())}")
-            output = os.path.join(directory, f"test_for_curl_io_output_{str(uuid4())}")
-            open(input, "w").write("helloworld")
+        input = os.path.join(directory, f"test_for_curl_io_input_{uuid4()!s}")
+        output = os.path.join(directory, f"test_for_curl_io_output_{uuid4()!s}")
+        open(input, "w").write("helloworld")
 
-            post_file(request_url, input)
-            get_file(request_url, output)
-            assert open(output).read() == "helloworld"
+        post_file(request_url, input)
+        get_file(request_url, output)
+        assert open(output).read() == "helloworld"
 
 
 def test_urllib_status_code():
@@ -141,8 +140,8 @@ def test_urllib_status_code():
     PulsarClientTransportError so retry classifiers can read it."""
     with files_server() as (server, directory):
         server_url = server.application_url
-        absent_path = os.path.join(directory, f"test_for_GET_absent_{str(uuid4())}")
-        request_url = "{}?path={}".format(server_url, absent_path)
+        absent_path = os.path.join(directory, f"test_for_GET_absent_{uuid4()!s}")
+        request_url = f"{server_url}?path={absent_path}"
         try:
             UrllibTransport().execute(request_url, data=None)
         except PulsarClientTransportError as exc:
@@ -156,8 +155,8 @@ def test_urllib_status_code():
 def test_curl_status_code():
     with files_server() as (server, directory):
         server_url = server.application_url
-        path = os.path.join(directory, f"test_for_GET_absent_{str(uuid4())}")
-        request_url = "{}?path={}".format(server_url, path)
+        path = os.path.join(directory, f"test_for_GET_absent_{uuid4()!s}")
+        request_url = f"{server_url}?path={path}"
         try:
             get_file(request_url, os.path.join(directory, "test"))
         except PulsarClientTransportError as exc:
@@ -199,8 +198,8 @@ class _FlakyApp:
 def test_requests_status_code():
     with files_server() as (server, directory):
         server_url = server.application_url
-        absent_path = os.path.join(directory, f"test_for_GET_absent_{str(uuid4())}")
-        request_url = "{}?path={}".format(server_url, absent_path)
+        absent_path = os.path.join(directory, f"test_for_GET_absent_{uuid4()!s}")
+        request_url = f"{server_url}?path={absent_path}"
         # Use a uuid in the output name: in CI, `directory` is the shared
         # /tmp served by the simplejobfiles container, so a fixed name like
         # "test" can collide with leftovers from prior runs and break the
@@ -241,7 +240,7 @@ def test_requests_transient_failure_recovers_with_retry():
 
         flaky = _FlakyApp(JobFilesApp(directory), fail_count=fail_count)
         with server_for_test_app(TestApp(flaky)) as server:
-            request_url = "{}?path={}".format(server.application_url, str(served))
+            request_url = f"{server.application_url}?path={served!s}"
             output_path = os.path.join(directory, "downloaded")
 
             executor = RetryActionExecutor(
@@ -269,7 +268,7 @@ def test_requests_persistent_failure_exhausts_retries():
 
         flaky = _FlakyApp(JobFilesApp(directory), fail_count=10)
         with server_for_test_app(TestApp(flaky)) as server:
-            request_url = "{}?path={}".format(server.application_url, str(served))
+            request_url = f"{server.application_url}?path={served!s}"
             output_path = os.path.join(directory, "downloaded")
 
             executor = RetryActionExecutor(
@@ -329,12 +328,12 @@ def test_permanent_4xx_fails_fast_under_executor():
 def test_curl_problems():
     with files_server() as (server, directory):
         server_url = server.application_url
-        path = os.path.join(directory, f"test_for_GET_invalidinput_{str(uuid4())}")
-        request_url = "{}?path={}".format(server_url, path)
+        path = os.path.join(directory, f"test_for_GET_invalidinput_{uuid4()!s}")
+        request_url = f"{server_url}?path={path}"
         exception_raised = False
         try:
             # Valid destination but the file to post doesn't exist.
-            post_file(request_url, os.path.join(directory, f"test-{str(uuid4())}"))
+            post_file(request_url, os.path.join(directory, f"test-{uuid4()!s}"))
         except Exception:
             exception_raised = True
         assert exception_raised
@@ -347,11 +346,11 @@ def test_find_tus_endpoint():
 
 
 def test_get_transport():
-    assert type(get_transport(None, FakeOsModule("1"))) == PycurlTransport
-    assert type(get_transport(None, FakeOsModule("TRUE"))) == PycurlTransport
-    assert type(get_transport(None, FakeOsModule("0"))) == UrllibTransport
-    assert type(get_transport('urllib', FakeOsModule("TRUE"))) == UrllibTransport
-    assert type(get_transport('curl', FakeOsModule("TRUE"))) == PycurlTransport
+    assert type(get_transport(None, FakeOsModule("1"))) is PycurlTransport
+    assert type(get_transport(None, FakeOsModule("TRUE"))) is PycurlTransport
+    assert type(get_transport(None, FakeOsModule("0"))) is UrllibTransport
+    assert type(get_transport('urllib', FakeOsModule("TRUE"))) is UrllibTransport
+    assert type(get_transport('curl', FakeOsModule("TRUE"))) is PycurlTransport
 
 
 class FakeOsModule:

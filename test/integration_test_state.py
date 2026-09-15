@@ -38,14 +38,14 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
                 }
                 submit_job(manager, job_info)
                 external_id = None
-                for i in range(10):
+                for _i in range(10):
                     time.sleep(.05)
                     # TODO: unfortunate breaking of abstractions here.
                     external_id = manager._proxied_manager._external_id(job_id)
                     if external_id:
                         break
                 if external_id is None:
-                    assert False, "Test failed, couldn't get exteranl id for job id."
+                    raise AssertionError("Test failed, couldn't get external id for job id.")
 
             drmaa_session = DrmaaSessionFactory().get()
             drmaa_session.kill(external_id)
@@ -164,7 +164,7 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
             consumer.start()
 
             with app_provider.new_app() as app:
-                app.only_manager
+                app.only_manager  # noqa: B018 - touch the property to assert a single manager
                 # do two messages to ensure generation of status message doesn't
                 # create a job directory we don't mean to or something like that
                 self._request_status(test, job_id)
@@ -218,7 +218,7 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
     def _setup_app_provider(self, test, manager_type="queued_drmaa"):
         mq_url = "memory://test_%s" % test
         manager = "manager_%s" % test
-        app_conf = dict(message_queue_url=mq_url)
+        app_conf = {"message_queue_url": mq_url}
         app_conf["managers"] = {manager: {'type': manager_type}}
         with restartable_pulsar_app_provider(app_conf=app_conf, web=False) as app_provider:
             yield app_provider

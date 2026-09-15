@@ -27,8 +27,8 @@ sphinx
 sphinxcontrib-apidoc
 
 # Used for code checking.
-pyflakes
-flake8
+ruff
+isort
 
 mypy
 types-paramiko

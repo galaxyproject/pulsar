@@ -39,7 +39,7 @@ def ensure_pykube():
 
 
 def pykube_client_from_dict(params):
-    if "k8s_use_service_account" in params and params["k8s_use_service_account"]:
+    if params.get("k8s_use_service_account"):
         pykube_client = HTTPClient(KubeConfig.from_service_account())
     else:
         config_path = params.get("k8s_config_path")
@@ -67,9 +67,8 @@ def produce_unique_k8s_job_name(app_prefix=None, instance_id=None, job_id=None):
 
 def pull_policy(params):
     # If this doesn't validate it returns None, that seems odd?
-    if "k8s_pull_policy" in params:
-        if params["k8s_pull_policy"] in ["Always", "IfNotPresent", "Never"]:
-            return params["k8s_pull_policy"]
+    if "k8s_pull_policy" in params and params["k8s_pull_policy"] in ["Always", "IfNotPresent", "Never"]:
+        return params["k8s_pull_policy"]
     return None
 
 
@@ -82,7 +81,7 @@ def find_pod_object_by_name(pykube_api, pod_name, namespace=None):
 
 
 def _find_object_by_name(clazz, pykube_api, object_name, namespace=None):
-    filter_kwd = dict(selector="app=%s" % object_name)
+    filter_kwd = {"selector": "app=%s" % object_name}
     if namespace is not None:
         filter_kwd["namespace"] = namespace
 
@@ -148,13 +147,13 @@ def galaxy_instance_id(params):
 
 __all__ = (
     "DEFAULT_JOB_API_VERSION",
+    "Job",
+    "Pod",
     "ensure_pykube",
     "find_job_object_by_name",
     "find_pod_object_by_name",
     "galaxy_instance_id",
-    "Job",
     "job_object_dict",
-    "Pod",
     "produce_unique_k8s_job_name",
     "pull_policy",
     "pykube_client_from_dict",

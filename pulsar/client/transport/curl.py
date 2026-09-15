@@ -166,6 +166,6 @@ def _error_curl_to_pulsar(code):
 
 __all__ = [
     'PycurlTransport',
-    'post_file',
-    'get_file'
+    'get_file',
+    'post_file'
 ]

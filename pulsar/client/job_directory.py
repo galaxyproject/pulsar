@@ -13,19 +13,19 @@ from .util import PathHelper
 log = getLogger(__name__)
 
 
-TYPES_TO_METHOD = dict(
-    input="inputs_directory",
-    unstructured="unstructured_files_directory",
-    config="configs_directory",
-    tool="tool_files_directory",
-    jobdir="job_directory",
-    workdir="working_directory",
-    metadata="metadata_directory",
-    output="outputs_directory",
-    output_workdir="working_directory",
-    output_metadata="metadata_directory",
-    output_jobdir="job_directory",
-)
+TYPES_TO_METHOD = {
+    "input": "inputs_directory",
+    "unstructured": "unstructured_files_directory",
+    "config": "configs_directory",
+    "tool": "tool_files_directory",
+    "jobdir": "job_directory",
+    "workdir": "working_directory",
+    "metadata": "metadata_directory",
+    "output": "outputs_directory",
+    "output_workdir": "working_directory",
+    "output_metadata": "metadata_directory",
+    "output_jobdir": "job_directory",
+}
 
 
 class RemoteJobDirectory:
@@ -81,7 +81,7 @@ class RemoteJobDirectory:
         """ Only for used by Pulsar client, should override for managers to
         enforce security and make the directory if needed.
         """
-        directory, allow_nested_files, allow_globs = self._directory_for_file_type(input_type)
+        directory, _allow_nested_files, _allow_globs = self._directory_for_file_type(input_type)
         return self.path_helper.remote_join(directory, remote_relative_path)
 
     def _directory_for_file_type(self, file_type):
@@ -92,7 +92,7 @@ class RemoteJobDirectory:
         # serve legacy clients.
         allow_nested_files = file_type in ['input', 'unstructured', 'output', 'output_workdir', 'metadata', 'output_metadata', 'tool']
         allow_globs = file_type in ['output_workdir']  # TODO: tool profile version where this is invalid
-        directory_source = getattr(self, TYPES_TO_METHOD.get(file_type, None), None)
+        directory_source = getattr(self, TYPES_TO_METHOD.get(file_type), None)
         if not directory_source:
             raise Exception("Unknown file_type specified %s" % file_type)
         if callable(directory_source):
@@ -161,5 +161,5 @@ def __posix_to_local_path(path, local_path_module=os.path):
 def verify_is_in_directory(path, directory, local_path_module=os.path):
     if not in_directory(path, directory, local_path_module):
         msg = "Attempt to read or write file outside an authorized directory."
-        log.warning("{} Attempted path: {}, valid directory: {}".format(msg, path, directory))
+        log.warning(f"{msg} Attempted path: {path}, valid directory: {directory}")
         raise Exception(msg)

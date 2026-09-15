@@ -79,14 +79,14 @@ class PathMapperTestCase(TempDirectoryTestCase):
         return path_mapper
 
     def __test_remote_config(self):
-        return dict(
-            inputs_directory="/scratch/staging/1/inputs",
-            outputs_directory="/scratch/staging/1/outputs",
-            configs_directory="/scratch/staging/1/configs",
-            working_directory="/scratch/staging/1/working",
-            unstructured_files_directory="/scratch/staging/1/unstructured",
-            system_properties=dict(separator="/"),
-        )
+        return {
+            "inputs_directory": "/scratch/staging/1/inputs",
+            "outputs_directory": "/scratch/staging/1/outputs",
+            "configs_directory": "/scratch/staging/1/configs",
+            "working_directory": "/scratch/staging/1/working",
+            "unstructured_files_directory": "/scratch/staging/1/unstructured",
+            "system_properties": {"separator": "/"},
+        }
 
 
 class TestActionMapper:

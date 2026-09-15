@@ -28,8 +28,10 @@ DEFAULT_STAGING_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "staging")
 DEFAULT_PERSISTENCE_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "persisted_data")
 
 
-NOT_WHITELIST_WARNING = "Starting the Pulsar without a toolbox to white-list." + \
-                        "Ensure this application is protected by firewall or a configured private token."
+NOT_WHITELIST_WARNING = (
+    "Starting the Pulsar without a toolbox to white-list. "
+    "Ensure this application is protected by firewall or a configured private token."
+)
 MULTIPLE_MANAGERS_MESSAGE = "app.only_manager accessed with multiple managers configured"
 
 
@@ -42,7 +44,7 @@ class PulsarApp:
         self.__setup_sentry_integration(conf)
         self.__setup_staging_directory(conf.get("staging_directory", DEFAULT_STAGING_DIRECTORY))
         self.__setup_private_token(conf.get("private_token", DEFAULT_PRIVATE_TOKEN))
-        self.__setup_persistence_directory(conf.get("persistence_directory", None))
+        self.__setup_persistence_directory(conf.get("persistence_directory"))
         self.__setup_tool_config(conf)
         self.__setup_object_store(conf)
         self.__setup_dependency_manager(conf)
@@ -145,14 +147,14 @@ class PulsarApp:
             self.object_store = None
             return
 
-        config_obj_kwds = dict(
-            file_path=conf.get("object_store_file_path", None),
-            object_store_check_old_style=False,
-            job_working_directory=conf.get("object_store_job_working_directory", None),
-            new_file_path=conf.get("object_store_new_file_path", tempdir),
-            umask=int(conf.get("object_store_umask", "0000")),
-            jobs_directory=None,
-        )
+        config_obj_kwds = {
+            "file_path": conf.get("object_store_file_path", None),
+            "object_store_check_old_style": False,
+            "job_working_directory": conf.get("object_store_job_working_directory", None),
+            "new_file_path": conf.get("object_store_new_file_path", tempdir),
+            "umask": int(conf.get("object_store_umask", "0000")),
+            "jobs_directory": None,
+        }
         config_dict = None
         if conf.get("object_store_config_file"):
             config_obj_kwds["object_store_config_file"] = conf['object_store_config_file']
@@ -191,4 +193,4 @@ class PulsarApp:
     def only_manager(self):
         """Convience accessor for tests and contexts with sole manager."""
         assert len(self.managers) == 1, MULTIPLE_MANAGERS_MESSAGE
-        return list(self.managers.values())[0]
+        return next(iter(self.managers.values()))

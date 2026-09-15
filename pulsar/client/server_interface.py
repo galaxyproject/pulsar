@@ -101,7 +101,7 @@ class HttpPulsarInterface(PulsarInterface):
 
     def execute(self, command, args=None, data=None, input_path=None, output_path=None):
         url = self.__build_url(command, args)
-        method = COMMAND_TO_METHOD.get(command, None)  # Default to GET is no data, POST otherwise
+        method = COMMAND_TO_METHOD.get(command)  # Default to GET is no data, POST otherwise
         response = self.transport.execute(url, method=method, data=data, input_path=input_path, output_path=output_path)
         return response
 
@@ -148,7 +148,7 @@ class LocalPulsarInterface(PulsarInterface):
         from pulsar.web.framework import build_func_args
         controller = getattr(routes, command)
         action = controller.func
-        body_args = dict(body=self.__build_body(data, input_path))
+        body_args = {"body": self.__build_body(data, input_path)}
         args = build_func_args(action, args.copy(), self.__app_args(), body_args)
         result = action(**args)
         if controller.response_type != 'file':

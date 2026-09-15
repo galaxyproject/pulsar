@@ -39,10 +39,10 @@ def tes_galaxy_instance_id(destination_params: Dict[str, Any]) -> Optional[str]:
 
 
 __all__ = (
-    "ensure_tes_client",
     "TesClient",
     "TesExecutor",
     "TesResources",
     "TesState",
     "TesTask",
+    "ensure_tes_client",
 )

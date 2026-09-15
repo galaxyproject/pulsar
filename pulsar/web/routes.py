@@ -30,7 +30,7 @@ class PulsarController(Controller):
     def _check_access(self, req, environ, start_response):
         if req.app.private_token:
             sent_private_token = req.GET.get("private_token", None)
-            if not (req.app.private_token == sent_private_token):
+            if req.app.private_token != sent_private_token:
                 return exc.HTTPUnauthorized()(environ, start_response)
 
     def _app_args(self, args, req):
@@ -71,17 +71,17 @@ def submit(manager, job_id, command_line, params='{}', dependencies_description=
     submit_extras = loads(submit_extras)
     dynamic_file_sources = loads(dynamic_file_sources)
     cvmfsexec = loads(cvmfsexec)
-    submit_config = dict(
-        job_id=job_id,
-        command_line=command_line,
-        setup_params=setup_params,
-        submit_params=submit_params,
-        dependencies_description=dependencies_description,
-        env=env,
-        remote_staging=remote_staging,
-        dynamic_file_sources=dynamic_file_sources,
-        cvmfsexec=cvmfsexec,
-    )
+    submit_config = {
+        "job_id": job_id,
+        "command_line": command_line,
+        "setup_params": setup_params,
+        "submit_params": submit_params,
+        "dependencies_description": dependencies_description,
+        "env": env,
+        "remote_staging": remote_staging,
+        "dynamic_file_sources": dynamic_file_sources,
+        "cvmfsexec": cvmfsexec,
+    }
     submit_config.update(submit_extras)
     submit_job(manager, submit_config)
 
@@ -244,7 +244,7 @@ def _handle_upload(file_cache, path, body, cache_token=None):
     if cache_token:
         cached_file = file_cache.destination(cache_token)
         with open(cached_file, 'rb') as source:
-            log.info("Copying cached file {} to {}".format(cached_file, path))
+            log.info(f"Copying cached file {cached_file} to {path}")
             copy_to_path(source, path)
     else:
         copy_to_path(body, path)

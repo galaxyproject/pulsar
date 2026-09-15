@@ -70,7 +70,7 @@ class TestClient(JobClient):
 
     def __init__(self):
         JobClient.__init__(self, {}, "543", HttpPulsarInterface({"url": "http://test:803/"}, TestTransport(self)))
-        self.expects = deque([])
+        self.expects = deque()
 
     def expect_open(self, checker, response):
         self.expects.appendleft((checker, response))
@@ -93,7 +93,7 @@ class RequestChecker:
         assert opened_url.startswith(expected_url_prefix)
         url_suffix = opened_url[len(expected_url_prefix):]
         actual_args = dict([key_val_combo.split("=") for key_val_combo in url_suffix.split("&")])
-        statement = "Expected args {}, obtained {}".format(self.expected_args, actual_args)
+        statement = f"Expected args {self.expected_args}, obtained {actual_args}"
         assert self.expected_args == actual_args, statement
 
     def check_data(self, data):
@@ -103,7 +103,7 @@ class RequestChecker:
             assert self.data == data
         else:
             data_read = data.read(1024)
-            assert data_read == self.data, "data_read {} is not expected data {}".format(data_read, self.data)
+            assert data_read == self.data, f"data_read {data_read} is not expected data {self.data}"
 
     def __call__(self, request, data=None):
         self.called = True

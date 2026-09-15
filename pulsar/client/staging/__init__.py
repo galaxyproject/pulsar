@@ -23,26 +23,10 @@ if TYPE_CHECKING:
 
 COMMAND_VERSION_FILENAME = "COMMAND_VERSION"
 DEFAULT_DYNAMIC_COLLECTION_PATTERN = [
-    "|".join(
-        [
-            r"primary_.*",
-            r"galaxy.json",
-            r"metadata_.*",
-            r"dataset_\d+\.dat",
-            r"__instrument_.*",
-            r"dataset_\d+_files.+",
-            r"outputs_populated/.*",
-            r"tool_stdout",
-            r"tool_stderr",
-        ]
-    )
+    r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|__instrument_.*|dataset_\d+_files.+|outputs_populated/.*|tool_stdout|tool_stderr"
 ]
 EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN = [
-    "|".join(
-        [
-            r"outputs_populated/.*",
-        ]
-    )
+    r"outputs_populated/.*"
 ]
 
 
@@ -155,10 +139,10 @@ class ClientJobDescription:
     def tool_dependencies(self):
         if not self.remote_dependency_resolution:
             return None
-        return dict(
-            requirements=(self.tool.requirements or []),
-            installed_tool_dependencies=(self.tool.installed_tool_dependencies or [])
-        )
+        return {
+            "requirements": (self.tool.requirements or []),
+            "installed_tool_dependencies": (self.tool.installed_tool_dependencies or [])
+        }
 
 
 class ClientInputs:
@@ -232,17 +216,17 @@ class ClientOutputs:
         self.__dynamic_patterns = list(map(re.compile, self.dynamic_outputs))
 
     def to_dict(self):
-        return dict(
-            working_directory=self.working_directory,
-            metadata_directory=self.metadata_directory,
-            job_directory=self.job_directory,
-            work_dir_outputs=self.work_dir_outputs,
-            output_files=self.output_files,
-            version_file=self.version_file,
-            dynamic_outputs=self.dynamic_outputs,
-            dynamic_file_sources=self.dynamic_file_sources,
-            dataset_collector_descriptions=self.dataset_collector_descriptions,
-        )
+        return {
+            "working_directory": self.working_directory,
+            "metadata_directory": self.metadata_directory,
+            "job_directory": self.job_directory,
+            "work_dir_outputs": self.work_dir_outputs,
+            "output_files": self.output_files,
+            "version_file": self.version_file,
+            "dynamic_outputs": self.dynamic_outputs,
+            "dynamic_file_sources": self.dynamic_file_sources,
+            "dataset_collector_descriptions": self.dataset_collector_descriptions,
+        }
 
     @staticmethod
     def from_dict(config_dict):
@@ -295,10 +279,7 @@ class ClientOutputs:
                         return True
 
         # Collect DEFAULT_DYNAMIC_COLLECTION_PATTERN and provided_metadata_file patterns
-        for pattern in self.__dynamic_patterns:
-            if pattern.match(filename):
-                return True
-        return False
+        return any(pattern.match(filename) for pattern in self.__dynamic_patterns)
 
 
 class PulsarOutputs:
@@ -357,4 +338,4 @@ class PulsarOutputs:
 
         files_directory = "{}_files{}".format(basename(output_file)[0:-len(".dat")], self.path_helper.separator)
         names = filter(lambda o: o.startswith(files_directory), self.output_directory_contents)
-        return dict(map(lambda name: (local_path(name), name), names))
+        return {local_path(name): name for name in names}

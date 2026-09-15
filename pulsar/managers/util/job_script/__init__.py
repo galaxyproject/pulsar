@@ -156,7 +156,7 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     if any(param not in kwds for param in REQUIRED_TEMPLATE_PARAMS):
         raise Exception("Failed to create job_script, a required parameter is missing.")
     metadata_directory = kwds.get("metadata_directory", kwds["working_directory"])
-    job_instrumenter = kwds.get("job_instrumenter", None)
+    job_instrumenter = kwds.get("job_instrumenter")
     if job_instrumenter:
         del kwds["job_instrumenter"]
         working_directory = kwds.get("metadata_directory", kwds["working_directory"])
@@ -253,7 +253,7 @@ def _handle_script_integrity(
 
 
 __all__ = (
+    "INTEGRITY_INJECTION",
     "job_script",
     "write_script",
-    "INTEGRITY_INJECTION",
 )

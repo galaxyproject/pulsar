@@ -66,7 +66,7 @@ class TestThread(threading.Thread):
         while self:
             time.sleep(0.05)
         if self.message != expected_message:
-            msg = "Expected [{}], got [{}].".format(expected_message, self.message)
+            msg = f"Expected [{expected_message}], got [{self.message}]."
             raise AssertionError(msg)
 
         self.join(2)

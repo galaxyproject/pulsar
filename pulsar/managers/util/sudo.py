@@ -16,7 +16,7 @@ def sudo_popen(*args, **kwargs) -> Popen:
     Helper method for building and executing Popen command. This is potentially
     sensetive code so should probably be centralized.
     """
-    user = kwargs.get("user", None)
+    user = kwargs.get("user")
     full_command = [SUDO_PATH, SUDO_PRESERVE_ENVIRONMENT_ARG]
     if user:
         full_command.extend([SUDO_USER_ARG, user])

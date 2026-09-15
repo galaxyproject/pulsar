@@ -18,7 +18,7 @@ def bind_app(app, queue_id, conf=None):
     connection_string = __id_to_connection_string(app, queue_id)
 
     # Check if this is a relay connection
-    if connection_string and connection_string.startswith('http://') or connection_string.startswith('https://'):
+    if (connection_string and connection_string.startswith('http://')) or connection_string.startswith('https://'):
         relay_url = connection_string
         log.info("Detected relay connection string, binding to pulsar-relay at %s", relay_url)
 

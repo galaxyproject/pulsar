@@ -44,26 +44,26 @@ def __job_complete_dict(complete_status, manager, job_id):
     job_stdout_contents = unicodify(manager.job_stdout_contents(job_id).decode("utf-8"))
     job_stderr_contents = unicodify(manager.job_stderr_contents(job_id).decode("utf-8"))
     job_directory = manager.job_directory(job_id)
-    as_dict = dict(
-        job_id=job_id,
-        complete="true",  # Is this still used or is it legacy.
-        status=complete_status,
-        returncode=return_code,
-        stdout=stdout_contents,
-        stderr=stderr_contents,
-        job_stdout=job_stdout_contents,
-        job_stderr=job_stderr_contents,
-        working_directory=job_directory.working_directory(),
-        metadata_directory=job_directory.metadata_directory(),
-        job_directory=job_directory.job_directory,
-        working_directory_contents=job_directory.working_directory_contents(),
-        metadata_directory_contents=job_directory.metadata_directory_contents(),
-        outputs_directory_contents=job_directory.outputs_directory_contents(),
-        job_directory_contents=job_directory.job_directory_contents(),
-        system_properties=manager.system_properties(),
-        pulsar_version=pulsar_version,
-        realized_dynamic_file_sources=realized_dynamic_file_sources(job_directory)
-    )
+    as_dict = {
+        "job_id": job_id,
+        "complete": "true",  # Is this still used or is it legacy.
+        "status": complete_status,
+        "returncode": return_code,
+        "stdout": stdout_contents,
+        "stderr": stderr_contents,
+        "job_stdout": job_stdout_contents,
+        "job_stderr": job_stderr_contents,
+        "working_directory": job_directory.working_directory(),
+        "metadata_directory": job_directory.metadata_directory(),
+        "job_directory": job_directory.job_directory,
+        "working_directory_contents": job_directory.working_directory_contents(),
+        "metadata_directory_contents": job_directory.metadata_directory_contents(),
+        "outputs_directory_contents": job_directory.outputs_directory_contents(),
+        "job_directory_contents": job_directory.job_directory_contents(),
+        "system_properties": manager.system_properties(),
+        "pulsar_version": pulsar_version,
+        "realized_dynamic_file_sources": realized_dynamic_file_sources(job_directory)
+    }
     return as_dict
 
 

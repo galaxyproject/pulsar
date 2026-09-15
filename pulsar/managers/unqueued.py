@@ -314,7 +314,7 @@ class CoexecutionManager(BaseUnqueuedManager):
         )
         job_directory = self.job_directory(job_id)
         working_directory = job_directory.working_directory()
-        command_line = "cd '{}'; sh {}".format(working_directory, command_line)
+        command_line = f"cd '{working_directory}'; sh {command_line}"
         log.info("writing command line [%s] for co-execution" % command_line)
         self._write_command_line(job_id, command_line)
         # Write dummy JOB_FILE_PID so get_status thinks this job is running.

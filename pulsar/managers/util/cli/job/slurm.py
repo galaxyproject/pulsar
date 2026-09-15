@@ -33,7 +33,7 @@ class Slurm(BaseJobExec):
         template_scriptargs = ""
         for k, v in scriptargs.items():
             template_scriptargs += f"#SBATCH {k} {v}\n"
-        return dict(headers=template_scriptargs)
+        return {"headers": template_scriptargs}
 
     def submit(self, script_file):
         return f"sbatch {script_file}"
@@ -61,7 +61,7 @@ class Slurm(BaseJobExec):
         status = status.splitlines()
         if len(status) > 1:
             # Job still on cluster and has state.
-            id, state = status[1].split()
+            _id, state = status[1].split()
             return self._get_job_state(state)
         # else line like "slurm_load_jobs error: Invalid job id specified"
         return job_states.OK

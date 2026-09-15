@@ -128,21 +128,21 @@ class ClientManager(ClientManagerInterface):
         """Build a HTTP client or a local client that talks directly to a job manger."""
         if 'pulsar_app' in kwds or job_manager:
             self.job_manager_interface_class = LocalPulsarInterface
-            pulsar_app = kwds.get('pulsar_app', None)
-            file_cache = kwds.get('file_cache', None)
-            self.job_manager_interface_args = dict(
-                job_manager=job_manager,
-                pulsar_app=pulsar_app,
-                file_cache=file_cache,
-            )
+            pulsar_app = kwds.get('pulsar_app')
+            file_cache = kwds.get('file_cache')
+            self.job_manager_interface_args = {
+                "job_manager": job_manager,
+                "pulsar_app": pulsar_app,
+                "file_cache": file_cache,
+            }
         else:
             print(kwds)
             self.job_manager_interface_class = HttpPulsarInterface
-            transport_type = kwds.get('transport', None)
+            transport_type = kwds.get('transport')
             transport_params = {p.replace('transport_', '', 1): v for p, v in kwds.items() if p.startswith('transport_')}
             transport = get_transport(transport_type, transport_params=transport_params)
-            self.job_manager_interface_args = dict(transport=transport)
-        cache = kwds.get('cache', None)
+            self.job_manager_interface_args = {"transport": transport}
+        cache = kwds.get('cache')
         if cache is None:
             cache = _environ_default_int('PULSAR_CACHE_TRANSFERS')
         if cache:
@@ -174,7 +174,7 @@ except ImportError:
 class BaseRemoteConfiguredJobClientManager(ClientManagerInterface):
 
     def __init__(self, **kwds: Any):
-        self.manager_name = kwds.get("manager", None) or "_default_"
+        self.manager_name = kwds.get("manager") or "_default_"
 
 
 class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
@@ -184,7 +184,7 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
     def __init__(self, amqp_url: str, **kwds: Any):
         super().__init__(**kwds)
         self.url = amqp_url
-        self.amqp_key_prefix = kwds.get("amqp_key_prefix", None)
+        self.amqp_key_prefix = kwds.get("amqp_key_prefix")
         self.exchange = get_exchange(self.url, self.manager_name, kwds)
         self.status_cache = {}
         self.callback_lock = threading.Lock()
@@ -265,7 +265,7 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
 
                 run = functools.partial(self.ack_consumer, name)
                 thread = threading.Thread(
-                    name="pulsar_client_{}_{}_ack".format(self.manager_name, name),
+                    name=f"pulsar_client_{self.manager_name}_{name}_ack",
                     target=run
                 )
                 thread.daemon = False  # Lets not interrupt processing of this.
@@ -472,7 +472,6 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
 
     def ensure_has_ack_consumers(self):
         """No-op for relay client manager, as acknowledgements are handled via HTTP."""
-        pass
 
     def _make_topic_name(self, base_topic: str, manager_name: str) -> str:
         """Create a topic name with optional prefix and manager suffix.
@@ -504,9 +503,8 @@ class RelayClientManager(BaseRemoteConfiguredJobClientManager):
         self.active = False
         # Signal the shutdown event to interrupt any waiting threads
         self.shutdown_event.set()
-        if ensure_cleanup:
-            if self.callback_thread is not None:
-                self.callback_thread.join()
+        if ensure_cleanup and self.callback_thread is not None:
+            self.callback_thread.join()
         # Close relay transport
         if hasattr(self, 'relay_transport'):
             self.relay_transport.close()
@@ -590,12 +588,12 @@ class ObjectStoreClientManager:
     def __init__(self, **kwds):
         if 'object_store' in kwds:
             self.interface_class = LocalPulsarInterface
-            self.interface_args = dict(object_store=kwds['object_store'])
+            self.interface_args = {"object_store": kwds['object_store']}
         else:
             self.interface_class = HttpPulsarInterface
-            transport_type = kwds.get('transport', None)
+            transport_type = kwds.get('transport')
             transport = get_transport(transport_type)
-            self.interface_args = dict(transport=transport)
+            self.interface_args = {"transport": transport}
         self.extra_client_kwds = {}
 
     def get_client(self, client_params):
@@ -627,7 +625,6 @@ class ClientCacher:
             except BaseException as e:
                 log.warn("Transfer failed.")
                 log.exception(e)
-                pass
             self.transfer_queue.task_done()
 
     def __perform_transfer(self, transfer_info):
@@ -655,7 +652,7 @@ def _parse_destination_params(destination_params):
         unicode_type = unicode
     except NameError:
         unicode_type = str
-    if isinstance(destination_params, str) or isinstance(destination_params, unicode_type):
+    if isinstance(destination_params, (str, unicode_type)):
         destination_params = url_to_destination_params(destination_params)
     return destination_params
 
@@ -670,6 +667,6 @@ def _environ_default_int(variable, default="0"):
 
 __all__ = (
     'ClientManager',
-    'ObjectStoreClientManager',
     'HttpPulsarInterface',
+    'ObjectStoreClientManager',
 )

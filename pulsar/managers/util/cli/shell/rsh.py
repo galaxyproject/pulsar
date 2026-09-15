@@ -17,7 +17,7 @@ logging.getLogger("paramiko").setLevel(
     logging.WARNING
 )  # paramiko logging is very verbose
 
-__all__ = ("RemoteShell", "SecureShell", "GlobusSecureShell", "ParamikoShell")
+__all__ = ("GlobusSecureShell", "ParamikoShell", "RemoteShell", "SecureShell")
 
 
 class RemoteShell(LocalShell):

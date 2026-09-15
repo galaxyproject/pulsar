@@ -111,9 +111,7 @@ class StatefulManagerProxy(ManagerProxy):
         self, status: "StateLiteral", job_id: str
     ) -> None:
         log.info(
-            "Status of job [{}] changed to [{}]. No callbacks enabled.".format(
-                job_id, status
-            )
+            f"Status of job [{job_id}] changed to [{status}]. No callbacks enabled."
         )
 
     def trigger_state_change_callback(self, job_id: str) -> None:
@@ -535,14 +533,14 @@ def new_thread_for_job(
     target: Callable[[], None],
     daemon: bool,
 ) -> threading.Thread:
-    name = "[action={}]-[job={}]".format(action, job_id)
+    name = f"[action={action}]-[job={job_id}]"
     return new_thread_for_manager(manager, name, target, daemon)
 
 
 def new_thread_for_manager(
     manager: StatefulManagerProxy, name: str, target: Callable[[], None], daemon: bool
 ) -> threading.Thread:
-    thread_name = "[manager={}]-{}".format(manager.name, name)
+    thread_name = f"[manager={manager.name}]-{name}"
     thread = threading.Thread(name=thread_name, target=target)
     thread.daemon = daemon
     thread.start()

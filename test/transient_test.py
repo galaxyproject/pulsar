@@ -32,7 +32,7 @@ def _urllib_http_error(code):
 
 def test_transient_status_set():
     # Lock the policy so changing it requires a deliberate test edit.
-    assert TRANSIENT_HTTP_STATUS == frozenset({408, 425, 429, 500, 502, 503, 504})
+    assert frozenset({408, 425, 429, 500, 502, 503, 504}) == TRANSIENT_HTTP_STATUS
 
 
 def test_requests_5xx_is_transient():
