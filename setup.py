@@ -71,6 +71,8 @@ setup(
         'pulsar.managers.util.job_script',
         'pulsar.messaging',
         'pulsar.scripts',
+        'pulsar.testing',
+        'pulsar.testing.resilience',
         'pulsar.tools',
         'pulsar.user_auth',
         'pulsar.user_auth.methods',

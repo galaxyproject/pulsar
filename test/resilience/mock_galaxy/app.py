@@ -42,7 +42,7 @@ from fastapi.responses import JSONResponse
 from simplejobfiles.app import JobFilesApp
 from webob.exc import HTTPException as WebObHTTPException
 
-from recorder import StatusRecorder  # type: ignore
+from pulsar.testing.recorder import StatusRecorder
 
 log = logging.getLogger("mock_galaxy")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")

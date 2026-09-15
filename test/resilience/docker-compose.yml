@@ -80,8 +80,10 @@ services:
 
   mock-galaxy:
     build:
-      context: .
-      dockerfile: mock_galaxy/Dockerfile
+      # Repo root, like the pulsar service: the image needs the pulsar package
+      # for pulsar.testing.recorder.
+      context: ../..
+      dockerfile: test/resilience/mock_galaxy/Dockerfile
     environment:
       - MOCK_GALAXY_BIND=0.0.0.0:8088
       - MOCK_GALAXY_AMQP_URL=amqp://guest:guest@rabbitmq:5672//
