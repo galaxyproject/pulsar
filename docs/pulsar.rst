@@ -10,7 +10,6 @@ Subpackages
    pulsar.cache
    pulsar.client
    pulsar.managers
-   pulsar.mesos
    pulsar.messaging
    pulsar.scripts
    pulsar.tools

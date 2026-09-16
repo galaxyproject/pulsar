@@ -24,6 +24,10 @@ History
 * Report DRM-side job failures as ``failed`` instead of ``complete`` (thanks to
   `@gkr0110`_), and make ``failed`` terminal in ``StatefulManagerProxy`` so such
   jobs are deactivated, staged back, and reported to the client.
+* Remove the experimental Apache Mesos framework and executor. Apache Mesos has
+  been retired to the Apache Attic, the ``mesos.native`` bindings the code
+  imported were only ever distributed with a Mesos build, and nothing here has
+  had a functional change since 2015.
 
 ---------------------
 0.15.15 (2026-07-13)
