@@ -33,6 +33,7 @@ from pulsar.managers import (
     ManagerProxy,
     status,
 )
+from pulsar.managers.util.job_directory_tokens import substitute_tokens_in_staged_files
 from pulsar.managers.util.retry import RetryActionExecutor
 from .staging import (
     postprocess,
@@ -200,6 +201,17 @@ class StatefulManagerProxy(ManagerProxy):
             if self._proxied_manager._was_cancelled(job_id):
                 log.info("Exiting job launch, job is cancelled")
                 return
+            # Staging is finished, so the client-computed job-directory tokens
+            # in staged file contents can finally be resolved. Must happen
+            # after preprocess() - with remote staging the files do not exist
+            # until it has run.
+            rewritten = substitute_tokens_in_staged_files(job_directory)
+            if rewritten:
+                log.debug(
+                    "Substituted job directory tokens in %d staged file(s) for job %s",
+                    len(rewritten),
+                    job_id,
+                )
             launch_kwds = {}
             if launch_config.get("dependencies_description"):
                 dependencies_description = DependenciesDescription.from_dict(
