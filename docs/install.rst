@@ -19,8 +19,7 @@ using the standard pip_ and venv_ Python tools.
 The older method also requires these tools to install Pulsar's dependencies
 but Pulsar itself is served directly from a clone of the Pulsar source tree -
 this mirrors how Galaxy_ is most typically deployed. This may be beneficial
-during Pulsar development and is required for certain experimental features such
-as Mesos support.
+during Pulsar development.
 
 Both methods presented here require a Python 3.5 (or later) runtime for either
 `Windows <https://docs.python-guide.org/starting/install3/win/>`__,
