@@ -29,6 +29,7 @@ sphinxcontrib-apidoc
 # Used for code checking.
 ruff
 isort
+vermin
 
 mypy
 types-paramiko
