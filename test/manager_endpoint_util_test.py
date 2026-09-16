@@ -1,10 +1,6 @@
-"""Tests for the manager_endpoint_util submit-message idempotency guard.
+"""Tests for manager endpoint utilities."""
+from unittest.mock import Mock
 
-When an AMQP setup message is redelivered (after a Pulsar SIGKILL between
-setup_job and message.ack(), for example), submit_job must NOT re-run the
-job. Once ``launch_config`` metadata is present on disk, the redelivered
-message is a no-op.
-"""
 from pulsar import manager_endpoint_util
 
 
@@ -64,6 +60,54 @@ def _job_config(job_id="j1", **overrides):
     }
     cfg.update(overrides)
     return cfg
+
+
+def _completed_manager(stdout=b"tool stdout", stderr=b"tool stderr"):
+    job_directory = Mock(job_directory="/jobs/j1")
+    job_directory.working_directory.return_value = "/jobs/j1/working"
+    job_directory.metadata_directory.return_value = "/jobs/j1/metadata"
+    job_directory.working_directory_contents.return_value = ["working.txt"]
+    job_directory.metadata_directory_contents.return_value = ["metadata.txt"]
+    job_directory.outputs_directory_contents.return_value = ["output.txt"]
+    job_directory.job_directory_contents.return_value = ["working", "metadata", "outputs"]
+    job_directory.load_metadata.return_value = None
+
+    manager = Mock()
+    manager.return_code.return_value = 0
+    manager.stdout_contents.return_value = stdout
+    manager.stderr_contents.return_value = stderr
+    manager.job_stdout_contents.return_value = b"job stdout"
+    manager.job_stderr_contents.return_value = b"job stderr"
+    manager.job_directory.return_value = job_directory
+    manager.system_properties.return_value = {"separator": "/"}
+    return manager
+
+
+def test_completed_status_preserves_short_tool_streams_and_metadata():
+    result = manager_endpoint_util.full_status(_completed_manager(), "complete", "j1")
+
+    assert result["stdout"] == "tool stdout"
+    assert result["stderr"] == "tool stderr"
+    assert result["job_stdout"] == "job stdout"
+    assert result["job_stderr"] == "job stderr"
+    assert result["returncode"] == 0
+    assert result["working_directory_contents"] == ["working.txt"]
+    assert result["metadata_directory_contents"] == ["metadata.txt"]
+    assert result["outputs_directory_contents"] == ["output.txt"]
+    assert result["job_directory_contents"] == ["working", "metadata", "outputs"]
+
+
+def test_completed_status_caps_tool_streams_at_64_kib():
+    stream_limit = manager_endpoint_util.MAXIMUM_STATUS_STREAM_SIZE
+    manager = _completed_manager(
+        stdout=b"o" * (stream_limit + 1),
+        stderr=b"e" * (stream_limit + 1),
+    )
+
+    result = manager_endpoint_util.full_status(manager, "complete", "j1")
+
+    assert result["stdout"] == "o" * stream_limit
+    assert result["stderr"] == "e" * stream_limit
 
 
 def test_first_setup_proceeds_to_preprocess_and_launch():

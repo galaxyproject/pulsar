@@ -18,6 +18,8 @@ from pulsar.managers.stateful import ACTIVE_STATUS_PREPROCESSING
 
 log = logging.getLogger(__name__)
 
+MAXIMUM_STATUS_STREAM_SIZE = 64 * 1024
+
 
 def status_dict(manager, job_id):
     job_status = manager.get_status(job_id)
@@ -39,8 +41,12 @@ def __job_complete_dict(complete_status, manager, job_id):
     return_code = manager.return_code(job_id)
     if return_code == PULSAR_UNKNOWN_RETURN_CODE:
         return_code = None
-    stdout_contents = unicodify(manager.stdout_contents(job_id))
-    stderr_contents = unicodify(manager.stderr_contents(job_id))
+    stdout_contents = unicodify(
+        manager.stdout_contents(job_id)[:MAXIMUM_STATUS_STREAM_SIZE]
+    )
+    stderr_contents = unicodify(
+        manager.stderr_contents(job_id)[:MAXIMUM_STATUS_STREAM_SIZE]
+    )
     job_stdout_contents = unicodify(manager.job_stdout_contents(job_id).decode("utf-8"))
     job_stderr_contents = unicodify(manager.job_stderr_contents(job_id).decode("utf-8"))
     job_directory = manager.job_directory(job_id)
