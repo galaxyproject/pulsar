@@ -12,12 +12,12 @@ import time
 import pytest
 import requests
 
-from harness.assertions import (
+from pulsar.testing.resilience.assertions import (
     assert_exactly_once_terminal,
     await_any_terminal,
     await_terminal,
 )
-from harness.job_factory import make_setup_message
+from pulsar.testing.resilience.job_factory import make_setup_message
 
 GALAXY_BASE = "http://localhost:8088"
 

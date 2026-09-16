@@ -11,8 +11,12 @@ RUN pip install --no-cache-dir \
         simple-job-files==0.2.1 \
         a2wsgi==1.10.10
 
-COPY mock_galaxy/app.py /app/app.py
-COPY mock_galaxy/recorder.py /app/recorder.py
+# The recorder now lives in the Pulsar distribution as pulsar.testing.recorder,
+# so copy the package rather than a loose module. Only pulsar/__init__.py and
+# pulsar.testing.recorder are imported here and both are pure stdlib, so none
+# of Pulsar's own runtime dependencies are needed in this image.
+COPY pulsar /app/pulsar
+COPY test/resilience/mock_galaxy/app.py /app/app.py
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8088

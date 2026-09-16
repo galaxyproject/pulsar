@@ -322,7 +322,7 @@ must therefore enforce two invariants:
 
 The reference implementation of these rules is the
 ``StatusRecorder`` class in
-``test/resilience/mock_galaxy/recorder.py``; treat it as the canonical
+``pulsar/testing/recorder.py``; treat it as the canonical
 behavior to mirror in production Galaxy.
 
 Explicit Galaxy-side resets

@@ -102,6 +102,11 @@ jobs:
         cache: pip
     - name: Install test runner deps
       run: pip install pytest pytest-timeout requests
+    - name: Install pulsar for the harness
+      # The scenarios import pulsar.testing.resilience. --no-deps because the
+      # harness only needs requests (installed above) and the recorder is
+      # pure stdlib; the runner never starts a Pulsar server itself.
+      run: pip install --no-deps -e .
     - name: Build images
       run: docker compose -f test/resilience/docker-compose.yml build
     - name: Bring up the docker-compose stack
