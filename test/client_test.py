@@ -8,6 +8,7 @@ from unittest.mock import (
 )
 
 from pulsar.client.client import (
+    BaseRemoteConfiguredJobClient,
     JobClient,
     TesPollingCoexecutionJobClient,
 )
@@ -266,3 +267,24 @@ def test_tes_poll_and_cancel_use_recorded_external_id():
 
     assert tes_client.cancelled == ["tes-task-abc"]
     assert tes_client.polled == [("tes-task-abc", "FULL")]
+
+
+class _StagingDefaultClient(BaseRemoteConfiguredJobClient):
+    """Stands in for the coexecution clients, which all define a default."""
+
+    def default_staging_directory(self, destination_params):
+        return "/pulsar_staging/"
+
+
+def test_staging_default_applies_when_jobs_directory_absent():
+    client = _StagingDefaultClient({}, "123", None)
+    # The doubled separator comes from CONTAINER_STAGING_DIRECTORY's trailing
+    # slash and is pre-existing; asserted so a future change to it is deliberate.
+    assert client.job_directory.path == "/pulsar_staging//123"
+
+
+def test_admin_set_jobs_directory_is_not_clobbered_by_the_staging_default():
+    """The guard tested "job_directory" - a key no destination ever carries -
+    while assigning "jobs_directory", so the default always won."""
+    client = _StagingDefaultClient({"jobs_directory": "/scratch/pulsar"}, "123", None)
+    assert client.job_directory.path == "/scratch/pulsar/123"
