@@ -6,6 +6,7 @@ job. Once ``launch_config`` metadata is present on disk, the redelivered
 message is a no-op.
 """
 from pulsar import manager_endpoint_util
+from pulsar.client.job_directory import RemoteJobDirectory
 
 
 class _FakeJobDirectory:
@@ -123,3 +124,66 @@ def test_missing_job_id_does_not_short_circuit():
     except Exception:
         pass
     assert mgr.preprocess_and_launch_calls + mgr.handle_failure_calls >= 1
+
+
+class _StagingJobDirectory(RemoteJobDirectory):
+    """Real path arithmetic, plus the two methods the duplicate-setup guard uses."""
+
+    def exists(self):
+        return False
+
+    def has_metadata(self, name):
+        return False
+
+
+class _RecordingManager(_FakeManager):
+    """Captures the launch_config so command-line rewriting can be asserted."""
+
+    def __init__(self, job_directory, staging_directory="/staging"):
+        super().__init__(job_directory)
+        self._staging_directory = staging_directory
+        self.launch_config = None
+
+    def job_directory(self, job_id):
+        return _StagingJobDirectory(self._staging_directory, job_id or "j1", "/")
+
+    def preprocess_and_launch(self, job_id, launch_config):
+        super().preprocess_and_launch(job_id, launch_config)
+        self.launch_config = launch_config
+
+
+def _submit_with_setup(command_line, staging_directory="/staging"):
+    mgr = _RecordingManager(_FakeJobDirectory(exists=False), staging_directory)
+    cfg = _job_config(command_line=command_line, setup_params={"job_id": "j1"})
+    manager_endpoint_util.submit_job(mgr, cfg)
+    return mgr.launch_config["command_line"]
+
+
+def test_command_line_jobs_directory_token_is_substituted():
+    rewritten = _submit_with_setup("cat __PULSAR_JOBS_DIRECTORY__/j1/configs/x")
+    assert "__PULSAR_JOBS_DIRECTORY__" not in rewritten
+    assert rewritten.endswith("/staging/j1/configs/x")
+
+
+def test_command_line_job_directory_token_is_substituted():
+    rewritten = _submit_with_setup("cat __PULSAR_JOB_DIRECTORY__/working/x")
+    assert "__PULSAR_JOB_DIRECTORY__" not in rewritten
+    assert rewritten.endswith("/staging/j1/working/x")
+
+
+def test_both_command_line_tokens_resolve_independently():
+    """The plural token must not eat the singular one (or vice versa)."""
+    rewritten = _submit_with_setup(
+        "__PULSAR_JOBS_DIRECTORY__ then __PULSAR_JOB_DIRECTORY__"
+    )
+    assert rewritten.endswith("/staging then /staging/j1")
+
+
+def test_no_substitution_without_setup_params():
+    """job_config is None when the client did a remote setup - the paths in
+    the command line are already real and must be left alone."""
+    mgr = _RecordingManager(_FakeJobDirectory(exists=False))
+    manager_endpoint_util.submit_job(
+        mgr, _job_config(command_line="cat __PULSAR_JOBS_DIRECTORY__/j1")
+    )
+    assert mgr.launch_config["command_line"] == "cat __PULSAR_JOBS_DIRECTORY__/j1"

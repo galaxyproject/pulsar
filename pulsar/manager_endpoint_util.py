@@ -15,6 +15,7 @@ from pulsar.managers import (
 )
 from pulsar.managers.staging import realized_dynamic_file_sources
 from pulsar.managers.stateful import ACTIVE_STATUS_PREPROCESSING
+from pulsar.managers.util.job_directory_tokens import substitute_tokens
 
 log = logging.getLogger(__name__)
 
@@ -109,14 +110,11 @@ def submit_job(manager, job_config):
         if job_config is not None:
             job_directory = os.path.abspath(job_config["job_directory"])
             jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
-            command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
-            # The absolute per-job directory. Lets the client emit a path that is
-            # relative to the (runtime-unknown) job directory without embedding a
-            # shell variable - important for tokens that pass through shlex.quote
-            # on the client (e.g. a container image path rewritten for cvmfsexec).
-            command_line = command_line.replace('__PULSAR_JOB_DIRECTORY__', job_directory)
+            command_line = substitute_tokens(command_line, job_directory, jobs_directory)
 
-        # TODO: Handle __PULSAR_JOB_DIRECTORY__ in config files, metadata files, etc...
+        # Staged config and metadata files carry the same tokens; they are
+        # substituted once staging has actually put them on disk, in
+        # StatefulManagerProxy.
         # Deliver a per-job cvmfsexec override to the manager via setup_params.
         # Merged here (after the setup decision above) so it does not itself
         # trigger job setup.

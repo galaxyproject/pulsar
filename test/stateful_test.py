@@ -1,4 +1,5 @@
 """Tests for terminal status handling in :class:`StatefulManagerProxy`."""
+import os
 import threading
 import time
 from contextlib import contextmanager
@@ -132,6 +133,55 @@ def test_preprocessing_failure_is_reported_once():
         # No postprocessing or second callback is needed before launch.
         time.sleep(.1)
         assert proxy.callbacks == [(status.FAILED, job_id)]
+
+
+def test_staged_config_and_metadata_files_have_tokens_substituted():
+    """The client emits __PULSAR_JOBS_DIRECTORY__ into staged file *contents*.
+
+    Only the command line was ever substituted, so a config file referencing
+    a job-directory path reached the compute node with the literal token in
+    it. Substitution has to run after staging and before launch.
+    """
+    with _proxy() as (proxy, manager):
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        job_directory = manager.job_directory(job_id)
+        configs = job_directory.configs_directory()
+        metadata = job_directory.metadata_directory()
+
+        script = os.path.join(configs, "tool_script.sh")
+        with open(script, "w") as f:
+            f.write("cd __PULSAR_JOBS_DIRECTORY__/%s/working\n" % job_id)
+        os.chmod(script, 0o755)
+        params = os.path.join(metadata, "params.json")
+        with open(params, "w") as f:
+            f.write('{"filename_override": "__PULSAR_JOB_DIRECTORY__/outputs/out"}')
+
+        proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+
+        with open(script) as f:
+            contents = f.read()
+        assert "__PULSAR_JOBS_DIRECTORY__" not in contents
+        assert contents == "cd %s/working\n" % job_directory.path
+        assert os.stat(script).st_mode & 0o777 == 0o755
+
+        with open(params) as f:
+            metadata_contents = f.read()
+        assert "__PULSAR_JOB_DIRECTORY__" not in metadata_contents
+        assert job_directory.path in metadata_contents
+
+
+def test_staged_files_without_tokens_are_left_alone():
+    with _proxy() as (proxy, manager):
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        job_directory = manager.job_directory(job_id)
+        config = os.path.join(job_directory.configs_directory(), "plain.txt")
+        with open(config, "w") as f:
+            f.write("no tokens here\n")
+        before = os.stat(config).st_mtime_ns
+
+        proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+
+        assert os.stat(config).st_mtime_ns == before
 
 
 @contextmanager

@@ -363,7 +363,7 @@ class BaseRemoteConfiguredJobClient(BaseJobClient):
     client_manager: ClientManagerProtocol
 
     def __init__(self, destination_params, job_id, client_manager):
-        if "job_directory" not in destination_params:
+        if "jobs_directory" not in destination_params:
             default_staging_directory = self.default_staging_directory(destination_params)
             if default_staging_directory:
                 destination_params["jobs_directory"] = default_staging_directory
