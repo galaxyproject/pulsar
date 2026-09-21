@@ -5,6 +5,8 @@ setup_job and message.ack(), for example), submit_job must NOT re-run the
 job. Once ``launch_config`` metadata is present on disk, the redelivered
 message is a no-op.
 """
+import pytest
+
 from pulsar import manager_endpoint_util
 
 
@@ -173,12 +175,11 @@ def test_job_directory_token_is_still_substituted():
     )
 
 
-def test_jobs_directory_token_is_no_longer_substituted():
-    """__PULSAR_JOBS_DIRECTORY__ was removed - it is now an ordinary string.
-
-    It only ever reached the command line, never config files or metadata, so
-    a destination setting ``jobs_directory`` to it produced paths that were
-    correct in the command and wrong everywhere else.
-    """
-    command_line = "cat __PULSAR_JOBS_DIRECTORY__/j1/configs/x"
-    assert _submit_with_setup(command_line) == command_line
+def test_removed_jobs_directory_token_is_rejected():
+    """__PULSAR_JOBS_DIRECTORY__ was removed; a destination still using it fails
+    loudly rather than staging into a directory named for the token."""
+    with pytest.raises(Exception) as exc_info:
+        _submit_with_setup("cat __PULSAR_JOBS_DIRECTORY__/j1/configs/x")
+    message = str(exc_info.value)
+    assert "__PULSAR_JOBS_DIRECTORY__" in message
+    assert "jobs_directory" in message
