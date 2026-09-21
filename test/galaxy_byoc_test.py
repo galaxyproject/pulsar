@@ -205,3 +205,72 @@ def test_register_with_galaxy_surfaces_galaxy_error(tmp_path):
             relay_url=RELAY_URL,
             credentials_path=cred_path,
         )
+
+
+def _mock_relay_device_flow(sub):
+    responses.add(
+        responses.POST,
+        f"{RELAY_URL}/auth/device/code",
+        json={
+            "device_code": "DEV-1",
+            "user_code": "X",
+            "verification_uri": f"{RELAY_URL}/auth/device",
+            "verification_uri_complete": f"{RELAY_URL}/auth/device?user_code=X",
+            "expires_in": 60,
+            "interval": 0,
+        },
+        status=200,
+    )
+    responses.add(
+        responses.POST,
+        f"{RELAY_URL}/auth/device/token",
+        json={
+            "access_token": _jwt_with_sub(sub),
+            "refresh_token": "PRIMARY",
+            "refresh_token_secondary": "SECONDARY",
+            "expires_in": 3600,
+        },
+        status=200,
+    )
+
+
+@requires_relay_client
+@responses.activate
+def test_register_with_galaxy_uses_galaxy_minted_manager_name(tmp_path):
+    """Galaxy mints its own manager name and returns it. Pulsar must use that
+    name, not the relay ``sub``, or it listens on topics Galaxy never publishes
+    to and jobs stay queued."""
+    _mock_relay_device_flow("relay-user-uuid")
+    responses.add(
+        responses.POST,
+        f"{GALAXY_URL}/api/compute_resources/registrations/complete",
+        json={"id": 42, "manager_name": "cr-0123abcd", "status": "active"},
+        status=200,
+    )
+    result = register_with_galaxy(
+        galaxy_url=GALAXY_URL,
+        bootstrap_token=BOOTSTRAP_TOKEN,
+        relay_url=RELAY_URL,
+        credentials_path=str(tmp_path / "relay_credentials.json"),
+    )
+    assert result["manager_name"] == "cr-0123abcd"
+
+
+@requires_relay_client
+@responses.activate
+def test_register_with_galaxy_falls_back_to_sub_without_minted_name(tmp_path):
+    """A Galaxy that doesn't return a manager name keeps the old behaviour."""
+    _mock_relay_device_flow("relay-user-uuid")
+    responses.add(
+        responses.POST,
+        f"{GALAXY_URL}/api/compute_resources/registrations/complete",
+        json={"id": 42, "status": "active"},
+        status=200,
+    )
+    result = register_with_galaxy(
+        galaxy_url=GALAXY_URL,
+        bootstrap_token=BOOTSTRAP_TOKEN,
+        relay_url=RELAY_URL,
+        credentials_path=str(tmp_path / "relay_credentials.json"),
+    )
+    assert result["manager_name"] == "relay-user-uuid"

@@ -120,6 +120,16 @@ def register_with_galaxy(
             f"Galaxy bootstrap POST returned HTTP {resp.status_code}: {resp.text}"
         )
 
+    # Galaxy mints its own manager name and returns it; Pulsar must listen on
+    # that name or jobs are never picked up. Fall back to the relay ``sub``
+    # only for Galaxy versions that do not return one.
+    try:
+        minted = resp.json().get("manager_name")
+    except ValueError:
+        minted = None
+    if minted:
+        manager_name = minted
+
     log.info(
         "Registered BYOC resource with Galaxy at %s as manager %r", galaxy_url, manager_name
     )
