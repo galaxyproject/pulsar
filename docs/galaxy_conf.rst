@@ -219,4 +219,12 @@ The ``container`` path type matches only the resolved container image path, so
 this rule never affects tool parameters. The ``__PULSAR_JOB_DIRECTORY__`` token
 is replaced by the Pulsar server with the absolute per-job directory.
 
+.. note::
+
+    Use ``__PULSAR_JOB_DIRECTORY__`` only in ``path_types: container`` rules.
+    Pulsar substitutes it in the job's command line, and a container rewrite
+    reaches the command line and nothing else. An ``unstructured`` rule also
+    rewrites staged config file contents, where the token is currently left
+    unresolved - a known limitation rather than an intended restriction.
+
 .. _app.yml.sample: https://github.com/galaxyproject/pulsar/blob/master/app.yml.sample

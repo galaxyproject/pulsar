@@ -9,15 +9,40 @@ from pulsar import manager_endpoint_util
 
 
 class _FakeJobDirectory:
-    def __init__(self, exists=True, metadata=None):
+    def __init__(self, exists=True, metadata=None, path="/staging/j1"):
         self._exists = exists
         self._metadata = dict(metadata or {})
+        self.path = path
 
     def exists(self):
         return self._exists
 
     def has_metadata(self, name):
         return name in self._metadata
+
+    def _sub(self, name):
+        return "%s/%s" % (self.path, name)
+
+    def inputs_directory(self):
+        return self._sub("inputs")
+
+    def working_directory(self):
+        return self._sub("working")
+
+    def metadata_directory(self):
+        return self._sub("metadata")
+
+    def outputs_directory(self):
+        return self._sub("outputs")
+
+    def configs_directory(self):
+        return self._sub("configs")
+
+    def tool_files_directory(self):
+        return self._sub("tool_files")
+
+    def unstructured_files_directory(self):
+        return self._sub("unstructured")
 
 
 class _FakeActiveJobs:
@@ -35,6 +60,7 @@ class _FakeManager:
         self.preprocess_and_launch_calls = 0
         self.setup_job_calls = 0
         self.active_jobs = active_jobs or _FakeActiveJobs()
+        self.launch_config = None
 
     def job_directory(self, job_id):
         return self._jd
@@ -44,6 +70,7 @@ class _FakeManager:
 
     def preprocess_and_launch(self, job_id, launch_config):
         self.preprocess_and_launch_calls += 1
+        self.launch_config = launch_config
 
     def handle_failure_before_launch(self, job_id):
         self.handle_failure_calls += 1
@@ -123,3 +150,35 @@ def test_missing_job_id_does_not_short_circuit():
     except Exception:
         pass
     assert mgr.preprocess_and_launch_calls + mgr.handle_failure_calls >= 1
+
+
+def _submit_with_setup(command_line, job_directory="/staging/j1"):
+    """Drive submit_job down the branch that used to run token substitution.
+
+    Substitution only ran when ``setup_params`` was present, so these tests
+    have to send them.
+    """
+    jd = _FakeJobDirectory(exists=True, metadata={}, path=job_directory)
+    mgr = _FakeManager(jd)
+    manager_endpoint_util.submit_job(
+        mgr, _job_config(command_line=command_line, setup_params={"job_id": "j1"})
+    )
+    return mgr.launch_config["command_line"]
+
+
+def test_job_directory_token_is_still_substituted():
+    """The singular, per-job token survives the removal of the plural one."""
+    assert _submit_with_setup("cat __PULSAR_JOB_DIRECTORY__/configs/x") == (
+        "cat /staging/j1/configs/x"
+    )
+
+
+def test_jobs_directory_token_is_no_longer_substituted():
+    """__PULSAR_JOBS_DIRECTORY__ was removed - it is now an ordinary string.
+
+    It only ever reached the command line, never config files or metadata, so
+    a destination setting ``jobs_directory`` to it produced paths that were
+    correct in the command and wrong everywhere else.
+    """
+    command_line = "cat __PULSAR_JOBS_DIRECTORY__/j1/configs/x"
+    assert _submit_with_setup(command_line) == command_line

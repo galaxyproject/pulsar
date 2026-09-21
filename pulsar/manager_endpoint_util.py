@@ -108,15 +108,18 @@ def submit_job(manager, job_config):
 
         if job_config is not None:
             job_directory = os.path.abspath(job_config["job_directory"])
-            jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
-            command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
             # The absolute per-job directory. Lets the client emit a path that is
             # relative to the (runtime-unknown) job directory without embedding a
             # shell variable - important for tokens that pass through shlex.quote
             # on the client (e.g. a container image path rewritten for cvmfsexec).
+            #
+            # Command line only. The token is resolved here, after staging has
+            # been described but before it runs, so it cannot reach config or
+            # metadata file *contents*; a rewrite rule that puts it there leaves
+            # it unresolved. Rules are restricted to path_types: container,
+            # which only ever reaches the command line.
             command_line = command_line.replace('__PULSAR_JOB_DIRECTORY__', job_directory)
 
-        # TODO: Handle __PULSAR_JOB_DIRECTORY__ in config files, metadata files, etc...
         # Deliver a per-job cvmfsexec override to the manager via setup_params.
         # Merged here (after the setup decision above) so it does not itself
         # trigger job setup.
