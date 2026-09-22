@@ -248,7 +248,7 @@ def main(argv=None):
         return _run_relay_login(args, directory)
 
     # --register-with-galaxy: pair-issuance device flow + Galaxy callback.
-    # Scaffolds app.yml using the relay-supplied manager_name so the user's
+    # Scaffolds app.yml using the manager_name Galaxy returns so the user's
     # Pulsar binds to the same topics Galaxy publishes to.
     if args.register_with_galaxy:
         if not os.path.exists(directory):
@@ -384,9 +384,8 @@ def _run_register_with_galaxy(args, directory):
         print("BYOC registration failed: {}".format(exc), file=sys.stderr)
         return 1
 
-    # Write a minimal app.yml that binds Pulsar to the manager_name the
-    # relay handed us (= the JWT ``sub``), via the credentials file we
-    # just wrote.
+    # Write a minimal app.yml that binds Pulsar to the manager_name Galaxy
+    # minted during registration, via the credentials file we just wrote.
     manager_name = result["manager_name"]
     app_yaml_path = os.path.join(directory, DEFAULT_APP_YAML)
     if os.path.exists(app_yaml_path) and not args.force:

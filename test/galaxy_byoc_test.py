@@ -39,6 +39,40 @@ def _jwt_with_sub(sub: str) -> str:
     return ".".join([_b64url({"alg": "RS256"}), _b64url({"sub": sub}), "sig"])
 
 
+def _mock_relay_device_flow(sub, secondary="SECONDARY"):
+    """Mock the relay's device flow through to a token response.
+
+    ``secondary=None`` simulates a relay that ignores ``pair=true`` and hands
+    back a single refresh token.
+    """
+    responses.add(
+        responses.POST,
+        f"{RELAY_URL}/auth/device/code",
+        json={
+            "device_code": "DEV-1",
+            "user_code": "X",
+            "verification_uri": f"{RELAY_URL}/auth/device",
+            "verification_uri_complete": f"{RELAY_URL}/auth/device?user_code=X",
+            "expires_in": 60,
+            "interval": 0,  # so the poll loop returns immediately in tests
+        },
+        status=200,
+    )
+    token_response = {
+        "access_token": _jwt_with_sub(sub),
+        "refresh_token": "PRIMARY",
+        "expires_in": 3600,
+    }
+    if secondary is not None:
+        token_response["refresh_token_secondary"] = secondary
+    responses.add(
+        responses.POST,
+        f"{RELAY_URL}/auth/device/token",
+        json=token_response,
+        status=200,
+    )
+
+
 def test_decode_jwt_sub_pulls_claim():
     assert _decode_jwt_sub(_jwt_with_sub("byoc_7_lab")) == "byoc_7_lab"
 
@@ -56,32 +90,8 @@ def test_register_with_galaxy_happy_path(tmp_path):
     lands in ``relay_credentials.json``."""
     cred_path = str(tmp_path / "relay_credentials.json")
 
-    # 1. /auth/device/code returns a device_code + user_code.
-    responses.add(
-        responses.POST,
-        f"{RELAY_URL}/auth/device/code",
-        json={
-            "device_code": "DEV-1",
-            "user_code": "AAAA-BBBB",
-            "verification_uri": f"{RELAY_URL}/auth/device",
-            "verification_uri_complete": f"{RELAY_URL}/auth/device?user_code=AAAA-BBBB",
-            "expires_in": 60,
-            "interval": 0,  # so the poll loop returns immediately in tests
-        },
-        status=200,
-    )
-    # 2. /auth/device/token returns a token pair.
-    responses.add(
-        responses.POST,
-        f"{RELAY_URL}/auth/device/token",
-        json={
-            "access_token": _jwt_with_sub("byoc_7_lab"),
-            "refresh_token": "PRIMARY",
-            "refresh_token_secondary": "SECONDARY",
-            "expires_in": 3600,
-        },
-        status=200,
-    )
+    # 1. + 2. Device flow yields an access token plus a paired refresh token.
+    _mock_relay_device_flow("byoc_7_lab")
     # 3. Galaxy accepts the bootstrap callback.
     responses.add(
         responses.POST,
@@ -126,30 +136,7 @@ def test_register_with_galaxy_fails_when_relay_omits_secondary(tmp_path):
     otherwise get a token that, when rotated, locks out the daemon."""
     cred_path = str(tmp_path / "relay_credentials.json")
 
-    responses.add(
-        responses.POST,
-        f"{RELAY_URL}/auth/device/code",
-        json={
-            "device_code": "DEV-1",
-            "user_code": "X",
-            "verification_uri": f"{RELAY_URL}/auth/device",
-            "verification_uri_complete": f"{RELAY_URL}/auth/device?user_code=X",
-            "expires_in": 60,
-            "interval": 0,
-        },
-        status=200,
-    )
-    responses.add(
-        responses.POST,
-        f"{RELAY_URL}/auth/device/token",
-        json={
-            "access_token": _jwt_with_sub("anyone"),
-            "refresh_token": "PRIMARY",
-            # No refresh_token_secondary.
-            "expires_in": 3600,
-        },
-        status=200,
-    )
+    _mock_relay_device_flow("anyone", secondary=None)
 
     with pytest.raises(GalaxyBYOCRegistrationError, match="refresh_token_secondary"):
         register_with_galaxy(
@@ -167,30 +154,7 @@ def test_register_with_galaxy_surfaces_galaxy_error(tmp_path):
     must propagate cleanly to the caller."""
     cred_path = str(tmp_path / "relay_credentials.json")
 
-    responses.add(
-        responses.POST,
-        f"{RELAY_URL}/auth/device/code",
-        json={
-            "device_code": "DEV-1",
-            "user_code": "X",
-            "verification_uri": f"{RELAY_URL}/auth/device",
-            "verification_uri_complete": f"{RELAY_URL}/auth/device?user_code=X",
-            "expires_in": 60,
-            "interval": 0,
-        },
-        status=200,
-    )
-    responses.add(
-        responses.POST,
-        f"{RELAY_URL}/auth/device/token",
-        json={
-            "access_token": _jwt_with_sub("byoc_7_lab"),
-            "refresh_token": "PRIMARY",
-            "refresh_token_secondary": "SECONDARY",
-            "expires_in": 3600,
-        },
-        status=200,
-    )
+    _mock_relay_device_flow("byoc_7_lab")
     responses.add(
         responses.POST,
         f"{GALAXY_URL}/api/compute_resources/registrations/complete",
@@ -205,3 +169,45 @@ def test_register_with_galaxy_surfaces_galaxy_error(tmp_path):
             relay_url=RELAY_URL,
             credentials_path=cred_path,
         )
+
+
+@requires_relay_client
+@responses.activate
+def test_register_with_galaxy_uses_galaxy_minted_manager_name(tmp_path):
+    """Galaxy mints its own manager name and returns it. Pulsar must use that
+    name, not the relay ``sub``, or it listens on topics Galaxy never publishes
+    to and jobs stay queued."""
+    _mock_relay_device_flow("relay-user-uuid")
+    responses.add(
+        responses.POST,
+        f"{GALAXY_URL}/api/compute_resources/registrations/complete",
+        json={"id": 42, "manager_name": "cr-0123abcd", "status": "active"},
+        status=200,
+    )
+    result = register_with_galaxy(
+        galaxy_url=GALAXY_URL,
+        bootstrap_token=BOOTSTRAP_TOKEN,
+        relay_url=RELAY_URL,
+        credentials_path=str(tmp_path / "relay_credentials.json"),
+    )
+    assert result["manager_name"] == "cr-0123abcd"
+
+
+@requires_relay_client
+@responses.activate
+def test_register_with_galaxy_falls_back_to_sub_without_minted_name(tmp_path):
+    """A Galaxy that doesn't return a manager name keeps the old behaviour."""
+    _mock_relay_device_flow("relay-user-uuid")
+    responses.add(
+        responses.POST,
+        f"{GALAXY_URL}/api/compute_resources/registrations/complete",
+        json={"id": 42, "status": "active"},
+        status=200,
+    )
+    result = register_with_galaxy(
+        galaxy_url=GALAXY_URL,
+        bootstrap_token=BOOTSTRAP_TOKEN,
+        relay_url=RELAY_URL,
+        credentials_path=str(tmp_path / "relay_credentials.json"),
+    )
+    assert result["manager_name"] == "relay-user-uuid"
