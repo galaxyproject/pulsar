@@ -389,7 +389,8 @@ class BasicAuth(BaseModel):
 
 class TesJobParams(TesResources):
     tes_url: str = Field(..., description="URL of the TES service.")
-    authorization: Literal["none", "basic"] = Field(
+    # Literal comes from typing_extensions, which backports it to 3.7.
+    authorization: Literal["none", "basic"] = Field(  # novermin
         "none", description="Authorization type for TES service."
     )
     basic_auth: Optional[BasicAuth] = Field(None, description="Authorization for TES service.")

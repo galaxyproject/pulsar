@@ -2,8 +2,6 @@
 # over from setup.cfg's [flake8] section and .isort.cfg so this is a tool swap, not
 # a restyle.
 line-length = 150
-# Pulsar still supports Python 3.7, so ruff rejects newer syntax and pyupgrade
-# rules stop at what 3.7 can express. Bump this only alongside the CI matrix.
 target-version = "py37"
 extend-exclude = [
     "database",
