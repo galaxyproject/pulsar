@@ -15,9 +15,10 @@ pytest-timeout
 responses
 webtest
 coverage
-# Used by the docker-compose resilience suite under test/resilience/. Imported
-# at module top-level by mock_galaxy/app.py and harness/*, so they need to be
-# resolvable for lint/mypy even when the suite itself is skipped without docker.
+# Used by the docker-compose resilience suite under test/resilience/. Imported at
+# module top-level by mock_galaxy/app.py, so they need to be resolvable for
+# lint/mypy even when the suite itself is skipped without docker. The harness in
+# pulsar.testing.resilience needs only requests, already a Pulsar dependency.
 fastapi; python_version >= '3.8'
 uvicorn; python_version >= '3.8'
 a2wsgi; python_version >= '3.8'

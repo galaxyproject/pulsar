@@ -13,7 +13,7 @@ import time
 import pytest
 import requests
 
-from harness.pulsar_control import (
+from pulsar.testing.resilience.pulsar_control import (
     _relay_admin_token,
     RELAY_HTTP,
 )

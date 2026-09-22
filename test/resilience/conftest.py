@@ -18,8 +18,8 @@ import subprocess
 import pytest
 import requests
 
-from harness.broker_control import ToxiproxyControl
-from harness.pulsar_control import PulsarControl
+from pulsar.testing.resilience.broker_control import ToxiproxyControl
+from pulsar.testing.resilience.pulsar_control import PulsarControl
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 GALAXY_BASE = "http://localhost:8088"

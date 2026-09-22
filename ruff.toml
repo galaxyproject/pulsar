@@ -86,6 +86,5 @@ max-complexity = 17
 combine-as-imports = true
 order-by-type = false
 case-sensitive = false
-known-first-party = ["harness", "recorder"]
 relative-imports-order = "closest-to-furthest"
 no-lines-before = ["local-folder"]

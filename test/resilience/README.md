@@ -58,21 +58,36 @@ test/resilience/
 ├── Dockerfile.pulsar       # builds Pulsar from local source
 ├── entrypoint.sh           # selects amqp / amqp_ack / relay mode at startup
 ├── config/                 # app_*.yml + server.ini + toxiproxy.json
-├── mock_galaxy/            # FastAPI app + StatusRecorder
-├── harness/                # PulsarControl, ToxiproxyControl, job factory, assertions
+├── mock_galaxy/            # FastAPI app wrapping pulsar.testing.recorder
 ├── conftest.py             # pytest fixtures + parametrized mq_mode
 └── scenarios/              # the actual test cases
 ```
+
+The drivers and assertions the scenarios import are not in this directory.
+They ship inside the distribution as `pulsar.testing`:
+
+```
+pulsar/testing/
+├── recorder.py             # StatusRecorder — stdlib only, embedded in mock_galaxy
+└── resilience/             # PulsarControl, ToxiproxyControl, job factory, assertions
+```
+
+so they are importable by name from anywhere rather than by an accident of
+`sys.path`. The split is deliberate: `recorder` makes no assumptions about how
+the status events reached it and is reusable anywhere — downstream projects that
+install `pulsar-galaxy-lib` get it for free — while everything under
+`resilience/` is wired to this compose stack's service names and host ports.
 
 ## Adding a scenario
 
 1. Pick a fixture set: `pulsar`, plus one of `rabbitmq_proxy` / `relay_proxy`
    / `galaxy_proxy` for fault injection.
-2. Build a setup payload with `harness.job_factory.make_setup_message`.
+2. Build a setup payload with `pulsar.testing.resilience.job_factory.make_setup_message`.
 3. Submit it via `requests.post(GALAXY_BASE + "/_publish_setup", json=...)`.
 4. Inject the fault you care about with the appropriate proxy fixture.
-5. Restore connectivity and assert with `harness.assertions.await_terminal`
-   and `assert_exactly_once_terminal`.
+5. Restore connectivity and assert with
+   `pulsar.testing.resilience.assertions.await_terminal` and
+   `assert_exactly_once_terminal`.
 
 ## Mode matrix
 
