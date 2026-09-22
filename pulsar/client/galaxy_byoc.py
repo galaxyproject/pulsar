@@ -6,11 +6,13 @@ A user runs ``pulsar-config register-with-galaxy --galaxy <url> --token <one-sho
 1. Drives the relay's RFC 8628 device flow with ``pair=true`` so the relay
    issues *two* independent refresh tokens for the freshly-signed-in user.
 2. Decodes the ``sub`` claim out of the access token — that's the relay user
-   id, which we adopt as the BYOC manager name (and as the Pulsar manager
-   name in the local ``app.yml``).
+   id, which serves as the manager name only when Galaxy doesn't return one
+   of its own (step 3).
 3. Posts the secondary refresh token to Galaxy at
    ``/api/compute_resources/registrations/complete`` (authenticated by the
    one-shot token from ``POST /api/compute_resources/registrations``).
+   Galaxy mints the authoritative manager name and returns it; that is the
+   name Pulsar binds to in the local ``app.yml``.
 4. Writes the local ``relay_credentials.json`` with the *primary* refresh
    token only; the secondary is in-flight to Galaxy and never persisted on
    the host.
