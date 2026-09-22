@@ -40,6 +40,28 @@ class _FailingLaunchManager(_ScriptedStatusManager):
         raise Exception("Test failure launching job")
 
 
+class _RecoveringStatusManager(_ScriptedStatusManager):
+    """Requires recovery to finish before the first status check."""
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self.recovered = False
+        self.status_checked = threading.Event()
+
+    def _recover_active_job(self, job_id):
+        self.recovered = True
+
+    def get_status(self, job_id):
+        assert self.recovered
+        self.status_checked.set()
+        return super().get_status(job_id)
+
+
+class _FailingRecoveryManager(_ScriptedStatusManager):
+    def _recover_active_job(self, job_id):
+        raise Exception("Test recovery failure")
+
+
 class _RecordingStatefulManagerProxy(StatefulManagerProxy):
     """Records state changes without starting a monitor thread.
 
@@ -132,6 +154,36 @@ def test_preprocessing_failure_is_reported_once():
         # No postprocessing or second callback is needed before launch.
         time.sleep(.1)
         assert proxy.callbacks == [(status.FAILED, job_id)]
+
+
+def test_monitor_can_start_after_external_job_recovery():
+    with _proxy(_RecoveringStatusManager) as (proxy, manager):
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        manager.job_directory(job_id).store_metadata(
+            stateful.JOB_FILE_PREPROCESSED,
+            True,
+        )
+        proxy.active_jobs.activate_job(job_id)
+        callback = mock.Mock()
+        proxy.set_state_change_callback(callback, start_monitor=False)
+
+        assert not manager.status_checked.wait(.1)
+        proxy.recover_active_jobs()
+        proxy.start_monitor()
+
+        assert manager.status_checked.wait(1)
+
+
+def test_recovery_failure_notifies_bound_callback_before_monitor_starts():
+    with _proxy(_FailingRecoveryManager) as (proxy, manager):
+        proxy.active_jobs.activate_job(TEST_JOB_ID)
+        callback = mock.Mock()
+        proxy.set_state_change_callback(callback, start_monitor=False)
+
+        proxy.recover_active_jobs()
+
+        callback.assert_called_once_with(status.LOST, TEST_JOB_ID)
+        assert proxy.active_jobs.active_job_ids() == []
 
 
 @contextmanager

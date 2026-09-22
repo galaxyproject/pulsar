@@ -61,8 +61,8 @@ JOB_FILE_PREPROCESSED = "preprocessed"
 JOB_FILE_PREPROCESSING_FAILED = "preprocessing_failed"
 JOB_METADATA_RUNNING = "running"
 
-# LOST is excluded because the monitor starts before external job IDs are
-# recovered; treating it as terminal could discard recoverable jobs at startup.
+# LOST is excluded because it can be transient while external job IDs are
+# being recovered; treating it as terminal could discard recoverable jobs.
 TERMINAL_STATUSES = (status.COMPLETE, status.CANCELLED, status.FAILED)
 
 # Stage outputs before reporting completion or failure to the client.
@@ -102,10 +102,19 @@ class StatefulManagerProxy(ManagerProxy):
         self.__monitor = None
 
     def set_state_change_callback(
-        self, state_change_callback: Callable[[str, str], None]
+        self,
+        state_change_callback: Callable[[str, str], None],
+        start_monitor: bool = True,
     ) -> None:
+        """Bind status publishing, optionally deferring monitor startup."""
         self.__state_change_callback = state_change_callback
-        self.__monitor = ManagerMonitor(self)
+        if start_monitor:
+            self.start_monitor()
+
+    def start_monitor(self) -> None:
+        """Start status polling once, after persisted jobs are recovered."""
+        if self.__monitor is None:
+            self.__monitor = ManagerMonitor(self)
 
     def _default_status_change_callback(
         self, status: "StateLiteral", job_id: str
