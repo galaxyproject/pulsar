@@ -28,6 +28,10 @@ History
   been retired to the Apache Attic, the ``mesos.native`` bindings the code
   imported were only ever distributed with a Mesos build, and nothing here has
   had a functional change since 2015.
+* Bind Pulsar to the manager name Galaxy returns from compute-resource
+  registration rather than to the relay ``sub`` claim. ``pulsar-config
+  register-with-galaxy`` wrote the wrong name into ``app.yml``, so registration
+  reported success while jobs stayed queued (thanks to `@dSizovs`_).
 
 ---------------------
 0.15.15 (2026-07-13)
