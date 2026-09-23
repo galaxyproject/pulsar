@@ -1,13 +1,4 @@
-"""Record how much work Pulsar did staging a job's files.
-
-Galaxy's ``pulsar_transfer`` job metrics plugin reads what this writes - see
-``galaxy.job_metrics.instrumenters.pulsar_transfer``, which documents the file's contents.
-The name follows the instrumentation convention shared with that package, which is also what
-gets the file staged back to Galaxy alongside the metrics the job script itself produced.
-
-The file is written whether or not Galaxy has the plugin enabled; Pulsar has no way of
-knowing, and it is one small file per job.
-"""
+"""Record file staging metrics for Galaxy's ``pulsar_transfer`` plugin."""
 
 import json
 import logging
@@ -47,11 +38,7 @@ class TransferMetrics:
         self.seconds = 0.0
 
     def record_file(self, path: str) -> None:
-        """Count a file that has just been staged.
-
-        A file whose size cannot be read still counts toward ``files`` - the transfer
-        happened, and undercounting transfers would mislead more than undercounting bytes.
-        """
+        """Count a staged file, even if its size cannot be read."""
         self.files += 1
         try:
             self.bytes += os.path.getsize(path)
@@ -66,12 +53,7 @@ class TransferMetrics:
 def record_transfer(
     job_directory: "JobDirectory", phase: str
 ) -> Iterator[TransferMetrics]:
-    """Time a staging phase and write what it moved where Galaxy will collect it.
-
-    Writing never raises - a job whose files all arrived must not fail because its metrics
-    did not. The file is written even when the phase raised part way through, so a failed
-    staging attempt still reports how far it got.
-    """
+    """Record a staging phase, including partial transfers on failure."""
     metrics = TransferMetrics()
     started = time.time()
     try:
