@@ -15,6 +15,12 @@ History
   convention and read by Galaxy's new ``pulsar_transfer`` job metrics plugin.
   The postprocess figures can only be known once staging out has finished, so
   that one file is sent on afterwards by itself.
+* Skip job metrics plugins named in Pulsar's metrics configuration that this
+  Pulsar's ``galaxy-job-metrics`` does not provide, instead of refusing to
+  start. Galaxy and Pulsar are meant to share this file but upgrade
+  separately, and a plugin Galaxy collects without instrumenting the job
+  script has nothing for Pulsar to run. Galaxy still validates the same file
+  strictly, so a mistyped plugin name is still caught there.
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
   `@gkr0110`_).
