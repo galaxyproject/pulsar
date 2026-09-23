@@ -9,6 +9,13 @@ History
 0.15.16.dev0
 ---------------------
 
+* Let a file action declare the job-destination settings it needs
+  (``destination_defaults``) and populate itself (``populate_from_destination``),
+  instead of the ``FileActionMapper`` carrying a fixed set of ``ssh_*`` and
+  ``files_endpoint`` attributes and injecting them into actions it recognizes by
+  duck-typed flags. Adding an action no longer requires editing the mapper. No
+  configuration or wire-format change.
+
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
   `@gkr0110`_).
