@@ -1,16 +1,4 @@
-"""Build Pulsar's job metrics configuration.
-
-Pulsar and Galaxy are meant to be handed the same metrics configuration, and the
-documentation tells deployers to keep the two files identical. They ship and upgrade
-separately though, so that file will periodically name a plugin one side has and the other
-does not - Galaxy's ``pulsar_transfer`` plugin, for instance, which Galaxy collects but which
-instruments nothing on this side.
-
-Pulsar's copy of the configuration exists for one purpose: producing the instrumentation
-commands that go into the job script. A plugin this Pulsar has never heard of contributes no
-commands, so it is logged and skipped rather than being a reason to refuse to start. Galaxy
-still validates the same file strictly, which is where a mistyped plugin name gets caught.
-"""
+"""Build job metrics from a configuration shared with Galaxy."""
 
 import logging
 import os
@@ -56,12 +44,7 @@ def build_job_metrics(config_dir: str, conf: Dict[str, Any]) -> JobMetrics:
 
 
 def _plugin_dicts(plugin_source: "plugin_config.PluginConfigSource") -> List[Dict[str, Any]]:
-    """Normalize either configuration syntax to the list of dicts ``JobMetrics`` accepts.
-
-    The XML reading mirrors ``plugin_config.__load_plugins_from_element``: the tag is the
-    plugin type and the attributes are its keyword arguments. Child elements are ignored
-    there too.
-    """
+    """Normalize XML or YAML plugin entries for ``JobMetrics``."""
     if plugin_source.type == "xml":
         return [dict(element.items(), type=element.tag) for element in plugin_source.source]
     configured = plugin_source.source or []

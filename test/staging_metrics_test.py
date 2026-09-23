@@ -2,13 +2,20 @@
 import json
 import os
 
+from pulsar.client.action_mapper import (
+    NoneAction,
+    RemoteCopyAction,
+)
 from pulsar.managers.staging.metrics import (
     POSTPROCESS,
     PREPROCESS,
     record_transfer,
     transfer_metrics_file_name,
 )
-from pulsar.managers.staging.post import postprocess
+from pulsar.managers.staging.post import (
+    postprocess,
+    PulsarServerOutputCollector,
+)
 from pulsar.managers.staging.pre import preprocess
 from pulsar.managers.util.retry import RetryActionExecutor
 from .test_utils import (
@@ -28,7 +35,6 @@ def _recorded(job_directory, phase):
 
 
 def test_file_name_matches_the_galaxy_plugin():
-    # galaxy.job_metrics.instrumenters.pulsar_transfer reads these exact names.
     assert transfer_metrics_file_name(PREPROCESS) == "__instrument_pulsar_transfer_preprocess"
     assert transfer_metrics_file_name(POSTPROCESS) == "__instrument_pulsar_transfer_postprocess"
 
@@ -117,11 +123,47 @@ def test_postprocess_records_and_stages_out_its_own_metrics():
         recorded = _recorded(job_directory, POSTPROCESS)
         assert recorded["files"] == 1
         assert recorded["bytes"] == len(CONTENTS)
-        # The metrics of staging out can only be written after staging out, so Pulsar sends
-        # this one file on its own afterwards.
         staged_back = os.path.join(
             client_metadata_directory, transfer_metrics_file_name(POSTPROCESS)
         )
         assert os.path.exists(staged_back)
         with open(staged_back) as fh:
             assert json.load(fh) == recorded
+
+
+def test_postprocess_does_not_count_shared_filesystem_output():
+    with temp_job_directory() as job_directory:
+        job_directory.setup()
+        output_name = "output.dat"
+        pulsar_output = job_directory.calculate_path(output_name, "output")
+        with open(pulsar_output, "w") as fh:
+            fh.write(CONTENTS)
+        action = NoneAction({"path": pulsar_output})
+        with record_transfer(job_directory, POSTPROCESS) as metrics:
+            collector = PulsarServerOutputCollector(
+                job_directory, RetryActionExecutor(), lambda: False, metrics
+            )
+            collector.collect_output(None, "output", action, output_name)
+        recorded = _recorded(job_directory, POSTPROCESS)
+        assert recorded["files"] == 0
+        assert recorded["bytes"] == 0
+
+
+def test_postprocess_does_not_count_cancelled_output():
+    with temp_directory() as client_directory, temp_job_directory() as job_directory:
+        job_directory.setup()
+        output_name = "output.dat"
+        pulsar_output = job_directory.calculate_path(output_name, "output")
+        with open(pulsar_output, "w") as fh:
+            fh.write(CONTENTS)
+        destination = os.path.join(client_directory, output_name)
+        action = RemoteCopyAction({"path": destination})
+        with record_transfer(job_directory, POSTPROCESS) as metrics:
+            collector = PulsarServerOutputCollector(
+                job_directory, RetryActionExecutor(), lambda: True, metrics
+            )
+            collector.collect_output(None, "output", action, output_name)
+        recorded = _recorded(job_directory, POSTPROCESS)
+        assert recorded["files"] == 0
+        assert recorded["bytes"] == 0
+        assert not os.path.exists(destination)

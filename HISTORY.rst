@@ -8,18 +8,9 @@ History
 ---------------------
 0.16.1.dev0
 ---------------------
-* Record how long Pulsar spent staging a job's files, how many files it moved
-  and how many bytes, for each of the preprocess and postprocess phases. Written
-  into the job's metadata directory under the shared ``__instrument_`` naming
-  convention and read by Galaxy's new ``pulsar_transfer`` job metrics plugin.
-  The postprocess figures can only be known once staging out has finished, so
-  that one file is sent on afterwards by itself. `Pull Request 518`_
-* Skip job metrics plugins named in Pulsar's metrics configuration that this
-  Pulsar's ``galaxy-job-metrics`` does not provide, instead of refusing to
-  start. Galaxy and Pulsar are meant to share this file but upgrade
-  separately, and a plugin Galaxy collects without instrumenting the job
-  script has nothing for Pulsar to run. Galaxy still validates the same file
-  strictly, so a mistyped plugin name is still caught there. `Pull Request 518`_
+* Record preprocess and postprocess file transfer time, count, and bytes for
+  Galaxy's ``pulsar_transfer`` job metrics plugin. `Pull Request 518`_
+* Skip unavailable job metrics plugins in Pulsar's shared configuration.
 * Fix the Ruff 0.17 datetime import-alias lint failures. `Pull Request 546`_
 
 

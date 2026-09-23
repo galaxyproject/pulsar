@@ -7,8 +7,6 @@ from galaxy.job_metrics import JobMetrics
 from pulsar.job_metrics import build_job_metrics
 from .test_utils import temp_directory
 
-# Galaxy collects this one without instrumenting the job script, so a Pulsar old enough not to
-# have it must still start when a shared configuration names it.
 GALAXY_ONLY_PLUGIN = "pulsar_transfer"
 
 
@@ -52,7 +50,6 @@ def test_unknown_plugin_is_skipped_rather_than_fatal():
     with temp_directory() as directory:
         name = "metrics.yml"
         _write(directory, name, "- type: core\n- type: not_a_real_plugin\n")
-        # What this replaces - loading the file directly refuses to start.
         with pytest.raises(Exception):
             JobMetrics(os.path.join(directory, name))
         metrics = build_job_metrics(directory, _conf(directory, name))
@@ -75,7 +72,6 @@ def test_a_config_of_only_unknown_plugins_configures_nothing():
 
 
 def test_a_galaxy_side_plugin_never_instruments_the_job_script():
-    """Whether this Pulsar has the plugin or not, a shared configuration naming it is fine."""
     with temp_directory() as directory:
         _write(directory, "metrics.yml", f"- type: core\n- type: {GALAXY_ONLY_PLUGIN}\n")
         metrics = build_job_metrics(directory, _conf(directory, "metrics.yml"))
