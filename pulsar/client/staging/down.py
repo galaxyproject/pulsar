@@ -10,7 +10,10 @@ from os.path import (
 
 from ..action_mapper import FileActionMapper
 from ..staging import COMMAND_VERSION_FILENAME
-from ..transport.transient import http_status_code
+from ..transport.transient import (
+    http_status_code,
+    is_transport_error,
+)
 
 log = getLogger(__name__)
 
@@ -289,16 +292,23 @@ def _allow_collect_failure(output_type, exception):
     generally indicates a tool problem rather than an infrastructure one, so it
     should not force the job to fail.
 
-    Infrastructure ``OSError``s (disk full, I/O errors) are never downgraded,
-    even for working-directory outputs — they must fail the job. A missing
-    output file (``FileNotFoundError``) is excluded from that rule: it is an
-    expected, recoverable condition — e.g. a ``from_work_dir`` output a tool
-    legitimately did not produce, which Galaxy represents as an empty dataset —
-    so it remains an allowed failure.
+    Infrastructure failures are never downgraded, even for working-directory
+    outputs — they must fail the job, or a job that never staged its data out
+    reports as green in Galaxy with zero-length outputs. Two shapes count:
+    ``OSError`` (disk full, local I/O, and the requests transport, whose
+    ``HTTPError`` is an ``OSError``) and ``PulsarClientTransportError`` (the
+    curl and urllib transports, which subclass plain ``Exception``).
+
+    A missing output file (``FileNotFoundError``) is excluded from that rule: it
+    is an expected, recoverable condition — e.g. a ``from_work_dir`` output a
+    tool legitimately did not produce, which Galaxy represents as an empty
+    dataset — so it remains an allowed failure.
     """
     if output_type not in ['output_workdir']:
         return False
-    return not (isinstance(exception, OSError) and not isinstance(exception, FileNotFoundError))
+    if isinstance(exception, OSError) and not isinstance(exception, FileNotFoundError):
+        return False
+    return not is_transport_error(exception)
 
 
 __all__ = ('finish_job',)
