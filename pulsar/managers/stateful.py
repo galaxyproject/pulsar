@@ -70,6 +70,16 @@ POSTPROCESSED_STATUSES = (status.COMPLETE, status.FAILED)
 
 ACTIVE_STATUS_PREPROCESSING = "preprocessing"
 ACTIVE_STATUS_LAUNCHED = "launched"
+ACTIVE_STATUS_POSTPROCESSING = "postprocessing"
+
+# Directory name each active status is tracked in, under the persistence
+# directory.  The launched and preprocessing names predate the third and are
+# kept so an upgraded Pulsar still recovers jobs an older one indexed.
+ACTIVE_STATUS_DIRECTORIES = {
+    ACTIVE_STATUS_LAUNCHED: "active-jobs",
+    ACTIVE_STATUS_PREPROCESSING: "preprocessing-jobs",
+    ACTIVE_STATUS_POSTPROCESSING: "postprocessing-jobs",
+}
 
 DEFAULT_MIN_POLLING_INTERVAL = 0.5
 
@@ -309,8 +319,17 @@ class StatefulManagerProxy(ManagerProxy):
         return not job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED)
 
     def __handle_terminal_status(self, job_id: str, proxy_status: "StateLiteral") -> None:
+        needs_postprocessing = proxy_status in POSTPROCESSED_STATUSES
+        if needs_postprocessing:
+            # Indexed before the job leaves the launched index, never after, so
+            # that a Pulsar killed at any instant finds the job in at least one
+            # of them.  Otherwise the whole of postprocessing is a window in
+            # which the job is in no index and is lost on restart.
+            self.active_jobs.activate_job(
+                job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+            )
         self.__deactivate(job_id)
-        if proxy_status in POSTPROCESSED_STATUSES:
+        if needs_postprocessing:
             # Postprocessing stages outputs before sending the terminal callback.
             self.__handle_postprocessing(job_id, proxy_status)
 
@@ -341,7 +360,14 @@ class StatefulManagerProxy(ManagerProxy):
             final_status = terminal_status if postprocess_success else status.FAILED
             if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
                 final_status = status.FAILED
-            self.__state_change_callback(final_status, job_id)
+            try:
+                self.__state_change_callback(final_status, job_id)
+            finally:
+                # Cleared after the callback, so the largest remaining crash
+                # window costs a duplicate terminal message rather than a job.
+                self.active_jobs.deactivate_job(
+                    job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+                )
 
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
@@ -388,6 +414,29 @@ class StatefulManagerProxy(ManagerProxy):
                 unqueue_preprocessing_id, active_status=ACTIVE_STATUS_PREPROCESSING
             )
 
+        for job_id in self.active_jobs.active_job_ids(
+            active_status=ACTIVE_STATUS_POSTPROCESSING
+        ):
+            job_directory = self._proxied_manager.job_directory(job_id)
+            if not job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
+                log.warning(
+                    "Job scheduled to postprocess [%s] has no final status, skipping"
+                    % job_id
+                )
+                self.active_jobs.deactivate_job(
+                    job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+                )
+                continue
+            terminal_status = job_directory.load_metadata(JOB_FILE_FINAL_STATUS)
+            log.info(
+                "Job [%s] was interrupted while postprocessing, staging outputs again"
+                % job_id
+            )
+            # Re-run unconditionally, including when ``postprocessed`` is
+            # already on disk - that marker is written even when staging out
+            # failed, so it cannot say whether the outputs actually arrived.
+            self.__handle_postprocessing(job_id, terminal_status)
+
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
         if recover_method is None:
             return
@@ -423,22 +472,16 @@ class ActiveJobs:
         return ActiveJobs(manager_name, persistence_directory)
 
     def __init__(self, manager_name: str, persistence_directory: Optional[str]) -> None:
-        if persistence_directory:
-            active_job_directory = os.path.join(
-                persistence_directory, "%s-active-jobs" % manager_name
-            )
-            if not os.path.exists(active_job_directory):
-                os.makedirs(active_job_directory)
-            preprocessing_job_directory = os.path.join(
-                persistence_directory, "%s-preprocessing-jobs" % manager_name
-            )
-            if not os.path.exists(preprocessing_job_directory):
-                os.makedirs(preprocessing_job_directory)
-        else:
-            active_job_directory = None
-            preprocessing_job_directory = None
-        self.launched_job_directory = active_job_directory
-        self.preprocessing_job_directory = preprocessing_job_directory
+        self.job_directories: Dict[str, Optional[str]] = {}
+        for active_status, directory_name in ACTIVE_STATUS_DIRECTORIES.items():
+            directory = None
+            if persistence_directory:
+                directory = os.path.join(
+                    persistence_directory, "%s-%s" % (manager_name, directory_name)
+                )
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
+            self.job_directories[active_status] = directory
 
     def active_job_ids(self, active_status: str = ACTIVE_STATUS_LAUNCHED) -> List[str]:
         job_ids = []
@@ -465,13 +508,9 @@ class ActiveJobs:
                     log.warn(DECACTIVATE_FAILED_MESSAGE % job_id)
 
     def _active_job_directory(self, active_status: str) -> Optional[str]:
-        if active_status == ACTIVE_STATUS_LAUNCHED:
-            target_directory = self.launched_job_directory
-        elif active_status == ACTIVE_STATUS_PREPROCESSING:
-            target_directory = self.preprocessing_job_directory
-        else:
+        if active_status not in self.job_directories:
             raise Exception("Unknown active state encountered [%s]" % active_status)
-        return target_directory
+        return self.job_directories[active_status]
 
     def _active_job_file(
         self, job_id: str, active_status: str = ACTIVE_STATUS_LAUNCHED
