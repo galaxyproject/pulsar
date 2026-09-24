@@ -357,10 +357,10 @@ class StatefulManagerProxy(ManagerProxy):
                 )
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
-            final_status = terminal_status if postprocess_success else status.FAILED
-            if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
-                final_status = status.FAILED
             try:
+                final_status = terminal_status if postprocess_success else status.FAILED
+                if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
+                    final_status = status.FAILED
                 self.__state_change_callback(final_status, job_id)
             finally:
                 # Cleared after the callback, so the largest remaining crash
@@ -417,25 +417,20 @@ class StatefulManagerProxy(ManagerProxy):
         for job_id in self.active_jobs.active_job_ids(
             active_status=ACTIVE_STATUS_POSTPROCESSING
         ):
+            self.__recover_postprocessing(job_id)
+
+        # A job whose terminal status is already on disk is finished running,
+        # whichever index it is in. It can be in the launched index either
+        # because it was killed between recording that status and being indexed
+        # for postprocessing, or because it was killed between the two index
+        # writes and is in both. Handing either to the runner's recovery below
+        # would re-run the tool.
+        for job_id in self.active_jobs.active_job_ids(
+            active_status=ACTIVE_STATUS_LAUNCHED
+        ):
             job_directory = self._proxied_manager.job_directory(job_id)
-            if not job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
-                log.warning(
-                    "Job scheduled to postprocess [%s] has no final status, skipping"
-                    % job_id
-                )
-                self.active_jobs.deactivate_job(
-                    job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
-                )
-                continue
-            terminal_status = job_directory.load_metadata(JOB_FILE_FINAL_STATUS)
-            log.info(
-                "Job [%s] was interrupted while postprocessing, staging outputs again"
-                % job_id
-            )
-            # Re-run unconditionally, including when ``postprocessed`` is
-            # already on disk - that marker is written even when staging out
-            # failed, so it cannot say whether the outputs actually arrived.
-            self.__handle_postprocessing(job_id, terminal_status)
+            if job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
+                self.__recover_postprocessing(job_id)
 
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
         if recover_method is None:
@@ -449,6 +444,40 @@ class StatefulManagerProxy(ManagerProxy):
             except Exception:
                 log.exception("Failed to recover active job %s" % job_id)
                 self.__handle_recovery_problem(job_id)
+
+    def __recover_postprocessing(self, job_id: str) -> None:
+        """Resume a job interrupted after it reached a terminal status."""
+        job_directory = self._proxied_manager.job_directory(job_id)
+        # Synchronously, and before anything else looks at the launched index:
+        # this is what __handle_terminal_status would have done had it not been
+        # interrupted, and leaving the entry behind would both re-run the job
+        # and leave the monitor polling it forever.
+        self.__deactivate(job_id)
+        if not job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
+            log.warning(
+                "Job scheduled to postprocess [%s] has no final status, skipping"
+                % job_id
+            )
+            self.active_jobs.deactivate_job(
+                job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+            )
+            return
+        terminal_status = job_directory.load_metadata(JOB_FILE_FINAL_STATUS)
+        if terminal_status not in POSTPROCESSED_STATUSES:
+            # Cancellation stages nothing and needs no callback, same as when
+            # the status was first observed.
+            self.active_jobs.deactivate_job(
+                job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+            )
+            return
+        log.info(
+            "Job [%s] was interrupted while postprocessing, staging outputs again"
+            % job_id
+        )
+        # Re-run unconditionally, including when ``postprocessed`` is already on
+        # disk - that marker is written even when staging out failed, so it
+        # cannot say whether the outputs actually arrived.
+        self.__handle_postprocessing(job_id, terminal_status)
 
     def __handle_recovery_problem(self, job_id: str) -> None:
         # Make sure we tell the client we have lost this job.
@@ -472,7 +501,7 @@ class ActiveJobs:
         return ActiveJobs(manager_name, persistence_directory)
 
     def __init__(self, manager_name: str, persistence_directory: Optional[str]) -> None:
-        self.job_directories: Dict[str, Optional[str]] = {}
+        self._active_job_directories: Dict[str, Optional[str]] = {}
         for active_status, directory_name in ACTIVE_STATUS_DIRECTORIES.items():
             directory = None
             if persistence_directory:
@@ -481,7 +510,7 @@ class ActiveJobs:
                 )
                 if not os.path.exists(directory):
                     os.makedirs(directory)
-            self.job_directories[active_status] = directory
+            self._active_job_directories[active_status] = directory
 
     def active_job_ids(self, active_status: str = ACTIVE_STATUS_LAUNCHED) -> List[str]:
         job_ids = []
@@ -508,9 +537,9 @@ class ActiveJobs:
                     log.warn(DECACTIVATE_FAILED_MESSAGE % job_id)
 
     def _active_job_directory(self, active_status: str) -> Optional[str]:
-        if active_status not in self.job_directories:
+        if active_status not in self._active_job_directories:
             raise Exception("Unknown active state encountered [%s]" % active_status)
-        return self.job_directories[active_status]
+        return self._active_job_directories[active_status]
 
     def _active_job_file(
         self, job_id: str, active_status: str = ACTIVE_STATUS_LAUNCHED

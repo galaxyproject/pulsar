@@ -14,10 +14,6 @@ import uuid
 from urllib.parse import urlencode
 
 GALAXY_URL = "http://toxiproxy:8088"
-# The same mount reached from the test process on the host, bypassing
-# toxiproxy - verification must stay readable while a scenario's fault toxic
-# is still on the pulsar-facing path.
-GALAXY_HOST_URL = "http://localhost:8088"
 # Trailing slash matters: Starlette's mount issues a 307 trailing-slash
 # redirect for the bare prefix, which `requests` follows correctly but
 # costs an extra round-trip per staging op. Use the canonical form.
@@ -25,17 +21,16 @@ FILES_API = "/api/jobs/_resilience/files/"
 GALAXY_FILES_ROOT = "/galaxy/files"
 
 
-def files_url(
-    galaxy_filename: str, file_type: str = "input", base: str = GALAXY_URL
-) -> str:
-    """URL for GETting/POSTing a staged file in the mock.
+def files_url(galaxy_filename: str, file_type: str = "input") -> str:
+    """URL Pulsar's client should use to GET/POST a staged file in the mock.
 
-    ``galaxy_filename`` is the basename inside ``GALAXY_FILES_ROOT``. ``base``
-    defaults to the address Pulsar uses; pass ``GALAXY_HOST_URL`` for a URL the
-    test process itself can reach.
+    ``galaxy_filename`` is the basename inside ``GALAXY_FILES_ROOT``. This is
+    the address as seen from inside the compose network; a test process on the
+    host reaches the same mount through ``localhost``, which is also toxiproxy
+    - there is no bypass for mock-galaxy.
     """
     qs = urlencode({"path": f"{GALAXY_FILES_ROOT}/{galaxy_filename}", "file_type": file_type})
-    return f"{base}{FILES_API}?{qs}"
+    return f"{GALAXY_URL}{FILES_API}?{qs}"
 
 
 def make_setup_message(

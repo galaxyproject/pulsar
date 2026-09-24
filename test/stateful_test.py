@@ -40,6 +40,17 @@ class _FailingLaunchManager(_ScriptedStatusManager):
         raise Exception("Test failure launching job")
 
 
+class _RecordingRecoveryManager(_ScriptedStatusManager):
+    """Records which jobs the runner was asked to recover."""
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self.recovered = []
+
+    def _recover_active_job(self, job_id):
+        self.recovered.append(job_id)
+
+
 class _RecoveringStatusManager(_ScriptedStatusManager):
     """Requires recovery to finish before the first status check."""
 
@@ -220,6 +231,57 @@ def test_recover_active_jobs_redrives_interrupted_postprocessing():
         rmtree(app.staging_directory, ignore_errors=True)
 
 
+def test_job_killed_between_indexes_is_not_rerun():
+    """A job in both indexes is postprocessed, never handed to the runner.
+
+    ``__handle_terminal_status`` indexes the job for postprocessing before it
+    removes it from the launched index, so a kill lands in a window where it is
+    in both. Recovering it as a launched job would re-run the tool.
+    """
+    app = minimal_app_for_managers()
+    try:
+        with _proxy(_RecordingRecoveryManager, app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            _interrupt_postprocessing(proxy, manager, job_id, leave_launched=True)
+
+        with _proxy(_RecordingRecoveryManager, app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, job_id)]
+            assert manager.recovered == []
+            assert proxy.active_jobs.active_job_ids() == []
+            _wait_for_postprocessing_index_cleared(proxy)
+    finally:
+        rmtree(app.staging_directory, ignore_errors=True)
+
+
+def test_terminal_job_left_in_launched_index_is_postprocessed():
+    """Killed after the terminal status was recorded, before it was indexed.
+
+    The job is only in the launched index, but its outputs still need staging -
+    and the runner's recovery would re-run it.
+    """
+    app = minimal_app_for_managers()
+    try:
+        with _proxy(_RecordingRecoveryManager, app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            with manager.job_directory(job_id).lock("status"):
+                manager.job_directory(job_id).store_metadata(
+                    stateful.JOB_FILE_FINAL_STATUS, status.COMPLETE
+                )
+
+        with _proxy(_RecordingRecoveryManager, app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, job_id)]
+            assert manager.recovered == []
+            assert proxy.active_jobs.active_job_ids() == []
+    finally:
+        rmtree(app.staging_directory, ignore_errors=True)
+
+
 def test_interrupted_postprocessing_is_not_reported_lost():
     app = minimal_app_for_managers()
     try:
@@ -318,11 +380,12 @@ def _postprocessing_job_ids(proxy):
     )
 
 
-def _interrupt_postprocessing(proxy, manager, job_id):
+def _interrupt_postprocessing(proxy, manager, job_id, leave_launched=False):
     """Leave behind what a Pulsar killed mid-postprocessing leaves behind.
 
-    A terminal status on disk, an entry in the postprocessing index, no entry
-    in the launched index, and no outputs staged.
+    A terminal status on disk, an entry in the postprocessing index, and no
+    outputs staged. ``leave_launched`` models the narrower kill window between
+    the two index writes, where the job is in both.
     """
     job_directory = manager.job_directory(job_id)
     with job_directory.lock("status"):
@@ -330,5 +393,6 @@ def _interrupt_postprocessing(proxy, manager, job_id):
     proxy.active_jobs.activate_job(
         job_id, active_status=stateful.ACTIVE_STATUS_POSTPROCESSING
     )
-    proxy.active_jobs.deactivate_job(job_id)
+    if not leave_launched:
+        proxy.active_jobs.deactivate_job(job_id)
     assert not job_directory.has_metadata(stateful.JOB_FILE_POSTPROCESSED)

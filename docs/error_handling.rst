@@ -244,10 +244,10 @@ Pulsar's stateful manager keeps three persistent indices under
     <persistence_directory>/<manager>-postprocessing-jobs/
 
 Each file is a job_id; its existence means the job was in that phase when
-the process last ran. A job is entered in the next index before it is
-removed from the previous one, so a Pulsar killed at any instant leaves it
-in at least one of them. On startup ``recover_active_jobs`` walks all
-three and:
+the process last ran. A job is entered in the postprocessing index before
+it is removed from the launched one, so a kill anywhere in output staging
+leaves it in at least one index, and a kill in the overlap leaves it in
+both. On startup ``recover_active_jobs`` walks all three and:
 
 1. for jobs in ``-preprocessing-jobs/``, re-reads ``launch_config`` and
    re-launches the preprocessing thread;
@@ -256,7 +256,16 @@ three and:
    the terminal status update;
 3. for jobs in ``-active-jobs/``, calls the manager's
    ``_recover_active_job`` method (e.g. requeue from the persisted
-   command line, or re-attach to the DRMAA external id).
+   command line, or re-attach to the DRMAA external id) — unless the job
+   already has a ``final_status`` on disk, which means it finished running
+   and only its outputs are outstanding. Those are postprocessed as in (2)
+   instead; requeueing one would run the tool a second time.
+
+The preprocessing-to-launched handoff does **not** have the same overlap:
+the preprocessing entry is removed before the job is submitted to the
+runner, so a kill between submission and the ``-active-jobs/`` write leaves
+a running job in no index. That window is unrelated to the output-staging
+one described here and is not addressed by this recovery path.
 
 Postprocessing is re-run from the start rather than resumed, and it is
 re-run even if the job directory already contains a ``postprocessed``

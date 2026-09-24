@@ -14,6 +14,8 @@ The stall is a latency toxic rather than ``disable()`` because
 ``RetryActionExecutor`` does not retry by default - a dead proxy fails
 staging instantly instead of holding Pulsar inside it.
 """
+import uuid
+
 import pytest
 import requests
 
@@ -22,8 +24,8 @@ from pulsar.testing.resilience.assertions import (
     await_terminal,
 )
 from pulsar.testing.resilience.job_factory import (
-    files_url,
-    GALAXY_HOST_URL,
+    FILES_API,
+    GALAXY_FILES_ROOT,
     make_setup_message,
 )
 
@@ -45,6 +47,16 @@ def _expected_output():
     return "".join(f"{i}\n" for i in range(1, OUTPUT_LINES + 1)).encode()
 
 
+def _output_name(prefix):
+    """A name no other run can have staged.
+
+    The ``galaxy-files`` volume outlives both the pulsar volumes and the
+    recorder - nothing wipes it between tests - so a fixed name lets an output
+    staged by an earlier mode, or an earlier session, satisfy the assertion.
+    """
+    return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+
 def _submit_job_with_output(output_name):
     """Publish a job that writes a deterministic file into its outputs dir."""
     body = make_setup_message(
@@ -62,26 +74,34 @@ def _submit_job_with_output(output_name):
 
 def _fetch_staged_output(galaxy_filename):
     r = requests.get(
-        files_url(galaxy_filename, file_type="output", base=GALAXY_HOST_URL),
+        f"{GALAXY_BASE}{FILES_API}",
+        params={
+            "path": f"{GALAXY_FILES_ROOT}/{galaxy_filename}",
+            "file_type": "output",
+        },
         timeout=30,
     )
     r.raise_for_status()
     return r.content
 
 
-def _stall_stage_out(pulsar, galaxy_proxy, output_name):
-    """Submit a job whose stage-out will hang, and stop once it has begun."""
+def _stall_stage_out(pulsar, galaxy_proxy, prefix):
+    """Submit a job whose stage-out will hang, and stop once it has begun.
+
+    Returns the setup body and the name its output is staged under.
+    """
+    output_name = _output_name(prefix)
     watch = pulsar.watch_logs()
     galaxy_proxy.add_latency(STAGE_OUT_LATENCY_MS)
     body = _submit_job_with_output(output_name)
     watch.wait_for(STAGE_OUT_MARKER, timeout=120)
-    return body
+    return body, output_name
 
 
 @pytest.mark.resilience
 def test_a5_sigkill_during_stage_out_recovers(pulsar, galaxy_proxy):
     """SIGKILL mid-upload: the job is recovered, not lost, and bytes match."""
-    body = _stall_stage_out(pulsar, galaxy_proxy, "a5_out1")
+    body, output_name = _stall_stage_out(pulsar, galaxy_proxy, "a5_out")
     pulsar.kill()
     galaxy_proxy.remove_all_toxics()
 
@@ -91,7 +111,7 @@ def test_a5_sigkill_during_stage_out_recovers(pulsar, galaxy_proxy):
     assert_exactly_once_terminal(body["job_id"], expected="complete")
     # Byte-exact, so a truncated or half-resumed transfer is a failure rather
     # than "a file exists".
-    assert _fetch_staged_output("a5_out1") == _expected_output()
+    assert _fetch_staged_output(output_name) == _expected_output()
 
 
 @pytest.mark.resilience
@@ -102,7 +122,7 @@ def test_a6_sigterm_during_stage_out_recovers(pulsar, galaxy_proxy):
     before the process exits; if it doesn't, recovery on restart has to. Either
     way Galaxy sees exactly one ``complete``.
     """
-    body = _stall_stage_out(pulsar, galaxy_proxy, "a6_out1")
+    body, output_name = _stall_stage_out(pulsar, galaxy_proxy, "a6_out")
     pulsar.sigterm()
     galaxy_proxy.remove_all_toxics()
 
@@ -110,7 +130,7 @@ def test_a6_sigterm_during_stage_out_recovers(pulsar, galaxy_proxy):
 
     await_terminal(body["job_id"], timeout=180, expected="complete")
     assert_exactly_once_terminal(body["job_id"], expected="complete")
-    assert _fetch_staged_output("a6_out1") == _expected_output()
+    assert _fetch_staged_output(output_name) == _expected_output()
 
 
 @pytest.mark.resilience
@@ -121,7 +141,7 @@ def test_a8_stage_out_restart_under_broker_outage(pulsar, galaxy_proxy, rabbitmq
     Pinned to ``amqp``: the relay's own outage path is already covered by the
     A3/B scenarios, and every extra mode here costs a full restart cycle.
     """
-    body = _stall_stage_out(pulsar, galaxy_proxy, "a8_out1")
+    body, output_name = _stall_stage_out(pulsar, galaxy_proxy, "a8_out")
     pulsar.kill()
     galaxy_proxy.remove_all_toxics()
 
@@ -133,4 +153,4 @@ def test_a8_stage_out_restart_under_broker_outage(pulsar, galaxy_proxy, rabbitmq
 
     await_terminal(body["job_id"], timeout=180, expected="complete")
     assert_exactly_once_terminal(body["job_id"], expected="complete")
-    assert _fetch_staged_output("a8_out1") == _expected_output()
+    assert _fetch_staged_output(output_name) == _expected_output()
