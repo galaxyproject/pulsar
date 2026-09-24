@@ -25,9 +25,8 @@ def files_url(galaxy_filename: str, file_type: str = "input") -> str:
     """URL Pulsar's client should use to GET/POST a staged file in the mock.
 
     ``galaxy_filename`` is the basename inside ``GALAXY_FILES_ROOT``. This is
-    the address as seen from inside the compose network; a test process on the
-    host reaches the same mount through ``localhost``, which is also toxiproxy
-    - there is no bypass for mock-galaxy.
+    the in-network address; the host reaches the same mount through
+    ``localhost``, which is also toxiproxy - mock-galaxy has no bypass.
     """
     qs = urlencode({"path": f"{GALAXY_FILES_ROOT}/{galaxy_filename}", "file_type": file_type})
     return f"{GALAXY_URL}{FILES_API}?{qs}"
@@ -50,10 +49,9 @@ def make_setup_message(
             on the mock-galaxy side. The factory builds the simple-job-files
             URL.
         output_files: names of files the job writes into its outputs
-            directory, to be staged back to Galaxy. One name, not a pair:
-            ``PulsarOutputs.has_output_file`` matches the client-side path
-            against the outputs directory by basename, so the two sides
-            necessarily share a name.
+            directory, to be staged back. One name, not a pair -
+            ``PulsarOutputs.has_output_file`` matches by basename, so both
+            sides necessarily share it.
 
     Returns:
         Dict ready to POST to mock-galaxy's ``/_publish_setup`` endpoint.
@@ -72,10 +70,9 @@ def make_setup_message(
                     "path": local_name,
                 },
             })
-    # Outputs are not staged by explicit actions the way inputs are. Pulsar's
-    # postprocess builds them itself from ``client_outputs`` plus the action
-    # mapper, injecting the files endpoint into each generated action - so
-    # naming the outputs here is what makes stage-out happen at all.
+    # Outputs are not staged by explicit actions the way inputs are - Pulsar's
+    # postprocess builds them from ``client_outputs`` plus the action mapper's
+    # files endpoint, so naming them here is what makes stage-out happen.
     client_outputs = {
         "output_files": [
             f"{GALAXY_FILES_ROOT}/{name}" for name in output_files or []

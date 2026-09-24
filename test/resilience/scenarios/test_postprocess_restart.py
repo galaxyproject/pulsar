@@ -32,10 +32,9 @@ from pulsar.testing.resilience.job_factory import (
 GALAXY_BASE = "http://localhost:8088"
 
 # The toxic sits on ``galaxy_http``, which is also how this test process
-# reaches mock-galaxy, so publishing a job blocks for this long too. The job
-# therefore sleeps longer than the latency before writing its output: that puts
-# stage-out safely after the submitting call has returned, leaving the whole
-# latency window to kill inside.
+# reaches mock-galaxy, so publishing blocks for this long too. The job sleeps
+# longer than the latency so stage-out starts after the submitting call has
+# returned, leaving the whole window to kill inside.
 STAGE_OUT_LATENCY_MS = 8000
 JOB_DELAY_SECONDS = 12
 # Deterministic, and big enough to be a real transfer rather than one packet.
@@ -50,9 +49,8 @@ def _expected_output():
 def _output_name(prefix):
     """A name no other run can have staged.
 
-    The ``galaxy-files`` volume outlives both the pulsar volumes and the
-    recorder - nothing wipes it between tests - so a fixed name lets an output
-    staged by an earlier mode, or an earlier session, satisfy the assertion.
+    Nothing wipes the ``galaxy-files`` volume between tests, so a fixed name
+    lets an output staged by an earlier mode or session satisfy the assertion.
     """
     return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
@@ -109,8 +107,7 @@ def test_a5_sigkill_during_stage_out_recovers(pulsar, galaxy_proxy):
 
     await_terminal(body["job_id"], timeout=180, expected="complete")
     assert_exactly_once_terminal(body["job_id"], expected="complete")
-    # Byte-exact, so a truncated or half-resumed transfer is a failure rather
-    # than "a file exists".
+    # Byte-exact, so a truncated or half-resumed transfer fails here.
     assert _fetch_staged_output(output_name) == _expected_output()
 
 

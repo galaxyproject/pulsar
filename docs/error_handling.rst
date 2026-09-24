@@ -403,7 +403,7 @@ fault injection. Before relying on this guide in production, run::
     docker compose -f test/resilience/docker-compose.yml up -d --build
     pytest test/resilience -v
 
-63 scenarios pass across the ``amqp``, ``amqp_ack``, and ``relay`` modes.
+Dozens of scenarios pass across the ``amqp``, ``amqp_ack``, and ``relay`` modes.
 See ``test/resilience/README.md`` for layout, what each scenario asserts,
 and how to add new ones (e.g. for a custom runner).
 

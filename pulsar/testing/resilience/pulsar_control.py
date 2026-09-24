@@ -185,10 +185,9 @@ class PulsarControl:
     def watch_logs(self):
         """Open a :class:`LogWatch` on this service's log, from right now.
 
-        Open the watch *before* the action that should produce the marker. A
-        wait that snapshots only when it starts can miss a marker Pulsar
-        already logged - the submitting call can still be in flight when the
-        job it published has run.
+        Open the watch *before* the action that produces the marker - the
+        submitting call can still be in flight once the job it published has
+        run.
         """
         return LogWatch(self)
 
@@ -254,11 +253,10 @@ class PulsarControl:
 class LogWatch:
     """Waits for markers logged after the watch was opened.
 
-    Newness is judged by diffing against the log as it stood when the watch was
-    opened rather than by ``--since``: compose only sees a line once the
-    container's stream is flushed, so a wall-clock window can miss a line that
-    was written inside it. A log that has shrunk means the container was
-    recreated, which resets the baseline.
+    Diffing against the log as it stood when the watch opened, not ``--since``:
+    compose only sees a line once the stream is flushed, so a wall-clock window
+    can miss a line written inside it. A shrunken log means the container was
+    recreated, and resets the baseline.
     """
 
     def __init__(self, control: PulsarControl):

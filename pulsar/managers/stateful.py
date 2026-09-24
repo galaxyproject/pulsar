@@ -72,9 +72,8 @@ ACTIVE_STATUS_PREPROCESSING = "preprocessing"
 ACTIVE_STATUS_LAUNCHED = "launched"
 ACTIVE_STATUS_POSTPROCESSING = "postprocessing"
 
-# Directory name each active status is tracked in, under the persistence
-# directory.  The launched and preprocessing names predate the third and are
-# kept so an upgraded Pulsar still recovers jobs an older one indexed.
+# Directory each active status is tracked in. The older two names are kept so
+# an upgraded Pulsar still recovers jobs a previous version indexed.
 ACTIVE_STATUS_DIRECTORIES = {
     ACTIVE_STATUS_LAUNCHED: "active-jobs",
     ACTIVE_STATUS_PREPROCESSING: "preprocessing-jobs",
@@ -322,9 +321,8 @@ class StatefulManagerProxy(ManagerProxy):
         needs_postprocessing = proxy_status in POSTPROCESSED_STATUSES
         if needs_postprocessing:
             # Indexed before the job leaves the launched index, never after, so
-            # that a Pulsar killed at any instant finds the job in at least one
-            # of them.  Otherwise the whole of postprocessing is a window in
-            # which the job is in no index and is lost on restart.
+            # a Pulsar killed at any instant finds it in one of them. Otherwise
+            # all of postprocessing is a window where it is in neither.
             self.active_jobs.activate_job(
                 job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
             )
@@ -363,8 +361,8 @@ class StatefulManagerProxy(ManagerProxy):
                     final_status = status.FAILED
                 self.__state_change_callback(final_status, job_id)
             finally:
-                # Cleared after the callback, so the largest remaining crash
-                # window costs a duplicate terminal message rather than a job.
+                # Cleared after the callback, so a crash here costs a duplicate
+                # terminal message rather than a job.
                 self.active_jobs.deactivate_job(
                     job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
                 )
@@ -419,12 +417,10 @@ class StatefulManagerProxy(ManagerProxy):
         ):
             self.__recover_postprocessing(job_id)
 
-        # A job whose terminal status is already on disk is finished running,
-        # whichever index it is in. It can be in the launched index either
-        # because it was killed between recording that status and being indexed
-        # for postprocessing, or because it was killed between the two index
-        # writes and is in both. Handing either to the runner's recovery below
-        # would re-run the tool.
+        # A terminal status on disk means the job is finished running, whatever
+        # index it is in - it can still be in the launched one if the kill
+        # landed either side of the postprocessing index write. Handing it to
+        # the runner's recovery below would re-run the tool.
         for job_id in self.active_jobs.active_job_ids(
             active_status=ACTIVE_STATUS_LAUNCHED
         ):
@@ -448,10 +444,9 @@ class StatefulManagerProxy(ManagerProxy):
     def __recover_postprocessing(self, job_id: str) -> None:
         """Resume a job interrupted after it reached a terminal status."""
         job_directory = self._proxied_manager.job_directory(job_id)
-        # Synchronously, and before anything else looks at the launched index:
-        # this is what __handle_terminal_status would have done had it not been
-        # interrupted, and leaving the entry behind would both re-run the job
-        # and leave the monitor polling it forever.
+        # What __handle_terminal_status would have done, and before anything
+        # else reads the launched index - a leftover entry re-runs the job and
+        # leaves the monitor polling it forever.
         self.__deactivate(job_id)
         if not job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
             log.warning(
@@ -464,8 +459,7 @@ class StatefulManagerProxy(ManagerProxy):
             return
         terminal_status = job_directory.load_metadata(JOB_FILE_FINAL_STATUS)
         if terminal_status not in POSTPROCESSED_STATUSES:
-            # Cancellation stages nothing and needs no callback, same as when
-            # the status was first observed.
+            # Cancellation stages nothing and needs no callback.
             self.active_jobs.deactivate_job(
                 job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
             )
@@ -474,9 +468,8 @@ class StatefulManagerProxy(ManagerProxy):
             "Job [%s] was interrupted while postprocessing, staging outputs again"
             % job_id
         )
-        # Re-run unconditionally, including when ``postprocessed`` is already on
-        # disk - that marker is written even when staging out failed, so it
-        # cannot say whether the outputs actually arrived.
+        # Unconditional: the ``postprocessed`` marker is written even when
+        # staging out failed, so it cannot say whether the outputs arrived.
         self.__handle_postprocessing(job_id, terminal_status)
 
     def __handle_recovery_problem(self, job_id: str) -> None:

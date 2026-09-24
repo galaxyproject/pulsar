@@ -301,10 +301,10 @@ def test_interrupted_postprocessing_is_not_reported_lost():
 
 @contextmanager
 def _proxy(manager_class=_ScriptedStatusManager, app=None):
-    """Yield a proxy, and by default own the app whose staging directory it uses.
+    """Yield a proxy, owning the app whose staging directory it uses.
 
-    Pass ``app`` to build a second proxy over persisted state a first one left
-    behind - what a restarted Pulsar sees.  The caller then owns the cleanup.
+    Pass ``app`` to build a second proxy over state a first one left behind -
+    what a restarted Pulsar sees. The caller then owns the cleanup.
     """
     owns_app = app is None
     if owns_app:

@@ -258,11 +258,10 @@ def _amqp_consume_loop():
                             # Idle, not broken - keep draining.
                             continue
                         except Exception:
-                            # Anything else means this connection is gone. It
-                            # has to be re-established: swallowing it here
-                            # spins forever on a dead socket, and the recorder
-                            # silently stops seeing status updates for the rest
-                            # of the session.
+                            # Anything else means the connection is gone and
+                            # must be re-established - swallowing it here spins
+                            # forever on a dead socket and the recorder stops
+                            # seeing updates for the rest of the session.
                             log.exception("AMQP consumer connection lost, reconnecting")
                             break
         except Exception:
