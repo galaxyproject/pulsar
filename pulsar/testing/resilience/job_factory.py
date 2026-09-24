@@ -14,6 +14,10 @@ import uuid
 from urllib.parse import urlencode
 
 GALAXY_URL = "http://toxiproxy:8088"
+# The same mount reached from the test process on the host, bypassing
+# toxiproxy - verification must stay readable while a scenario's fault toxic
+# is still on the pulsar-facing path.
+GALAXY_HOST_URL = "http://localhost:8088"
 # Trailing slash matters: Starlette's mount issues a 307 trailing-slash
 # redirect for the bare prefix, which `requests` follows correctly but
 # costs an extra round-trip per staging op. Use the canonical form.
@@ -21,13 +25,17 @@ FILES_API = "/api/jobs/_resilience/files/"
 GALAXY_FILES_ROOT = "/galaxy/files"
 
 
-def files_url(galaxy_filename: str, file_type: str = "input") -> str:
-    """URL Pulsar's client should use to GET/POST a staged file in the mock.
+def files_url(
+    galaxy_filename: str, file_type: str = "input", base: str = GALAXY_URL
+) -> str:
+    """URL for GETting/POSTing a staged file in the mock.
 
-    ``galaxy_filename`` is the basename inside ``GALAXY_FILES_ROOT``.
+    ``galaxy_filename`` is the basename inside ``GALAXY_FILES_ROOT``. ``base``
+    defaults to the address Pulsar uses; pass ``GALAXY_HOST_URL`` for a URL the
+    test process itself can reach.
     """
     qs = urlencode({"path": f"{GALAXY_FILES_ROOT}/{galaxy_filename}", "file_type": file_type})
-    return f"{GALAXY_URL}{FILES_API}?{qs}"
+    return f"{base}{FILES_API}?{qs}"
 
 
 def make_setup_message(
@@ -46,8 +54,11 @@ def make_setup_message(
             ``galaxy_filename`` is the basename inside ``GALAXY_FILES_ROOT``
             on the mock-galaxy side. The factory builds the simple-job-files
             URL.
-        output_files: list of ``(local_name, galaxy_filename)`` pairs with
-            the same semantics, for postprocess upload.
+        output_files: names of files the job writes into its outputs
+            directory, to be staged back to Galaxy. One name, not a pair:
+            ``PulsarOutputs.has_output_file`` matches the client-side path
+            against the outputs directory by basename, so the two sides
+            necessarily share a name.
 
     Returns:
         Dict ready to POST to mock-galaxy's ``/_publish_setup`` endpoint.
@@ -66,30 +77,26 @@ def make_setup_message(
                     "path": local_name,
                 },
             })
-    output_actions = []
-    if output_files:
-        for local_name, galaxy_filename in output_files:
-            output_actions.append({
-                "name": local_name,
-                "type": "output",
-                "action": {
-                    "action_type": "remote_transfer",
-                    "url": files_url(galaxy_filename, file_type="output"),
-                    "source": {"path": local_name},
-                    "path": local_name,
-                },
-            })
+    # Outputs are not staged by explicit actions the way inputs are. Pulsar's
+    # postprocess builds them itself from ``client_outputs`` plus the action
+    # mapper, injecting the files endpoint into each generated action - so
+    # naming the outputs here is what makes stage-out happen at all.
+    client_outputs = {
+        "output_files": [
+            f"{GALAXY_FILES_ROOT}/{name}" for name in output_files or []
+        ],
+    }
 
-    body = {
+    return {
         "job_id": job_id,
         "command_line": command_line,
         "setup": True,
         "remote_staging": {
             "setup": setup_actions,
-            "action_mapper": {"default_action": "remote_transfer"},
-            "client_outputs": {"action_mapper": {"default_action": "remote_transfer"}},
+            "action_mapper": {
+                "default_action": "remote_transfer",
+                "files_endpoint": f"{GALAXY_URL}{FILES_API}",
+            },
+            "client_outputs": client_outputs,
         },
     }
-    if output_actions:
-        body["remote_staging"].setdefault("postprocess", []).extend(output_actions)
-    return body

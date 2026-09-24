@@ -89,6 +89,13 @@ install `pulsar-galaxy-lib` get it for free — while everything under
    `pulsar.testing.resilience.assertions.await_terminal` and
    `assert_exactly_once_terminal`.
 
+To act at a point *inside* a phase rather than after it, open a
+`pulsar.watch_logs()` before submitting and wait on a marker the phase logs
+(`test_postprocess_restart.py` waits for `collecting output` to kill Pulsar
+mid-upload). Open the watch first: `_publish_setup` is reached through
+toxiproxy, so a toxic that stalls the phase stalls the submitting call too,
+and the marker can be logged before that call returns.
+
 ## Mode matrix
 
 `mq_mode` is parametrized over `amqp`, `amqp_ack`, and `relay`. Tests that

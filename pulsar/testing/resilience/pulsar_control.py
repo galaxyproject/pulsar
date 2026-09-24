@@ -165,6 +165,33 @@ class PulsarControl:
         self.stop()
         self.start(wait_ready=wait_ready)
 
+    def _logs_since_window(self, start_ts):
+        """Logs within a wall-clock window back to ``start_ts``.
+
+        Used only where the marker is written at container start, so the
+        window is never wide enough for a previous container's copy.
+        """
+        res = _docker_compose(
+            "logs", "--since", f"{int(time.time() - start_ts) + 2}s",
+            self.service, project_dir=self.project_dir,
+        )
+        return res.stdout or ""
+
+    def logs(self):
+        """Everything this compose service has logged, oldest first."""
+        res = _docker_compose("logs", self.service, project_dir=self.project_dir)
+        return res.stdout or ""
+
+    def watch_logs(self):
+        """Open a :class:`LogWatch` on this service's log, from right now.
+
+        Open the watch *before* the action that should produce the marker. A
+        wait that snapshots only when it starts can miss a marker Pulsar
+        already logged - the submitting call can still be in flight when the
+        job it published has run.
+        """
+        return LogWatch(self)
+
     def wait_until_consuming(self, timeout=60.0, poll_interval=0.1):
         """Block until Pulsar has bound consumers for the control queues.
 
@@ -201,11 +228,7 @@ class PulsarControl:
         samples = 0
         last_stats = None
         while time.time() < deadline:
-            res = _docker_compose(
-                "logs", "--since", f"{int(time.time() - start_ts) + 2}s",
-                self.service, project_dir=self.project_dir,
-            )
-            if bind_marker in (res.stdout or ""):
+            if bind_marker in self._logs_since_window(start_ts):
                 bind_seen = True
                 samples += 1
                 if self.mode == "relay":
@@ -226,6 +249,32 @@ class PulsarControl:
         raise TimeoutError(
             f"Pulsar did not bind {self.mode} consumers within {timeout}s ({details})"
         )
+
+
+class LogWatch:
+    """Waits for markers logged after the watch was opened.
+
+    Newness is judged by diffing against the log as it stood when the watch was
+    opened rather than by ``--since``: compose only sees a line once the
+    container's stream is flushed, so a wall-clock window can miss a line that
+    was written inside it. A log that has shrunk means the container was
+    recreated, which resets the baseline.
+    """
+
+    def __init__(self, control: PulsarControl):
+        self._control = control
+        self._baseline = len(control.logs())
+
+    def wait_for(self, marker, timeout=60.0, poll_interval=0.25):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            text = self._control.logs()
+            if len(text) < self._baseline:
+                self._baseline = 0
+            if marker in text[self._baseline:]:
+                return
+            time.sleep(poll_interval)
+        raise TimeoutError(f"Pulsar did not log {marker!r} within {timeout}s")
 
 
 def _amqp_setup_has_consumer():
