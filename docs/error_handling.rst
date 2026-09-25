@@ -243,23 +243,44 @@ as ``Ignoring duplicate setup message for job_id <id>``.
 6. Active-job recovery on restart
 ------------------------------------------------------------------------
 
-Pulsar's stateful manager keeps two persistent indices under
-``persistence_directory``:
+Pulsar's stateful manager keeps three persistent indices under
+``persistence_directory``, one per phase a job can be interrupted in:
 
 ::
 
-    <persistence_directory>/<manager>-active-jobs/
     <persistence_directory>/<manager>-preprocessing-jobs/
+    <persistence_directory>/<manager>-active-jobs/
+    <persistence_directory>/<manager>-postprocessing-jobs/
 
-Each file is a job_id; its existence means the job was active when the
-process last ran. On startup ``recover_active_jobs`` walks both
-directories and:
+Each file is a job_id; its existence means the job was in that phase when
+the process last ran. A job is entered in the postprocessing index before
+it is removed from the launched one, so a kill anywhere in output staging
+leaves it in at least one index, and a kill in the overlap leaves it in
+both. On startup ``recover_active_jobs`` walks all three and:
 
 1. for jobs in ``-preprocessing-jobs/``, re-reads ``launch_config`` and
    re-launches the preprocessing thread;
-2. for jobs in ``-active-jobs/``, calls the manager's
+2. for jobs in ``-postprocessing-jobs/``, re-reads the terminal status
+   recorded in ``final_status`` and stages the outputs again, then sends
+   the terminal status update;
+3. for jobs in ``-active-jobs/``, calls the manager's
    ``_recover_active_job`` method (e.g. requeue from the persisted
-   command line, or re-attach to the DRMAA external id).
+   command line, or re-attach to the DRMAA external id) — unless the job
+   already has a ``final_status`` on disk, which means it finished running
+   and only its outputs are outstanding. Those are postprocessed as in (2)
+   instead; requeueing one would run the tool a second time.
+
+The preprocessing-to-launched handoff does **not** have the same overlap:
+the preprocessing entry is removed before the job is submitted to the
+runner, so a kill between submission and the ``-active-jobs/`` write leaves
+a running job in no index. That window is unrelated to the output-staging
+one described here and is not addressed by this recovery path.
+
+Postprocessing is re-run from the start rather than resumed, and it is
+re-run even if the job directory already contains a ``postprocessed``
+marker: that marker is written whether or not the outputs actually
+arrived, so it cannot say what still needs staging. An output may
+therefore be uploaded to Galaxy twice.
 
 Two outcomes you should be aware of:
 
@@ -271,7 +292,10 @@ Two outcomes you should be aware of:
   framework — runs jobs as direct Pulsar subprocesses and cannot survive
   a Pulsar SIGKILL. Such a restart yields ``lost``, not ``complete``,
   for the in-flight job. **Use a real DRM (DRMAA/Slurm/Kubernetes) for
-  workloads that need to survive Pulsar restarts.**
+  workloads that need to survive Pulsar restarts.** This caveat does not
+  extend to postprocessing: by then the job process has already exited,
+  so a restart during output staging recovers to the job's real terminal
+  status under any runner.
 
 ------------------------------------------------------------------------
 7. Staging error handling (file transfer to/from Galaxy)
@@ -368,7 +392,8 @@ RabbitMQ crash + restart (durability opted out)    outbox replays publisher side
 Pulsar SIGKILL during preprocessing                ``-preprocessing-jobs/`` recovery     ``Failed to find launch parameters`` warning if missing
 Pulsar SIGKILL during running (DRM)                ``-active-jobs/`` recovery            re-attach via runner; no status change visible to Galaxy
 Pulsar SIGKILL during running (queued_python)      job dies, ``lost`` reported           one ``lost`` status update; admin should know this runner
-Pulsar SIGKILL after final_status, before publish  outbox replay on restart              ``Outbox ... has N pending messages to retry`` warning
+Pulsar SIGKILL during output staging               ``-postprocessing-jobs/`` recovery    ``was interrupted while postprocessing`` info log; outputs staged again
+Pulsar SIGKILL after publish, before outbox clear  outbox replay on restart              ``Outbox ... has N pending messages to retry`` warning
 Galaxy 5xx during input download                   transient retry                       ``Failed to execute action[...], retrying`` info logs
 Galaxy 4xx during input download                   fail-fast, ``failed`` reported        single ``failed`` status; HTTP body in job stderr
 Galaxy unreachable during status_update            outbox holds, broker buffers          same as broker outage from Pulsar's perspective
@@ -387,7 +412,7 @@ fault injection. Before relying on this guide in production, run::
     docker compose -f test/resilience/docker-compose.yml up -d --build
     pytest test/resilience -v
 
-48 scenarios pass across the ``amqp``, ``amqp_ack``, and ``relay`` modes.
+Dozens of scenarios pass across the ``amqp``, ``amqp_ack``, and ``relay`` modes.
 See ``test/resilience/README.md`` for layout, what each scenario asserts,
 and how to add new ones (e.g. for a custom runner).
 

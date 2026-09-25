@@ -254,11 +254,19 @@ def _amqp_consume_loop():
                     while True:
                         try:
                             conn.drain_events(timeout=1.0)
+                        except TimeoutError:
+                            # Idle, not broken - keep draining.
+                            continue
                         except Exception:
-                            pass
+                            # Anything else means the connection is gone and
+                            # must be re-established - swallowing it here spins
+                            # forever on a dead socket and the recorder stops
+                            # seeing updates for the rest of the session.
+                            log.exception("AMQP consumer connection lost, reconnecting")
+                            break
         except Exception:
             log.exception("AMQP consumer dropped, reconnecting")
-            time.sleep(2.0)
+        time.sleep(2.0)
 
 
 _relay_cursor: dict[str, str] = {}
