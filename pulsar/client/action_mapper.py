@@ -22,6 +22,7 @@ from typing import (
     ClassVar,
     Dict,
     List,
+    Tuple,
     Type,
 )
 from urllib.parse import urlencode
@@ -195,12 +196,8 @@ class FileActionMapper:
         if config is None:
             config = self.__client_to_config(client)
         self.default_action = config.get("default_action", "transfer")
-        self.ssh_key = config.get("ssh_key", None)
-        self.ssh_user = config.get("ssh_user", None)
-        self.ssh_host = config.get("ssh_host", None)
-        self.ssh_port = config.get("ssh_port", None)
         self.mappers = mappers_from_dicts(config.get("paths", []))
-        self.files_endpoint = config.get("files_endpoint", None)
+        self.destination_config = {k: v for k, v in config.items() if k != "paths"}
 
     def action(self, source, type, mapper=None):
         path = source.get("path", None)
@@ -222,15 +219,13 @@ class FileActionMapper:
         return filter(lambda m: path_type.UNSTRUCTURED in m.path_types, self.mappers)
 
     def to_dict(self):
-        return {
-            'default_action': self.default_action,
-            'files_endpoint': self.files_endpoint,
-            'ssh_key': self.ssh_key,
-            'ssh_user': self.ssh_user,
-            'ssh_port': self.ssh_port,
-            'ssh_host': self.ssh_host,
-            'paths': [m.to_dict() for m in self.mappers]
-        }
+        as_dict = dict(self.destination_config)
+        as_dict['default_action'] = self.default_action
+        # Emitted even when unset - older Pulsar servers index these directly.
+        for key in destination_keys():
+            as_dict.setdefault(key, None)
+        as_dict['paths'] = [m.to_dict() for m in self.mappers]
+        return as_dict
 
     def __client_to_config(self, client):
         action_config_path = client.action_config_path
@@ -239,8 +234,7 @@ class FileActionMapper:
         else:
             config = getattr(client, "file_actions", {})
         config["default_action"] = client.default_file_action
-        config["files_endpoint"] = client.files_endpoint
-        for attr in ['ssh_key', 'ssh_user', 'ssh_port', 'ssh_host']:
+        for attr in destination_keys():
             if hasattr(client, attr):
                 config[attr] = getattr(client, attr)
         return config
@@ -276,31 +270,7 @@ class FileActionMapper:
         """ Extension point to populate extra action information after an
         action has been created.
         """
-        if getattr(action, "inject_url", False):
-            self.__inject_url(action, file_type)
-        if getattr(action, "inject_ssh_properties", False):
-            self.__inject_ssh_properties(action)
-
-    def __inject_url(self, action, file_type):
-        url_base = self.files_endpoint
-        if not url_base:
-            raise Exception(MISSING_FILES_ENDPOINT_ERROR)
-        if "?" not in url_base:
-            url_base = "%s?" % url_base
-        else:
-            url_base = "%s&" % url_base
-        url_params = urlencode({"path": action.path, "file_type": file_type})
-        action.url = f"{url_base}{url_params}"
-
-    def __inject_ssh_properties(self, action):
-        for attr in ["ssh_key", "ssh_host", "ssh_port", "ssh_user"]:
-            action_attr = getattr(action, attr)
-            if action_attr == UNSET_ACTION_KWD:
-                client_default_attr = getattr(self, attr, None)
-                setattr(action, attr, client_default_attr)
-
-        if action.ssh_key is None:
-            raise Exception(MISSING_SSH_KEY_ERROR)
+        action.populate_from_destination(self.destination_config, file_type)
 
 
 REQUIRED_ACTION_KWD = object()
@@ -310,11 +280,26 @@ UNSET_ACTION_KWD = "__UNSET__"
 class BaseAction:
     whole_directory_transfer_supported = False
     action_spec: ClassVar[Dict[str, Any]] = {}
+    #: Settings this action takes from the job destination when a path mapping
+    #: has not supplied them. Declaring a name here is enough - the mapper
+    #: harvests it from the client and fills it in, so a new action does not
+    #: need the mapper to learn about it.
+    destination_defaults: ClassVar[Tuple[str, ...]] = ()
     action_type: str
 
     def __init__(self, source, file_lister=None):
         self.source = source
         self.file_lister = file_lister or DEFAULT_FILE_LISTER
+
+    def populate_from_destination(self, destination, file_type):
+        """Fill in destination-level settings and validate what this action needs.
+
+        Called once per action, right after construction. Subclasses that derive
+        a value rather than copy one (a URL, say) override this and call super().
+        """
+        for attr in self.destination_defaults:
+            if getattr(self, attr, UNSET_ACTION_KWD) == UNSET_ACTION_KWD:
+                setattr(self, attr, destination.get(attr))
 
     @property
     def path(self):
@@ -476,19 +461,31 @@ class RemoteCopyAction(BaseAction):
             copy_to_path(f, destination)
 
 
+def _files_endpoint_url(files_endpoint, path, file_type):
+    if not files_endpoint:
+        raise Exception(MISSING_FILES_ENDPOINT_ERROR)
+    separator = "&" if "?" in files_endpoint else "?"
+    url_params = urlencode({"path": path, "file_type": file_type})
+    return f"{files_endpoint}{separator}{url_params}"
+
+
 class RemoteTransferAction(BaseAction):
     """ This action indicates the Pulsar server should transfer the file before
     execution via one of the remote transfer implementations. This is like a TransferAction, but
     it indicates the action requires network access to the staging server, and
     should be executed via ssh/rsync/etc
     """
-    inject_url = True
+    destination_defaults = ("files_endpoint",)
     action_type = "remote_transfer"
     staging = STAGING_ACTION_REMOTE
 
     def __init__(self, source, file_lister=None, url=None):
         super().__init__(source, file_lister=file_lister)
         self.url = url
+
+    def populate_from_destination(self, destination, file_type):
+        super().populate_from_destination(destination, file_type)
+        self.url = _files_endpoint_url(self.files_endpoint, self.path, file_type)
 
     def to_dict(self):
         return self._extend_base_dict(url=self.url)
@@ -510,13 +507,17 @@ class RemoteTransferTusAction(BaseAction):
     it indicates the action requires network access to the staging server and TUS
     will be used for the transfer
     """
-    inject_url = True
+    destination_defaults = ("files_endpoint",)
     action_type = "remote_transfer_tus"
     staging = STAGING_ACTION_REMOTE
 
     def __init__(self, source, file_lister=None, url=None):
         super().__init__(source, file_lister=file_lister)
         self.url = url
+
+    def populate_from_destination(self, destination, file_type):
+        super().populate_from_destination(destination, file_type)
+        self.url = _files_endpoint_url(self.files_endpoint, self.path, file_type)
 
     def to_dict(self):
         return self._extend_base_dict(url=self.url)
@@ -563,7 +564,7 @@ class RemoteObjectStoreCopyAction(BaseAction):
 class PubkeyAuthenticatedTransferAction(BaseAction):
     """Base class for file transfers requiring an SSH public/private key
     """
-    inject_ssh_properties = True
+    destination_defaults = ("ssh_key", "ssh_user", "ssh_host", "ssh_port")
     action_spec: ClassVar[Dict[str, Any]] = {
         'ssh_key': UNSET_ACTION_KWD,
         'ssh_user': UNSET_ACTION_KWD,
@@ -579,6 +580,11 @@ class PubkeyAuthenticatedTransferAction(BaseAction):
         self.ssh_host = ssh_host
         self.ssh_port = ssh_port
         self.ssh_key = ssh_key
+
+    def populate_from_destination(self, destination, file_type):
+        super().populate_from_destination(destination, file_type)
+        if self.ssh_key is None:
+            raise Exception(MISSING_SSH_KEY_ERROR)
 
     def to_dict(self):
         return self._extend_base_dict(
@@ -876,6 +882,15 @@ ACTION_CLASSES: List[Type[BaseAction]] = [
     ScpTransferAction,
 ]
 actions = {clazz.action_type: clazz for clazz in ACTION_CLASSES}
+
+
+def destination_keys():
+    """Every destination setting the registered actions ask for.
+
+    Computed on demand rather than frozen at import, so an action registered
+    later is harvested too.
+    """
+    return tuple(sorted({key for clazz in ACTION_CLASSES for key in clazz.destination_defaults}))
 
 
 __all__ = (
