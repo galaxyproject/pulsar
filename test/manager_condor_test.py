@@ -48,5 +48,5 @@ class CondorManagerTest(BaseManagerTestCase):
 
     def test_manager_params_override_job_params(self):
         manager = self._manager(submit_request_memory="32")
-        self._launch(manager, "123", submit_params=dict(request_memory="64"))
+        self._launch(manager, "123", submit_params={'request_memory': "64"})
         assert "request_memory = 32" in self.submit_descriptions[0]

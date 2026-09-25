@@ -14,7 +14,10 @@ import os
 import re
 import subprocess
 import threading
-from typing import Optional
+from typing import (
+    ClassVar,
+    Optional,
+)
 
 AUTO_COMPLETE = os.environ.get("PULSAR_TEST_FAKE_HTCONDOR_AUTO_COMPLETE", "") == "1"
 
@@ -142,14 +145,14 @@ class Collector:
         self.pool = pool
 
     def locate(self, daemon_type, name=None):
-        return dict(Name=name or "schedd@local", MyAddress="addr", CondorVersion="v1", Pool=self.pool)
+        return {"Name": name or "schedd@local", "MyAddress": "addr", "CondorVersion": "v1", "Pool": self.pool}
 
     def locateAll(self, daemon_type):
         return [self.locate(daemon_type)]
 
 
 class JobEventLog:
-    events_by_log: dict = {}
+    events_by_log: ClassVar[dict] = {}
     # Set to an exception to make events() raise, for escalation tests.
     error: Optional[Exception] = None
 
@@ -179,12 +182,12 @@ class Schedd:
 
     def submit(self, description, count=0, spool=False, itemdata=None, queue=None):
         cluster_id = _next_cluster_id()
-        SUBMISSIONS.append(dict(
-            collector=None if self.location is None else self.location.get("Pool"),
-            schedd_name=None if self.location is None else self.location.get("Name"),
-            submit_description=description.description,
-            cluster_id=cluster_id,
-        ))
+        SUBMISSIONS.append({
+            "collector": None if self.location is None else self.location.get("Pool"),
+            "schedd_name": None if self.location is None else self.location.get("Name"),
+            "submit_description": description.description,
+            "cluster_id": cluster_id,
+        })
         if AUTO_COMPLETE:
             _auto_complete_job(description.description, cluster_id)
         else:
@@ -192,13 +195,13 @@ class Schedd:
         return SubmitResult(cluster_id)
 
     def act(self, action, job_spec, reason=None):
-        REMOVALS.append(dict(
-            collector=None if self.location is None else self.location.get("Pool"),
-            schedd_name=None if self.location is None else self.location.get("Name"),
-            action=action.name if hasattr(action, "name") else str(action),
-            job_spec=job_spec,
-            reason=reason,
-        ))
+        REMOVALS.append({
+            "collector": None if self.location is None else self.location.get("Pool"),
+            "schedd_name": None if self.location is None else self.location.get("Name"),
+            "action": action.name if hasattr(action, "name") else str(action),
+            "job_spec": job_spec,
+            "reason": reason,
+        })
         return {}
 
 
