@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import platform
+import threading
 from abc import (
     ABC,
     abstractmethod,
@@ -336,8 +337,16 @@ class JobDirectory(RemoteJobDirectory):
             if job_file:
                 job_file.close()
 
-    def write_file(self, name: str, contents: Union[str, bytes]) -> str:
+    def write_file(self, name: str, contents: Union[str, bytes], atomic: bool = False) -> str:
         path = self._job_file(name)
+        if atomic:
+            if isinstance(contents, str):
+                contents = contents.encode("UTF-8")
+            temp_path = "%s.tmp.%d" % (path, threading.get_ident())
+            with open(temp_path, "wb") as temp_file:
+                temp_file.write(contents)
+            os.replace(temp_path, path)
+            return path
         job_file = open(path, "wb")
         try:
             if isinstance(contents, str):
@@ -361,6 +370,9 @@ class JobDirectory(RemoteJobDirectory):
 
     def open_file(self, name: str, mode="wb") -> IO:
         return open(self._job_file(name), mode)
+
+    def file_size(self, name: str) -> int:
+        return os.path.getsize(self._job_file(name))
 
     def exists(self) -> bool:
         return os.path.exists(self.path)
@@ -426,8 +438,8 @@ class JobDirectory(RemoteJobDirectory):
         return contents
 
     # Following abstractions store metadata related to jobs.
-    def store_metadata(self, metadata_name: str, metadata_value: Any) -> None:
-        self.write_file(metadata_name, json.dumps(metadata_value))
+    def store_metadata(self, metadata_name: str, metadata_value: Any, atomic: bool = False) -> None:
+        self.write_file(metadata_name, json.dumps(metadata_value), atomic=atomic)
 
     def load_metadata(self, metadata_name: str, default: Optional[Any] = None) -> Any:
         DEFAULT_RAW = object()
