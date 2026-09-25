@@ -167,3 +167,41 @@ def test_postprocess_does_not_count_cancelled_output():
         assert recorded["files"] == 0
         assert recorded["bytes"] == 0
         assert not os.path.exists(destination)
+
+
+def test_postprocess_does_not_retry_its_metrics_stage_out():
+    with temp_directory() as client_directory, temp_job_directory() as job_directory:
+        job_directory.setup()
+        # A file where the client metadata directory should be, so the metrics copy fails.
+        client_metadata_directory = os.path.join(client_directory, "metadata")
+        with open(client_metadata_directory, "w") as fh:
+            fh.write("")
+        output_name = "output.dat"
+        with open(job_directory.calculate_path(output_name, "output"), "w") as fh:
+            fh.write(CONTENTS)
+        job_directory.store_metadata(
+            "launch_config",
+            {
+                "remote_staging": {
+                    "action_mapper": {"default_action": "remote_copy"},
+                    "client_outputs": {
+                        "working_directory": os.path.join(client_directory, "working"),
+                        "metadata_directory": client_metadata_directory,
+                        "job_directory": client_directory,
+                        "output_files": [os.path.join(client_directory, output_name)],
+                    },
+                }
+            },
+        )
+        retried = []
+        action_executor = RetryActionExecutor(
+            max_retries=3,
+            interval_start=0,
+            interval_step=0,
+            interval_max=0,
+            should_retry=lambda exc: True,
+            errback=lambda exc, interval, description=None: retried.append(description),
+        )
+        assert postprocess(job_directory, action_executor, lambda: False)
+        assert os.path.exists(os.path.join(client_directory, output_name))
+        assert not [d for d in retried if transfer_metrics_file_name(POSTPROCESS) in d]
