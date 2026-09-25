@@ -250,7 +250,7 @@ class HTCondorManagerTest(BaseManagerTestCase):
         assert job_state.held_reason_code == 34
 
     def test_per_job_held_grace_seconds_overrides_manager_default(self):
-        job_id = self._launch(submit_params=dict(held_grace_seconds=10))
+        job_id = self._launch(submit_params={"held_grace_seconds": 10})
         self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=34))
         assert self.manager.get_status(job_id) == status.QUEUED
         self.now += 9
@@ -292,14 +292,14 @@ class HTCondorManagerTest(BaseManagerTestCase):
         assert manager.get_status(job_id) == status.QUEUED
 
     def test_per_job_max_held_count_overrides_manager_default(self):
-        job_id = self._launch(submit_params=dict(max_held_count=2))
+        job_id = self._launch(submit_params={"max_held_count": 2})
         self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=1))
         assert self.manager.get_status(job_id) == status.QUEUED
         self._push_events(job_id, self._event("JOB_HELD", HoldReasonCode=1))
         assert self.manager.get_status(job_id) == status.FAILED
 
     def test_per_job_walltime_becomes_periodic_hold(self):
-        self._launch(submit_params=dict(request_walltime="90:00"))
+        self._launch(submit_params={"request_walltime": "90:00"})
         description = self.htcondor2.SUBMISSIONS[-1]["submit_description"]
         assert "periodic_hold = (JobDurationSeconds >= 5400)" in description, description
 
