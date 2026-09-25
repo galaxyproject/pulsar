@@ -28,13 +28,15 @@ def post_file(url, path):
             response.raise_for_status()
 
 
-def post_bytes(url, name, data):
+def post_bytes(url, name, data, session=None, timeout=None):
     """POST an in-memory byte string as a multipart file upload.
 
     Companion to :func:`post_file` for callers that hold bytes rather than a
     path — e.g. streaming the growing tail of a job's stdout while it runs.
+    Pass a ``requests.Session`` to reuse connections across calls.
     """
-    with requests.post(url, files={"file": (name, data)}) as response:
+    poster = session if session is not None else requests
+    with poster.post(url, files={"file": (name, data)}, timeout=timeout) as response:
         response.raise_for_status()
 
 

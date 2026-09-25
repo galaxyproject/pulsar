@@ -217,6 +217,21 @@
 ## the output to be shown in the UI.
 #send_stdout_update: false
 
+## Live updates for all running jobs are sent by a single background thread,
+## one request at a time, and never query the batch system. Each stream sends
+## at most maximum_stream_size bytes in total, like the completion status.
+## Jobs whose Galaxy destination does not use remote transfer (no files
+## endpoint) are skipped.
+
 ## Seconds between live stdout/stderr updates when send_stdout_update is
 ## enabled. Each update posts only the bytes written since the last one.
 #stdout_update_interval: 3.0
+
+## Seconds before a live update request to Galaxy is abandoned. Failed
+## requests pause updates to that Galaxy with exponential backoff (up to 5
+## minutes), and the streams then travel with the completion status instead.
+#stdout_update_timeout: 30.0
+
+## Maximum bytes of one stream sent in a single live update request. A job
+## with more pending output catches up over consecutive requests.
+#stdout_update_chunk_size: 524288

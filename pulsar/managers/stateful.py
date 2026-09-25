@@ -4,7 +4,6 @@ import os
 import threading
 import time
 from functools import partial
-from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -16,7 +15,6 @@ from typing import (
     Tuple,
     TYPE_CHECKING,
 )
-from urllib.parse import urlencode
 
 from typing_extensions import Literal
 
@@ -29,16 +27,18 @@ except ImportError:
 
 import logging
 
-from pulsar.client.transport.requests import post_bytes
 from pulsar.client.transport.transient import is_transient_http_error
 from pulsar.client.util import filter_destination_params
 from pulsar.managers import (
     ManagerProxy,
     status,
 )
-from pulsar.managers.base.directory import (
-    TOOL_FILE_STANDARD_ERROR,
-    TOOL_FILE_STANDARD_OUTPUT,
+from pulsar.managers.live_output import (
+    DEFAULT_CHUNK_SIZE as DEFAULT_STDOUT_CHUNK_SIZE,
+    DEFAULT_INTERVAL as DEFAULT_STDOUT_INTERVAL,
+    DEFAULT_TIMEOUT as DEFAULT_STDOUT_TIMEOUT,
+    LiveOutputReporter,
+    load_state as load_live_output_state,
 )
 from pulsar.managers.util.retry import RetryActionExecutor
 from .staging import (
@@ -66,7 +66,6 @@ JOB_FILE_FINAL_STATUS = "final_status"
 JOB_FILE_POSTPROCESSED = "postprocessed"
 JOB_FILE_PREPROCESSED = "preprocessed"
 JOB_FILE_PREPROCESSING_FAILED = "preprocessing_failed"
-JOB_FILE_LIVE_OUTPUT_STATE = "live_output_state"
 JOB_METADATA_RUNNING = "running"
 
 # LOST is excluded because the monitor starts before external job IDs are
@@ -81,7 +80,6 @@ ACTIVE_STATUS_LAUNCHED = "launched"
 
 DEFAULT_MIN_POLLING_INTERVAL = 0.5
 DEFAULT_SEND_STDOUT = False
-DEFAULT_STDOUT_INTERVAL = 3.0
 
 
 class StatefulManagerProxy(ManagerProxy):
@@ -113,14 +111,22 @@ class StatefulManagerProxy(ManagerProxy):
         self.send_stdout = bool(
             manager_options.get("send_stdout_update", DEFAULT_SEND_STDOUT)
         )
-        self.stdout_update_interval = datetime.timedelta(
-            0,
-            float(
-                manager_options.get(
-                    "stdout_update_interval", DEFAULT_STDOUT_INTERVAL
-                )
-            ),
-        )
+        self._live_output: Optional[LiveOutputReporter] = None
+        if self.send_stdout:
+            self._live_output = LiveOutputReporter(
+                manager,
+                interval=float(
+                    manager_options.get("stdout_update_interval", DEFAULT_STDOUT_INTERVAL)
+                ),
+                timeout=float(
+                    manager_options.get("stdout_update_timeout", DEFAULT_STDOUT_TIMEOUT)
+                ),
+                chunk_size=int(
+                    manager_options.get("stdout_update_chunk_size", DEFAULT_STDOUT_CHUNK_SIZE)
+                ),
+                maximum_stream_size=getattr(manager, "maximum_stream_size", -1),
+                name=manager.name,
+            )
 
     def set_state_change_callback(
         self, state_change_callback: Callable[[str, str], None]
@@ -162,7 +168,7 @@ class StatefulManagerProxy(ManagerProxy):
             return False
         try:
             job_directory = self._proxied_manager.job_directory(job_id)
-            return bool(self._load_live_output_state(job_directory)["delivered"])
+            return load_live_output_state(job_directory)["delivered"]
         except Exception:
             return False
 
@@ -266,107 +272,21 @@ class StatefulManagerProxy(ManagerProxy):
     def handle_failure_before_launch(self, job_id: str) -> None:
         self.__state_change_callback(status.FAILED, job_id)
 
-    def post_remote_output(self, job_id, force_empty=False):
-        """Send the unsent tail of the tool streams to Galaxy, swallowing errors.
-
-        Used on the completion path, where a failed live update must not fail
-        the job — the streams still travel in the completion status.
-        """
+    def _watch_live_output(self, job_id: str) -> None:
+        if self._live_output is None:
+            return
         try:
-            self._post_remote_output(job_id, force_empty)
-            return True
-        except Exception as e:
-            log.error(
-                "Error sending output to Galaxy server while job is running. Error: %s", e
-            )
-            return False
+            self._live_output.watch(job_id)
+        except Exception:
+            log.exception("Failed to start live output updates for job %s", job_id)
 
-    def _post_remote_output(self, job_id, force_empty=False):
-        """Send the unsent tail of the tool streams to Galaxy's files endpoint."""
-        job_directory = self._proxied_manager.job_directory(job_id)
-        launch_config = job_directory.load_metadata("launch_config")
-        remote_staging = launch_config["remote_staging"]
-        files_endpoint = remote_staging["action_mapper"]["files_endpoint"]
-        galaxy_file_dir = (
-            Path(remote_staging["client_outputs"]["working_directory"]).parent / "outputs"
-        )
-        # The read offsets live in the job directory so they survive a Pulsar
-        # restart: an in-memory pointer would resend the whole stream from zero
-        # (duplicating output, since Galaxy appends) or be lost entirely.
-        with job_directory.lock(JOB_FILE_LIVE_OUTPUT_STATE):
-            state = self._load_live_output_state(job_directory)
-            for filename in [TOOL_FILE_STANDARD_OUTPUT, TOOL_FILE_STANDARD_ERROR]:
-                file_contents = self._prepare_file_output(job_directory, filename, state)
-                if file_contents or force_empty:
-                    self._post_file(
-                        file_contents,
-                        galaxy_file_dir / Path(filename).name,
-                        files_endpoint,
-                    )
-                    state["delivered"] = True
-            self._store_live_output_state(job_directory, state)
-
-    def _load_live_output_state(self, job_directory):
-        state = job_directory.load_metadata(JOB_FILE_LIVE_OUTPUT_STATE, None)
-        if not isinstance(state, dict):
-            state = {}
-        return {
-            TOOL_FILE_STANDARD_OUTPUT: int(state.get(TOOL_FILE_STANDARD_OUTPUT, 0)),
-            TOOL_FILE_STANDARD_ERROR: int(state.get(TOOL_FILE_STANDARD_ERROR, 0)),
-            "delivered": bool(state.get("delivered", False)),
-        }
-
-    def _store_live_output_state(self, job_directory, state):
-        job_directory.store_metadata(JOB_FILE_LIVE_OUTPUT_STATE, state)
-
-    def _prepare_file_output(self, job_directory, filename, state):
-        """Read and return the bytes appended since the last update for this job.
-
-        Returns raw bytes: a chunk boundary can fall inside a multi-byte UTF-8
-        sequence, so decoding here would raise and permanently drop that chunk.
-        Galaxy appends the upload to the file verbatim, so no decoding is needed.
-        """
-        offset = state[filename]
-        with contextlib.closing(job_directory.open_file(filename, mode="rb")) as file_output:
-            file_output.seek(offset)
-            diff = file_output.read()
-        state[filename] = offset + len(diff)
-        return diff
-
-    def _post_file(self, remote_file, path, endpoint):
-        """POST one chunk, following the files_endpoint query-param convention."""
-        separator = "&" if "?" in endpoint else "?"
-        url = "{}{}{}".format(
-            endpoint, separator, urlencode({"path": str(path), "file_type": "output"})
-        )
-        post_bytes(url, path.name, remote_file)
-        log.debug("Posted live output update to %s", path)
-
-    def stdout_update(self, job_id):
-        def do_stdout_update():
-            interval = self.stdout_update_interval.total_seconds()
-            while self._proxied_manager.get_status(job_id) == status.RUNNING:
-                time.sleep(interval)
-                try:
-                    self._post_remote_output(job_id)
-                except Exception as e:
-                    if is_transient_http_error(e):
-                        log.warning(
-                            "Transient error doing stdout update for job id: %s, "
-                            "will retry. Error: %s",
-                            job_id,
-                            e,
-                        )
-                    else:
-                        log.error(
-                            "Permanent error doing stdout update for job id: %s, "
-                            "abandoning live updates. Error: %s",
-                            job_id,
-                            e,
-                        )
-                        break
-        if self.send_stdout:
-            new_thread_for_job(self, "stdout_update", job_id, do_stdout_update, daemon=False)
+    def _finish_live_output(self, job_id: str) -> None:
+        if self._live_output is None:
+            return
+        try:
+            self._live_output.finish(job_id)
+        except Exception:
+            log.exception("Failed to finish live output updates for job %s", job_id)
 
     def get_status(self, job_id: str) -> "StateLiteral":
         """Compute status used proxied manager and handle state transitions
@@ -378,6 +298,10 @@ class StatefulManagerProxy(ManagerProxy):
 
         with job_directory.lock("status"):
             proxy_status, state_change = self.__proxy_status(job_directory, job_id)
+            if state_change == "to_running":
+                # Under the status lock, so no other get_status call can see
+                # the job complete (and finish its live output) before this.
+                self._watch_live_output(job_id)
 
         if state_change == "to_complete":
             self.__handle_terminal_status(job_id, proxy_status)
@@ -386,7 +310,6 @@ class StatefulManagerProxy(ManagerProxy):
             self.__deactivate(job_id)
         elif state_change == "to_running":
             self.__state_change_callback(status.RUNNING, job_id)
-            self.stdout_update(job_id)
         return self.__status(job_directory, proxy_status)
 
     def __proxy_status(
@@ -445,6 +368,8 @@ class StatefulManagerProxy(ManagerProxy):
         if proxy_status in POSTPROCESSED_STATUSES:
             # Postprocessing stages outputs before sending the terminal callback.
             self.__handle_postprocessing(job_id, proxy_status)
+        elif self._live_output is not None:
+            self._live_output.forget(job_id)
 
     def __deactivate(self, job_id: str) -> None:
         self.active_jobs.deactivate_job(job_id)
@@ -465,7 +390,7 @@ class StatefulManagerProxy(ManagerProxy):
             job_directory = self._proxied_manager.job_directory(job_id)
             was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
             try:
-                self.post_remote_output(job_id, True)
+                self._finish_live_output(job_id)
                 postprocess_success = postprocess(
                     job_directory, self.__postprocess_action_executor, was_cancelled
                 )
@@ -486,6 +411,8 @@ class StatefulManagerProxy(ManagerProxy):
                 log.exception(
                     "Failed to shutdown job monitor for manager %s" % self.name
                 )
+        if self._live_output is not None:
+            self._live_output.shutdown(timeout)
         super().shutdown(timeout)
 
     def recover_active_jobs(self) -> None:
@@ -522,17 +449,34 @@ class StatefulManagerProxy(ManagerProxy):
             )
 
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
-        if recover_method is None:
-            return
+        if recover_method is not None:
+            for job_id in self.active_jobs.active_job_ids(
+                active_status=ACTIVE_STATUS_LAUNCHED
+            ):
+                try:
+                    recover_method(job_id)
+                except Exception:
+                    log.exception("Failed to recover active job %s" % job_id)
+                    self.__handle_recovery_problem(job_id)
 
+        self.__recover_live_output()
+
+    def __recover_live_output(self) -> None:
+        """Resume live output for jobs that were running before a restart.
+
+        The ``to_running`` transition only fires once per job, so without this
+        jobs already running when Pulsar restarts would get no more updates.
+        """
+        if self._live_output is None:
+            return
         for job_id in self.active_jobs.active_job_ids(
             active_status=ACTIVE_STATUS_LAUNCHED
         ):
-            try:
-                recover_method(job_id)
-            except Exception:
-                log.exception("Failed to recover active job %s" % job_id)
-                self.__handle_recovery_problem(job_id)
+            job_directory = self._proxied_manager.job_directory(job_id)
+            if job_directory.has_metadata(JOB_METADATA_RUNNING) and not job_directory.has_metadata(
+                JOB_FILE_FINAL_STATUS
+            ):
+                self._watch_live_output(job_id)
 
     def __handle_recovery_problem(self, job_id: str) -> None:
         # Make sure we tell the client we have lost this job.
