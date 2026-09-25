@@ -19,7 +19,7 @@ def test_environment_variables_config():
     environ['PULSAR_CACHE_TRANSFERS'] = '1'
     environ['PULSAR_CACHE_THREADS'] = '4'
     client_manager = ClientManager()
-    client_manager.client_cacher.num_transfer_threads == 4
+    assert client_manager.client_cacher.num_transfer_threads == 4
 
 
 def test_kwds_config():

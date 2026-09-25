@@ -211,7 +211,7 @@ class PathHelper:
 class TransferEventManager:
 
     def __init__(self):
-        self.events = WeakValueDictionary(dict())
+        self.events = WeakValueDictionary({})
         self.events_lock = Lock()
 
     def acquire_event(self, path, force_clear=False):

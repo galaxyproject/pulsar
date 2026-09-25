@@ -373,7 +373,7 @@ def container_command_to_gcp_runnable(name: str, container: CoexecutionContainer
     runnable = batch_v1.Runnable()
     runnable.container = batch_v1.Runnable.Container()
     runnable.container.image_uri = container.image
-    runnable.container.commands = [container.command] + container.args
+    runnable.container.commands = [container.command, *container.args]
     # ports not supported currently
     return runnable
 
@@ -389,7 +389,8 @@ class BasicAuth(BaseModel):
 
 class TesJobParams(TesResources):
     tes_url: str = Field(..., description="URL of the TES service.")
-    authorization: Literal["none", "basic"] = Field(
+    # Literal comes from typing_extensions, which backports it to 3.7.
+    authorization: Literal["none", "basic"] = Field(  # novermin
         "none", description="Authorization type for TES service."
     )
     basic_auth: Optional[BasicAuth] = Field(None, description="Authorization for TES service.")

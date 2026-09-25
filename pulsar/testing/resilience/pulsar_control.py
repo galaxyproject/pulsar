@@ -142,7 +142,8 @@ class PulsarControl:
         _docker_compose("kill", "-s", signal, self.service, project_dir=self.project_dir)
         if self.mode in ("amqp", "amqp_ack"):
             # RabbitMQ doesn't notice the TCP drop until the AMQP heartbeat
-            # times out (default 580s) so the queue's `consumers` count
+            # times out (two missed intervals; the negotiated interval is the
+            # broker's 60s here) so the queue's `consumers` count
             # stays at 1 long after the container is dead. The next
             # ``start.wait_until_consuming`` would then see the stale count
             # and return before the new pulsar has actually attached. Force
@@ -164,6 +165,32 @@ class PulsarControl:
     def restart(self, wait_ready=True):
         self.stop()
         self.start(wait_ready=wait_ready)
+
+    def _logs_since_window(self, start_ts):
+        """Logs within a wall-clock window back to ``start_ts``.
+
+        Used only where the marker is written at container start, so the
+        window is never wide enough for a previous container's copy.
+        """
+        res = _docker_compose(
+            "logs", "--since", f"{int(time.time() - start_ts) + 2}s",
+            self.service, project_dir=self.project_dir,
+        )
+        return res.stdout or ""
+
+    def logs(self):
+        """Everything this compose service has logged, oldest first."""
+        res = _docker_compose("logs", self.service, project_dir=self.project_dir)
+        return res.stdout or ""
+
+    def watch_logs(self):
+        """Open a :class:`LogWatch` on this service's log, from right now.
+
+        Open the watch *before* the action that produces the marker - the
+        submitting call can still be in flight once the job it published has
+        run.
+        """
+        return LogWatch(self)
 
     def wait_until_consuming(self, timeout=60.0, poll_interval=0.1):
         """Block until Pulsar has bound consumers for the control queues.
@@ -189,6 +216,10 @@ class PulsarControl:
         ``wait_until_consuming`` returns is guaranteed to land on a live
         waiter rather than vanish into a topic with no subscribers.
 
+        That waiter registry is per uvicorn worker, which is why
+        docker-compose pins the relay to one — see
+        ``config/relay-single-worker.conf``.
+
         ``poll_interval`` defaults to 0.1 s — the docker-compose-logs +
         mgmt-API combo takes ~30 ms each, so a tight poll cadence shaves
         the dead-poll overhead off the suite without saturating either
@@ -201,11 +232,7 @@ class PulsarControl:
         samples = 0
         last_stats = None
         while time.time() < deadline:
-            res = _docker_compose(
-                "logs", "--since", f"{int(time.time() - start_ts) + 2}s",
-                self.service, project_dir=self.project_dir,
-            )
-            if bind_marker in (res.stdout or ""):
+            if bind_marker in self._logs_since_window(start_ts):
                 bind_seen = True
                 samples += 1
                 if self.mode == "relay":
@@ -226,6 +253,31 @@ class PulsarControl:
         raise TimeoutError(
             f"Pulsar did not bind {self.mode} consumers within {timeout}s ({details})"
         )
+
+
+class LogWatch:
+    """Waits for markers logged after the watch was opened.
+
+    Diffing against the log as it stood when the watch opened, not ``--since``:
+    compose only sees a line once the stream is flushed, so a wall-clock window
+    can miss a line written inside it. A shrunken log means the container was
+    recreated, and resets the baseline.
+    """
+
+    def __init__(self, control: PulsarControl):
+        self._control = control
+        self._baseline = len(control.logs())
+
+    def wait_for(self, marker, timeout=60.0, poll_interval=0.25):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            text = self._control.logs()
+            if len(text) < self._baseline:
+                self._baseline = 0
+            if marker in text[self._baseline:]:
+                return
+            time.sleep(poll_interval)
+        raise TimeoutError(f"Pulsar did not log {marker!r} within {timeout}s")
 
 
 def _amqp_setup_has_consumer():
@@ -322,7 +374,7 @@ def _force_drop_setup_consumer_connections():
     """Close every connection currently consuming from pulsar control queues.
 
     pulsar.kill leaves AMQP heartbeats unacknowledged but the broker won't
-    drop the dead consumer until heartbeat timeout (~580s by default). Use
+    drop the dead consumer until heartbeat timeout (two missed intervals). Use
     the RabbitMQ management API to look up consumers on the pulsar control
     queues and explicitly close their connections. Idempotent and safe to
     call when no consumers are present.

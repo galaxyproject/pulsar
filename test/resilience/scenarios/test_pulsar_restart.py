@@ -3,21 +3,24 @@
 Each scenario submits a job, kills Pulsar at a different lifecycle phase,
 restarts it, and asserts the terminal status is delivered exactly once.
 
-A3 specifically targets the loss point that motivated the persistent
-status-update outbox (LP1 in the design plan): the window between the
-on-disk ``final_status`` write and the synchronous publish.
+A3 specifically targets the persistent status-update outbox: a restart
+must not republish a terminal status that was already delivered.
+
+The window between the on-disk ``final_status`` write and the terminal
+publish is output staging, which is not covered here - see
+``test_postprocess_restart.py``.
 """
 import time
 
 import pytest
 import requests
 
-from harness.assertions import (
+from pulsar.testing.resilience.assertions import (
     assert_exactly_once_terminal,
     await_any_terminal,
     await_terminal,
 )
-from harness.job_factory import make_setup_message
+from pulsar.testing.resilience.job_factory import make_setup_message
 
 GALAXY_BASE = "http://localhost:8088"
 
@@ -55,8 +58,8 @@ def test_a2_sigkill_during_execution(pulsar):
 
 
 @pytest.mark.resilience
-def test_a3_sigkill_after_final_status_before_publish(pulsar, rabbitmq_proxy, relay_proxy):
-    """The LP1 window: final_status is on disk but the publish hasn't gone out.
+def test_a3_no_republish_after_kill_with_broker_severed(pulsar, rabbitmq_proxy, relay_proxy):
+    """A delivered terminal status is not sent a second time after a restart.
 
     Sequence: submit a fast job and let it complete. After the job's terminal
     status has reached the recorder (publish happened), kill pulsar, briefly

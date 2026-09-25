@@ -1,0 +1,90 @@
+# Ruff replaces flake8 (lint) and isort (import order). Settings below are carried
+# over from setup.cfg's [flake8] section and .isort.cfg so this is a tool swap, not
+# a restyle.
+line-length = 150
+target-version = "py37"
+extend-exclude = [
+    "database",
+    "docs",
+    "scripts",
+    "wsgi_path.egg-info",
+    # Fixture payloads, not Pulsar source; some are deliberately malformed.
+    "test_data",
+    # Unreferenced Python 2 leftover, vendored from OpenStack Horizon.
+    "tools/install_venv.py",
+]
+
+[lint]
+select = [
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "C90",  # mccabe complexity (carried over from setup.cfg)
+    "E",    # pycodestyle errors
+    "EXE",  # flake8-executable
+    "F",    # pyflakes
+    "FLY",  # flynt
+    "ICN",  # flake8-import-conventions
+    "INT",  # flake8-gettext
+    "ISC",  # flake8-implicit-str-concat
+    "LOG",  # flake8-logging
+    "PGH",  # pygrep-hooks
+    "PIE",  # flake8-pie
+    "PLE",  # pylint errors
+    "RUF",  # ruff-specific
+    "SIM",  # flake8-simplify
+    "UP",   # pyupgrade
+    "W",    # pycodestyle warnings
+    "YTT",  # flake8-2020
+]
+ignore = [
+    # Carried over from setup.cfg; black-compatible slicing.
+    "E203",
+    # The rules below are real but each is a sizeable, judgement-heavy change that
+    # would swamp the tool swap. Left as follow-ups rather than silently dropped.
+    "B006",    # mutable argument defaults - fixing changes call semantics
+    "B904",    # raise ... from err inside except
+    "PGH003",  # blanket type: ignore - needs a specific code per site
+    "SIM105",  # contextlib.suppress over try/except/pass
+    "SIM108",  # ternary over if/else - often less readable here
+    "SIM115",  # open() outside a context manager - many handles are deliberately long-lived
+    "UP031",   # printf-style formatting - 200+ sites, mechanical but noisy
+    # Both sites nest `with` under Python 3.7, which has no parenthesized context
+    # managers - collapsing them means one very long line.
+    "SIM117",
+    # Tightening these abstract base classes changes their contract for subclasses
+    # outside this repo. Worth doing deliberately, not as part of a lint rollout.
+    "B024",
+    "B027",
+]
+
+[lint.pyupgrade]
+# Preserve types even in the modules that use `from __future__ import annotations`;
+# the PEP 585/604 spellings ruff would otherwise suggest are 3.10+ syntax. Matches
+# galaxyproject/galaxy's pyproject.toml.
+keep-runtime-typing = true
+
+[lint.mccabe]
+# setup.cfg set this to 14 for flake8, but ruff's mccabe is not on the same scale -
+# it scores `pulsar/client/test/check.py:run` at 17 where flake8 passed it at 14.
+# 17 is the tightest value the tree passes at today: `run` is the outlier and the
+# next-highest function scores 13, so everything else keeps four points of slack.
+max-complexity = 17
+
+[lint.per-file-ignores]
+# Tests assert on exception types and use throwaway unpacking freely.
+"test/**" = ["B017", "RUF059"]
+
+[lint.isort]
+# Not selecting "I" yet: ruff's isort has no force_grid_wrap, which .isort.cfg sets
+# to 2, so isort keeps ownership of import order for now. Same call, and the same
+# reason, as galaxyproject/galaxy's pyproject.toml.
+# https://github.com/astral-sh/ruff/issues/2601
+# Settings below mirror .isort.cfg so switching over is a one-line change when that
+# lands. order-by-type/case-sensitive reproduce isort's
+# force_alphabetical_sort_within_sections; without them ruff reorders ~80 import
+# blocks to sort classes before functions.
+combine-as-imports = true
+order-by-type = false
+case-sensitive = false
+relative-imports-order = "closest-to-furthest"
+no-lines-before = ["local-folder"]

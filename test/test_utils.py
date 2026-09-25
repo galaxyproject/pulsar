@@ -309,9 +309,8 @@ def server_for_test_app(test_app, host=None, port=None):
 
 @contextmanager
 def test_pulsar_server(global_conf={}, app_conf={}, test_conf={}):
-    with test_pulsar_app(global_conf, app_conf, test_conf) as app:
-        with server_for_test_app(app) as test_pulsar_server:
-            yield test_pulsar_server
+    with test_pulsar_app(global_conf, app_conf, test_conf) as app, server_for_test_app(app) as test_pulsar_server:
+        yield test_pulsar_server
 
 
 test_pulsar_server.__test__ = False  # type: ignore[attr-defined]
@@ -385,7 +384,6 @@ def test_pulsar_app(
         for directory in to_clean:
             try:
                 rmtree(directory)
-                pass
             except Exception:
                 pass
 
@@ -584,7 +582,7 @@ class EnvironmentVarGuard:
                     del self._environ[k]
             else:
                 self._environ[k] = v
-        os.environ = self._environ
+        os.environ = self._environ  # noqa: B003 - deliberately swapping the mapping, not updating it
 
 
 class IntegrationTestConfiguration:

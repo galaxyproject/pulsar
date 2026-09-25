@@ -14,11 +14,11 @@ from ..messaging import (
 log = logging.getLogger(__name__)
 
 
-def bind_app(app, queue_id, conf=None):
+def bind_app(app, queue_id, conf=None, start_monitor=True):
     connection_string = __id_to_connection_string(app, queue_id)
 
     # Check if this is a relay connection
-    if connection_string and connection_string.startswith('http://') or connection_string.startswith('https://'):
+    if (connection_string and connection_string.startswith('http://')) or connection_string.startswith('https://'):
         relay_url = connection_string
         log.info("Detected relay connection string, binding to pulsar-relay at %s", relay_url)
 
@@ -32,6 +32,7 @@ def bind_app(app, queue_id, conf=None):
             bind_relay.bind_manager_to_relay(
                 manager, relay_state, relay_url, merged_conf,
                 relay_transport=relay_transport,
+                start_monitor=start_monitor,
             )
             bind_relay.publish_manager_capabilities_to_relay(
                 app, manager, relay_transport, merged_conf,
@@ -41,7 +42,13 @@ def bind_app(app, queue_id, conf=None):
         # Use AMQP binding
         queue_state = QueueState()
         for manager in app.managers.values():
-            bind_amqp.bind_manager_to_queue(manager, queue_state, connection_string, conf)
+            bind_amqp.bind_manager_to_queue(
+                manager,
+                queue_state,
+                connection_string,
+                conf,
+                start_monitor=start_monitor,
+            )
         return queue_state
 
 

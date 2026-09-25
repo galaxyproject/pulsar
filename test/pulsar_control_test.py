@@ -1,6 +1,6 @@
 import pytest
 
-from harness import pulsar_control
+from pulsar.testing.resilience import pulsar_control
 
 
 @pytest.mark.parametrize(

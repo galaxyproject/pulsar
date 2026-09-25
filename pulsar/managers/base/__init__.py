@@ -89,13 +89,13 @@ class BaseManager(ManagerInterface, ABC):
         self.name = name
         self.persistence_directory = getattr(app, "persistence_directory", None)
         self.lock_manager = locks.LockManager()
-        self._directory_maker = DirectoryMaker(kwds.get("job_directory_mode", None))
+        self._directory_maker = DirectoryMaker(kwds.get("job_directory_mode"))
         staging_directory = kwds.get("staging_directory", app.staging_directory)
         self._setup_staging_directory(staging_directory)
-        self.id_assigner = get_id_assigner(kwds.get("assign_ids", None))
+        self.id_assigner = get_id_assigner(kwds.get("assign_ids"))
         self.maximum_stream_size = kwds.get("maximum_stream_size", -1)
         self.__init_galaxy_system_properties(kwds)
-        self.tmp_dir: Optional[str] = kwds.get("tmp_dir", None)
+        self.tmp_dir: Optional[str] = kwds.get("tmp_dir")
         # Default cvmfsexec configuration for this manager (app.yml). May be
         # overridden per job by a ``cvmfsexec`` entry in setup_params.
         self.cvmfsexec_config = parse_cvmfsexec_config(kwds.get("cvmfsexec"))
@@ -163,7 +163,7 @@ class BaseManager(ManagerInterface, ABC):
         for key, value in kwds.items():
             if key.lower().startswith("env_"):
                 name = key[len("env_") :]
-                env_vars.append(dict(name=name, value=value, raw=False))
+                env_vars.append({"name": name, "value": value, "raw": False})
         self.env_vars: List[Dict[str, str]] = env_vars
 
     def _galaxy_home(self) -> Optional[str]:
@@ -219,9 +219,7 @@ class BaseManager(ManagerInterface, ABC):
         self, job_id: str, tool_id: Optional[str], command_line: str
     ) -> None:
         log.debug(
-            "job_id: {} - Checking authorization of command_line [{}]".format(
-                job_id, command_line
-            )
+            f"job_id: {job_id} - Checking authorization of command_line [{command_line}]"
         )
         authorization = self._get_authorization(job_id, tool_id)
         job_directory = self._job_directory(job_id)
@@ -233,7 +231,7 @@ class BaseManager(ManagerInterface, ABC):
                 continue
             with open(join(tool_files_dir, file), "rb") as fh:
                 contents = fh.read()
-            log.debug("job_id: {} - checking tool file {}".format(job_id, file))
+            log.debug(f"job_id: {job_id} - checking tool file {file}")
             authorization.authorize_tool_file(basename(file), contents)
         config_files_dir = job_directory.configs_directory()
         for file in self._list_dir(config_files_dir):
@@ -286,7 +284,7 @@ class BaseManager(ManagerInterface, ABC):
         return str(self.id_assigner(input_job_id))
 
     def __str__(self) -> str:
-        return "{}[name={}]".format(type(self).__name__, self.name)
+        return f"{type(self).__name__}[name={self.name}]"
 
     # TODO is this correct? BaseDrmaaManager.shutdown() calls super().shutdown() but no parent class defined shutdown
     def shutdown(self, timeout: Optional[float] = None) -> None:

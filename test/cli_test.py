@@ -5,10 +5,10 @@ from pulsar.managers.util.cli.job import job_states
 
 
 def test_torque_cli():
-    job_params = dict(
-        plugin="Torque",
-        Priority="4",
-    )
+    job_params = {
+        "plugin": "Torque",
+        "Priority": "4",
+    }
     job = __build_job_interface(job_params)
 
     command = job.submit("/tmp/path/test.sh")
@@ -38,10 +38,10 @@ def test_torque_cli():
 
 
 def test_slurm_cli():
-    job_params = dict(
-        plugin="Slurm",
-        ncpus=5
-    )
+    job_params = {
+        "plugin": "Slurm",
+        "ncpus": 5
+    }
     job = __build_job_interface(job_params)
 
     command = job.submit("/tmp/path/test.sh")
@@ -75,9 +75,9 @@ def test_slurm_cli():
 
 
 def test_slurm_torque():
-    job_params = dict(
-        plugin="SlurmTorque",
-    )
+    job_params = {
+        "plugin": "SlurmTorque",
+    }
     job = __build_job_interface(job_params)
 
     command = job.submit("/tmp/path/test.sh")

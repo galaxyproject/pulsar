@@ -64,7 +64,7 @@ def test_pulsar_manager_config_builder_defaults():
     with temp_directory() as mock_root:
         __write_mock_ini(join(mock_root, "server.ini"))
         config = main.PulsarManagerConfigBuilder(config_dir=mock_root)
-        config.load()["foo"] == "bar1"
+        assert config.load()["foo"] == "bar1"
         as_dict = config.to_dict()
         assert as_dict["manager"] == "_default_"
         assert as_dict["ini_path"] == join(mock_root, "server.ini")
@@ -75,7 +75,7 @@ def test_pulsar_manager_config_builder_overrides():
     with temp_directory() as mock_root:
         __write_mock_ini(join(mock_root, "pulsar5.ini"), app="cool1")
         config = main.PulsarManagerConfigBuilder(config_dir=mock_root, app="cool1", ini_path="pulsar5.ini", manager="manager3")
-        config.load()["foo"] == "bar1"
+        assert config.load()["foo"] == "bar1"
         as_dict = config.to_dict()
         assert as_dict["manager"] == "manager3"
         assert as_dict["ini_path"] == join(mock_root, "pulsar5.ini")
@@ -185,8 +185,8 @@ def __write_mock_ini(path, **kwds):
 
 
 def __mock_ini_contents(app="main", extra=""):
-    return """
-[app:{}]
+    return f"""
+[app:{app}]
 foo=bar1
-{}
-""".format(app, extra)
+{extra}
+"""

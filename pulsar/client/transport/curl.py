@@ -54,13 +54,7 @@ class PycurlTransport:
                     c.setopt(c.POSTFIELDS, data)
                 if self.timeout:
                     c.setopt(c.TIMEOUT, self.timeout)
-                try:
-                    c.perform()
-                except error as exc:
-                    raise PulsarClientTransportError(
-                        _error_curl_to_pulsar(exc.args[0]),
-                        transport_code=exc.args[0],
-                        transport_message=exc.args[1])
+                _perform(c)
                 if not output_path:
                     return buf.getvalue()
         finally:
@@ -74,13 +68,14 @@ def post_file(url, path):
         # pycurl doesn't always produce a great exception for this,
         # wrap it in a better one.
         message = NO_SUCH_FILE_MESSAGE % (path, url)
-        raise Exception(message)
+        raise FileNotFoundError(message)
     with _curl_object_for_url(url) as c:
         c.setopt(c.HTTPPOST, [("file", (c.FORM_FILE, path.encode('ascii')))])
-        c.perform()
+        _perform(c)
         status_code = int(c.getinfo(HTTP_CODE))
         if status_code != 200:
             raise PulsarClientTransportError(
+                code=PulsarClientTransportError.NOT_200,
                 transport_code=status_code,
                 transport_message=POST_FAILED_MESSAGE % (url, status_code),
             )
@@ -124,10 +119,11 @@ def get_file(url, path: str):
             if size > 0:
                 log.info('transfer of %s will resume at %s bytes', url, size)
                 c.setopt(c.RESUME_FROM, size)
-            c.perform()
+            _perform(c)
             status_code = int(c.getinfo(HTTP_CODE))
             if status_code not in success_codes:
                 raise PulsarClientTransportError(
+                    code=PulsarClientTransportError.NOT_200,
                     transport_code=status_code,
                     transport_message=GET_FAILED_MESSAGE % (url, status_code),
                 )
@@ -156,6 +152,22 @@ def _new_curl_object():
         raise ImportError(PYCURL_UNAVAILABLE_MESSAGE)
 
 
+def _perform(c):
+    """Run a prepared transfer, converting pycurl's error into a structured one.
+
+    Transport failures have to reach callers as PulsarClientTransportError —
+    that is the type staging policy and retry classification key on, and a bare
+    pycurl.error is invisible to both.
+    """
+    try:
+        c.perform()
+    except error as exc:
+        raise PulsarClientTransportError(
+            _error_curl_to_pulsar(exc.args[0]),
+            transport_code=exc.args[0],
+            transport_message=exc.args[1])
+
+
 def _error_curl_to_pulsar(code):
     if code == pycurl.E_OPERATION_TIMEDOUT:
         return PulsarClientTransportError.TIMEOUT
@@ -166,6 +178,6 @@ def _error_curl_to_pulsar(code):
 
 __all__ = [
     'PycurlTransport',
-    'post_file',
-    'get_file'
+    'get_file',
+    'post_file'
 ]

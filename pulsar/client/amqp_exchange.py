@@ -76,6 +76,7 @@ class PulsarExchange:
         consume_uuid_store=None,
         republish_time=DEFAULT_REPUBLISH_TIME,
         durable=True,
+        heartbeat=DEFAULT_HEARTBEAT,
     ):
         """
         """
@@ -107,10 +108,13 @@ class PulsarExchange:
         )
         self.__timeout = timeout
         self.__republish_time = republish_time
+        # 0 disables heartbeats; py-amqp raises TypeError on a non-numeric value
+        # and that is not a recoverable exception, so normalize here as well as
+        # in the factory to protect direct construction.
+        self.__heartbeat = int(heartbeat or 0)
         # Be sure to log message publishing failures.
-        if publish_kwds.get("retry", False):
-            if "retry_policy" not in publish_kwds:
-                publish_kwds["retry_policy"] = {}
+        if publish_kwds.get("retry", False) and "retry_policy" not in publish_kwds:
+            publish_kwds["retry_policy"] = {}
         self.__publish_kwds = publish_kwds
         self.publish_uuid_store = publish_uuid_store
         self.consume_uuid_store = consume_uuid_store
@@ -123,7 +127,7 @@ class PulsarExchange:
 
     @staticmethod
     def __publish_errback(exc, interval, publish_log_prefix=""):
-        log.error("%sConnection error while publishing: %r", publish_log_prefix, exc, exc_info=1)
+        log.error("%sConnection error while publishing: %r", publish_log_prefix, exc, exc_info=exc)
         log.info("%sRetrying in %s seconds", publish_log_prefix, interval)
 
     @property
@@ -134,7 +138,11 @@ class PulsarExchange:
     def acks_enabled(self):
         return self.publish_uuid_store is not None
 
-    def consume(self, queue_name, callback, check=True, connection_kwargs={}):
+    def consume(self, queue_name, callback, check=True, connection_kwargs=None):
+        # Copy rather than mutate: a shared default dict here would apply one
+        # exchange's heartbeat to every later consumer in the process.
+        connection_kwargs = dict(connection_kwargs or {})
+        connection_kwargs.setdefault("heartbeat", self.__heartbeat)
         queue = self.__queue(queue_name)
         log.debug("Consuming queue '%s'", queue)
         callbacks = [self.__ack_callback]
@@ -143,9 +151,10 @@ class PulsarExchange:
         while check:
             heartbeat_thread = None
             try:
-                with self.connection(self.__url, heartbeat=DEFAULT_HEARTBEAT, **connection_kwargs) as connection:
+                with self.connection(self.__url, **connection_kwargs) as connection:
                     with kombu.Consumer(connection, queues=[queue], callbacks=callbacks, accept=['json']):
-                        heartbeat_thread = self.__start_heartbeat(queue_name, connection)
+                        if self.__heartbeat:
+                            heartbeat_thread = self.__start_heartbeat(queue_name, connection)
                         while check and connection.connected:
                             try:
                                 connection.drain_events(timeout=self.__timeout)
@@ -234,19 +243,18 @@ class PulsarExchange:
             payload[ACK_SUBMIT_QUEUE_KEY] = name
             self.publish_uuid_store[ack_uuid] = payload
             log.debug('Requesting acknowledgement of UUID %s on queue %s', ack_uuid, ack_queue)
-        with self.connection(self.__url) as connection:
-            with pools.producers[connection].acquire(block=True) as producer:
-                log.debug("%sHave producer for publishing to key %s", publish_log_prefix, key)
-                publish_kwds = self.__prepare_publish_kwds(publish_log_prefix)
-                producer.publish(
-                    payload,
-                    serializer='json',
-                    exchange=self.__exchange,
-                    declare=[self.__exchange],
-                    routing_key=key,
-                    **publish_kwds
-                )
-                log.debug("%sPublished to key %s", publish_log_prefix, key)
+        with self.connection(self.__url) as connection, pools.producers[connection].acquire(block=True) as producer:
+            log.debug("%sHave producer for publishing to key %s", publish_log_prefix, key)
+            publish_kwds = self.__prepare_publish_kwds(publish_log_prefix)
+            producer.publish(
+                payload,
+                serializer='json',
+                exchange=self.__exchange,
+                declare=[self.__exchange],
+                routing_key=key,
+                **publish_kwds
+            )
+            log.debug("%sPublished to key %s", publish_log_prefix, key)
 
     def ack_manager(self):
         log.debug('Acknowledgement manager thread alive')
@@ -255,7 +263,7 @@ class PulsarExchange:
             while True:
                 sleep(DEFAULT_ACK_MANAGER_SLEEP)
                 with self.publish_ack_lock:
-                    for unack_uuid in self.publish_uuid_store.keys():
+                    for unack_uuid in self.publish_uuid_store:
                         if self.publish_uuid_store.get_time(unack_uuid) < time() - self.__republish_time:
                             payload = self.__get_payload(unack_uuid, failed)
                             if payload is None:
@@ -337,7 +345,7 @@ class PulsarExchange:
 
     def __queue_name(self, name):
         key_prefix = self.__key_prefix()
-        queue_name = '{}_{}'.format(key_prefix, name)
+        queue_name = f'{key_prefix}_{name}'
         return queue_name
 
     def __key_prefix(self):

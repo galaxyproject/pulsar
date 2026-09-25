@@ -5,7 +5,10 @@ import time
 
 import pytest
 
-from pulsar.client import amqp_exchange
+from pulsar.client import (
+    amqp_exchange,
+    amqp_exchange_factory,
+)
 from .test_utils import (
     skip_unless_module,
 )
@@ -66,7 +69,7 @@ class TestThread(threading.Thread):
         while self:
             time.sleep(0.05)
         if self.message != expected_message:
-            msg = "Expected [{}], got [{}].".format(expected_message, self.message)
+            msg = f"Expected [{expected_message}], got [{self.message}]."
             raise AssertionError(msg)
 
         self.join(2)
@@ -113,7 +116,6 @@ def test_non_durable_publishes_do_not_force_persistent_mode():
 
 @skip_unless_module("kombu")
 def test_factory_defaults_durable_true():
-    from pulsar.client import amqp_exchange_factory
     exchange = amqp_exchange_factory.get_exchange(TEST_CONNECTION, "factory_durable_default", {})
     queue = exchange._PulsarExchange__queue("status_update")
     assert queue.durable is True
@@ -121,7 +123,6 @@ def test_factory_defaults_durable_true():
 
 @skip_unless_module("kombu")
 def test_factory_respects_amqp_durable_false():
-    from pulsar.client import amqp_exchange_factory
     exchange = amqp_exchange_factory.get_exchange(
         TEST_CONNECTION, "factory_durable_off", {"amqp_durable": False},
     )
@@ -131,7 +132,6 @@ def test_factory_respects_amqp_durable_false():
 
 @skip_unless_module("kombu")
 def test_factory_respects_amqp_durable_true():
-    from pulsar.client import amqp_exchange_factory
     exchange = amqp_exchange_factory.get_exchange(
         TEST_CONNECTION, "factory_durable_on", {"amqp_durable": True},
     )
@@ -141,7 +141,6 @@ def test_factory_respects_amqp_durable_true():
 
 @skip_unless_module("kombu")
 def test_factory_respects_amqp_durable_string_true():
-    from pulsar.client import amqp_exchange_factory
     exchange = amqp_exchange_factory.get_exchange(
         TEST_CONNECTION, "factory_durable_on_str", {"amqp_durable": "true"},
     )
@@ -149,12 +148,118 @@ def test_factory_respects_amqp_durable_string_true():
     assert queue.durable is True
 
 
+class ConsumeOnce:
+    """``check`` object letting ``consume()`` run exactly one iteration."""
+
+    def __init__(self):
+        self.checks = 0
+
+    def __bool__(self):
+        self.checks += 1
+        return self.checks <= 1
+
+
+def spy_on_consume(monkeypatch):
+    """Record connection kwargs and heartbeat-thread starts across consume()."""
+    connection_kwargs = []
+    heartbeat_queues = []
+    original_connection = amqp_exchange.PulsarExchange.connection
+
+    def connection(self, connection_string, **kwargs):
+        connection_kwargs.append(kwargs)
+        return original_connection(self, connection_string, **kwargs)
+
+    def start_heartbeat(self, queue_name, connection):
+        heartbeat_queues.append(queue_name)
+        return None
+
+    monkeypatch.setattr(amqp_exchange.PulsarExchange, "connection", connection)
+    monkeypatch.setattr(
+        amqp_exchange.PulsarExchange, "_PulsarExchange__start_heartbeat", start_heartbeat
+    )
+    return connection_kwargs, heartbeat_queues
+
+
+@skip_unless_module("kombu")
+def test_factory_defaults_heartbeat():
+    exchange = amqp_exchange_factory.get_exchange(TEST_CONNECTION, "factory_hb_default", {})
+    assert exchange._PulsarExchange__heartbeat == amqp_exchange.DEFAULT_HEARTBEAT
+
+
+@skip_unless_module("kombu")
+@pytest.mark.parametrize("value", [False, 0, "false", "0", "off", ""])
+def test_factory_disables_heartbeat(value):
+    """``false`` and ``0`` are the documented opt-outs; py-amqp treats a falsy
+    client heartbeat as a hard disable and ignores the broker's proposal."""
+    exchange = amqp_exchange_factory.get_exchange(
+        TEST_CONNECTION, "factory_hb_off", {"amqp_heartbeat": value},
+    )
+    assert exchange._PulsarExchange__heartbeat == 0
+
+
+@skip_unless_module("kombu")
+@pytest.mark.parametrize("value,expected", [
+    (60, 60),
+    ("580", 580),
+    (" 60 ", 60),
+    (True, amqp_exchange.DEFAULT_HEARTBEAT),
+])
+def test_factory_coerces_heartbeat(value, expected):
+    """Galaxy destination params and Pulsar's ini config hand over strings. A
+    non-numeric heartbeat raises TypeError inside py-amqp's tune handshake, and
+    TypeError is not in recoverable_exceptions - it kills the consumer thread.
+    """
+    exchange = amqp_exchange_factory.get_exchange(
+        TEST_CONNECTION, "factory_hb_coerce", {"amqp_heartbeat": value},
+    )
+    heartbeat = exchange._PulsarExchange__heartbeat
+    assert heartbeat == expected
+    assert isinstance(heartbeat, int)
+
+
+@skip_unless_module("kombu")
+@pytest.mark.timeout(15)
+def test_consume_passes_configured_heartbeat(monkeypatch):
+    connection_kwargs, heartbeat_queues = spy_on_consume(monkeypatch)
+    exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "hb_consume", heartbeat=42)
+    exchange.consume("setup", callback=None, check=ConsumeOnce())
+    assert [kwargs["heartbeat"] for kwargs in connection_kwargs] == [42]
+    assert heartbeat_queues == ["setup"]
+
+
+@skip_unless_module("kombu")
+@pytest.mark.timeout(15)
+def test_consume_with_heartbeat_disabled_starts_no_thread(monkeypatch):
+    connection_kwargs, heartbeat_queues = spy_on_consume(monkeypatch)
+    exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "hb_consume_off", heartbeat=0)
+    exchange.consume("setup", callback=None, check=ConsumeOnce())
+    assert [kwargs["heartbeat"] for kwargs in connection_kwargs] == [0]
+    assert heartbeat_queues == []
+
+
+@skip_unless_module("kombu")
+@pytest.mark.timeout(15)
+def test_heartbeat_does_not_leak_between_exchanges(monkeypatch):
+    """consume() must not stash the heartbeat in its own default argument: that
+    dict is shared process-wide, so an exchange with heartbeats disabled would
+    negotiate one with the broker while starting no thread to send it, and the
+    broker would drop the connection every couple of intervals forever.
+    """
+    connection_kwargs, _ = spy_on_consume(monkeypatch)
+    default_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "hb_leak_default")
+    default_exchange.consume("setup", callback=None, check=ConsumeOnce())
+    disabled_exchange = amqp_exchange.PulsarExchange(TEST_CONNECTION, "hb_leak_off", heartbeat=0)
+    disabled_exchange.consume("setup", callback=None, check=ConsumeOnce())
+    assert [kwargs["heartbeat"] for kwargs in connection_kwargs] == [
+        amqp_exchange.DEFAULT_HEARTBEAT, 0,
+    ]
+
+
 def test_publish_kwds_no_retry_by_default():
     """Without an explicit opt-in we leave kombu's defaults alone, so existing
     deployments don't get surprise retry behavior; the persistent outbox is
     the primary durability layer."""
-    from pulsar.client.amqp_exchange_factory import parse_amqp_publish_kwds
-    publish_kwds = parse_amqp_publish_kwds({})
+    publish_kwds = amqp_exchange_factory.parse_amqp_publish_kwds({})
     assert "retry" not in publish_kwds
     assert "retry_policy" not in publish_kwds
 
@@ -162,21 +267,13 @@ def test_publish_kwds_no_retry_by_default():
 def test_publish_kwds_retry_true_populates_default_policy():
     """When the operator opts into retries we fill in bounded defaults so a
     single hiccup doesn't drop a message before the outbox sees it."""
-    from pulsar.client.amqp_exchange_factory import (
-        DEFAULT_PUBLISH_RETRY_POLICY,
-        parse_amqp_publish_kwds,
-    )
-    publish_kwds = parse_amqp_publish_kwds({"amqp_publish_retry": True})
+    publish_kwds = amqp_exchange_factory.parse_amqp_publish_kwds({"amqp_publish_retry": True})
     assert publish_kwds["retry"] is True
-    assert publish_kwds["retry_policy"] == DEFAULT_PUBLISH_RETRY_POLICY
+    assert publish_kwds["retry_policy"] == amqp_exchange_factory.DEFAULT_PUBLISH_RETRY_POLICY
 
 
 def test_publish_kwds_explicit_retry_policy_wins_over_defaults():
-    from pulsar.client.amqp_exchange_factory import (
-        DEFAULT_PUBLISH_RETRY_POLICY,
-        parse_amqp_publish_kwds,
-    )
-    publish_kwds = parse_amqp_publish_kwds({
+    publish_kwds = amqp_exchange_factory.parse_amqp_publish_kwds({
         "amqp_publish_retry": True,
         "amqp_publish_retry_max_retries": 99,
         "amqp_publish_retry_interval_start": 7,
@@ -185,7 +282,7 @@ def test_publish_kwds_explicit_retry_policy_wins_over_defaults():
     assert publish_kwds["retry_policy"]["max_retries"] == 99
     assert publish_kwds["retry_policy"]["interval_start"] == 7
     # Non-overridden defaults are still filled in.
-    assert publish_kwds["retry_policy"]["interval_max"] == DEFAULT_PUBLISH_RETRY_POLICY["interval_max"]
+    assert publish_kwds["retry_policy"]["interval_max"] == amqp_exchange_factory.DEFAULT_PUBLISH_RETRY_POLICY["interval_max"]
 
 
 __all__ = ["test_amqp"]

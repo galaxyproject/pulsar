@@ -38,7 +38,7 @@ class ScriptRunTestCase(TempDirectoryTestCase):
         if os.path.exists(self._result):
             print(open(self._result).read())
         else:
-            assert False, "No result json file found"
+            raise AssertionError("No result json file found")
         assert exit_code == 0
 
     def _check_outputs(self):

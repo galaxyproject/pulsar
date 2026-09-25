@@ -24,6 +24,31 @@ History
 * Report DRM-side job failures as ``failed`` instead of ``complete`` (thanks to
   `@gkr0110`_), and make ``failed`` terminal in ``StatefulManagerProxy`` so such
   jobs are deactivated, staged back, and reported to the client.
+* Remove the ``__PULSAR_JOBS_DIRECTORY__`` destination token, which never
+  worked. Substitution only ever reached the job's command line, so staged
+  config files, metadata and tool scripts kept the literal token. The command
+  line was broken too: Galaxy re-derives the job and tool directories from the
+  working directory with ``os.path.abspath``, which on a relative token path
+  splices in Galaxy's own working directory, so a single command mixed a
+  correct ``/staging/<id>/working`` with a ``/galaxy/cwd//staging/<id>``
+  job directory and tool_files path. ``tool_script.sh`` lives in the job
+  directory, so little could run. Set ``jobs_directory`` to the staging path
+  configured on the Pulsar side instead. The per-job
+  ``__PULSAR_JOB_DIRECTORY__`` token used by ``rewrite`` file actions is
+  unaffected.
+* Remove the experimental Apache Mesos framework and executor. Apache Mesos has
+  been retired to the Apache Attic, the ``mesos.native`` bindings the code
+  imported were only ever distributed with a Mesos build, and nothing here has
+  had a functional change since 2015.
+* Bind Pulsar to the manager name Galaxy returns from compute-resource
+  registration rather than to the relay ``sub`` claim. ``pulsar-config
+  register-with-galaxy`` wrote the wrong name into ``app.yml``, so registration
+  reported success while jobs stayed queued (thanks to `@dSizovs`_).
+* Require that manager name: ``register-with-galaxy`` no longer falls back to
+  the relay ``sub`` and no longer proposes a name in the registration payload
+  (Galaxy mints its own and ignores ours). A registration response without a
+  manager name now fails loudly instead of writing an ``app.yml`` bound to a
+  guessed name.
 
 ---------------------
 0.15.15 (2026-07-13)

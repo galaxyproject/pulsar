@@ -120,7 +120,7 @@ def _load_manager_modules():
             modules.append(module)
         except BaseException as exception:
             exception_str = str(exception)
-            message = "{} manager module could not be loaded: {}".format(manager_module_name, exception_str)
+            message = f"{manager_module_name} manager module could not be loaded: {exception_str}"
             log.warn(message)
             continue
 
@@ -167,7 +167,7 @@ class ManagerDescription:
 
     @staticmethod
     def from_ini_config(config, manager_name):
-        section_name = '{}{}'.format(MANAGER_PREFIX, manager_name)
+        section_name = f'{MANAGER_PREFIX}{manager_name}'
         try:
             manager_type = config.get(section_name, 'type')
         except ValueError:

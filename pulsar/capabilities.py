@@ -87,7 +87,7 @@ class PulsarCapabilities:
         return asdict(self)
 
 
-def collect_capabilities(app: "PulsarApp", manager: "StatefulManagerProxy") -> PulsarCapabilities:
+def collect_capabilities(app: PulsarApp, manager: StatefulManagerProxy) -> PulsarCapabilities:
     """Build the capabilities snapshot for a single manager on this app."""
     resolvers = _collect_dependency_resolvers(app)
     manager_caps = _collect_manager(manager)
@@ -105,7 +105,7 @@ def collect_capabilities(app: "PulsarApp", manager: "StatefulManagerProxy") -> P
     )
 
 
-def _collect_dependency_resolvers(app: "PulsarApp") -> List[DependencyResolverInfo]:
+def _collect_dependency_resolvers(app: PulsarApp) -> List[DependencyResolverInfo]:
     out: List[DependencyResolverInfo] = []
     for r in app.dependency_manager.dependency_resolvers:
         # ``resolver_type`` and ``versionless`` are class attributes on
@@ -153,7 +153,7 @@ def _detect_container_runtime() -> ContainerRuntimeInfo:
     )
 
 
-def _collect_manager(manager: "StatefulManagerProxy") -> ManagerCapabilities:
+def _collect_manager(manager: StatefulManagerProxy) -> ManagerCapabilities:
     underlying = manager._proxied_manager
     # ``manager_type`` is a class attribute set on each concrete manager
     # implementation but not on the proxy or its base. The ``work_threads``
@@ -172,6 +172,6 @@ def _collect_manager(manager: "StatefulManagerProxy") -> ManagerCapabilities:
     return ManagerCapabilities(name=manager.name, type=str(mtype), num_concurrent_jobs=num)
 
 
-def _tool_dependency_dir(app: "PulsarApp") -> Optional[str]:
+def _tool_dependency_dir(app: PulsarApp) -> Optional[str]:
     base = getattr(app.dependency_manager, "default_base_path", None)
     return str(base) if base else None

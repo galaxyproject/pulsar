@@ -52,22 +52,6 @@ pulsar.scripts.finish module
    :undoc-members:
    :show-inheritance:
 
-pulsar.scripts.mesos\_executor module
--------------------------------------
-
-.. automodule:: pulsar.scripts.mesos_executor
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pulsar.scripts.mesos\_framework module
---------------------------------------
-
-.. automodule:: pulsar.scripts.mesos_framework
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pulsar.scripts.run module
 -------------------------
 

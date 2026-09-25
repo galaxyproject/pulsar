@@ -46,6 +46,18 @@ def http_status_code(exc):
     return None
 
 
+def is_transport_error(exc):
+    """Return True if ``exc`` reports a transport failure rather than a tool one.
+
+    ``PulsarClientTransportError`` is raised by the curl and urllib transports
+    and deliberately subclasses plain ``Exception``, so an ``isinstance(exc,
+    OSError)`` test — which correctly catches the requests transport, whose
+    ``HTTPError`` is an ``OSError`` — silently misses it. Callers deciding
+    whether a failure may be downgraded need both.
+    """
+    return isinstance(exc, PulsarClientTransportError)
+
+
 def _status_is_transient(status):
     try:
         return int(status) in TRANSIENT_HTTP_STATUS

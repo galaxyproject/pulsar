@@ -12,10 +12,9 @@ execution:
   environments:
     remote_cluster:
       runner: pulsar_mq
-      # This string is replaced by Pulsar, removing the requirement of
-      # coordinating the Pulsar installation directory between the cluster
-      # admin and the Galaxy admin.
-      jobs_directory: __PULSAR_JOBS_DIRECTORY__
+      # Must match the staging_directory configured on the Pulsar side; the
+      # client computes every remote path from it before contacting Pulsar.
+      jobs_directory: /data/pulsar/staging
       # Provide connection information, should look like:
       #
       #     paths:

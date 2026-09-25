@@ -5,13 +5,13 @@ A user runs ``pulsar-config register-with-galaxy --galaxy <url> --token <one-sho
 
 1. Drives the relay's RFC 8628 device flow with ``pair=true`` so the relay
    issues *two* independent refresh tokens for the freshly-signed-in user.
-2. Decodes the ``sub`` claim out of the access token — that's the relay user
-   id, which we adopt as the BYOC manager name (and as the Pulsar manager
-   name in the local ``app.yml``).
-3. Posts the secondary refresh token to Galaxy at
+2. Posts the secondary refresh token to Galaxy at
    ``/api/compute_resources/registrations/complete`` (authenticated by the
    one-shot token from ``POST /api/compute_resources/registrations``).
-4. Writes the local ``relay_credentials.json`` with the *primary* refresh
+   Galaxy mints the authoritative manager name and returns it; that is the
+   only name Pulsar may bind to in the local ``app.yml``, so a response
+   without one is a hard error rather than something to guess around.
+3. Writes the local ``relay_credentials.json`` with the *primary* refresh
    token only; the secondary is in-flight to Galaxy and never persisted on
    the host.
 
@@ -20,8 +20,6 @@ plumbing is reused from :mod:`pulsar_relay_client.device_flow`.
 """
 from __future__ import annotations
 
-import base64
-import json
 import logging
 import os
 from typing import Optional
@@ -33,26 +31,6 @@ log = logging.getLogger(__name__)
 
 class GalaxyBYOCRegistrationError(Exception):
     """Top-level error for ``register-with-galaxy`` failures."""
-
-
-def _decode_jwt_sub(access_token: str) -> Optional[str]:
-    """Extract the ``sub`` claim from a JWT without verifying its signature.
-
-    The relay validated the token before issuing it; we only need the claim.
-    Avoids a hard dep on PyJWT — base64-decoding the middle segment is enough.
-    """
-    try:
-        _, payload_b64, _ = access_token.split(".")
-    except ValueError:
-        return None
-    # JWTs use unpadded URL-safe base64.
-    padding = "=" * (-len(payload_b64) % 4)
-    try:
-        payload = json.loads(base64.urlsafe_b64decode(payload_b64 + padding))
-    except (ValueError, json.JSONDecodeError):
-        return None
-    sub = payload.get("sub")
-    return str(sub) if sub is not None else None
 
 
 def register_with_galaxy(
@@ -96,17 +74,10 @@ def register_with_galaxy(
         raise GalaxyBYOCRegistrationError(
             "Relay did not return refresh_token_secondary — does it support pair-issuance?"
         )
-    manager_name = _decode_jwt_sub(outcome["access_token"])
-    if not manager_name:
-        raise GalaxyBYOCRegistrationError(
-            "Could not decode 'sub' claim from relay access token; refusing to register."
-        )
-
     payload = {
         "bootstrap_token": bootstrap_token,
         "refresh_token": secondary,
         "relay_url": relay_url,
-        "manager_name": manager_name,
     }
     bootstrap_url = galaxy_url.rstrip("/") + "/api/compute_resources/registrations/complete"
     try:
@@ -120,6 +91,23 @@ def register_with_galaxy(
             f"Galaxy bootstrap POST returned HTTP {resp.status_code}: {resp.text}"
         )
 
+    # Galaxy mints its own manager name and returns it; Pulsar must listen on
+    # that name or jobs are never picked up. There is no name we could guess
+    # instead, so a response we cannot read a name out of fails the whole
+    # registration rather than writing an app.yml that silently never works.
+    try:
+        body = resp.json()
+    except ValueError:
+        raise GalaxyBYOCRegistrationError(
+            f"Galaxy bootstrap response was not JSON: {resp.text}"
+        ) from None
+    manager_name = body.get("manager_name") if isinstance(body, dict) else None
+    if not manager_name:
+        raise GalaxyBYOCRegistrationError(
+            "Galaxy did not return a manager_name; refusing to write app.yml "
+            "with a guessed name."
+        )
+
     log.info(
         "Registered BYOC resource with Galaxy at %s as manager %r", galaxy_url, manager_name
     )
@@ -127,6 +115,6 @@ def register_with_galaxy(
 
 
 __all__ = [
-    "register_with_galaxy",
     "GalaxyBYOCRegistrationError",
+    "register_with_galaxy",
 ]

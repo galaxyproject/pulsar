@@ -18,6 +18,12 @@ from pulsar.managers.stateful import ACTIVE_STATUS_PREPROCESSING
 
 log = logging.getLogger(__name__)
 
+# Substituted until 0.15.16. A destination still configured with it would
+# otherwise stage into a directory literally named for the token.
+REMOVED_JOBS_DIRECTORY_TOKEN = '__PULSAR_JOBS_DIRECTORY__'
+
+MAXIMUM_STATUS_STREAM_SIZE = 64 * 1024
+
 
 def status_dict(manager, job_id):
     job_status = manager.get_status(job_id)
@@ -44,31 +50,35 @@ def __job_complete_dict(complete_status, manager, job_id):
     return_code = manager.return_code(job_id)
     if return_code == PULSAR_UNKNOWN_RETURN_CODE:
         return_code = None
-    stdout_contents = unicodify(manager.stdout_contents(job_id))
-    stderr_contents = unicodify(manager.stderr_contents(job_id))
+    stdout_contents = unicodify(
+        manager.stdout_contents(job_id)[:MAXIMUM_STATUS_STREAM_SIZE]
+    )
+    stderr_contents = unicodify(
+        manager.stderr_contents(job_id)[:MAXIMUM_STATUS_STREAM_SIZE]
+    )
     job_stdout_contents = unicodify(manager.job_stdout_contents(job_id).decode("utf-8"))
     job_stderr_contents = unicodify(manager.job_stderr_contents(job_id).decode("utf-8"))
     job_directory = manager.job_directory(job_id)
-    as_dict = dict(
-        job_id=job_id,
-        complete="true",  # Is this still used or is it legacy.
-        status=complete_status,
-        returncode=return_code,
-        stdout=stdout_contents,
-        stderr=stderr_contents,
-        job_stdout=job_stdout_contents,
-        job_stderr=job_stderr_contents,
-        working_directory=job_directory.working_directory(),
-        metadata_directory=job_directory.metadata_directory(),
-        job_directory=job_directory.job_directory,
-        working_directory_contents=job_directory.working_directory_contents(),
-        metadata_directory_contents=job_directory.metadata_directory_contents(),
-        outputs_directory_contents=job_directory.outputs_directory_contents(),
-        job_directory_contents=job_directory.job_directory_contents(),
-        system_properties=manager.system_properties(),
-        pulsar_version=pulsar_version,
-        realized_dynamic_file_sources=realized_dynamic_file_sources(job_directory)
-    )
+    as_dict = {
+        "job_id": job_id,
+        "complete": "true",  # Is this still used or is it legacy.
+        "status": complete_status,
+        "returncode": return_code,
+        "stdout": stdout_contents,
+        "stderr": stderr_contents,
+        "job_stdout": job_stdout_contents,
+        "job_stderr": job_stderr_contents,
+        "working_directory": job_directory.working_directory(),
+        "metadata_directory": job_directory.metadata_directory(),
+        "job_directory": job_directory.job_directory,
+        "working_directory_contents": job_directory.working_directory_contents(),
+        "metadata_directory_contents": job_directory.metadata_directory_contents(),
+        "outputs_directory_contents": job_directory.outputs_directory_contents(),
+        "job_directory_contents": job_directory.job_directory_contents(),
+        "system_properties": manager.system_properties(),
+        "pulsar_version": pulsar_version,
+        "realized_dynamic_file_sources": realized_dynamic_file_sources(job_directory)
+    }
     return as_dict
 
 
@@ -113,15 +123,25 @@ def submit_job(manager, job_config):
 
         if job_config is not None:
             job_directory = os.path.abspath(job_config["job_directory"])
-            jobs_directory = os.path.abspath(os.path.join(job_directory, os.pardir))
-            command_line = command_line.replace('__PULSAR_JOBS_DIRECTORY__', jobs_directory)
             # The absolute per-job directory. Lets the client emit a path that is
             # relative to the (runtime-unknown) job directory without embedding a
             # shell variable - important for tokens that pass through shlex.quote
             # on the client (e.g. a container image path rewritten for cvmfsexec).
+            #
+            # Command line only. The token is resolved here, after staging has
+            # been described but before it runs, so it cannot reach config or
+            # metadata file *contents*; a rewrite rule that puts it there leaves
+            # it unresolved. Rules are restricted to path_types: container,
+            # which only ever reaches the command line.
             command_line = command_line.replace('__PULSAR_JOB_DIRECTORY__', job_directory)
 
-        # TODO: Handle __PULSAR_JOB_DIRECTORY__ in config files, metadata files, etc...
+            if REMOVED_JOBS_DIRECTORY_TOKEN in command_line:
+                raise Exception(
+                    "This destination's command line contains %s, which Pulsar no "
+                    "longer substitutes. Set jobs_directory to the staging path "
+                    "configured on this Pulsar server instead." % REMOVED_JOBS_DIRECTORY_TOKEN
+                )
+
         # Deliver a per-job cvmfsexec override to the manager via setup_params.
         # Merged here (after the setup decision above) so it does not itself
         # trigger job setup.

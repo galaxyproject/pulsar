@@ -29,7 +29,7 @@ class PersistenceStore:
         path_row = db._cx.execute("PRAGMA database_list").fetchone()
         path = path_row[2]
         db._cx.close()
-        db._cx = sqlite3.connect(path, autocommit=True, check_same_thread=False)
+        db._cx = sqlite3.connect(path, autocommit=True, check_same_thread=False)  # novermin
 
     def close(self):
         self.shelf.close()

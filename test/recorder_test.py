@@ -1,17 +1,11 @@
 """Unit tests for the StatusRecorder ordering rules.
 
 The recorder is the test framework's stand-in for Galaxy's job-state
-processor. Run from this directory: ``pytest mock_galaxy/recorder_test.py``.
+processor.
 """
-import os
-import sys
-
 import pytest
 
-# Make sibling import work when invoked from the resilience root or via
-# `pytest test/resilience/mock_galaxy/recorder_test.py`.
-sys.path.insert(0, os.path.dirname(__file__))
-from recorder import StatusRecorder  # type: ignore  # noqa: E402
+from pulsar.testing.recorder import StatusRecorder
 
 
 def _statuses(rec, job_id):

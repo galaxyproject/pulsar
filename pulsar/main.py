@@ -260,9 +260,9 @@ class PulsarConfigBuilder:
     """
 
     def __init__(self, args=None, **kwds):
-        config_dir = kwds.get("config_dir", None) or (args and args.config_dir) or PULSAR_CONFIG_DIR
-        ini_path = kwds.get("ini_path", None) or (args and args.ini_path)
-        app_conf_path = kwds.get("app_conf_path", None) or (args and args.app_conf_path)
+        config_dir = kwds.get("config_dir") or (args and args.config_dir) or PULSAR_CONFIG_DIR
+        ini_path = kwds.get("ini_path") or (args and args.ini_path)
+        app_conf_path = kwds.get("app_conf_path") or (args and args.app_conf_path)
         app_conf_base64 = args and args.app_conf_base64
 
         if not app_conf_base64 and not app_conf_path:
@@ -296,21 +296,21 @@ class PulsarConfigBuilder:
         arg_parser.add_argument("--stop-daemon", default=False, help="Stop a running daemon by reading the PID file.", action="store_true")
 
     def load(self):
-        load_kwds = dict(
-            app_name=self.app_name,
-            config_dir=self.config_dir,
-        )
+        load_kwds = {
+            "app_name": self.app_name,
+            "config_dir": self.config_dir,
+        }
         if self.app_conf_base64:
             from pulsar.client.util import from_base64_json
             local_conf = from_base64_json(self.app_conf_base64)
             self.setup_dict_logging(local_conf)
             load_kwds["local_conf"] = local_conf
         else:
-            load_kwds.update(dict(
-                config_dir=self.config_dir,
-                ini_path=self.ini_path,
-                app_conf_path=self.app_conf_path,
-            ))
+            load_kwds.update({
+                "config_dir": self.config_dir,
+                "ini_path": self.ini_path,
+                "app_conf_path": self.app_conf_path,
+            })
         return load_app_configuration(**load_kwds)
 
     def setup_file_logging(self):
@@ -322,7 +322,7 @@ class PulsarConfigBuilder:
                 config_file = os.path.abspath(self.ini_path)
                 fileConfig(
                     config_file,
-                    dict(__file__=config_file, here=os.path.dirname(config_file))
+                    {"__file__": config_file, "here": os.path.dirname(config_file)}
                 )
 
     def setup_dict_logging(self, config):
@@ -333,19 +333,19 @@ class PulsarConfigBuilder:
         logging.config.dictConfig(logging_conf)
 
     def to_dict(self):
-        return dict(
-            config_dir=self.config_dir,
-            ini_path=self.ini_path,
-            app_conf_path=self.app_conf_path,
-            app=self.app_name
-        )
+        return {
+            "config_dir": self.config_dir,
+            "ini_path": self.ini_path,
+            "app_conf_path": self.app_conf_path,
+            "app": self.app_name
+        }
 
 
 class PulsarManagerConfigBuilder(PulsarConfigBuilder):
 
     def __init__(self, args=None, **kwds):
         super().__init__(args=args, **kwds)
-        self.manager = kwds.get("manager", None) or (args and args.manager) or DEFAULT_MANAGER
+        self.manager = kwds.get("manager") or (args and args.manager) or DEFAULT_MANAGER
 
     def to_dict(self):
         as_dict = super().to_dict()

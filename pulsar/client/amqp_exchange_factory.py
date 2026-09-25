@@ -1,4 +1,7 @@
-from .amqp_exchange import PulsarExchange
+from .amqp_exchange import (
+    DEFAULT_HEARTBEAT,
+    PulsarExchange,
+)
 from .util import (
     filter_destination_params,
     MessageQueueUUIDStore,
@@ -7,12 +10,12 @@ from .util import (
 
 def get_exchange(url, manager_name, params):
     connect_ssl = parse_amqp_connect_ssl_params(params)
-    exchange_kwds = dict(
-        manager_name=manager_name,
-        amqp_key_prefix=params.get("amqp_key_prefix"),
-        connect_ssl=connect_ssl,
-        publish_kwds=parse_amqp_publish_kwds(params),
-    )
+    exchange_kwds = {
+        "manager_name": manager_name,
+        "amqp_key_prefix": params.get("amqp_key_prefix"),
+        "connect_ssl": connect_ssl,
+        "publish_kwds": parse_amqp_publish_kwds(params),
+    }
     # Default True: kombu declares durable queues/exchanges by default, which is
     # what Pulsar did before opt-in durability was added, and RabbitMQ 4.x
     # rejects transient non-exclusive queues outright (transient_nonexcl_queues
@@ -23,11 +26,35 @@ def get_exchange(url, manager_name, params):
     exchange_kwds["durable"] = bool(durable_param)
     if params.get('amqp_acknowledge', False):
         exchange_kwds.update(parse_ack_kwds(params, manager_name))
+    heartbeat_param = params.get("amqp_heartbeat")
+    if heartbeat_param is not None:
+        exchange_kwds["heartbeat"] = parse_amqp_heartbeat(heartbeat_param)
     timeout = params.get('amqp_consumer_timeout', False)
     if timeout is not False:
         exchange_kwds['timeout'] = timeout
     exchange = PulsarExchange(url, **exchange_kwds)
     return exchange
+
+
+def parse_amqp_heartbeat(value):
+    """Coerce an ``amqp_heartbeat`` config value to an interval in seconds.
+
+    Zero disables heartbeats. Strings have to be handled explicitly: Galaxy
+    destination params and Pulsar's ini config both arrive as strings, and a
+    non-numeric heartbeat raises ``TypeError`` inside py-amqp's tune handshake
+    - which is not a recoverable exception, so it kills the consumer thread.
+    """
+    if value is True:
+        return DEFAULT_HEARTBEAT
+    if value is False:
+        return 0
+    if isinstance(value, str):
+        value = value.strip()
+        if value.lower() in ("false", "none", "off", "no", ""):
+            return 0
+        if value.lower() in ("true", "on", "yes"):
+            return DEFAULT_HEARTBEAT
+    return int(value)
 
 
 def parse_amqp_connect_ssl_params(params):
@@ -53,7 +80,7 @@ DEFAULT_PUBLISH_RETRY_POLICY = {
 def parse_amqp_publish_kwds(params):
     all_publish_params = filter_destination_params(params, "amqp_publish_")
     retry_policy_params = {}
-    for key in all_publish_params.copy().keys():
+    for key in all_publish_params.copy():
         if key.startswith("retry_"):
             value = all_publish_params[key]
             retry_policy_params[key[len("retry_"):]] = value
@@ -76,8 +103,8 @@ def parse_ack_kwds(params, manager_name):
     persistence_directory = params.get('persistence_directory', None)
     if persistence_directory:
         subdirs = ['amqp_ack-%s' % manager_name]
-        ack_params['publish_uuid_store'] = MessageQueueUUIDStore(persistence_directory, subdirs=subdirs + ['publish'])
-        ack_params['consume_uuid_store'] = MessageQueueUUIDStore(persistence_directory, subdirs=subdirs + ['consume'])
+        ack_params['publish_uuid_store'] = MessageQueueUUIDStore(persistence_directory, subdirs=[*subdirs, 'publish'])
+        ack_params['consume_uuid_store'] = MessageQueueUUIDStore(persistence_directory, subdirs=[*subdirs, 'consume'])
     republish_time = params.get('amqp_ack_republish_time', None)
     if republish_time:
         ack_params['republish_time'] = int(republish_time)

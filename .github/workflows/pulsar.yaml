@@ -4,17 +4,12 @@ permissions: {}
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7']
-        tox-env: [lint, docs]
-        include:
-          - python-version: '3.14'
-            tox-env: lint
-          - python-version: '3.14'
-            tox-env: format
+        python-version: ['3.14']
+        tox-env: [lint, docs, format, vermin]
     steps:
     - uses: actions/checkout@v7.0.1
       with:
@@ -29,7 +24,7 @@ jobs:
       run: tox -e ${{ matrix.tox-env }}
   mypy:
     name: MyPy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -51,12 +46,14 @@ jobs:
       run: tox -e ${{ matrix.tox-env }}
   test:
     name: Run Tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         tox-env: [test-ci, test-unit]
-        python-version: ['3.7', '3.11', '3.12', '3.13', '3.14']
+        # 3.7 is still supported but not exercised: no 3.7 build exists for 24.04.
+        # ruff's target-version and tox -e vermin hold the floor statically.
+        python-version: ['3.11', '3.12', '3.13', '3.14']
         include:
         - tox-env: install_wheel
           python-version: '3.10'
@@ -90,7 +87,7 @@ jobs:
         TEST_WEBAPP_POST_SHUTDOWN_SLEEP: 1
   resilience:
     name: Resilience Suite
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
     - uses: actions/checkout@v7.0.1
@@ -102,6 +99,11 @@ jobs:
         cache: pip
     - name: Install test runner deps
       run: pip install pytest pytest-timeout requests
+    - name: Install pulsar for the harness
+      # The scenarios import pulsar.testing.resilience. --no-deps because the
+      # harness only needs requests (installed above) and the recorder is
+      # pure stdlib; the runner never starts a Pulsar server itself.
+      run: pip install --no-deps -e .
     - name: Build images
       run: docker compose -f test/resilience/docker-compose.yml build
     - name: Bring up the docker-compose stack
@@ -148,31 +150,3 @@ jobs:
     - name: Tear down
       if: always()
       run: docker compose -f test/resilience/docker-compose.yml down -v
-  ## Can't get the following tests to work - they fall over on the containerized job not being able to
-  ## connect to the host running the Pulsar server for file transfers in stage out/in.
-  # tes-test:
-  #   name: Run Tests
-  #   runs-on: ubuntu-20.04
-  #   strategy:
-  #     matrix:
-  #       include:
-  #       - tox-env: test-funnel
-  #         python-version: 3.7
-  #   steps:
-  #   - uses: actions/checkout@v7.0.1
-  #     with:
-  #       persist-credentials: false
-  #   - uses: actions/setup-python@v7
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #       cache: pip
-  #   - name: Set up Go 1.x
-  #     uses: actions/setup-go@v2
-  #     with:
-  #       go-version: ^1.13
-  #   - name: Pre-fetch required docker containers
-  #     run: docker pull 'galaxy/pulsar-pod-staging:0.15.0.0' && docker pull 'conda/miniconda3'
-  #   - name: Install tox
-  #     run: pip install tox
-  #   - name: Run tests
-  #     run: PULSAR_TEST_INFRASTRUCTURE_HOST="_PLATFORM_AUTO_" FUNNEL_SERVER_TARGET=DEPLOY PULSAR_TES_SERVER_TARGET=http://localhost:8000/ tox -e ${{ matrix.tox-env }}

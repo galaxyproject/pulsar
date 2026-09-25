@@ -31,6 +31,17 @@ Pulsar reaches every other service through toxiproxy, so the harness can
 disable connections, blackhole packets, add latency, or reset peers
 mid-scenario.
 
+The relay runs a single uvicorn worker, overriding the image's four. Its
+long-poll waiters are held in per-worker memory, so with several workers
+`/messages/poll/stats` answers for one shard and the readiness check
+misses a consumer that is really there - and a publish only wakes waiters
+in the worker that received it. See `config/relay-single-worker.conf`.
+
+Rate limiting is off (`RATELIMIT_ENABLED=false`). Its counters are
+per-worker too, so one worker also means one real limit of five logins a
+minute per address - and every Pulsar restart logs in again from
+toxiproxy's single address.
+
 ## Running locally
 
 ```bash
@@ -58,21 +69,43 @@ test/resilience/
 ├── Dockerfile.pulsar       # builds Pulsar from local source
 ├── entrypoint.sh           # selects amqp / amqp_ack / relay mode at startup
 ├── config/                 # app_*.yml + server.ini + toxiproxy.json
-├── mock_galaxy/            # FastAPI app + StatusRecorder
-├── harness/                # PulsarControl, ToxiproxyControl, job factory, assertions
+├── mock_galaxy/            # FastAPI app wrapping pulsar.testing.recorder
 ├── conftest.py             # pytest fixtures + parametrized mq_mode
 └── scenarios/              # the actual test cases
 ```
+
+The drivers and assertions the scenarios import are not in this directory.
+They ship inside the distribution as `pulsar.testing`:
+
+```
+pulsar/testing/
+├── recorder.py             # StatusRecorder — stdlib only, embedded in mock_galaxy
+└── resilience/             # PulsarControl, ToxiproxyControl, job factory, assertions
+```
+
+so they are importable by name from anywhere rather than by an accident of
+`sys.path`. The split is deliberate: `recorder` makes no assumptions about how
+the status events reached it and is reusable anywhere — downstream projects that
+install `pulsar-galaxy-lib` get it for free — while everything under
+`resilience/` is wired to this compose stack's service names and host ports.
 
 ## Adding a scenario
 
 1. Pick a fixture set: `pulsar`, plus one of `rabbitmq_proxy` / `relay_proxy`
    / `galaxy_proxy` for fault injection.
-2. Build a setup payload with `harness.job_factory.make_setup_message`.
+2. Build a setup payload with `pulsar.testing.resilience.job_factory.make_setup_message`.
 3. Submit it via `requests.post(GALAXY_BASE + "/_publish_setup", json=...)`.
 4. Inject the fault you care about with the appropriate proxy fixture.
-5. Restore connectivity and assert with `harness.assertions.await_terminal`
-   and `assert_exactly_once_terminal`.
+5. Restore connectivity and assert with
+   `pulsar.testing.resilience.assertions.await_terminal` and
+   `assert_exactly_once_terminal`.
+
+To act at a point *inside* a phase rather than after it, open a
+`pulsar.watch_logs()` before submitting and wait on a marker the phase logs
+(`test_postprocess_restart.py` waits for `collecting output` to kill Pulsar
+mid-upload). Open the watch first: `_publish_setup` is reached through
+toxiproxy, so a toxic that stalls the phase stalls the submitting call too,
+and the marker can be logged before that call returns.
 
 ## Mode matrix
 

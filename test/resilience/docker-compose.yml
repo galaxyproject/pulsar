@@ -40,6 +40,9 @@ services:
     image: ${RELAY_IMAGE:-ghcr.io/mvdbeek/pulsar-relay:0.2.1@sha256:b677658c3585bc21a1a3eb8ed7403d55dea3b72d0dd859b2c3b606abf876fb78}
     volumes:
       - ./config/relay-config.yaml:/etc/pulsar-relay/config.yaml:ro
+      # Pins the relay to one uvicorn worker - see the file for why the
+      # harness cannot work with the image's default of four.
+      - ./config/relay-single-worker.conf:/etc/supervisor/conf.d/zz-single-worker.conf:ro
     ports:
       # Host-mapped so the harness can hit /messages/poll/stats directly
       # (bypassing toxiproxy) when checking readiness — the toxiproxy
@@ -59,6 +62,15 @@ services:
       - PULSAR_ALLOWED_ORIGINS=["*"]
       - PULSAR_TRUSTED_HOSTS=["*"]
       - PULSAR_ALLOW_INSECURE_DEFAULTS=1
+      # Turn off slowapi's per-IP rate limits (5 logins/minute among
+      # them). The harness restarts Pulsar dozens of times a run and
+      # every restart logs in afresh, all from toxiproxy's one address,
+      # so the limit is reached routinely - a 429 there strands the
+      # relay consumer for the rest of the minute and the test loses
+      # status updates. Nothing here exercises the limiter; the image's
+      # four workers were only hiding it, since each held its own
+      # in-memory counter.
+      - RATELIMIT_ENABLED=false
     networks: [pulsar-net]
 
   toxiproxy:
@@ -80,8 +92,10 @@ services:
 
   mock-galaxy:
     build:
-      context: .
-      dockerfile: mock_galaxy/Dockerfile
+      # Repo root, like the pulsar service: the image needs the pulsar package
+      # for pulsar.testing.recorder.
+      context: ../..
+      dockerfile: test/resilience/mock_galaxy/Dockerfile
     environment:
       - MOCK_GALAXY_BIND=0.0.0.0:8088
       - MOCK_GALAXY_AMQP_URL=amqp://guest:guest@rabbitmq:5672//

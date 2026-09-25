@@ -11,11 +11,11 @@ import time
 import pytest
 import requests
 
-from harness.assertions import (
+from pulsar.testing.resilience.assertions import (
     assert_exactly_once_terminal,
     await_terminal,
 )
-from harness.job_factory import (
+from pulsar.testing.resilience.job_factory import (
     FILES_API,
     GALAXY_FILES_ROOT,
     make_setup_message,

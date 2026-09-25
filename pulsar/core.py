@@ -28,8 +28,10 @@ DEFAULT_STAGING_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "staging")
 DEFAULT_PERSISTENCE_DIRECTORY = os.path.join(DEFAULT_FILES_DIRECTORY, "persisted_data")
 
 
-NOT_WHITELIST_WARNING = "Starting the Pulsar without a toolbox to white-list." + \
-                        "Ensure this application is protected by firewall or a configured private token."
+NOT_WHITELIST_WARNING = (
+    "Starting the Pulsar without a toolbox to white-list. "
+    "Ensure this application is protected by firewall or a configured private token."
+)
 MULTIPLE_MANAGERS_MESSAGE = "app.only_manager accessed with multiple managers configured"
 
 
@@ -42,7 +44,7 @@ class PulsarApp:
         self.__setup_sentry_integration(conf)
         self.__setup_staging_directory(conf.get("staging_directory", DEFAULT_STAGING_DIRECTORY))
         self.__setup_private_token(conf.get("private_token", DEFAULT_PRIVATE_TOKEN))
-        self.__setup_persistence_directory(conf.get("persistence_directory", None))
+        self.__setup_persistence_directory(conf.get("persistence_directory"))
         self.__setup_tool_config(conf)
         self.__setup_object_store(conf)
         self.__setup_dependency_manager(conf)
@@ -50,8 +52,11 @@ class PulsarApp:
         self.__setup_user_auth_manager(conf)
         self.__setup_managers(conf)
         self.__setup_file_cache(conf)
-        self.__setup_bind_to_message_queue(conf)
+        # Recovery failures need the status callback, but the monitor must not
+        # poll until external job IDs have been restored.
+        self.__setup_bind_to_message_queue(conf, start_monitor=False)
         self.__recover_jobs()
+        self.__start_manager_monitors(conf)
         self.ensure_cleanup = conf.get("ensure_cleanup", False)
 
     def shutdown(self, timeout=None):
@@ -66,12 +71,22 @@ class PulsarApp:
             if self.ensure_cleanup:
                 self.__queue_state.join(timeout)
 
-    def __setup_bind_to_message_queue(self, conf):
+    def __setup_bind_to_message_queue(self, conf, start_monitor=True):
         message_queue_url = conf.get("message_queue_url", None)
         queue_state = None
         if message_queue_url:
-            queue_state = messaging.bind_app(self, message_queue_url, conf)
+            queue_state = messaging.bind_app(
+                self,
+                message_queue_url,
+                conf,
+                start_monitor=start_monitor,
+            )
         self.__queue_state = queue_state
+
+    def __start_manager_monitors(self, conf):
+        if self.__queue_state and conf.get("message_queue_publish", True):
+            for manager in self.managers.values():
+                manager.start_monitor()
 
     def __setup_user_auth_manager(self, conf):
         self.user_auth_manager = UserAuthManager(conf)
@@ -145,14 +160,14 @@ class PulsarApp:
             self.object_store = None
             return
 
-        config_obj_kwds = dict(
-            file_path=conf.get("object_store_file_path", None),
-            object_store_check_old_style=False,
-            job_working_directory=conf.get("object_store_job_working_directory", None),
-            new_file_path=conf.get("object_store_new_file_path", tempdir),
-            umask=int(conf.get("object_store_umask", "0000")),
-            jobs_directory=None,
-        )
+        config_obj_kwds = {
+            "file_path": conf.get("object_store_file_path", None),
+            "object_store_check_old_style": False,
+            "job_working_directory": conf.get("object_store_job_working_directory", None),
+            "new_file_path": conf.get("object_store_new_file_path", tempdir),
+            "umask": int(conf.get("object_store_umask", "0000")),
+            "jobs_directory": None,
+        }
         config_dict = None
         if conf.get("object_store_config_file"):
             config_obj_kwds["object_store_config_file"] = conf['object_store_config_file']
@@ -191,4 +206,4 @@ class PulsarApp:
     def only_manager(self):
         """Convience accessor for tests and contexts with sole manager."""
         assert len(self.managers) == 1, MULTIPLE_MANAGERS_MESSAGE
-        return list(self.managers.values())[0]
+        return next(iter(self.managers.values()))

@@ -8,6 +8,7 @@
 #  _default_:
 #    type: queued_python
 #    num_concurrent_jobs: 1
+#    min_polling_interval: 0.5
 #    ## Run jobs under cvmfsexec (https://github.com/cvmfs/cvmfsexec) so CVMFS
 #    ## repositories are available without a system-wide /cvmfs mount. This can
 #    ## also be set/overridden per-destination from Galaxy (a `cvmfsexec` job
@@ -144,6 +145,12 @@
 ## publishing messages to the queue may hang if the connection becomes invalid.
 ## this value is used as the timeout argument to the producer.publish function.
 #amqp_publish_timeout: 2.0
+
+## Interval in seconds at which Pulsar requests AMQP heartbeats on its consumer
+## connections (see: https://www.rabbitmq.com/docs/heartbeats). The broker may
+## negotiate a shorter interval - RabbitMQ proposes 60 by default, and the lower
+## of the two wins. Set to false or 0 to disable heartbeats entirely.
+#amqp_heartbeat: 580
 
 # AMQP does not guarantee that a published message is received by the AMQP
 # server, so Pulsar can request that the consumer acknowledge messages and will

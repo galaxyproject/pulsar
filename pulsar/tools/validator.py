@@ -56,7 +56,7 @@ class ExpressionValidator:
             single_regex = r"(?:%s)" % regex
             first = "{}{}".format(single_regex, "?" if min_count == 0 else "")
             rest = r"(?:%s%s){%d,%d}" % (join_on, regex, max(min_count - 1, 0), max_count - 1)
-            regex = "{}{}".format(first, rest)
+            regex = f"{first}{rest}"
         return regex
 
     def __is_true(self, str):
@@ -71,7 +71,7 @@ class ExpressionValidator:
     def _parameter_to_regex(self, element, job_directory):
         parameter_name = element.get('name')
         value_regex = self._expression_to_regex(job_directory, element)
-        return r"{}(?:=|\s+){}".format(parameter_name, value_regex)
+        return rf"{parameter_name}(?:=|\s+){value_regex}"
 
     def _integer_to_regex(self, element, job_directory):
         return r"\d+"

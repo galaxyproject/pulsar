@@ -48,8 +48,8 @@ def _get_transport_type(transport_type, os_module):
 
 
 __all__ = (
-    'get_transport',
     'get_file',
+    'get_transport',
     'post_file',
     'rsync_get_file',
     'rsync_post_file',
