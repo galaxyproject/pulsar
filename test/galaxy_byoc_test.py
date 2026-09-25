@@ -9,14 +9,12 @@ import pytest
 import responses
 
 from pulsar.client.galaxy_byoc import (
-    _decode_jwt_sub,
     GalaxyBYOCRegistrationError,
     register_with_galaxy,
 )
 
 # ``register_with_galaxy`` lazily imports ``pulsar_relay_client``, whose
-# wheel requires Python >=3.10. The pure-Python ``_decode_jwt_sub``
-# tests don't need it; the end-to-end tests do.
+# wheel requires Python >=3.10.
 requires_relay_client = pytest.mark.skipif(
     importlib.util.find_spec("pulsar_relay_client") is None,
     reason="pulsar-relay-client requires Python >=3.10",
@@ -34,8 +32,9 @@ def _b64url(payload: dict) -> str:
 
 
 def _jwt_with_sub(sub: str) -> str:
-    """Mint a JWT-shaped string. Signature is bogus — we only test the
-    base64-decoded payload extraction here."""
+    """Mint a JWT-shaped access token. Signature is bogus — Pulsar never
+    inspects it; the ``sub`` is here only so tests can prove the relay user
+    id never leaks into the manager name."""
     return ".".join([_b64url({"alg": "RS256"}), _b64url({"sub": sub}), "sig"])
 
 
@@ -73,15 +72,6 @@ def _mock_relay_device_flow(sub, secondary="SECONDARY"):
     )
 
 
-def test_decode_jwt_sub_pulls_claim():
-    assert _decode_jwt_sub(_jwt_with_sub("byoc_7_lab")) == "byoc_7_lab"
-
-
-def test_decode_jwt_sub_returns_none_on_malformed():
-    assert _decode_jwt_sub("not.a.jwt") is None
-    assert _decode_jwt_sub("only-two.segments") is None
-
-
 @requires_relay_client
 @responses.activate
 def test_register_with_galaxy_happy_path(tmp_path):
@@ -91,12 +81,12 @@ def test_register_with_galaxy_happy_path(tmp_path):
     cred_path = str(tmp_path / "relay_credentials.json")
 
     # 1. + 2. Device flow yields an access token plus a paired refresh token.
-    _mock_relay_device_flow("byoc_7_lab")
-    # 3. Galaxy accepts the bootstrap callback.
+    _mock_relay_device_flow("relay-user-uuid")
+    # 3. Galaxy accepts the bootstrap callback and mints the manager name.
     responses.add(
         responses.POST,
         f"{GALAXY_URL}/api/compute_resources/registrations/complete",
-        json={"id": 42, "manager_name": "byoc_7_lab", "status": "active"},
+        json={"id": 42, "manager_name": "cr-0123abcd", "status": "active"},
         status=200,
     )
 
@@ -107,7 +97,7 @@ def test_register_with_galaxy_happy_path(tmp_path):
         credentials_path=cred_path,
     )
 
-    assert result == {"relay_url": RELAY_URL, "manager_name": "byoc_7_lab"}
+    assert result == {"relay_url": RELAY_URL, "manager_name": "cr-0123abcd"}
     # The credentials file holds only the primary; the secondary went over
     # the wire to Galaxy and is never persisted on the host.
     with open(cred_path) as f:
@@ -117,14 +107,14 @@ def test_register_with_galaxy_happy_path(tmp_path):
     # File mode is locked down.
     assert os.stat(cred_path).st_mode & 0o777 == 0o600
 
-    # Galaxy got the right payload.
+    # Galaxy got the right payload. No ``manager_name`` — Galaxy mints it and
+    # ignores anything we were to send, so proposing one would only mislead.
     galaxy_call = next(c for c in responses.calls if c.request.url.endswith("/registrations/complete"))
     body = json.loads(galaxy_call.request.body)
     assert body == {
         "bootstrap_token": BOOTSTRAP_TOKEN,
         "refresh_token": "SECONDARY",
         "relay_url": RELAY_URL,
-        "manager_name": "byoc_7_lab",
     }
 
 
@@ -154,7 +144,7 @@ def test_register_with_galaxy_surfaces_galaxy_error(tmp_path):
     must propagate cleanly to the caller."""
     cred_path = str(tmp_path / "relay_credentials.json")
 
-    _mock_relay_device_flow("byoc_7_lab")
+    _mock_relay_device_flow("relay-user-uuid")
     responses.add(
         responses.POST,
         f"{GALAXY_URL}/api/compute_resources/registrations/complete",
@@ -195,8 +185,10 @@ def test_register_with_galaxy_uses_galaxy_minted_manager_name(tmp_path):
 
 @requires_relay_client
 @responses.activate
-def test_register_with_galaxy_falls_back_to_sub_without_minted_name(tmp_path):
-    """A Galaxy that doesn't return a manager name keeps the old behaviour."""
+def test_register_with_galaxy_requires_a_minted_manager_name(tmp_path):
+    """A 2xx that carries no manager name must fail the registration. Binding
+    to a guessed name (the relay ``sub``, say) would report success and then
+    leave every job queued on a topic Galaxy never publishes to."""
     _mock_relay_device_flow("relay-user-uuid")
     responses.add(
         responses.POST,
@@ -204,10 +196,32 @@ def test_register_with_galaxy_falls_back_to_sub_without_minted_name(tmp_path):
         json={"id": 42, "status": "active"},
         status=200,
     )
-    result = register_with_galaxy(
-        galaxy_url=GALAXY_URL,
-        bootstrap_token=BOOTSTRAP_TOKEN,
-        relay_url=RELAY_URL,
-        credentials_path=str(tmp_path / "relay_credentials.json"),
+    with pytest.raises(GalaxyBYOCRegistrationError, match="manager_name"):
+        register_with_galaxy(
+            galaxy_url=GALAXY_URL,
+            bootstrap_token=BOOTSTRAP_TOKEN,
+            relay_url=RELAY_URL,
+            credentials_path=str(tmp_path / "relay_credentials.json"),
+        )
+
+
+@requires_relay_client
+@responses.activate
+def test_register_with_galaxy_rejects_non_json_success_body(tmp_path):
+    """A proxy or misrouted URL can answer 200 with HTML. That is not a
+    registration, so it must not be treated as one."""
+    _mock_relay_device_flow("relay-user-uuid")
+    responses.add(
+        responses.POST,
+        f"{GALAXY_URL}/api/compute_resources/registrations/complete",
+        body="<html><body>502 Bad Gateway</body></html>",
+        content_type="text/html",
+        status=200,
     )
-    assert result["manager_name"] == "relay-user-uuid"
+    with pytest.raises(GalaxyBYOCRegistrationError, match="not JSON"):
+        register_with_galaxy(
+            galaxy_url=GALAXY_URL,
+            bootstrap_token=BOOTSTRAP_TOKEN,
+            relay_url=RELAY_URL,
+            credentials_path=str(tmp_path / "relay_credentials.json"),
+        )

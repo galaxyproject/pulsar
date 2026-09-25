@@ -44,6 +44,11 @@ History
   registration rather than to the relay ``sub`` claim. ``pulsar-config
   register-with-galaxy`` wrote the wrong name into ``app.yml``, so registration
   reported success while jobs stayed queued (thanks to `@dSizovs`_).
+* Require that manager name: ``register-with-galaxy`` no longer falls back to
+  the relay ``sub`` and no longer proposes a name in the registration payload
+  (Galaxy mints its own and ignores ours). A registration response without a
+  manager name now fails loudly instead of writing an ``app.yml`` bound to a
+  guessed name.
 
 ---------------------
 0.15.15 (2026-07-13)
