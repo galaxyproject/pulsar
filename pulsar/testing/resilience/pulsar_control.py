@@ -215,6 +215,10 @@ class PulsarControl:
         ``wait_until_consuming`` returns is guaranteed to land on a live
         waiter rather than vanish into a topic with no subscribers.
 
+        That waiter registry is per uvicorn worker, which is why
+        docker-compose pins the relay to one — see
+        ``config/relay-single-worker.conf``.
+
         ``poll_interval`` defaults to 0.1 s — the docker-compose-logs +
         mgmt-API combo takes ~30 ms each, so a tight poll cadence shaves
         the dead-poll overhead off the suite without saturating either

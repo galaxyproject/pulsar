@@ -31,6 +31,17 @@ Pulsar reaches every other service through toxiproxy, so the harness can
 disable connections, blackhole packets, add latency, or reset peers
 mid-scenario.
 
+The relay runs a single uvicorn worker, overriding the image's four. Its
+long-poll waiters are held in per-worker memory, so with several workers
+`/messages/poll/stats` answers for one shard and the readiness check
+misses a consumer that is really there - and a publish only wakes waiters
+in the worker that received it. See `config/relay-single-worker.conf`.
+
+Rate limiting is off (`RATELIMIT_ENABLED=false`). Its counters are
+per-worker too, so one worker also means one real limit of five logins a
+minute per address - and every Pulsar restart logs in again from
+toxiproxy's single address.
+
 ## Running locally
 
 ```bash
