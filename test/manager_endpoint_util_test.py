@@ -97,7 +97,7 @@ def _job_config(job_id="j1", **overrides):
     return cfg
 
 
-def _completed_manager(stdout=b"tool stdout", stderr=b"tool stderr"):
+def _completed_manager(stdout=b"tool stdout", stderr=b"tool stderr", live_stdout_update=False):
     job_directory = Mock(job_directory="/jobs/j1")
     job_directory.working_directory.return_value = "/jobs/j1/working"
     job_directory.metadata_directory.return_value = "/jobs/j1/metadata"
@@ -115,6 +115,7 @@ def _completed_manager(stdout=b"tool stdout", stderr=b"tool stderr"):
     manager.job_stderr_contents.return_value = b"job stderr"
     manager.job_directory.return_value = job_directory
     manager.system_properties.return_value = {"separator": "/"}
+    manager.is_live_stdout_update.return_value = live_stdout_update
     return manager
 
 
@@ -143,6 +144,17 @@ def test_completed_status_caps_tool_streams_at_64_kib():
 
     assert result["stdout"] == "o" * stream_limit
     assert result["stderr"] == "e" * stream_limit
+
+
+def test_completed_status_omits_tool_streams_already_delivered_live():
+    result = manager_endpoint_util.full_status(
+        _completed_manager(live_stdout_update=True), "complete", "j1"
+    )
+
+    assert result["stdout"] is None
+    assert result["stderr"] is None
+    assert result["job_stdout"] == "job stdout"
+    assert result["job_stderr"] == "job stderr"
 
 
 def test_first_setup_proceeds_to_preprocess_and_launch():

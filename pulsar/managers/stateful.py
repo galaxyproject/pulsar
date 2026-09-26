@@ -33,6 +33,13 @@ from pulsar.managers import (
     ManagerProxy,
     status,
 )
+from pulsar.managers.live_output import (
+    DEFAULT_CHUNK_SIZE as DEFAULT_STDOUT_CHUNK_SIZE,
+    DEFAULT_INTERVAL as DEFAULT_STDOUT_INTERVAL,
+    DEFAULT_TIMEOUT as DEFAULT_STDOUT_TIMEOUT,
+    LiveOutputReporter,
+    load_state as load_live_output_state,
+)
 from pulsar.managers.util.retry import RetryActionExecutor
 from .staging import (
     postprocess,
@@ -81,6 +88,7 @@ ACTIVE_STATUS_DIRECTORIES = {
 }
 
 DEFAULT_MIN_POLLING_INTERVAL = 0.5
+DEFAULT_SEND_STDOUT = False
 
 
 class StatefulManagerProxy(ManagerProxy):
@@ -109,6 +117,25 @@ class StatefulManagerProxy(ManagerProxy):
         self.active_jobs = ActiveJobs.from_manager(manager)
         self.__state_change_callback = self._default_status_change_callback
         self.__monitor = None
+        self.send_stdout = bool(
+            manager_options.get("send_stdout_update", DEFAULT_SEND_STDOUT)
+        )
+        self._live_output: Optional[LiveOutputReporter] = None
+        if self.send_stdout:
+            self._live_output = LiveOutputReporter(
+                manager,
+                interval=float(
+                    manager_options.get("stdout_update_interval", DEFAULT_STDOUT_INTERVAL)
+                ),
+                timeout=float(
+                    manager_options.get("stdout_update_timeout", DEFAULT_STDOUT_TIMEOUT)
+                ),
+                chunk_size=int(
+                    manager_options.get("stdout_update_chunk_size", DEFAULT_STDOUT_CHUNK_SIZE)
+                ),
+                maximum_stream_size=getattr(manager, "maximum_stream_size", -1),
+                name=manager.name,
+            )
 
     def set_state_change_callback(
         self,
@@ -144,6 +171,22 @@ class StatefulManagerProxy(ManagerProxy):
     @property
     def name(self) -> str:
         return self._proxied_manager.name
+
+    def is_live_stdout_update(self, job_id: str) -> bool:
+        """Whether this job's streams were already delivered to Galaxy.
+
+        Only true once a live update for ``job_id`` has actually been accepted
+        by Galaxy. Enabling ``send_stdout_update`` is not enough: if every POST
+        failed, the completion status must still carry the streams or the
+        output would be lost entirely.
+        """
+        if not self.send_stdout:
+            return False
+        try:
+            job_directory = self._proxied_manager.job_directory(job_id)
+            return load_live_output_state(job_directory)["delivered"]
+        except Exception:
+            return False
 
     def setup_job(self, *args, **kwargs) -> str:
         job_id = self._proxied_manager.setup_job(*args, **kwargs)
@@ -245,6 +288,22 @@ class StatefulManagerProxy(ManagerProxy):
     def handle_failure_before_launch(self, job_id: str) -> None:
         self.__state_change_callback(status.FAILED, job_id)
 
+    def _watch_live_output(self, job_id: str) -> None:
+        if self._live_output is None:
+            return
+        try:
+            self._live_output.watch(job_id)
+        except Exception:
+            log.exception("Failed to start live output updates for job %s", job_id)
+
+    def _finish_live_output(self, job_id: str) -> None:
+        if self._live_output is None:
+            return
+        try:
+            self._live_output.finish(job_id)
+        except Exception:
+            log.exception("Failed to finish live output updates for job %s", job_id)
+
     def get_status(self, job_id: str) -> "StateLiteral":
         """Compute status used proxied manager and handle state transitions
         and track additional state information needed.
@@ -255,6 +314,10 @@ class StatefulManagerProxy(ManagerProxy):
 
         with job_directory.lock("status"):
             proxy_status, state_change = self.__proxy_status(job_directory, job_id)
+            if state_change == "to_running":
+                # Under the status lock, so no other get_status call can see
+                # the job complete (and finish its live output) before this.
+                self._watch_live_output(job_id)
 
         if state_change == "to_complete":
             self.__handle_terminal_status(job_id, proxy_status)
@@ -263,7 +326,6 @@ class StatefulManagerProxy(ManagerProxy):
             self.__deactivate(job_id)
         elif state_change == "to_running":
             self.__state_change_callback(status.RUNNING, job_id)
-
         return self.__status(job_directory, proxy_status)
 
     def __proxy_status(
@@ -330,6 +392,8 @@ class StatefulManagerProxy(ManagerProxy):
         if needs_postprocessing:
             # Postprocessing stages outputs before sending the terminal callback.
             self.__handle_postprocessing(job_id, proxy_status)
+        elif self._live_output is not None:
+            self._live_output.forget(job_id)
 
     def __deactivate(self, job_id: str) -> None:
         self.active_jobs.deactivate_job(job_id)
@@ -350,6 +414,7 @@ class StatefulManagerProxy(ManagerProxy):
             job_directory = self._proxied_manager.job_directory(job_id)
             was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
             try:
+                self._finish_live_output(job_id)
                 postprocess_success = postprocess(
                     job_directory, self.__postprocess_action_executor, was_cancelled
                 )
@@ -377,6 +442,8 @@ class StatefulManagerProxy(ManagerProxy):
                 log.exception(
                     "Failed to shutdown job monitor for manager %s" % self.name
                 )
+        if self._live_output is not None:
+            self._live_output.shutdown(timeout)
         super().shutdown(timeout)
 
     def recover_active_jobs(self) -> None:
@@ -429,17 +496,34 @@ class StatefulManagerProxy(ManagerProxy):
                 self.__recover_postprocessing(job_id)
 
         recover_method = getattr(self._proxied_manager, "_recover_active_job", None)
-        if recover_method is None:
-            return
+        if recover_method is not None:
+            for job_id in self.active_jobs.active_job_ids(
+                active_status=ACTIVE_STATUS_LAUNCHED
+            ):
+                try:
+                    recover_method(job_id)
+                except Exception:
+                    log.exception("Failed to recover active job %s" % job_id)
+                    self.__handle_recovery_problem(job_id)
 
+        self.__recover_live_output()
+
+    def __recover_live_output(self) -> None:
+        """Resume live output for jobs that were running before a restart.
+
+        The ``to_running`` transition only fires once per job, so without this
+        jobs already running when Pulsar restarts would get no more updates.
+        """
+        if self._live_output is None:
+            return
         for job_id in self.active_jobs.active_job_ids(
             active_status=ACTIVE_STATUS_LAUNCHED
         ):
-            try:
-                recover_method(job_id)
-            except Exception:
-                log.exception("Failed to recover active job %s" % job_id)
-                self.__handle_recovery_problem(job_id)
+            job_directory = self._proxied_manager.job_directory(job_id)
+            if job_directory.has_metadata(JOB_METADATA_RUNNING) and not job_directory.has_metadata(
+                JOB_FILE_FINAL_STATUS
+            ):
+                self._watch_live_output(job_id)
 
     def __recover_postprocessing(self, job_id: str) -> None:
         """Resume a job interrupted after it reached a terminal status."""
@@ -582,6 +666,7 @@ class ManagerMonitor:
                 )
         iteration_end = datetime.datetime.now()
         iteration_length = iteration_end - iteration_start
+
         if iteration_length < self.stateful_manager.min_polling_interval:
             to_sleep = self.stateful_manager.min_polling_interval - iteration_length
             microseconds = to_sleep.microseconds + (

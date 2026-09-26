@@ -148,6 +148,16 @@ class ManagerProxy:
     def job_stderr_contents(self, *args, **kwargs) -> bytes:
         return self._proxied_manager.job_stderr_contents(*args, **kwargs)
 
+    def is_live_stdout_update(self, job_id: str) -> bool:
+        """ Optional.
+         Whether this job's streams were already delivered to Galaxy live.
+        """
+        try:
+            # only present in stateful manager currently
+            return self._proxied_manager.is_live_stdout_update(job_id)
+        except AttributeError:
+            return False
+
     def kill(self, *args, **kwargs) -> None:
         return self._proxied_manager.kill(*args, **kwargs)
 
