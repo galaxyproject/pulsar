@@ -18,10 +18,16 @@ from pulsar.client import (
 )
 from pulsar.client.staging import PulsarOutputs
 from pulsar.client.staging.down import ResultsCollector
+from pulsar.managers.util.retry import RetryActionExecutor
+from .metrics import (
+    POSTPROCESS,
+    record_transfer,
+    transfer_metrics_file_name,
+    TransferMetrics,
+)
 
 if TYPE_CHECKING:
     from pulsar.managers.base import JobDirectory
-    from pulsar.managers.util.retry import RetryActionExecutor
 
 log = logging.getLogger(__name__)
 
@@ -63,17 +69,48 @@ def __collect_outputs(
             staging_config["client_outputs"]
         )
         pulsar_outputs = __pulsar_outputs(job_directory)
-        output_collector = PulsarServerOutputCollector(
-            job_directory, action_executor, was_cancelled
+        with record_transfer(job_directory, POSTPROCESS) as metrics:
+            output_collector = PulsarServerOutputCollector(
+                job_directory, action_executor, was_cancelled, metrics
+            )
+            results_collector = ResultsCollector(
+                output_collector, file_action_mapper, client_outputs, pulsar_outputs
+            )
+            collection_failure_exceptions = list(results_collector.collect())
+        __stage_out_transfer_metrics(
+            job_directory, file_action_mapper, client_outputs, was_cancelled
         )
-        results_collector = ResultsCollector(
-            output_collector, file_action_mapper, client_outputs, pulsar_outputs
-        )
-        collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
             log.warn("Failures collecting results %s" % collection_failure_exceptions)
             collected = False
     return collected
+
+
+def __stage_out_transfer_metrics(
+    job_directory: "JobDirectory",
+    file_action_mapper: "action_mapper.FileActionMapper",
+    client_outputs: "staging.ClientOutputs",
+    was_cancelled,
+) -> None:
+    """Stage out metrics recorded after output collection, on a best effort basis."""
+    metadata_directory = client_outputs.metadata_directory
+    if not metadata_directory:
+        return
+    name = transfer_metrics_file_name(POSTPROCESS)
+    try:
+        action = file_action_mapper.action(
+            {"path": os.path.join(metadata_directory, name)}, "output_metadata"
+        )
+        if action.staging_action_local:
+            # Galaxy pulls the metadata directory itself, and this file is in it by now.
+            return
+        # No retries: the job's own retry budget must not hold up its terminal state for metrics.
+        collector = PulsarServerOutputCollector(
+            job_directory, RetryActionExecutor(), was_cancelled
+        )
+        collector.collect_output(None, "output_metadata", action, name)
+    except Exception:
+        log.warning("Failed to stage out Pulsar transfer metrics", exc_info=True)
 
 
 def realized_dynamic_file_sources(
@@ -105,22 +142,20 @@ class PulsarServerOutputCollector:
         job_directory: "JobDirectory",
         action_executor: "RetryActionExecutor",
         was_cancelled: Callable[[], Optional[bool]],
+        metrics: Optional[TransferMetrics] = None,
     ):
         self.job_directory = job_directory
         self.action_executor = action_executor
         self.was_cancelled = was_cancelled
+        self.metrics = metrics
 
-    # TODO what is results_collector?
-    # PulsarServerOutputCollector is used above in __collect_outputs
-    # as first argument in ResultsCollector
-    # there it is used only in a method with different signature:
-    # .collect_output(self, output_type, action, name)
     def collect_output(self, results_collector, output_type, action, name):
         def action_if_not_cancelled():
             if self.was_cancelled():
                 log.info(f"Skipped output collection '{name}', job is cancelled")
-                return
+                return False
             action.write_from_path(pulsar_path)
+            return True
 
         # Not using input path, this is because action knows it path
         # in this context.
@@ -134,7 +169,9 @@ class PulsarServerOutputCollector:
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
         description = f"staging out file {pulsar_path} via {action}"
-        self.action_executor.execute(action_if_not_cancelled, description)
+        transferred = self.action_executor.execute(action_if_not_cancelled, description)
+        if self.metrics is not None and action.staging_needed and transferred:
+            self.metrics.record_file(pulsar_path)
 
 
 def __pulsar_outputs(job_directory: "JobDirectory") -> PulsarOutputs:
