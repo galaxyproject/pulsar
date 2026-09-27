@@ -8,8 +8,8 @@ from os.path import (
     relpath,
 )
 
+from pulsar.shared import COMMAND_VERSION_FILENAME
 from ..action_mapper import FileActionMapper
-from ..staging import COMMAND_VERSION_FILENAME
 from ..transport.transient import (
     http_status_code,
     is_transport_error,
