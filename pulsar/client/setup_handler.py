@@ -5,6 +5,7 @@ from pulsar import __version__ as pulsar_version
 from .util import filter_destination_params
 
 REMOTE_SYSTEM_PROPERTY_PREFIX = "remote_property_"
+REMOTE_PULSAR_VERSION_PARAM = "remote_pulsar_version"
 
 
 def build(client, destination_args):
@@ -30,6 +31,11 @@ class LocalSetupHandler:
     Remote system properties (such as galaxy_home) can be specified in
     destination args by prefixing property with remote_property_ (e.g.
     remote_property_galaxy_home).
+
+    The remote Pulsar is never contacted, so its version is unknown unless
+    declared with remote_pulsar_version. ``pulsar_version_source`` in the job
+    config tells Galaxy which it got - ``client`` means ``pulsar_version`` is
+    just this client library's version.
     """
 
     def __init__(self, client, destination_args):
@@ -39,6 +45,7 @@ class LocalSetupHandler:
         self.system_properties = system_properties
         self.jobs_directory = destination_args["jobs_directory"]
         self.assign_ids = destination_args.get("assign_ids", "galaxy")
+        self.remote_pulsar_version = destination_args.get(REMOTE_PULSAR_VERSION_PARAM)
 
     def setup(self, job_id, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
         if self.assign_ids == "uuid":
@@ -48,7 +55,7 @@ class LocalSetupHandler:
         if self.client.job_id != job_id:
             self.client.assign_job_id(job_id)
 
-        return build_job_config(
+        job_config = build_job_config(
             job_id=job_id,
             job_directory=self.client.job_directory,
             system_properties=self.system_properties,
@@ -56,6 +63,14 @@ class LocalSetupHandler:
             tool_version=tool_version,
             preserve_galaxy_python_environment=preserve_galaxy_python_environment,
         )
+        # pulsar_version stays populated so Galaxy releases that predate
+        # pulsar_version_source keep passing their minimum version check.
+        if self.remote_pulsar_version:
+            job_config["pulsar_version"] = str(self.remote_pulsar_version)
+            job_config["pulsar_version_source"] = "destination"
+        else:
+            job_config["pulsar_version_source"] = "client"
+        return job_config
 
     @property
     def local(self):
