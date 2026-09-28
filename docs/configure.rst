@@ -324,6 +324,12 @@ with proxy parameters::
           # Remote job staging directory
           jobs_directory: /data/pulsar/staging
 
+With ``jobs_directory`` set, Galaxy builds the job setup itself and never asks
+the remote Pulsar for its version, so its minimum Pulsar version checks can't
+be applied. Set ``remote_pulsar_version`` (e.g. ``remote_pulsar_version:
+0.15.16``) on the environment to have Galaxy check against the version Pulsar
+is running.
+
 .. note::
 
     The ``relay_topic_prefix`` must match on both Galaxy and Pulsar sides.

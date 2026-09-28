@@ -7,6 +7,7 @@ from unittest.mock import (
     PropertyMock,
 )
 
+from pulsar import __version__ as pulsar_version
 from pulsar.client.client import (
     JobClient,
     TesPollingCoexecutionJobClient,
@@ -126,6 +127,23 @@ def test_setup():
     assert setup_response['outputs_directory'] == "C:\\outputs"
     assert setup_response['path_separator'] == '\\'
 
+
+
+def test_local_setup_reports_version_came_from_client():
+    job_config = _jobs_directory_client().setup()
+    assert job_config["pulsar_version"] == pulsar_version
+    assert job_config["pulsar_version_source"] == "client"
+
+
+def test_local_setup_reports_declared_remote_version():
+    job_config = _jobs_directory_client(remote_pulsar_version="0.15.2").setup()
+    assert job_config["pulsar_version"] == "0.15.2"
+    assert job_config["pulsar_version_source"] == "destination"
+
+
+def _jobs_directory_client(**destination_params):
+    interface = HttpPulsarInterface({"url": "http://test:803/"}, TestTransport(None))
+    return JobClient({"jobs_directory": "/pulsar/staging", **destination_params}, "543", interface)
 
 def test_launch():
     """ Test the launch method of client. """
