@@ -128,6 +128,7 @@ def test_setup():
     assert setup_response['working_directory'] == "C:\\home\\dir"
     assert setup_response['outputs_directory'] == "C:\\outputs"
     assert setup_response['path_separator'] == '\\'
+    assert setup_response['pulsar_version_source'] == "remote"
 
 
 def test_local_setup_reports_version_came_from_client():
