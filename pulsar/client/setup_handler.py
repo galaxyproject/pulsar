@@ -90,7 +90,11 @@ class RemoteSetupHandler:
 
     def setup(self, **setup_args):
         setup_args["use_metadata"] = "true"
-        return self.client.remote_setup(**setup_args)
+        job_config = self.client.remote_setup(**setup_args)
+        # Always say so, so Galaxy can treat a missing key as coming from a
+        # client that predates pulsar_version_source rather than trusting it.
+        job_config.setdefault("pulsar_version_source", "remote")
+        return job_config
 
     @property
     def local(self):
