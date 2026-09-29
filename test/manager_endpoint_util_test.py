@@ -133,17 +133,20 @@ def test_completed_status_preserves_short_tool_streams_and_metadata():
     assert result["job_directory_contents"] == ["working", "metadata", "outputs"]
 
 
-def test_completed_status_caps_tool_streams_at_64_kib():
+def test_completed_status_caps_tool_streams_at_64_kib_keeping_the_end():
     stream_limit = manager_endpoint_util.MAXIMUM_STATUS_STREAM_SIZE
     manager = _completed_manager(
-        stdout=b"o" * (stream_limit + 1),
-        stderr=b"e" * (stream_limit + 1),
+        stdout=b"start" + b"o" * stream_limit + b"end",
+        stderr=b"start" + b"e" * stream_limit + b"end",
     )
 
     result = manager_endpoint_util.full_status(manager, "complete", "j1")
 
-    assert result["stdout"] == "o" * stream_limit
-    assert result["stderr"] == "e" * stream_limit
+    for stream in (result["stdout"], result["stderr"]):
+        assert len(stream) == stream_limit
+        assert stream.startswith("start")
+        assert "\n..\n" in stream
+        assert stream.endswith("end")
 
 
 def test_completed_status_omits_tool_streams_already_delivered_live():

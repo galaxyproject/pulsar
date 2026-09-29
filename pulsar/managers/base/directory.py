@@ -67,35 +67,23 @@ class DirectoryBaseManager(BaseManager):
 
     def stdout_contents(self, job_id: str) -> bytes:
         try:
-            return self._read_job_file(
-                job_id, TOOL_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size
-            )
+            return self._read_job_stream(job_id, TOOL_FILE_STANDARD_OUTPUT)
         except FileNotFoundError:
             # Could be old job finishing up, drop in 2024?
-            return self._read_job_file(
-                job_id, "tool_stdout", size=self.maximum_stream_size, default=b""
-            )
+            return self._read_job_stream(job_id, "tool_stdout", default=b"")
 
     def stderr_contents(self, job_id: str) -> bytes:
         try:
-            return self._read_job_file(
-                job_id, TOOL_FILE_STANDARD_ERROR, size=self.maximum_stream_size
-            )
+            return self._read_job_stream(job_id, TOOL_FILE_STANDARD_ERROR)
         except FileNotFoundError:
             # Could be old job finishing up, drop in 2024?
-            return self._read_job_file(
-                job_id, "tool_stderr", size=self.maximum_stream_size, default=b""
-            )
+            return self._read_job_stream(job_id, "tool_stderr", default=b"")
 
     def job_stdout_contents(self, job_id: str) -> bytes:
-        return self._read_job_file(
-            job_id, JOB_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size, default=b""
-        )
+        return self._read_job_stream(job_id, JOB_FILE_STANDARD_OUTPUT, default=b"")
 
     def job_stderr_contents(self, job_id: str) -> bytes:
-        return self._read_job_file(
-            job_id, JOB_FILE_STANDARD_ERROR, size=self.maximum_stream_size, default=b""
-        )
+        return self._read_job_stream(job_id, JOB_FILE_STANDARD_ERROR, default=b"")
 
     def read_command_line(self, job_id: str) -> Any:
         command_line = self._read_job_file(job_id, JOB_FILE_COMMAND_LINE)
@@ -137,6 +125,9 @@ class DirectoryBaseManager(BaseManager):
 
     def _read_job_file(self, job_id: str, name: str, **kwds) -> bytes:
         return self._job_directory(job_id).read_file(name, **kwds)
+
+    def _read_job_stream(self, job_id: str, name: str, default: Optional[bytes] = None) -> bytes:
+        return self._job_directory(job_id).read_stream(name, self.maximum_stream_size, default=default)
 
     def _write_job_file(self, job_id: str, name: str, contents) -> str:
         return self._job_directory(job_id).write_file(name, contents)

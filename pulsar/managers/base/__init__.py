@@ -40,6 +40,12 @@ from typing import (
 )
 from uuid import uuid4
 
+from galaxy.util import (
+    shrink_stream_by_size,
+    shrink_string_by_size,
+    smart_str,
+)
+
 from pulsar import locks
 from pulsar.client.job_directory import (
     get_mapped_file,
@@ -76,6 +82,14 @@ ID_ASSIGNER = {
 }
 
 log = logging.getLogger(__name__)
+
+# Same shape as Galaxy's own trimming of job streams (galaxy.util.shrink_and_unicodify).
+STREAM_SHRINK_KWDS: Dict[str, Any] = {"join_by": "\n..\n", "left_larger": True, "beginning_on_size_error": True}
+
+
+def shrink_stream_text(text: str, size: int) -> str:
+    """Shrink decoded stream contents to ``size`` characters, keeping start and end."""
+    return shrink_string_by_size(text, size, **STREAM_SHRINK_KWDS)
 
 
 def get_id_assigner(assign_ids):
@@ -334,6 +348,22 @@ class JobDirectory(RemoteJobDirectory):
         finally:
             if job_file:
                 job_file.close()
+
+    def read_stream(self, name: str, size: int, default: Optional[bytes] = None) -> bytes:
+        """Read a stdout/stderr file, keeping its start and end if longer than ``size``.
+
+        The end of a stream is usually where a failing tool says why.
+        """
+        try:
+            with open(self._job_file(name), "rb") as stream:
+                if size < 0 or os.fstat(stream.fileno()).st_size <= size:
+                    return stream.read()
+                # Returns text, or raw bytes when size is too small to join start and end.
+                return smart_str(shrink_stream_by_size(stream, size, **STREAM_SHRINK_KWDS))
+        except Exception:
+            if default is not None:
+                return default
+            raise
 
     def write_file(self, name: str, contents: Union[str, bytes], atomic: bool = False) -> str:
         path = self._job_file(name)
