@@ -128,7 +128,6 @@ def test_setup():
     assert setup_response['path_separator'] == '\\'
 
 
-
 def test_local_setup_reports_version_came_from_client():
     job_config = _jobs_directory_client().setup()
     assert job_config["pulsar_version"] == pulsar_version
@@ -144,6 +143,7 @@ def test_local_setup_reports_declared_remote_version():
 def _jobs_directory_client(**destination_params):
     interface = HttpPulsarInterface({"url": "http://test:803/"}, TestTransport(None))
     return JobClient({"jobs_directory": "/pulsar/staging", **destination_params}, "543", interface)
+
 
 def test_launch():
     """ Test the launch method of client. """
