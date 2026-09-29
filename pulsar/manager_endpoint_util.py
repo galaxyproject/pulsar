@@ -4,6 +4,7 @@ and message queue.
 
 import logging
 import os
+from io import BytesIO
 
 from galaxy.util import unicodify
 
@@ -13,7 +14,7 @@ from pulsar.managers import (
     PULSAR_UNKNOWN_RETURN_CODE,
     status,
 )
-from pulsar.managers.base import shrink_stream_text
+from pulsar.managers.base import shrink_stream
 from pulsar.managers.staging import realized_dynamic_file_sources
 from pulsar.managers.stateful import ACTIVE_STATUS_PREPROCESSING
 
@@ -51,8 +52,8 @@ def __job_complete_dict(complete_status, manager, job_id):
     return_code = manager.return_code(job_id)
     if return_code == PULSAR_UNKNOWN_RETURN_CODE:
         return_code = None
-    stdout_contents = shrink_stream_text(unicodify(manager.stdout_contents(job_id)), MAXIMUM_STATUS_STREAM_SIZE)
-    stderr_contents = shrink_stream_text(unicodify(manager.stderr_contents(job_id)), MAXIMUM_STATUS_STREAM_SIZE)
+    stdout_contents = unicodify(shrink_stream(BytesIO(manager.stdout_contents(job_id)), MAXIMUM_STATUS_STREAM_SIZE))
+    stderr_contents = unicodify(shrink_stream(BytesIO(manager.stderr_contents(job_id)), MAXIMUM_STATUS_STREAM_SIZE))
     job_stdout_contents = unicodify(manager.job_stdout_contents(job_id).decode("utf-8"))
     job_stderr_contents = unicodify(manager.job_stderr_contents(job_id).decode("utf-8"))
     job_directory = manager.job_directory(job_id)

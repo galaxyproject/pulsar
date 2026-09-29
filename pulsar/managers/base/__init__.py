@@ -42,7 +42,6 @@ from uuid import uuid4
 
 from galaxy.util import (
     shrink_stream_by_size,
-    shrink_string_by_size,
     smart_str,
 )
 
@@ -87,9 +86,10 @@ log = logging.getLogger(__name__)
 STREAM_SHRINK_KWDS: Dict[str, Any] = {"join_by": "\n..\n", "left_larger": True, "beginning_on_size_error": True}
 
 
-def shrink_stream_text(text: str, size: int) -> str:
-    """Shrink decoded stream contents to ``size`` characters, keeping start and end."""
-    return shrink_string_by_size(text, size, **STREAM_SHRINK_KWDS)
+def shrink_stream(stream: IO[bytes], size: int) -> bytes:
+    """Read a binary stream, shrunk to ``size`` bytes keeping its start and end."""
+    # Returns text, or raw bytes when size is too small to join start and end.
+    return smart_str(shrink_stream_by_size(stream, size, **STREAM_SHRINK_KWDS))
 
 
 def get_id_assigner(assign_ids):
@@ -358,8 +358,7 @@ class JobDirectory(RemoteJobDirectory):
             with open(self._job_file(name), "rb") as stream:
                 if size < 0 or os.fstat(stream.fileno()).st_size <= size:
                     return stream.read()
-                # Returns text, or raw bytes when size is too small to join start and end.
-                return smart_str(shrink_stream_by_size(stream, size, **STREAM_SHRINK_KWDS))
+                return shrink_stream(stream, size)
         except Exception:
             if default is not None:
                 return default

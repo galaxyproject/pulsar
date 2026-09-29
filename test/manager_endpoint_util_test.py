@@ -149,6 +149,18 @@ def test_completed_status_caps_tool_streams_at_64_kib_keeping_the_end():
         assert stream.endswith("end")
 
 
+
+def test_completed_status_caps_multibyte_tool_streams_by_bytes():
+    stream_limit = manager_endpoint_util.MAXIMUM_STATUS_STREAM_SIZE
+    two_byte_stream = "\u00e9" * stream_limit  # twice the limit once UTF-8 encoded
+    manager = _completed_manager(stdout=two_byte_stream.encode("utf-8"))
+
+    result = manager_endpoint_util.full_status(manager, "complete", "j1")
+
+    # A split two-byte character decodes to one 3-byte replacement character at each cut.
+    assert len(result["stdout"].encode("utf-8")) <= stream_limit + 4
+    assert "\n..\n" in result["stdout"]
+
 def test_completed_status_omits_tool_streams_already_delivered_live():
     result = manager_endpoint_util.full_status(
         _completed_manager(live_stdout_update=True), "complete", "j1"
