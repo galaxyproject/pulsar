@@ -16,11 +16,11 @@ History
   out stalled requests (``PULSAR_TUS_TIMEOUT``). A failed TUS upload of a
   working-directory output now fails the job instead of only logging a
   warning. `Pull Request 549`_
-* Stop presenting the client library's version as the remote Pulsar version for
-  ``jobs_directory`` destinations. The job config now carries
-  ``pulsar_version_source`` (``client``, or ``destination`` when the new
-  ``remote_pulsar_version`` destination parameter declares it) so Galaxy can
-  tell a real version from a guess. `Issue 135`_
+* Add a ``remote_pulsar_version`` destination parameter to declare the remote
+  Pulsar's version for ``jobs_directory`` destinations, which never contact
+  Pulsar to learn it. Job configs now record where ``pulsar_version`` came
+  from, so Galaxy no longer mistakes the client library's version for the
+  remote's. `Issue 135`_
 
 
 
