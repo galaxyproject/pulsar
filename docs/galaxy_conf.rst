@@ -88,6 +88,30 @@ making use of the HTTP transport method:
 .. literalinclude:: files/job_conf_sample_mq_rsync.yml
    :language: yaml
 
+.. _remote_pulsar_version:
+
+Declaring the Remote Pulsar Version
+```````````````````````````````````
+
+When a Pulsar environment in Galaxy's ``job_conf.yml`` sets ``jobs_directory``
+(as message queue and relay environments typically do), Galaxy builds the job
+setup itself and never asks the remote Pulsar for its version, so its minimum
+Pulsar version checks can't be applied. To have Galaxy check against the version
+the remote Pulsar is running, set ``remote_pulsar_version`` on that same
+environment in Galaxy's ``job_conf.yml`` (nothing changes on the Pulsar side):
+
+.. code-block:: yaml
+
+    execution:
+      environments:
+        pulsar_mq:
+          runner: pulsar_mq
+          jobs_directory: /data/pulsar/staging
+          remote_pulsar_version: "0.15.16"
+
+Quote the value - YAML reads an unquoted ``0.20`` as the number ``0.2``, so
+Pulsar rejects non-string values. Update it when the remote Pulsar is upgraded.
+
 Targeting GCP Batch, Kubernetes, or TES
 ```````````````````````````````````````
 

@@ -9,11 +9,11 @@ History
 0.15.16.dev0
 ---------------------
 
-* Stop presenting the client library's version as the remote Pulsar version for
-  ``jobs_directory`` destinations. The job config now carries
-  ``pulsar_version_source`` (``client``, or ``destination`` when the new
-  ``remote_pulsar_version`` destination parameter declares it) so Galaxy can
-  tell a real version from a guess. `Issue 135`_
+* Add a ``remote_pulsar_version`` destination parameter to declare the remote
+  Pulsar's version for ``jobs_directory`` destinations, which never contact
+  Pulsar to learn it. Job configs now record where ``pulsar_version`` came
+  from, so Galaxy no longer mistakes the client library's version for the
+  remote's. `Issue 135`_
 
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
