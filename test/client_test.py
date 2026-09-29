@@ -7,6 +7,8 @@ from unittest.mock import (
     PropertyMock,
 )
 
+import pytest
+
 from pulsar import __version__ as pulsar_version
 from pulsar.client.client import (
     JobClient,
@@ -138,6 +140,12 @@ def test_local_setup_reports_declared_remote_version():
     job_config = _jobs_directory_client(remote_pulsar_version="0.15.2").setup()
     assert job_config["pulsar_version"] == "0.15.2"
     assert job_config["pulsar_version_source"] == "destination"
+
+
+def test_local_setup_rejects_unquoted_remote_version():
+    # YAML reads an unquoted 0.20 as 0.2, so the declared version is already lost.
+    with pytest.raises(ValueError, match="remote_pulsar_version must be a string"):
+        _jobs_directory_client(remote_pulsar_version=0.2)
 
 
 def _jobs_directory_client(**destination_params):

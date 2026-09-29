@@ -45,7 +45,7 @@ class LocalSetupHandler:
         self.system_properties = system_properties
         self.jobs_directory = destination_args["jobs_directory"]
         self.assign_ids = destination_args.get("assign_ids", "galaxy")
-        self.remote_pulsar_version = destination_args.get(REMOTE_PULSAR_VERSION_PARAM)
+        self.remote_pulsar_version = _remote_pulsar_version(destination_args)
 
     def setup(self, job_id, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
         if self.assign_ids == "uuid":
@@ -66,7 +66,7 @@ class LocalSetupHandler:
         # pulsar_version stays populated so Galaxy releases that predate
         # pulsar_version_source keep passing their minimum version check.
         if self.remote_pulsar_version:
-            job_config["pulsar_version"] = str(self.remote_pulsar_version)
+            job_config["pulsar_version"] = self.remote_pulsar_version
             job_config["pulsar_version_source"] = "destination"
         else:
             job_config["pulsar_version_source"] = "client"
@@ -97,6 +97,17 @@ class RemoteSetupHandler:
         """
         """
         return False
+
+
+def _remote_pulsar_version(destination_args):
+    remote_pulsar_version = destination_args.get(REMOTE_PULSAR_VERSION_PARAM)
+    if remote_pulsar_version is None or isinstance(remote_pulsar_version, str):
+        return remote_pulsar_version
+    # YAML reads an unquoted 0.20 as the float 0.2, losing digits we can't recover.
+    raise ValueError(
+        f"{REMOTE_PULSAR_VERSION_PARAM} must be a string, got {remote_pulsar_version!r} - "
+        f"quote it in the job configuration (e.g. {REMOTE_PULSAR_VERSION_PARAM}: \"0.15.16\")"
+    )
 
 
 def build_job_config(job_id, job_directory, system_properties={}, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
