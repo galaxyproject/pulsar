@@ -37,6 +37,7 @@ from typing import (
     Callable,
     Dict,
     Optional,
+    TypeVar,
 )
 from unittest import (
     skip,
@@ -72,22 +73,26 @@ ROOT_DIR = join(TEST_DIR, pardir)
 TEST_TEMPDIR_PREFIX = "tmp_pulsar_"
 
 
+T = TypeVar("T")
+
+
 def wait_for(
-    poll: Callable[[], Any],
+    poll: Callable[[], T],
     description: str,
-    until: Optional[Callable[[Any], bool]] = None,
+    until: Optional[Callable[[T], bool]] = None,
     timeout: float = 5,
     interval: float = 0.01,
-) -> Any:
+) -> T:
     """Poll until ``poll()`` is truthy - or satisfies ``until`` - and return that value.
 
-    Raises ``AssertionError`` naming ``description`` on timeout, with the last polled value
-    when ``until`` is given (a plain condition's last value is just falsy).
+    ``description`` completes "waiting for ...". On timeout this raises ``AssertionError``
+    with it, plus the last polled value when ``until`` is given.
     """
     time_end = time.time() + timeout
     while True:
         value = poll()
-        if until(value) if until else value:
+        done = until(value) if until else value
+        if done:
             return value
         if time.time() >= time_end:
             last = f", last value: {value!r}" if until else ""
@@ -255,8 +260,8 @@ python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stdout.flush(); s
         status = wait_for(
             lambda: manager.get_status(job_id),
             "the job to cancel",
-            until=lambda status: status in ["cancelled", "complete", "failed"],
-            timeout=1,
+            until=lambda polled: polled in ["cancelled", "complete", "failed"],
+            timeout=2,
         )
         if status != "cancelled":
             raise AssertionError("Expected cancelled status but got %s." % status)

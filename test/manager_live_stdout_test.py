@@ -490,7 +490,7 @@ def test_one_daemon_thread_serves_all_jobs(manager, poster):
         _write(_job_directory(manager, job_id), TOOL_FILE_STANDARD_OUTPUT, job_id.encode())
         assert reporter.watch(job_id)
     try:
-        wait_for(lambda: len(poster.posts), "a post per job", until=lambda posts: posts == 3)
+        wait_for(lambda: len(poster.posts), "three posts", until=lambda posts: posts == 3)
         threads = [t for t in threading.enumerate() if "live_output" in t.name]
         assert threads == [reporter._thread]
         assert reporter._thread.daemon
@@ -559,7 +559,7 @@ def test_running_job_streams_output_without_polling_the_scheduler(poster):
             assert proxy.get_status(job_id) == status.RUNNING
             polls = manager.status_calls
 
-            wait_for(lambda: poster.sent("tool_stdout"), "live stdout", until=lambda sent: sent == b"live ")
+            wait_for(lambda: poster.sent("tool_stdout"), "the live stdout post", until=lambda sent: sent == b"live ")
             time.sleep(0.2)  # several update intervals
             assert manager.status_calls == polls
 
@@ -607,14 +607,14 @@ def test_running_jobs_resume_streaming_after_a_restart(poster):
             _write(job_directory, TOOL_FILE_STANDARD_OUTPUT, b"before ")
             manager.scripted_status = status.RUNNING
             proxy.get_status(job_id)
-            wait_for(lambda: poster.sent("tool_stdout"), "stdout before restart", until=lambda sent: sent == b"before ")
+            wait_for(lambda: poster.sent("tool_stdout"), "stdout posted before the restart", until=lambda sent: sent == b"before ")
 
         _write(job_directory, TOOL_FILE_STANDARD_OUTPUT, b"after")
         with _proxy(app) as (restarted, manager):
             restarted.recover_active_jobs()
             wait_for(
                 lambda: poster.sent("tool_stdout"),
-                "stdout after restart",
+                "stdout posted after the restart",
                 until=lambda sent: sent == b"before after",
             )
     finally:

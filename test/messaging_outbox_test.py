@@ -41,8 +41,8 @@ def test_enqueue_persists_and_publishes_on_happy_path(tmp_path):
     outbox.start()
     try:
         outbox.enqueue({"job_id": "j1", "status": "complete"})
-        wait_for(lambda: recorder.call_count, "publish calls", until=lambda n: n == 1)
-        wait_for(lambda: outbox.pending_count(), "pending updates", until=lambda n: n == 0)
+        wait_for(lambda: recorder.call_count, "one publish call", until=lambda n: n == 1)
+        wait_for(lambda: outbox.pending_count(), "the outbox to drain", until=lambda n: n == 0)
     finally:
         outbox.stop()
 
@@ -53,7 +53,7 @@ def test_enqueue_does_not_raise_when_publish_fails(tmp_path):
     outbox.start()
     try:
         outbox.enqueue({"job_id": "j1", "status": "complete"})
-        wait_for(lambda: outbox.pending_count(), "pending updates", until=lambda n: n == 1)
+        wait_for(lambda: outbox.pending_count(), "one pending update", until=lambda n: n == 1)
         assert any(f.endswith(".json") for f in os.listdir(str(tmp_path)))
     finally:
         outbox.stop()
@@ -65,7 +65,7 @@ def test_drain_retries_until_publish_succeeds(tmp_path):
     outbox.start()
     try:
         outbox.enqueue({"job_id": "j1", "status": "complete"})
-        wait_for(lambda: outbox.pending_count(), "pending updates", until=lambda n: n == 0, timeout=10)
+        wait_for(lambda: outbox.pending_count(), "the outbox to drain", until=lambda n: n == 0, timeout=10)
         assert recorder.call_count >= 4
     finally:
         outbox.stop()
@@ -78,7 +78,7 @@ def test_restart_replays_pending_entries(tmp_path):
     try:
         outbox1.enqueue({"job_id": "j1", "status": "complete"})
         outbox1.enqueue({"job_id": "j2", "status": "failed"})
-        wait_for(lambda: outbox1.pending_count(), "pending updates", until=lambda n: n == 2)
+        wait_for(lambda: outbox1.pending_count(), "two pending updates", until=lambda n: n == 2)
     finally:
         outbox1.stop()
 
@@ -86,7 +86,7 @@ def test_restart_replays_pending_entries(tmp_path):
     outbox2 = StatusUpdateOutbox(str(tmp_path), recorder2, drain_interval=0.05)
     outbox2.start()
     try:
-        wait_for(lambda: outbox2.pending_count(), "pending updates", until=lambda n: n == 0, timeout=10)
+        wait_for(lambda: outbox2.pending_count(), "the outbox to drain", until=lambda n: n == 0, timeout=10)
         assert recorder2.call_count == 2
         delivered_ids = {p["job_id"] for p in recorder2.calls}
         assert delivered_ids == {"j1", "j2"}
@@ -103,7 +103,7 @@ def test_corrupt_entry_is_removed_and_does_not_block_drain(tmp_path):
     outbox.start()
     try:
         outbox.enqueue({"job_id": "j1", "status": "complete"})
-        wait_for(lambda: outbox.pending_count(), "pending updates", until=lambda n: n == 0, timeout=5)
+        wait_for(lambda: outbox.pending_count(), "the outbox to drain", until=lambda n: n == 0)
         assert recorder.call_count == 1
         assert not os.path.exists(bad_path)
     finally:
@@ -149,7 +149,7 @@ def test_build_status_outbox_creates_outbox_under_persistence_dir(tmp_path):
         expected_dir = os.path.join(str(tmp_path), "test-status-outbox")
         assert os.path.isdir(expected_dir)
         outbox.enqueue({"job_id": "j1", "status": "complete"})
-        wait_for(lambda: recorder.call_count, "publish calls", until=lambda n: n == 1)
+        wait_for(lambda: recorder.call_count, "one publish call", until=lambda n: n == 1)
     finally:
         outbox.stop()
 
@@ -165,7 +165,7 @@ def test_payload_round_trips_through_disk(tmp_path, payload):
     outbox.start()
     try:
         outbox.enqueue(payload)
-        wait_for(lambda: len(seen), "published payloads", until=lambda n: n == 1)
+        wait_for(lambda: len(seen), "one published payload", until=lambda n: n == 1)
         assert seen[0] == payload
     finally:
         outbox.stop()

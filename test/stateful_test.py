@@ -362,8 +362,9 @@ def _wait_for_callback(proxy, timeout=5):
 
 def _wait_for_postprocessing_index_cleared(proxy, timeout=5):
     wait_for(
-        lambda: _postprocessing_job_ids(proxy) == [],
+        lambda: _postprocessing_job_ids(proxy),
         "the postprocessing index to be cleared",
+        until=lambda job_ids: job_ids == [],
         timeout=timeout,
     )
 
