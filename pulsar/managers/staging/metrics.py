@@ -1,4 +1,4 @@
-"""Record file staging metrics for Galaxy's ``pulsar_transfer`` plugin."""
+"""Record file staging metrics for Galaxy's ``pulsar`` job metrics plugin."""
 
 import json
 import logging
@@ -19,14 +19,14 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-PLUGIN_TYPE = "pulsar_transfer"
+PLUGIN_TYPE = "pulsar"
 PREPROCESS = "preprocess"
 POSTPROCESS = "postprocess"
 
 
 def transfer_metrics_file_name(phase: str) -> str:
-    """Name Galaxy's ``pulsar_transfer`` plugin looks for this phase's metrics under."""
-    return f"{INSTRUMENT_FILE_PREFIX}_{PLUGIN_TYPE}_{phase}"
+    """Name Galaxy's ``pulsar`` job metrics plugin looks for this phase's metrics under."""
+    return f"{INSTRUMENT_FILE_PREFIX}_{PLUGIN_TYPE}_transfer_{phase}"
 
 
 class TransferMetrics:

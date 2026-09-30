@@ -1,4 +1,4 @@
-"""Tests for the transfer metrics Pulsar records for Galaxy's ``pulsar_transfer`` plugin."""
+"""Tests for the transfer metrics Pulsar records for Galaxy's ``pulsar`` job metrics plugin."""
 import json
 import os
 

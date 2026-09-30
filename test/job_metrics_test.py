@@ -7,7 +7,7 @@ from galaxy.job_metrics import JobMetrics
 from pulsar.job_metrics import build_job_metrics
 from .test_utils import temp_directory
 
-GALAXY_ONLY_PLUGIN = "pulsar_transfer"
+GALAXY_ONLY_PLUGIN = "pulsar"
 
 
 def _write(directory, name, contents):
@@ -78,4 +78,4 @@ def test_a_galaxy_side_plugin_never_instruments_the_job_script():
         instrumenter = metrics.default_job_instrumenter
         assert instrumenter.get_configured_plugin("core") is not None
         commands = instrumenter.pre_execute_commands(directory)
-        assert GALAXY_ONLY_PLUGIN not in commands
+        assert f"__instrument_{GALAXY_ONLY_PLUGIN}_" not in commands

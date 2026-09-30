@@ -9,7 +9,7 @@ History
 0.16.1.dev0
 ---------------------
 * Record preprocess and postprocess file transfer time, count, and bytes for
-  Galaxy's ``pulsar_transfer`` job metrics plugin. `Pull Request 518`_
+  Galaxy's ``pulsar`` job metrics plugin. `Pull Request 518`_
 * Skip unavailable job metrics plugins in Pulsar's shared configuration. `Pull Request 518`_
 * Fix the Ruff 0.17 datetime import-alias lint failures. `Pull Request 546`_
 
