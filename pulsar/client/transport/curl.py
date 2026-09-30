@@ -24,6 +24,8 @@ PYCURL_UNAVAILABLE_MESSAGE = \
 NO_SUCH_FILE_MESSAGE = "Attempt to post file %s to URL %s, but file does not exist."
 POST_FAILED_MESSAGE = "Failed to post_file properly for url %s, remote server returned status code of %s."
 GET_FAILED_MESSAGE = "Failed to get_file properly for url %s, remote server returned status code of %s."
+# Bounded explicitly: libcurl before 8.3 follows redirect loops forever by default.
+MAX_REDIRECTS = 5
 
 log = logging.getLogger(__name__)
 
@@ -82,7 +84,7 @@ def post_file(url, path):
 
 
 def get_size(url) -> int:
-    with requests.head(url, headers={"accept-encoding": "identity"}) as response:
+    with requests.head(url, headers={"accept-encoding": "identity"}, allow_redirects=True) as response:
         if response.status_code >= 299:
             log.warning("Response to HEAD request for '%s' with status code %s, cannot resume download", url, response.status_code)
             return -1
@@ -94,31 +96,38 @@ def get_size(url) -> int:
 
 
 def get_file(url, path: str):
-    success_codes = [200]
-    size = 0
+    resume_from = 0
     if os.path.exists(path):
         size = os.path.getsize(path)
         remote_size = get_size(url)
         if size and remote_size == size:
             # Already got the whole file, fixes https://github.com/galaxyproject/pulsar/issues/340
             return
-        if remote_size == -1:
-            # Don't know how large remote file is, so we'll have to start over
-            size = 0
-            buf = _open_output(path)
-        else:
-            # We got some data left to download
-            buf = _open_output(path, 'ab')
-            success_codes = [200, 206]
-    else:
-        # definitely a new download
-        buf = _open_output(path)
+        if remote_size != -1:
+            # We got some data left to download; with an unknown remote size we start over.
+            resume_from = size
+    try:
+        _download(url, path, resume_from)
+    except PulsarClientTransportError as exc:
+        if not (resume_from and exc.transport_code == pycurl.E_RANGE_ERROR):
+            raise
+        # The server ignores Range requests, so a partial file can never be completed.
+        log.info("server for %s cannot resume transfers, downloading it again", url)
+        _download(url, path, 0)
+
+
+def _download(url, path: str, resume_from: int):
+    success_codes = [200, 206] if resume_from else [200]
+    buf = _open_output(path, 'ab' if resume_from else 'wb')
     try:
         with _curl_object_for_url(url) as c:
             c.setopt(c.WRITEFUNCTION, buf.write)
-            if size > 0:
-                log.info('transfer of %s will resume at %s bytes', url, size)
-                c.setopt(c.RESUME_FROM, size)
+            # Galaxy may redirect staging requests (e.g. to a presigned object store URL).
+            c.setopt(c.FOLLOWLOCATION, 1)
+            c.setopt(c.MAXREDIRS, MAX_REDIRECTS)
+            if resume_from:
+                log.info('transfer of %s will resume at %s bytes', url, resume_from)
+                c.setopt(c.RESUME_FROM, resume_from)
             _perform(c)
             status_code = int(c.getinfo(HTTP_CODE))
             if status_code not in success_codes:

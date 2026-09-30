@@ -136,6 +136,68 @@ def test_curl_put_get():
         assert open(output).read() == "helloworld"
 
 
+class _RedirectApp:
+    """WSGI app that answers every request with a redirect to ``location``,
+    carrying a body so a transport that saves redirect bodies is caught."""
+
+    def __init__(self, location=None, status="302 Found"):
+        self.location = location
+        self.status = status
+
+    def __call__(self, environ, start_response):
+        start_response(self.status, [("Location", self.location), ("Content-Type", "text/plain")])
+        return [b"redirect body"]
+
+
+def _assert_get_file_follows_redirect(get_file_impl):
+    with files_server() as (server, directory), path_to_get_fixture(directory) as path:
+        target = f"{server.application_url}?path={path}"
+        with server_for_test_app(TestApp(_RedirectApp(target))) as redirector:
+            output = Path(directory, f"out_{uuid4()}")
+            get_file_impl(redirector.application_url, str(output))
+            assert output.read_text() == " Test123 "
+
+
+@skip_unless_module("pycurl")
+def test_curl_get_file_follows_redirect():
+    _assert_get_file_follows_redirect(get_file)
+
+
+def test_requests_get_file_follows_redirect():
+    _assert_get_file_follows_redirect(requests_get_file)
+
+
+@skip_unless_module("pycurl")
+def test_curl_get_file_redirect_loop_fails(tmp_path):
+    app = _RedirectApp()
+    with server_for_test_app(TestApp(app)) as redirector:
+        app.location = redirector.application_url
+        with pytest.raises(PulsarClientTransportError):
+            get_file(redirector.application_url, str(tmp_path / "out"))
+
+
+def test_get_size_follows_redirect():
+    with files_server() as (server, directory), path_to_get_fixture(directory) as path:
+        target = f"{server.application_url}?path={path}"
+        with server_for_test_app(TestApp(_RedirectApp(target))) as redirector:
+            assert curl_transport.get_size(redirector.application_url) == len(" Test123 ")
+
+
+@skip_unless_module("pycurl")
+def test_curl_get_file_resume_against_server_ignoring_range():
+    """A server that ignores Range answers a resumed request with the whole
+    file (200, not 206); that body must replace the partial prefix, not be
+    appended to it."""
+    with temp_directory() as directory, path_to_get_fixture(directory) as path:
+        # Like Galaxy's job-files API: repeat downloads allowed, Range ignored.
+        app = JobFilesApp(directory, allow_multiple_downloads=True)
+        with server_for_test_app(TestApp(app)) as server:
+            output = Path(directory, f"out_{uuid4()}")
+            output.write_text(" Tes")  # partial download left by an earlier attempt
+            get_file(f"{server.application_url}?path={path}", str(output))
+            assert output.read_text() == " Test123 "
+
+
 def test_urllib_status_code():
     """The urllib transport must surface the HTTP status code on the raised
     PulsarClientTransportError so retry classifiers can read it."""
