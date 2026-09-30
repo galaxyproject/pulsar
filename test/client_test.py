@@ -149,6 +149,12 @@ def test_local_setup_rejects_unquoted_remote_version():
         _jobs_directory_client(remote_pulsar_version=0.2)
 
 
+def test_local_setup_rejects_malformed_remote_version():
+    # Galaxy compares it as a version, so catch a typo here with a clear message.
+    with pytest.raises(ValueError, match="remote_pulsar_version must be a version"):
+        _jobs_directory_client(remote_pulsar_version="latest")
+
+
 def _jobs_directory_client(**destination_params):
     interface = HttpPulsarInterface({"url": "http://test:803/"}, TestTransport(None))
     return JobClient({"jobs_directory": "/pulsar/staging", **destination_params}, "543", interface)
