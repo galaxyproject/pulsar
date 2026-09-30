@@ -523,7 +523,7 @@ class RemoteTransferTusAction(BaseAction):
 
     @classmethod
     def from_dict(cls, action_dict):
-        return RemoteTransferAction(source=action_dict["source"], url=action_dict["url"])
+        return RemoteTransferTusAction(source=action_dict["source"], url=action_dict["url"])
 
     def write_to_path(self, path):
         get_file(self.url, path)

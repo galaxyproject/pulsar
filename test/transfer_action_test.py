@@ -1,7 +1,29 @@
 import os
+from unittest import mock
 
-from pulsar.client.action_mapper import RemoteTransferAction
+from pulsar.client import action_mapper
+from pulsar.client.action_mapper import (
+    from_dict,
+    RemoteTransferAction,
+    RemoteTransferTusAction,
+)
 from .test_utils import files_server
+
+
+def test_tus_action_rebuilt_from_launch_config_uploads_with_tus(tmp_path):
+    """The Pulsar server rebuilds staging actions from their serialized form, so a
+    TUS action must still upload through TUS rather than a multipart POST."""
+    url = "http://galaxy.test/api/jobs/1/files?job_key=k&path=/out.dat"
+    action = from_dict(RemoteTransferTusAction({"path": "/out.dat"}, url=url).to_dict())
+    local_path = tmp_path / "out.dat"
+    local_path.write_bytes(b"123456")
+
+    with mock.patch.object(action_mapper, "tus_upload_file") as tus_upload, \
+            mock.patch.object(action_mapper, "post_file") as post:
+        action.write_from_path(str(local_path))
+
+    tus_upload.assert_called_once_with(url, str(local_path))
+    post.assert_not_called()
 
 
 def test_write_to_file():
