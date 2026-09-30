@@ -282,6 +282,10 @@ class FileActionMapper:
             self.__inject_ssh_properties(action)
 
     def __inject_url(self, action, file_type):
+        source_url = action.source.get("url")
+        if source_url:
+            action.url = source_url
+            return
         url_base = self.files_endpoint
         if not url_base:
             raise Exception(MISSING_FILES_ENDPOINT_ERROR)

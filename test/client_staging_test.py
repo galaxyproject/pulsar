@@ -9,6 +9,11 @@ from galaxy.tool_util.deps.requirements import ToolRequirement
 
 from pulsar.client.exceptions import PulsarClientTransportError
 from pulsar.client.staging.down import ResultsCollector
+from pulsar.client.staging.inputs import (
+    CLIENT_INPUT_PATH_TYPES,
+    ClientInput,
+    ClientInputs,
+)
 from pulsar.client.staging.models import (
     ClientJobDescription,
     ClientOutputs,
@@ -142,6 +147,48 @@ class TestStager(TempDirectoryTestCase):
         self._submit()
         self._assert_inputs_uploaded()
 
+    def test_input_with_url_is_staged_from_the_url_without_a_local_file(self):
+        # Galaxy need not pull an input into its cache when it hands out a URL for it.
+        self.client.default_file_action = "remote_transfer"
+        self.job_config["job_directory"] = "/pulsar/staging/1"
+        never_pulled = os.path.join(self.temp_directory, "files", "dataset_3.dat")
+        url = "https://galaxy.test/api/jobs/1/staging/inputs/dataset/3?exp=1&sig=abc"
+        self.client_job_description.client_inputs = ClientInputs(
+            [ClientInput(never_pulled, CLIENT_INPUT_PATH_TYPES.INPUT_PATH, url=url)]
+        )
+        self._submit()
+        staged_inputs = [
+            (staged["name"], staged["action"]["url"])
+            for staged in self.client.launched_remote_staging["setup"]
+            if staged["type"] == "input"
+        ]
+        assert staged_inputs == [("dataset_3.dat", url)]
+
+    def test_extra_files_manifest_is_staged_from_urls_without_a_local_directory(self):
+        # Galaxy lists a composite input's extra files from the object store and
+        # hands out one URL per file, so the directory need not exist locally.
+        self.client.default_file_action = "remote_transfer"
+        self.job_config["job_directory"] = "/pulsar/staging/1"
+        self.job_config["system_properties"]["separator"] = "/"
+        never_pulled = os.path.join(self.temp_directory, "files", "dataset_3_files")
+        manifest = {
+            "moo/cow.txt": "https://galaxy.test/staging/extra/3/moo/cow.txt?sig=a",
+            "index.html": "https://galaxy.test/staging/extra/3/index.html?sig=b",
+        }
+        self.client_job_description.client_inputs = ClientInputs(
+            [ClientInput(never_pulled, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH, extra_files=manifest)]
+        )
+        self._submit()
+        staged_inputs = {
+            staged["name"]: staged["action"]["url"]
+            for staged in self.client.launched_remote_staging["setup"]
+            if staged["type"] == "input"
+        }
+        assert staged_inputs == {
+            "dataset_3_files/moo/cow.txt": manifest["moo/cow.txt"],
+            "dataset_3_files/index.html": manifest["index.html"],
+        }
+
     def _assert_inputs_uploaded(self):
         # Expect both files staged
         uploaded_file1 = self.client.put_files[0]
@@ -195,6 +242,7 @@ class MockClient:
         assert dependencies_description.requirements == [TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]
         assert token_endpoint == TEST_TOKEN_ENDPOINT
         assert env == [TEST_ENV_1]
+        self.launched_remote_staging = remote_staging
 
     def expect_command_line(self, expected_command_line):
         self.expected_command_line = expected_command_line

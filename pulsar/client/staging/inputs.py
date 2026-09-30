@@ -13,14 +13,25 @@ CLIENT_INPUT_PATH_TYPES = Bunch(
 
 class ClientInput:
 
-    def __init__(self, path, input_type, object_store_ref=None):
+    def __init__(self, path, input_type, object_store_ref=None, url=None, extra_files=None):
         self.path = path
         self.input_type = input_type
         self.object_store_ref = object_store_ref
+        # A URL issued by Galaxy for this input; remote transfers fetch from it
+        # instead of the files endpoint, so the path need not exist locally.
+        self.url = url
+        # For an extra-files directory: relative file name -> URL, replacing a
+        # walk of the (then possibly absent) local directory.
+        self.extra_files = extra_files
 
     @property
     def action_source(self):
-        return {"path": self.path, "object_store_ref": self.object_store_ref}
+        return {
+            "path": self.path,
+            "object_store_ref": self.object_store_ref,
+            "url": self.url,
+            "extra_files": self.extra_files,
+        }
 
 
 class ClientInputs:

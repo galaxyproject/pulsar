@@ -490,23 +490,26 @@ class TransferTracker:
     ):
         # TODO: needs to happen else where if using remote object store staging
         # but we don't have the action type yet.
+        manifest = None
         if directory is None:
             assert action_source is not None
-            action = self.__action_for_transfer(action_source, type, None)
-            if not action.staging_action_local and action.whole_directory_transfer_supported:
-                # If we're going to transfer the whole directory remotely, don't walk the files
-                # here.
-
-                # We could still rewrite paths and just not transfer the files.
-                assert not self.rewrite_paths
-                self.__add_remote_staging_input(action, None, type)
-                return
-
             directory = action_source["path"]
+            manifest = action_source.get("extra_files")
+            if not manifest:
+                action = self.__action_for_transfer(action_source, type, None)
+                if not action.staging_action_local and action.whole_directory_transfer_supported:
+                    # If we're going to transfer the whole directory remotely, don't walk the files
+                    # here.
+
+                    # We could still rewrite paths and just not transfer the files.
+                    assert not self.rewrite_paths
+                    self.__add_remote_staging_input(action, None, type)
+                    return
         else:
             assert action_source is None
 
-        for directory_file_name in directory_files(directory):
+        entries = manifest.items() if manifest else ((name, None) for name in directory_files(directory))
+        for directory_file_name, url in entries:
             directory_file_path = join(directory, directory_file_name)
             if not rel_path_to:
                 rel_path_to = (
@@ -517,7 +520,10 @@ class TransferTracker:
             remote_name = self.path_helper.remote_name(
                 relpath(directory_file_path, rel_path_to)
             )
-            self.handle_transfer_path(directory_file_path, type, name=remote_name)
+            source = {"path": directory_file_path}
+            if url:
+                source["url"] = url
+            self.handle_transfer_source(source, type, name=remote_name)
 
     def handle_transfer_source(self, source, type, name=None, contents=None):
         action = self.__action_for_transfer(source, type, contents)
@@ -573,7 +579,8 @@ class TransferTracker:
             action = MessageAction(contents=contents, client=self.client)
         else:
             path = source.get("path")
-            if path is not None and not exists(path):
+            # A source URL stands in for the local file.
+            if path is not None and not source.get("url") and not exists(path):
                 message = "__action_for_transfer called on non-existent file - [%s]" % path
                 log.warning(message)
                 raise Exception(message)
