@@ -143,6 +143,25 @@ def test_local_setup_reports_declared_remote_version():
     assert job_config["pulsar_version_source"] == "destination"
 
 
+def test_local_setup_knows_version_of_published_staging_image():
+    job_config = _jobs_directory_client(pulsar_container_image="galaxy/pulsar-pod-staging:0.15.0.2").setup()
+    assert job_config["pulsar_version"] == "0.15.0.dev1"
+    assert job_config["pulsar_version_source"] == "container_image"
+
+
+def test_local_setup_prefers_declared_version_over_staging_image():
+    job_config = _jobs_directory_client(
+        pulsar_container_image="galaxy/pulsar-pod-staging:0.15.0.2", remote_pulsar_version="0.16.0"
+    ).setup()
+    assert job_config["pulsar_version"] == "0.16.0"
+    assert job_config["pulsar_version_source"] == "destination"
+
+
+def test_local_setup_unknown_staging_image_reports_client_version():
+    job_config = _jobs_directory_client(pulsar_container_image="example/custom-pulsar:latest").setup()
+    assert job_config["pulsar_version_source"] == "client"
+
+
 def test_local_setup_rejects_unquoted_remote_version():
     # YAML reads an unquoted 0.20 as 0.2, so the declared version is already lost.
     with pytest.raises(ValueError, match="remote_pulsar_version must be a string"):

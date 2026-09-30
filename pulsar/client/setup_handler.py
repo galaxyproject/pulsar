@@ -11,6 +11,17 @@ from .util import filter_destination_params
 
 REMOTE_SYSTEM_PROPERTY_PREFIX = "remote_property_"
 REMOTE_PULSAR_VERSION_PARAM = "remote_pulsar_version"
+# Published staging images and the Pulsar they were built from - tags don't
+# follow releases (0.15.0.2 predates 0.15.0). Add new images here.
+KNOWN_PULSAR_CONTAINER_VERSIONS = {
+    "galaxy/pulsar-pod-staging:0.10.0": "0.10.0.dev0",
+    "galaxy/pulsar-pod-staging:0.12.0": "0.12.0.dev0",
+    "galaxy/pulsar-pod-staging:0.13.0": "0.13.0.dev0",
+    "galaxy/pulsar-pod-staging:0.14.0": "0.14.0.dev3",
+    "galaxy/pulsar-pod-staging:0.14.15.0": "0.14.15",
+    "galaxy/pulsar-pod-staging:0.15.0.1": "0.15.0.dev0",
+    "galaxy/pulsar-pod-staging:0.15.0.2": "0.15.0.dev1",
+}
 
 
 def build(client, destination_args):
@@ -38,9 +49,10 @@ class LocalSetupHandler:
     remote_property_galaxy_home).
 
     The remote Pulsar is never contacted, so its version is unknown unless
-    declared with remote_pulsar_version. ``pulsar_version_source`` in the job
-    config tells Galaxy which it got - ``client`` means ``pulsar_version`` is
-    just this client library's version.
+    declared with remote_pulsar_version or implied by a known
+    pulsar_container_image. ``pulsar_version_source`` in the job config tells
+    Galaxy which it got - ``client`` means ``pulsar_version`` is just this
+    client library's version.
     """
 
     def __init__(self, client, destination_args):
@@ -51,10 +63,13 @@ class LocalSetupHandler:
         self.jobs_directory = destination_args["jobs_directory"]
         self.assign_ids = destination_args.get("assign_ids", "galaxy")
         remote_pulsar_version = _remote_pulsar_version(destination_args)
+        image_pulsar_version = KNOWN_PULSAR_CONTAINER_VERSIONS.get(destination_args.get("pulsar_container_image"))
         # pulsar_version stays populated so Galaxy releases that predate
         # pulsar_version_source keep passing their minimum version check.
         if remote_pulsar_version:
             self.pulsar_version, self.pulsar_version_source = remote_pulsar_version, "destination"
+        elif image_pulsar_version:
+            self.pulsar_version, self.pulsar_version_source = image_pulsar_version, "container_image"
         else:
             self.pulsar_version, self.pulsar_version_source = pulsar_version, "client"
 

@@ -111,6 +111,13 @@ environment in Galaxy's ``job_conf.yml`` (nothing changes on the Pulsar side):
 
 Quote the value - YAML reads an unquoted ``0.20`` as the number ``0.2``, so
 Pulsar rejects non-string values. Update it when the remote Pulsar is upgraded.
+Without it Galaxy assumes a current Pulsar, so declare it for any remote older
+than 0.15.13 - older remotes don't understand how Galaxy describes discovered
+outputs, and those outputs are silently lost.
+
+Kubernetes, TES, and GCP Batch environments don't need it when
+``pulsar_container_image`` is a published ``galaxy/pulsar-pod-staging`` image
+(including Galaxy's default) - Pulsar knows the version each was built from.
 
 Targeting GCP Batch, Kubernetes, or TES
 ```````````````````````````````````````

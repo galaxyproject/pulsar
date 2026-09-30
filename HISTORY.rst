@@ -11,8 +11,9 @@ History
 
 * Add a ``remote_pulsar_version`` destination parameter to declare the remote
   Pulsar's version for ``jobs_directory`` destinations, which never contact
-  Pulsar to learn it. Job configs now record where ``pulsar_version`` came
-  from, so Galaxy no longer mistakes the client library's version for the
+  Pulsar to learn it. The version of published ``galaxy/pulsar-pod-staging``
+  images is known without it. Job configs now record where ``pulsar_version``
+  came from, so Galaxy no longer mistakes the client library's version for the
   remote's. `Issue 135`_
 
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
