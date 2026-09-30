@@ -103,17 +103,26 @@ def get_file(url, path: str):
         if size and remote_size == size:
             # Already got the whole file, fixes https://github.com/galaxyproject/pulsar/issues/340
             return
-        if remote_size != -1:
-            # We got some data left to download; with an unknown remote size we start over.
+        if size < remote_size:
+            # We got some data left to download. With an unknown remote size, or a partial
+            # file larger than the remote one (it changed), we start over.
             resume_from = size
     try:
         _download(url, path, resume_from)
     except PulsarClientTransportError as exc:
-        if not (resume_from and exc.transport_code == pycurl.E_RANGE_ERROR):
+        if not (resume_from and _resume_refused(exc)):
             raise
-        # The server ignores Range requests, so a partial file can never be completed.
-        log.info("server for %s cannot resume transfers, downloading it again", url)
+        # The partial file can never be completed from here.
+        log.info("server for %s cannot resume this transfer, downloading it again", url)
         _download(url, path, 0)
+
+
+def _resume_refused(exc: PulsarClientTransportError) -> bool:
+    if exc.code == PulsarClientTransportError.NOT_200:
+        # The requested range is past the end of the (changed) remote file.
+        return exc.transport_code == 416
+    # The server ignores Range requests.
+    return exc.transport_code == pycurl.E_RANGE_ERROR
 
 
 def _download(url, path: str, resume_from: int):

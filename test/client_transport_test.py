@@ -143,8 +143,10 @@ class _RedirectApp:
     def __init__(self, location=None, status="302 Found"):
         self.location = location
         self.status = status
+        self.requests = 0
 
     def __call__(self, environ, start_response):
+        self.requests += 1
         start_response(self.status, [("Location", self.location), ("Content-Type", "text/plain")])
         return [b"redirect body"]
 
@@ -172,8 +174,11 @@ def test_curl_get_file_redirect_loop_fails(tmp_path):
     app = _RedirectApp()
     with server_for_test_app(TestApp(app)) as redirector:
         app.location = redirector.application_url
-        with pytest.raises(PulsarClientTransportError):
+        with pytest.raises(PulsarClientTransportError) as excinfo:
             get_file(redirector.application_url, str(tmp_path / "out"))
+    assert excinfo.value.transport_code == curl_transport.pycurl.E_TOO_MANY_REDIRECTS
+    # The original request plus MAX_REDIRECTS followed - not libcurl's much higher default.
+    assert app.requests == curl_transport.MAX_REDIRECTS + 1
 
 
 def test_get_size_follows_redirect():
@@ -196,6 +201,45 @@ def test_curl_get_file_resume_against_server_ignoring_range():
             output.write_text(" Tes")  # partial download left by an earlier attempt
             get_file(f"{server.application_url}?path={path}", str(output))
             assert output.read_text() == " Test123 "
+
+
+class _RangeRefusingApp:
+    """WSGI app serving ``contents`` that answers every Range request with 416, while
+    reporting ``reported_size`` to HEAD - like a remote file that changed under a
+    partial download."""
+
+    def __init__(self, contents, reported_size=None):
+        self.contents = contents
+        self.reported_size = len(contents) if reported_size is None else reported_size
+
+    def __call__(self, environ, start_response):
+        if environ["REQUEST_METHOD"] == "HEAD":
+            start_response("200 OK", [("Content-Length", str(self.reported_size))])
+            return [b""]
+        if "HTTP_RANGE" in environ:
+            start_response("416 Range Not Satisfiable", [("Content-Range", f"bytes */{len(self.contents)}")])
+            return [b""]
+        start_response("200 OK", [("Content-Length", str(len(self.contents)))])
+        return [self.contents]
+
+
+@skip_unless_module("pycurl")
+def test_curl_get_file_restarts_when_partial_file_is_larger_than_remote(tmp_path):
+    with server_for_test_app(TestApp(_RangeRefusingApp(b" Test123 "))) as server:
+        output = tmp_path / "out"
+        output.write_bytes(b" Test123 plus bytes from a previous, larger version")
+        get_file(server.application_url, str(output))
+        assert output.read_bytes() == b" Test123 "
+
+
+@skip_unless_module("pycurl")
+def test_curl_get_file_restarts_when_server_refuses_the_resume_range(tmp_path):
+    # HEAD claims more is left, but the file has since shrunk, so the resumed range is refused.
+    with server_for_test_app(TestApp(_RangeRefusingApp(b" Test123 ", reported_size=100))) as server:
+        output = tmp_path / "out"
+        output.write_bytes(b" Tes")
+        get_file(server.application_url, str(output))
+        assert output.read_bytes() == b" Test123 "
 
 
 def test_urllib_status_code():
