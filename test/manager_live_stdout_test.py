@@ -37,7 +37,10 @@ from pulsar.managers.live_output import (
 )
 from pulsar.managers.queued import QueueManager
 from pulsar.managers.stateful import StatefulManagerProxy
-from .test_utils import minimal_app_for_managers
+from .test_utils import (
+    minimal_app_for_managers,
+    wait_for,
+)
 
 TEST_JOB_ID = "7"
 FILES_ENDPOINT = "http://galaxy.example.org/api/jobs/1/files?job_key=abc"
@@ -441,7 +444,11 @@ def test_forget_during_an_update_does_not_block_and_wins(manager, poster):
     update.join(5)
 
     # The in-flight POST landed and set delivered, but forget() still wins.
-    _wait_for(lambda: live_output.load_state(job_directory)["delivered"] is False)
+    wait_for(
+        lambda: live_output.load_state(job_directory)["delivered"],
+        "delivered to be reset",
+        until=lambda delivered: delivered is False,
+    )
 
 
 def test_finish_during_an_update_sends_every_byte_once(manager, poster):
@@ -483,7 +490,7 @@ def test_one_daemon_thread_serves_all_jobs(manager, poster):
         _write(_job_directory(manager, job_id), TOOL_FILE_STANDARD_OUTPUT, job_id.encode())
         assert reporter.watch(job_id)
     try:
-        _wait_for(lambda: len(poster.posts) == 3)
+        wait_for(lambda: len(poster.posts), "a post per job", until=lambda posts: posts == 3)
         threads = [t for t in threading.enumerate() if "live_output" in t.name]
         assert threads == [reporter._thread]
         assert reporter._thread.daemon
@@ -542,15 +549,6 @@ def _launch(proxy):
     return job_id, job_directory
 
 
-def _wait_for(condition, timeout=5):
-    time_end = time.time() + timeout
-    while time.time() < time_end:
-        if condition():
-            return
-        time.sleep(.01)
-    raise AssertionError("Timed out waiting for condition.")
-
-
 def test_running_job_streams_output_without_polling_the_scheduler(poster):
     app = minimal_app_for_managers()
     try:
@@ -561,7 +559,7 @@ def test_running_job_streams_output_without_polling_the_scheduler(poster):
             assert proxy.get_status(job_id) == status.RUNNING
             polls = manager.status_calls
 
-            _wait_for(lambda: poster.sent("tool_stdout") == b"live ")
+            wait_for(lambda: poster.sent("tool_stdout"), "live stdout", until=lambda sent: sent == b"live ")
             time.sleep(0.2)  # several update intervals
             assert manager.status_calls == polls
 
@@ -569,7 +567,11 @@ def test_running_job_streams_output_without_polling_the_scheduler(poster):
             manager.scripted_status = status.COMPLETE
             with mock.patch.object(stateful, "postprocess", return_value=True):
                 proxy.get_status(job_id)
-                _wait_for(lambda: proxy.callbacks[-1:] == [(status.COMPLETE, job_id)])
+                wait_for(
+                    lambda: proxy.callbacks[-1:],
+                    "a complete callback",
+                    until=lambda last: last == [(status.COMPLETE, job_id)],
+                )
 
             assert poster.sent("tool_stdout") == b"live tail"
             assert proxy.is_live_stdout_update(job_id) is True
@@ -587,7 +589,7 @@ def test_cancelled_job_stops_streaming(poster):
             proxy.get_status(job_id)
             assert job_id in proxy._live_output._jobs
             _write(job_directory, TOOL_FILE_STANDARD_OUTPUT, b"a")
-            _wait_for(lambda: proxy.is_live_stdout_update(job_id))
+            wait_for(lambda: proxy.is_live_stdout_update(job_id), "a live stdout update")
             manager.scripted_status = status.CANCELLED
             proxy.get_status(job_id)
             assert proxy._live_output._jobs == {}
@@ -605,12 +607,16 @@ def test_running_jobs_resume_streaming_after_a_restart(poster):
             _write(job_directory, TOOL_FILE_STANDARD_OUTPUT, b"before ")
             manager.scripted_status = status.RUNNING
             proxy.get_status(job_id)
-            _wait_for(lambda: poster.sent("tool_stdout") == b"before ")
+            wait_for(lambda: poster.sent("tool_stdout"), "stdout before restart", until=lambda sent: sent == b"before ")
 
         _write(job_directory, TOOL_FILE_STANDARD_OUTPUT, b"after")
         with _proxy(app) as (restarted, manager):
             restarted.recover_active_jobs()
-            _wait_for(lambda: poster.sent("tool_stdout") == b"before after")
+            wait_for(
+                lambda: poster.sent("tool_stdout"),
+                "stdout after restart",
+                until=lambda sent: sent == b"before after",
+            )
     finally:
         rmtree(app.staging_directory, ignore_errors=True)
 

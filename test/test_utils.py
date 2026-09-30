@@ -34,6 +34,7 @@ from stat import (
 from tempfile import mkdtemp
 from typing import (
     Any,
+    Callable,
     Dict,
     Optional,
 )
@@ -69,6 +70,29 @@ integration_test = pytest.mark.timeout(INTEGRATION_MAXIMUM_TEST_TIME)
 TEST_DIR = dirname(__file__)
 ROOT_DIR = join(TEST_DIR, pardir)
 TEST_TEMPDIR_PREFIX = "tmp_pulsar_"
+
+
+def wait_for(
+    poll: Callable[[], Any],
+    description: str,
+    until: Optional[Callable[[Any], bool]] = None,
+    timeout: float = 5,
+    interval: float = 0.01,
+) -> Any:
+    """Poll until ``poll()`` is truthy - or satisfies ``until`` - and return that value.
+
+    Raises ``AssertionError`` naming ``description`` on timeout, with the last polled value
+    when ``until`` is given (a plain condition's last value is just falsy).
+    """
+    time_end = time.time() + timeout
+    while True:
+        value = poll()
+        if until(value) if until else value:
+            return value
+        if time.time() >= time_end:
+            last = f", last value: {value!r}" if until else ""
+            raise AssertionError(f"Timed out after {timeout}s waiting for {description}{last}.")
+        time.sleep(interval)
 
 
 class TempDirectoryTestCase(TestCase):
@@ -228,17 +252,14 @@ python -c "import sys; sys.stdout.write(\'Hello World!\'); sys.stdout.flush(); s
         return 'python -c "%s"' % "; ".join(code.split("\n"))
 
     def _assert_status_becomes_cancelled(self, job_id, manager):
-        i = 0
-        while True:
-            i += 1
-            status = manager.get_status(job_id)
-            if status in ["complete", "failed"]:
-                raise AssertionError("Expected cancelled status but got %s." % status)
-            elif status == "cancelled":
-                break
-            time.sleep(0.01)
-            if i > 100:  # Wait one second
-                raise AssertionError("Job failed to cancel quickly.")
+        status = wait_for(
+            lambda: manager.get_status(job_id),
+            "the job to cancel",
+            until=lambda status: status in ["cancelled", "complete", "failed"],
+            timeout=1,
+        )
+        if status != "cancelled":
+            raise AssertionError("Expected cancelled status but got %s." % status)
 
 
 def minimal_app_for_managers():
