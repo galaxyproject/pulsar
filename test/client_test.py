@@ -7,6 +7,9 @@ from unittest.mock import (
     PropertyMock,
 )
 
+import pytest
+
+from pulsar import __version__ as pulsar_version
 from pulsar.client.client import (
     JobClient,
     TesPollingCoexecutionJobClient,
@@ -125,6 +128,55 @@ def test_setup():
     assert setup_response['working_directory'] == "C:\\home\\dir"
     assert setup_response['outputs_directory'] == "C:\\outputs"
     assert setup_response['path_separator'] == '\\'
+    assert setup_response['pulsar_version_source'] == "remote"
+
+
+def test_local_setup_reports_version_came_from_client():
+    job_config = _jobs_directory_client().setup()
+    assert job_config["pulsar_version"] == pulsar_version
+    assert job_config["pulsar_version_source"] == "client"
+
+
+def test_local_setup_reports_declared_remote_version():
+    job_config = _jobs_directory_client(remote_pulsar_version="0.15.2").setup()
+    assert job_config["pulsar_version"] == "0.15.2"
+    assert job_config["pulsar_version_source"] == "destination"
+
+
+def test_local_setup_knows_version_of_published_staging_image():
+    job_config = _jobs_directory_client(pulsar_container_image="galaxy/pulsar-pod-staging:0.15.0.2").setup()
+    assert job_config["pulsar_version"] == "0.15.0.dev1"
+    assert job_config["pulsar_version_source"] == "container_image"
+
+
+def test_local_setup_prefers_declared_version_over_staging_image():
+    job_config = _jobs_directory_client(
+        pulsar_container_image="galaxy/pulsar-pod-staging:0.15.0.2", remote_pulsar_version="0.16.0"
+    ).setup()
+    assert job_config["pulsar_version"] == "0.16.0"
+    assert job_config["pulsar_version_source"] == "destination"
+
+
+def test_local_setup_unknown_staging_image_reports_client_version():
+    job_config = _jobs_directory_client(pulsar_container_image="example/custom-pulsar:latest").setup()
+    assert job_config["pulsar_version_source"] == "client"
+
+
+def test_local_setup_rejects_unquoted_remote_version():
+    # YAML reads an unquoted 0.20 as 0.2, so the declared version is already lost.
+    with pytest.raises(ValueError, match="remote_pulsar_version must be a string"):
+        _jobs_directory_client(remote_pulsar_version=0.2)
+
+
+def test_local_setup_rejects_malformed_remote_version():
+    # Galaxy compares it as a version, so catch a typo here with a clear message.
+    with pytest.raises(ValueError, match="remote_pulsar_version must be a version"):
+        _jobs_directory_client(remote_pulsar_version="latest")
+
+
+def _jobs_directory_client(**destination_params):
+    interface = HttpPulsarInterface({"url": "http://test:803/"}, TestTransport(None))
+    return JobClient({"jobs_directory": "/pulsar/staging", **destination_params}, "543", interface)
 
 
 def test_launch():
