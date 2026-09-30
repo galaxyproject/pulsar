@@ -2,6 +2,7 @@
 import json
 import os
 
+from pulsar import __version__ as pulsar_version
 from pulsar.client.action_mapper import (
     NoneAction,
     RemoteCopyAction,
@@ -11,6 +12,7 @@ from pulsar.managers.staging.metrics import (
     PREPROCESS,
     record_transfer,
     transfer_metrics_file_name,
+    VERSION_METRICS_FILE_NAME,
 )
 from pulsar.managers.staging.post import (
     postprocess,
@@ -95,6 +97,19 @@ def test_preprocess_records_staged_inputs():
         assert recorded["bytes"] == len(CONTENTS)
 
 
+def test_version_file_name_matches_the_galaxy_plugin():
+    assert VERSION_METRICS_FILE_NAME == "__instrument_pulsar_version"
+
+
+def test_preprocess_records_this_pulsars_version():
+    with temp_job_directory() as job_directory:
+        job_directory.setup()
+        preprocess(job_directory, [], RetryActionExecutor(), lambda: False)
+        path = os.path.join(job_directory.metadata_directory(), VERSION_METRICS_FILE_NAME)
+        with open(path) as fh:
+            assert json.load(fh) == {"version": pulsar_version}
+
+
 def test_postprocess_records_and_stages_out_its_own_metrics():
     with temp_directory() as client_directory, temp_job_directory() as job_directory:
         job_directory.setup()
@@ -129,6 +144,31 @@ def test_postprocess_records_and_stages_out_its_own_metrics():
         assert os.path.exists(staged_back)
         with open(staged_back) as fh:
             assert json.load(fh) == recorded
+
+
+def test_postprocess_stages_out_the_version_recorded_by_preprocess():
+    with temp_directory() as client_directory, temp_job_directory() as job_directory:
+        job_directory.setup()
+        client_metadata_directory = os.path.join(client_directory, "metadata")
+        os.makedirs(client_metadata_directory)
+        preprocess(job_directory, [], RetryActionExecutor(), lambda: False)
+        job_directory.store_metadata(
+            "launch_config",
+            {
+                "remote_staging": {
+                    "action_mapper": {"default_action": "remote_copy"},
+                    "client_outputs": {
+                        "working_directory": os.path.join(client_directory, "working"),
+                        "metadata_directory": client_metadata_directory,
+                        "job_directory": client_directory,
+                        "output_files": [],
+                    },
+                }
+            },
+        )
+        assert postprocess(job_directory, RetryActionExecutor(), lambda: False)
+        with open(os.path.join(client_metadata_directory, VERSION_METRICS_FILE_NAME)) as fh:
+            assert json.load(fh) == {"version": pulsar_version}
 
 
 def test_postprocess_does_not_count_shared_filesystem_output():

@@ -11,6 +11,8 @@ History
 
 * Record preprocess and postprocess file transfer time, count, and bytes for
   Galaxy's ``pulsar`` job metrics plugin.
+* Record the version of the Pulsar that staged a job for Galaxy's ``pulsar``
+  job metrics plugin - the only report of it for polling coexecution runners.
 * Skip unavailable job metrics plugins in Pulsar's shared configuration.
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to

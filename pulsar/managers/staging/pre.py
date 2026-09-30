@@ -14,6 +14,7 @@ from pulsar.client.action_mapper import from_dict
 from .metrics import (
     PREPROCESS,
     record_transfer,
+    record_version,
 )
 
 if TYPE_CHECKING:
@@ -32,6 +33,7 @@ def preprocess(
     was_cancelled: Callable[[], Optional[bool]],
     object_store: Optional["ObjectStore"] = None,
 ):
+    record_version(job_directory)
     with record_transfer(job_directory, PREPROCESS) as metrics:
         for setup_action in setup_actions:
             if was_cancelled():
