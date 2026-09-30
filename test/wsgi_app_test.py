@@ -53,13 +53,9 @@ def test_standard_requests():
         launch_response = app.post(f"/jobs/{job_id}/submit?command_line={command_line}")
         assert launch_response.body.decode("utf-8") == 'OK'
 
-        # Hack: Call twice to ensure postprocessing occurs and has time to
-        # complete. Monitor thread should get this.
-        time.sleep(.3)
-        check_response = app.get("/jobs/%s/status" % job_id)
-        time.sleep(.3)
-        check_response = app.get("/jobs/%s/status" % job_id)
-        check_config = json.loads(check_response.body.decode("utf-8"))
+        # The monitor thread finishes the job in the background; poll rather
+        # than sleep a fixed time, since postprocessing time varies by host.
+        check_config = _wait_for_complete_status(app, job_id)
         assert check_config['returncode'] == 0
         assert check_config['job_stdout'] == "test_out"
         assert check_config['job_stderr'] == ""
@@ -75,3 +71,14 @@ def test_standard_requests():
         healthz_response = app.get("/healthz")
         healthz_data = json.loads(healthz_response.body.decode("utf-8"))
         assert healthz_data["version"] == pulsar_version
+
+
+def _wait_for_complete_status(app, job_id, timeout=10):
+    time_end = time.time() + timeout
+    while True:
+        status = json.loads(app.get("/jobs/%s/status" % job_id).body.decode("utf-8"))
+        if status["complete"] == "true":
+            return status
+        if time.time() >= time_end:
+            raise AssertionError(f"Timed out waiting for job {job_id} to complete, last status: {status}")
+        time.sleep(.05)
