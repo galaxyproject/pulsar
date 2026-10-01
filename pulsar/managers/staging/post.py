@@ -18,6 +18,7 @@ from pulsar.client.staging.models import (
     ClientOutputs,
     PulsarOutputs,
 )
+from pulsar.managers.staging.output_targets import upload_outputs
 from pulsar.managers.util.retry import RetryActionExecutor
 from .metrics import (
     POSTPROCESS,
@@ -56,6 +57,15 @@ def __collect_outputs(
     was_cancelled,
 ) -> bool:
     collected = True
+    output_targets_url = staging_config.get("output_targets_url")
+    if output_targets_url:
+        try:
+            upload_outputs(
+                job_directory.object_store_staging_directory(), output_targets_url, action_executor, was_cancelled
+            )
+        except Exception:
+            log.exception("Failed to upload outputs to the targets Galaxy issued")
+            collected = False
     if "action_mapper" in staging_config:
         file_action_mapper = action_mapper.FileActionMapper(
             config=staging_config["action_mapper"]
