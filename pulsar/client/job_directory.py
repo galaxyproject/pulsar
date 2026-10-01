@@ -167,3 +167,15 @@ def verify_is_in_directory(path, directory, local_path_module=os.path):
         msg = "Attempt to read or write file outside an authorized directory."
         log.warning(f"{msg} Attempted path: {path}, valid directory: {directory}")
         raise UnsafePathError(msg)
+
+
+def verify_is_not_special_file(path):
+    """Refuse to read an existing path that is neither a regular file nor a directory.
+
+    A tool can leave a FIFO, socket or device node where an output is expected;
+    reading a FIFO would block staging out indefinitely.
+    """
+    if os.path.exists(path) and not (os.path.isfile(path) or os.path.isdir(path)):
+        msg = "Attempt to read a special file, which is neither a regular file nor a directory."
+        log.warning(f"{msg} Attempted path: {path}")
+        raise UnsafePathError(msg)

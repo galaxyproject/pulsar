@@ -7,6 +7,8 @@ fail the job rather than leave Galaxy with an empty dataset.
 import os
 from types import SimpleNamespace
 
+import pytest
+
 from pulsar.client.staging.down import ResultsCollector
 from pulsar.client.staging.models import (
     ClientOutputs,
@@ -29,6 +31,10 @@ class RecordingActionMapper:
         galaxy_path = source["path"]
 
         def write_from_path(pulsar_path):
+            if not os.path.isfile(pulsar_path):
+                # Don't block on a FIFO; record that it would have been read.
+                uploaded[galaxy_path] = None
+                return
             with open(pulsar_path) as f:
                 uploaded[galaxy_path] = f.read()
 
@@ -129,6 +135,17 @@ def test_glob_matching_under_symlinked_directory_fails_job(tmp_path):
     os.symlink(os.path.dirname(_outside_file(tmp_path)), os.path.join(job_directory.working_directory(), "linkdir"))
 
     uploaded, failures = _stage_out(tmp_path, job_directory, ["link*/secret"])
+
+    assert uploaded == {}
+    assert len(failures) == 1
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="requires os.mkfifo")
+def test_fifo_output_fails_job(tmp_path):
+    job_directory = _job_directory(tmp_path)
+    os.mkfifo(os.path.join(job_directory.working_directory(), "out.fifo"))
+
+    uploaded, failures = _stage_out(tmp_path, job_directory, ["out.fifo"])
 
     assert uploaded == {}
     assert len(failures) == 1
