@@ -182,7 +182,9 @@ def test_curl_get_file_redirect_loop_fails(tmp_path):
 
 
 def test_get_size_follows_redirect():
-    with files_server() as (server, directory), path_to_get_fixture(directory) as path:
+    # Not files_server(): CI's external job files container predates HEAD support.
+    with temp_directory() as directory, path_to_get_fixture(directory) as path, \
+            server_for_test_app(TestApp(JobFilesApp(directory))) as server:
         target = f"{server.application_url}?path={path}"
         with server_for_test_app(TestApp(_RedirectApp(target))) as redirector:
             assert curl_transport.get_size(redirector.application_url) == len(" Test123 ")
