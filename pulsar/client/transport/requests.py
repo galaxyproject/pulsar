@@ -1,4 +1,9 @@
 import logging
+import os
+from typing import (
+    BinaryIO,
+    Dict,
+)
 
 import requests
 
@@ -48,3 +53,38 @@ def get_file(url, path):
                 if chunk:
                     f.write(chunk)
                     f.flush()
+
+
+def put_file(url, path, offset=0, size=None, headers=None) -> Dict[str, str]:
+    """PUT ``size`` bytes of ``path`` from ``offset`` (by default the rest of the file) to ``url``.
+
+    Streams the bytes with an exact Content-Length, as presigned object store uploads
+    require, and returns the response headers (lower-cased names), e.g. a part's ETag.
+    """
+    if size is None:
+        size = os.path.getsize(path) - offset
+    with open(path, "rb") as source:
+        source.seek(offset)
+        body = _FileRange(source, size)
+        with requests.put(url, data=body, headers=headers or {}) as response:
+            response.raise_for_status()
+            return {name.lower(): value for name, value in response.headers.items()}
+
+
+class _FileRange:
+    """At most ``size`` bytes of an open file, read in chunks; its length sets Content-Length."""
+
+    def __init__(self, source: BinaryIO, size: int):
+        self._source = source
+        self._remaining = size
+        self._size = size
+
+    def __len__(self) -> int:
+        return self._size
+
+    def read(self, length: int = -1) -> bytes:
+        if length < 0 or length > self._remaining:
+            length = self._remaining
+        data = self._source.read(length)
+        self._remaining -= len(data)
+        return data

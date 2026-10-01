@@ -16,11 +16,13 @@ if curl_available:
     from .curl import (
         get_file,
         post_file,
+        put_file,
     )
 else:
     from .requests import (
         get_file,
         post_file,
+        put_file,
     )
 
 
@@ -51,6 +53,7 @@ __all__ = (
     'get_file',
     'get_transport',
     'post_file',
+    'put_file',
     'rsync_get_file',
     'rsync_post_file',
     'scp_get_file',
