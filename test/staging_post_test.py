@@ -69,8 +69,12 @@ def _outside_file(tmp_path):
     return _write(outside / "secret", "SECRET")
 
 
-def _stage_out(tmp_path, job_directory, from_work_dirs):
-    """Stage out ``from_work_dirs`` as Pulsar does after the job; return (uploaded, failures)."""
+def _stage_out(tmp_path, job_directory, from_work_dirs=()):
+    """Stage out ``from_work_dirs`` as Pulsar does after the job; return (uploaded, failures).
+
+    Files at the top of the job directory that match Galaxy's dynamic output
+    patterns are staged out too.
+    """
     galaxy_working = tmp_path / "galaxy" / "working"
     work_dir_outputs = []
     for index, from_work_dir in enumerate(from_work_dirs):
@@ -78,6 +82,7 @@ def _stage_out(tmp_path, job_directory, from_work_dirs):
         work_dir_outputs.append((str(galaxy_working / from_work_dir), galaxy_path))
     client_outputs = ClientOutputs(
         working_directory=str(galaxy_working),
+        job_directory=str(tmp_path / "galaxy"),
         output_files=[galaxy_path for _, galaxy_path in work_dir_outputs],
         work_dir_outputs=work_dir_outputs,
     )
@@ -85,7 +90,7 @@ def _stage_out(tmp_path, job_directory, from_work_dirs):
         working_directory_contents=job_directory.working_directory_contents(),
         output_directory_contents=[],
         metadata_directory_contents=[],
-        job_directory_contents=[],
+        job_directory_contents=job_directory.job_directory_contents(),
     )
     action_mapper = RecordingActionMapper()
     output_collector = PulsarServerOutputCollector(job_directory, ImmediateExecutor(), lambda: False)
@@ -146,6 +151,16 @@ def test_fifo_output_fails_job(tmp_path):
     os.mkfifo(os.path.join(job_directory.working_directory(), "out.fifo"))
 
     uploaded, failures = _stage_out(tmp_path, job_directory, ["out.fifo"])
+
+    assert uploaded == {}
+    assert len(failures) == 1
+
+
+def test_job_directory_symlink_out_of_job_directory_fails_job(tmp_path):
+    job_directory = _job_directory(tmp_path)
+    os.symlink(_outside_file(tmp_path), os.path.join(job_directory.job_directory, "primary_1_leak_visible_txt"))
+
+    uploaded, failures = _stage_out(tmp_path, job_directory)
 
     assert uploaded == {}
     assert len(failures) == 1
