@@ -19,6 +19,17 @@ History
   supporting both ordinary clients and container coexecution. Staging
   objects pickled with the old package-level paths are no longer supported.
   `Pull Request 537`_
+* Fail the job when an output Pulsar refuses to stage out, instead of
+  finishing with an empty dataset. Pulsar refuses an output that resolves
+  outside its job directory, now also when it was matched by a glob or lies at
+  the top of the job directory, and an output that is a FIFO, socket or device.
+  **Note:** a ``from_work_dir`` output that is a symlink to one of the job's
+  inputs (e.g. ``ln -s '$input' out.txt``) resolves outside the working
+  directory, so with Pulsar-side staging or an in-process Pulsar its job now
+  fails rather than producing an empty output, as it already did when Galaxy
+  downloaded outputs over HTTP. Such tools need to copy the input instead.
+* Raise on HTTP error responses in the curl transport, so an error page is
+  never saved as a downloaded output.
 
 
 ---------------------
