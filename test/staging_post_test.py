@@ -120,3 +120,15 @@ def test_file_under_symlinked_directory_fails_job(tmp_path):
 
     assert uploaded == {}
     assert len(failures) == 1
+
+
+def test_glob_matching_under_symlinked_directory_fails_job(tmp_path):
+    # The listing of the working directory doesn't descend into the symlinked
+    # directory, so the pattern is resolved by globbing on the Pulsar host.
+    job_directory = _job_directory(tmp_path)
+    os.symlink(os.path.dirname(_outside_file(tmp_path)), os.path.join(job_directory.working_directory(), "linkdir"))
+
+    uploaded, failures = _stage_out(tmp_path, job_directory, ["link*/secret"])
+
+    assert uploaded == {}
+    assert len(failures) == 1

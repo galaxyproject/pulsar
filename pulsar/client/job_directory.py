@@ -136,6 +136,9 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
         else:
             log.info(f"Glob path {path} mapped to matched file: {matches[0]}")
         path = matches[0]
+        # The pattern was checked above, but the match can lie beneath a
+        # symlinked directory that resolves elsewhere.
+        verify_is_in_directory(path, directory, local_path_module=local_path_module)
     return path
 
 
