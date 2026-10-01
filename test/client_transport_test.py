@@ -26,7 +26,10 @@ from pulsar.client.transport.requests import (
     post_file as requests_post_file,
 )
 from pulsar.client.transport.standard import UrllibTransport
-from pulsar.client.transport.transient import is_transient_http_error
+from pulsar.client.transport.transient import (
+    http_status_code,
+    is_transient_http_error,
+)
 from pulsar.client.transport.tus import find_tus_endpoint
 from pulsar.managers.util.retry import RetryActionExecutor
 from .test_utils import (
@@ -509,3 +512,88 @@ def test_post_file_missing_file_raises_file_not_found():
     stays recoverable, so a bare Exception here is not interchangeable."""
     with pytest.raises(FileNotFoundError):
         curl_transport.post_file("http://galaxy.test/api/jobs/1/files", "/does/not/exist")
+
+
+class _RecordingPutApp:
+    """Receives PUTs as an object store does, answering with an ETag."""
+
+    def __init__(self, status="200 OK"):
+        self.status = status
+        self.requests = []
+
+    def __call__(self, environ, start_response):
+        length = environ.get("CONTENT_LENGTH")
+        body = environ["wsgi.input"].read(int(length)) if length else b""
+        self.requests.append({
+            "method": environ["REQUEST_METHOD"],
+            "content_length": length,
+            "transfer_encoding": environ.get("HTTP_TRANSFER_ENCODING"),
+            "custom": environ.get("HTTP_X_AMZ_META_TEST"),
+            "body": body,
+        })
+        start_response(self.status, [("Content-Type", "text/plain"), ("Content-Length", "0"), ("ETag", '"abc123"')])
+        return [b""]
+
+
+def _put_files():
+    implementations = [pytest.param(requests_transport.put_file, id="requests")]
+    if curl_transport.curl_available:
+        implementations.append(pytest.param(curl_transport.put_file, id="curl"))
+    return implementations
+
+
+@pytest.mark.parametrize("put_file", _put_files())
+def test_put_file_sends_the_file_with_its_length_and_headers(tmp_path, put_file):
+    source = tmp_path / "source"
+    source.write_bytes(b"0123456789")
+    app = _RecordingPutApp()
+    with server_for_test_app(TestApp(app)) as server:
+        response_headers = put_file(server.application_url, str(source), headers={"x-amz-meta-test": "yes"})
+    (request,) = app.requests
+    assert request["method"] == "PUT"
+    assert request["body"] == b"0123456789"
+    assert request["content_length"] == "10"
+    assert request["transfer_encoding"] is None
+    assert request["custom"] == "yes"
+    assert response_headers["etag"] == '"abc123"'
+
+
+@pytest.mark.parametrize("put_file", _put_files())
+def test_put_file_sends_a_byte_range(tmp_path, put_file):
+    source = tmp_path / "source"
+    source.write_bytes(b"0123456789")
+    app = _RecordingPutApp()
+    with server_for_test_app(TestApp(app)) as server:
+        put_file(server.application_url, str(source), offset=3, size=4)
+    (request,) = app.requests
+    assert request["body"] == b"3456"
+    assert request["content_length"] == "4"
+
+
+@pytest.mark.parametrize("put_file", _put_files())
+def test_put_file_sends_an_empty_file(tmp_path, put_file):
+    source = tmp_path / "source"
+    source.write_bytes(b"")
+    app = _RecordingPutApp()
+    with server_for_test_app(TestApp(app)) as server:
+        put_file(server.application_url, str(source))
+    (request,) = app.requests
+    assert request["body"] == b""
+    assert request["content_length"] == "0"
+
+
+@pytest.mark.parametrize("put_file", _put_files())
+def test_put_file_raises_with_the_status_of_a_refused_upload(tmp_path, put_file):
+    source = tmp_path / "source"
+    source.write_bytes(b"x")
+    app = _RecordingPutApp(status="403 Forbidden")
+    with server_for_test_app(TestApp(app)) as server:
+        with pytest.raises(Exception) as exc_info:
+            put_file(server.application_url, str(source))
+    assert http_status_code(exc_info.value) == 403
+
+
+@pytest.mark.parametrize("put_file", _put_files())
+def test_put_file_missing_file_raises_file_not_found(put_file):
+    with pytest.raises(FileNotFoundError):
+        put_file("http://galaxy.test/objects/1", "/does/not/exist")

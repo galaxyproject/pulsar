@@ -2,6 +2,7 @@ import io
 import logging
 import os.path
 from contextlib import contextmanager
+from typing import Dict
 
 import requests
 
@@ -24,6 +25,7 @@ PYCURL_UNAVAILABLE_MESSAGE = \
 NO_SUCH_FILE_MESSAGE = "Attempt to post file %s to URL %s, but file does not exist."
 POST_FAILED_MESSAGE = "Failed to post_file properly for url %s, remote server returned status code of %s."
 GET_FAILED_MESSAGE = "Failed to get_file properly for url %s, remote server returned status code of %s."
+PUT_FAILED_MESSAGE = "Failed to put_file properly for url %s, remote server returned status code of %s."
 # Bounded explicitly: libcurl before 8.3 follows redirect loops forever by default.
 MAX_REDIRECTS = 5
 
@@ -81,6 +83,50 @@ def post_file(url, path):
                 transport_code=status_code,
                 transport_message=POST_FAILED_MESSAGE % (url, status_code),
             )
+
+
+def put_file(url, path, offset=0, size=None, headers=None) -> Dict[str, str]:
+    """PUT ``size`` bytes of ``path`` from ``offset`` (by default the rest of the file) to ``url``.
+
+    Sends an exact Content-Length, as presigned object store uploads require, and
+    returns the response headers (lower-cased names), e.g. a part's ETag.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(NO_SUCH_FILE_MESSAGE % (path, url))
+    if size is None:
+        size = os.path.getsize(path) - offset
+    response_headers: Dict[str, str] = {}
+
+    def record_header(line: bytes) -> None:
+        name, separator, value = line.decode("iso-8859-1").partition(":")
+        if separator:
+            response_headers[name.strip().lower()] = value.strip()
+
+    with open(path, "rb") as source, _curl_object_for_url(url) as c:
+        source.seek(offset)
+        remaining = [size]
+
+        def read(length: int) -> bytes:
+            data = source.read(min(length, remaining[0]))
+            remaining[0] -= len(data)
+            return data
+
+        c.setopt(c.UPLOAD, 1)
+        c.setopt(c.READFUNCTION, read)
+        c.setopt(c.INFILESIZE_LARGE, size)
+        # No "Expect: 100-continue": not every server or proxy in front of Galaxy answers it.
+        c.setopt(c.HTTPHEADER, [f"{name}: {value}" for name, value in (headers or {}).items()] + ["Expect:"])
+        c.setopt(c.HEADERFUNCTION, record_header)
+        c.setopt(c.WRITEFUNCTION, lambda data: None)
+        _perform(c)
+        status_code = int(c.getinfo(HTTP_CODE))
+        if not 200 <= status_code < 300:
+            raise PulsarClientTransportError(
+                code=PulsarClientTransportError.NOT_200,
+                transport_code=status_code,
+                transport_message=PUT_FAILED_MESSAGE % (url, status_code),
+            )
+    return response_headers
 
 
 def get_size(url) -> int:
@@ -197,5 +243,6 @@ def _error_curl_to_pulsar(code):
 __all__ = [
     'PycurlTransport',
     'get_file',
-    'post_file'
+    'post_file',
+    'put_file',
 ]
