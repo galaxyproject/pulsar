@@ -24,6 +24,7 @@ PYCURL_UNAVAILABLE_MESSAGE = \
 NO_SUCH_FILE_MESSAGE = "Attempt to post file %s to URL %s, but file does not exist."
 POST_FAILED_MESSAGE = "Failed to post_file properly for url %s, remote server returned status code of %s."
 GET_FAILED_MESSAGE = "Failed to get_file properly for url %s, remote server returned status code of %s."
+EXECUTE_FAILED_MESSAGE = "Request to url %s failed, remote server returned status code of %s."
 # Bounded explicitly: libcurl before 8.3 follows redirect loops forever by default.
 MAX_REDIRECTS = 5
 
@@ -57,6 +58,15 @@ class PycurlTransport:
                 if self.timeout:
                     c.setopt(c.TIMEOUT, self.timeout)
                 _perform(c)
+                status_code = int(c.getinfo(HTTP_CODE))
+                if status_code >= 400:
+                    # Raise like the urllib transport does, so an error page is
+                    # never returned or saved in place of the requested file.
+                    raise PulsarClientTransportError(
+                        code=PulsarClientTransportError.NOT_200,
+                        transport_code=status_code,
+                        transport_message=EXECUTE_FAILED_MESSAGE % (url, status_code),
+                    )
                 if not output_path:
                     return buf.getvalue()
         finally:
