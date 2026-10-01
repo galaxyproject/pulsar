@@ -8,6 +8,7 @@ from logging import getLogger
 
 from galaxy.util import in_directory
 
+from .exceptions import UnsafePathError
 from .util import PathHelper
 
 log = getLogger(__name__)
@@ -113,7 +114,7 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
     'C:\\\\pulsar\\\\staging\\\\101\\\\cow'
     >>> get_mapped_file(r'C:\\pulsar\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
     Traceback (most recent call last):
-    Exception: Attempt to read or write file outside an authorized directory.
+    pulsar.client.exceptions.UnsafePathError: Attempt to read or write file outside an authorized directory.
     """
     if not allow_nested_files:
         name = local_path_module.basename(remote_path)
@@ -162,4 +163,4 @@ def verify_is_in_directory(path, directory, local_path_module=os.path):
     if not in_directory(path, directory, local_path_module):
         msg = "Attempt to read or write file outside an authorized directory."
         log.warning(f"{msg} Attempted path: {path}, valid directory: {directory}")
-        raise Exception(msg)
+        raise UnsafePathError(msg)

@@ -9,6 +9,7 @@ from os.path import (
 )
 
 from ..action_mapper import FileActionMapper
+from ..exceptions import UnsafePathError
 from ..staging import COMMAND_VERSION_FILENAME
 from ..transport.transient import (
     http_status_code,
@@ -299,12 +300,19 @@ def _allow_collect_failure(output_type, exception):
     ``HTTPError`` is an ``OSError``) and ``PulsarClientTransportError`` (the
     curl and urllib transports, which subclass plain ``Exception``).
 
+    An ``UnsafePathError`` is never downgraded either: the output resolves
+    outside the directory it was staged from (e.g. a symlink a tool left in
+    the working directory), so the job must fail rather than finish with an
+    empty output.
+
     A missing output file (``FileNotFoundError``) is excluded from that rule: it
     is an expected, recoverable condition — e.g. a ``from_work_dir`` output a
     tool legitimately did not produce, which Galaxy represents as an empty
     dataset — so it remains an allowed failure.
     """
     if output_type not in ['output_workdir']:
+        return False
+    if isinstance(exception, UnsafePathError):
         return False
     if isinstance(exception, OSError) and not isinstance(exception, FileNotFoundError):
         return False
