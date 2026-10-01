@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from pulsar.client.exceptions import UnsafePathError
 from pulsar.client.staging.down import ResultsCollector
 from pulsar.client.staging.models import (
     ClientOutputs,
@@ -109,7 +110,7 @@ def test_symlink_out_of_working_directory_fails_job(tmp_path):
     uploaded, failures = _stage_out(tmp_path, job_directory, ["inner_link", "escape"])
 
     assert uploaded == {"dataset_0.dat": "REAL"}
-    assert len(failures) == 1
+    assert [type(e) for e in failures] == [UnsafePathError]
 
 
 def test_symlink_to_job_input_fails_job(tmp_path):
@@ -120,7 +121,7 @@ def test_symlink_to_job_input_fails_job(tmp_path):
     uploaded, failures = _stage_out(tmp_path, job_directory, ["passthrough.txt"])
 
     assert uploaded == {}
-    assert len(failures) == 1
+    assert [type(e) for e in failures] == [UnsafePathError]
 
 
 def test_file_under_symlinked_directory_fails_job(tmp_path):
@@ -130,7 +131,7 @@ def test_file_under_symlinked_directory_fails_job(tmp_path):
     uploaded, failures = _stage_out(tmp_path, job_directory, ["linkdir/secret"])
 
     assert uploaded == {}
-    assert len(failures) == 1
+    assert [type(e) for e in failures] == [UnsafePathError]
 
 
 def test_glob_matching_under_symlinked_directory_fails_job(tmp_path):
@@ -142,7 +143,7 @@ def test_glob_matching_under_symlinked_directory_fails_job(tmp_path):
     uploaded, failures = _stage_out(tmp_path, job_directory, ["link*/secret"])
 
     assert uploaded == {}
-    assert len(failures) == 1
+    assert [type(e) for e in failures] == [UnsafePathError]
 
 
 @pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="requires os.mkfifo")
@@ -153,7 +154,7 @@ def test_fifo_output_fails_job(tmp_path):
     uploaded, failures = _stage_out(tmp_path, job_directory, ["out.fifo"])
 
     assert uploaded == {}
-    assert len(failures) == 1
+    assert [type(e) for e in failures] == [UnsafePathError]
 
 
 def test_job_directory_symlink_out_of_job_directory_fails_job(tmp_path):
@@ -163,4 +164,4 @@ def test_job_directory_symlink_out_of_job_directory_fails_job(tmp_path):
     uploaded, failures = _stage_out(tmp_path, job_directory)
 
     assert uploaded == {}
-    assert len(failures) == 1
+    assert [type(e) for e in failures] == [UnsafePathError]
