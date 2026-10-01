@@ -62,6 +62,17 @@ class TestStager(TempDirectoryTestCase):
         open(self.input2, "wb").write(b"6789")
         return [self.input1, self.input2]
 
+    def test_launch_carries_the_output_targets_url_galaxy_issued(self):
+        self.client_job_description.output_targets_url = "https://galaxy.example/api/jobs/1/staging/output_targets?sig=x"
+        self._submit()
+        assert self.client.launched_remote_staging["output_targets_url"] == (
+            "https://galaxy.example/api/jobs/1/staging/output_targets?sig=x"
+        )
+
+    def test_launch_carries_no_output_targets_url_by_default(self):
+        self._submit()
+        assert "output_targets_url" not in self.client.launched_remote_staging
+
     def test_tool_file_rewrite(self):
         self.client_job_description.rewrite_paths = True
         tool_dir = os.path.abspath(self.tool.tool_dir)
@@ -172,6 +183,7 @@ class MockClient:
             '/pulsar/staging/1/inputs/dataset_2.dat',
         ])
         self.put_files = []
+        self.launched_remote_staging = None
 
     def set_action_map_config(self, config, by_path=True):
         if by_path:
@@ -195,6 +207,7 @@ class MockClient:
         assert dependencies_description.requirements == [TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]
         assert token_endpoint == TEST_TOKEN_ENDPOINT
         assert env == [TEST_ENV_1]
+        self.launched_remote_staging = remote_staging
 
     def expect_command_line(self, expected_command_line):
         self.expected_command_line = expected_command_line
