@@ -119,6 +119,8 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
     if not allow_nested_files:
         name = local_path_module.basename(remote_path)
         path = local_path_module.join(directory, name)
+        # The name can't climb out, but a symlink at this path could.
+        verify_is_in_directory(path, directory, local_path_module=local_path_module)
     else:
         local_rel_path = __posix_to_local_path(remote_path, local_path_module=local_path_module)
         local_path = local_path_module.join(directory, local_rel_path)
