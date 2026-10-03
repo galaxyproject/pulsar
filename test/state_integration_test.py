@@ -183,7 +183,7 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
     @skip_unless_module("kombu")
     @integration_test
     def test_setup_failure_fires_failed_status(self):
-        test = "stating_failure_fires_failed"
+        test = "setup_failure_fires_failed"
         with self._setup_app_provider(test, manager_type="queued_python") as app_provider:
             job_id = '12345'
 
@@ -249,7 +249,7 @@ class SimpleConsumer:
         self.messages = []
 
     def start(self):
-        t = threading.Thread(target=self._run)
+        t = threading.Thread(target=self._run, daemon=True)
         t.start()
         self.thread = t
 
