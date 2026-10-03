@@ -2,8 +2,8 @@ import os.path
 
 from galaxy.util.bunch import Bunch
 
-from pulsar.client import PathMapper
 from pulsar.client.action_mapper import path_type
+from pulsar.client.path_mapper import PathMapper
 from .test_utils import TempDirectoryTestCase
 
 

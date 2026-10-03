@@ -9,6 +9,15 @@ History
 0.15.16.dev0
 ---------------------
 
+* Keep client and staging package initializers lightweight, and separate
+  Google Cloud Batch, Kubernetes, and TES clients and configuration into
+  backend modules. ``COMMAND_VERSION_FILENAME`` remains in
+  ``pulsar.client.staging`` and can be imported without client dependencies.
+  Lazy compatibility exports preserve existing client and staging package
+  imports, including Galaxy's runner imports and the coexecution-capable
+  client factory. Concrete modules allow callers to load only the APIs they
+  need. Direct backend and backend configuration imports have moved; see
+  ``docs/client_api.rst`` for those paths.
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
   `@gkr0110`_).

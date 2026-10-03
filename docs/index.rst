@@ -18,6 +18,7 @@ Contents:
    job_managers
    containers
    galaxy_conf
+   client_api
    error_handling
    scripts
    conduct
@@ -33,4 +34,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

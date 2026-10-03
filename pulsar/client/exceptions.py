@@ -43,3 +43,12 @@ class PulsarClientTransportError(Exception):
 
     def __str__(self):
         return self.message
+
+
+class OutputNotFoundException(Exception):
+
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return "No remote output found for path %s" % self.path

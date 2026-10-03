@@ -1,4 +1,4 @@
-from pulsar.client.container_job_config import (
+from pulsar.client.tes_job_config import (
     parse_tes_job_params,
     tes_resources,
 )

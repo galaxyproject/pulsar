@@ -1,60 +1,51 @@
-"""
-pulsar client
-=================
+"""Public client APIs, loaded on access for compatibility.
 
-This module contains logic for interfacing with an external Pulsar server.
-
-------------------
-Configuring Galaxy
-------------------
-
-Galaxy job runners are configured in Galaxy's ``job_conf.xml`` file. See ``job_conf.xml.sample_advanced``
-in your Galaxy code base or on
-`Github <https://github.com/galaxyproject/galaxy/blob/dev/config/job_conf.xml.sample_advanced>`_
-for information on how to configure Galaxy to interact with the Pulsar.
-
-Galaxy also supports an older, less rich configuration of job runners directly
-in its main ``galaxy.ini`` file. The following section describes how to
-configure Galaxy to communicate with the Pulsar in this legacy mode.
-
-Legacy
-------
-
-A Galaxy tool can be configured to be executed remotely via Pulsar by
-adding a line to the ``galaxy.ini`` file under the ``galaxy:tool_runners``
-section with the format::
-
-    <tool_id> = pulsar://http://<pulsar_host>:<pulsar_port>
-
-As an example, if a host named remotehost is running the Pulsar server
-application on port ``8913``, then the tool with id ``test_tool`` can
-be configured to run remotely on remotehost by adding the following
-line to ``galaxy.ini``::
-
-    test_tool = pulsar://http://remotehost:8913
-
-Remember this must be added after the ``[galaxy:tool_runners]`` header
-in the ``galaxy.ini`` file.
-
-
+Implementation modules can also be imported directly. Keeping this package
+lightweight allows staging constants to be used without client dependencies.
 """
 
-from .client import OutputNotFoundException
-from .destination import url_to_destination_params
-from .exceptions import PulsarClientTransportError
-from .manager import build_client_manager
-from .path_mapper import PathMapper
-from .staging import (
-    CLIENT_INPUT_PATH_TYPES,
-    ClientInput,
-    ClientInputs,
-    ClientJobDescription,
-    ClientOutputs,
-    EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN,
-    PulsarOutputs,
-)
-from .staging.down import finish_job
-from .staging.up import submit_job
+from importlib import import_module
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .coexecution_manager import build_client_manager
+    from .destination import url_to_destination_params
+    from .exceptions import (
+        OutputNotFoundException,
+        PulsarClientTransportError,
+    )
+    from .path_mapper import PathMapper
+    from .staging import EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN
+    from .staging.down import finish_job
+    from .staging.inputs import (
+        CLIENT_INPUT_PATH_TYPES,
+        ClientInput,
+        ClientInputs,
+    )
+    from .staging.models import (
+        ClientJobDescription,
+        ClientOutputs,
+        PulsarOutputs,
+    )
+    from .staging.up import submit_job
+
+
+_EXPORTS = {
+    'CLIENT_INPUT_PATH_TYPES': '.staging.inputs',
+    'EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN': '.staging',
+    'ClientInput': '.staging.inputs',
+    'ClientInputs': '.staging.inputs',
+    'ClientJobDescription': '.staging.models',
+    'ClientOutputs': '.staging.models',
+    'OutputNotFoundException': '.exceptions',
+    'PathMapper': '.path_mapper',
+    'PulsarClientTransportError': '.exceptions',
+    'PulsarOutputs': '.staging.models',
+    'build_client_manager': '.coexecution_manager',
+    'finish_job': '.staging.down',
+    'submit_job': '.staging.up',
+    'url_to_destination_params': '.destination',
+}
 
 __all__ = [
     'CLIENT_INPUT_PATH_TYPES',
@@ -72,3 +63,16 @@ __all__ = [
     'submit_job',
     'url_to_destination_params',
 ]
+
+
+def __getattr__(name):
+    """Load client entry points only when they are requested."""
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(_EXPORTS[name], __name__), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

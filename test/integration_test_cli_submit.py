@@ -2,7 +2,7 @@ import os
 
 import yaml
 
-from pulsar.client import ClientOutputs
+from pulsar.client.staging.models import ClientOutputs
 from pulsar.client.util import to_base64_json
 from pulsar.scripts import submit
 from .test_utils import (

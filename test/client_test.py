@@ -7,15 +7,13 @@ from unittest.mock import (
     PropertyMock,
 )
 
-from pulsar.client.client import (
-    JobClient,
-    TesPollingCoexecutionJobClient,
-)
+from pulsar.client.client import JobClient
 from pulsar.client.decorators import (
     MAX_RETRY_COUNT,
     retry,
 )
 from pulsar.client.manager import HttpPulsarInterface
+from pulsar.client.tes import TesPollingCoexecutionJobClient
 from pulsar.client.transport import UrllibTransport
 
 
@@ -258,8 +256,8 @@ def test_tes_poll_and_cancel_use_recorded_external_id():
         "_tes_client",
         new_callable=PropertyMock,
         return_value=tes_client,
-    ), patch("pulsar.client.client.tes_state_to_pulsar_status", return_value="running"), patch(
-        "pulsar.client.client.tes_state_is_complete", return_value=False
+    ), patch("pulsar.client.tes.tes_state_to_pulsar_status", return_value="running"), patch(
+        "pulsar.client.tes.tes_state_is_complete", return_value=False
     ):
         client.kill()
         client.raw_check_complete()
