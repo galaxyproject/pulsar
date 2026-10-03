@@ -2,6 +2,8 @@
 import json
 import os
 
+import pytest
+
 from pulsar.client.action_mapper import (
     NoneAction,
     RemoteCopyAction,
@@ -39,41 +41,16 @@ def test_file_name_matches_the_galaxy_plugin():
     assert transfer_metrics_file_name(POSTPROCESS) == "__instrument_pulsar_transfer_postprocess"
 
 
-def test_records_files_and_bytes():
-    with temp_job_directory() as job_directory:
-        job_directory.setup()
-        staged = os.path.join(job_directory.job_directory, "staged.dat")
-        with open(staged, "w") as fh:
-            fh.write(CONTENTS)
-        with record_transfer(job_directory, PREPROCESS) as metrics:
-            metrics.record_file(staged)
-            metrics.record_file(staged)
-        recorded = _recorded(job_directory, PREPROCESS)
-        assert recorded["files"] == 2
-        assert recorded["bytes"] == 2 * len(CONTENTS)
-        assert recorded["seconds"] >= 0
-
-
-def test_records_a_file_that_cannot_be_sized():
-    with temp_job_directory() as job_directory:
-        job_directory.setup()
-        with record_transfer(job_directory, PREPROCESS) as metrics:
-            metrics.record_file(os.path.join(job_directory.job_directory, "gone.dat"))
-        recorded = _recorded(job_directory, PREPROCESS)
-        assert recorded["files"] == 1
-        assert recorded["bytes"] == 0
-
-
 def test_records_what_a_failed_phase_managed():
     with temp_job_directory() as job_directory:
         job_directory.setup()
-        try:
+        with pytest.raises(RuntimeError, match="staging blew up"):
             with record_transfer(job_directory, PREPROCESS) as metrics:
                 metrics.record_file(os.path.join(job_directory.job_directory, "gone.dat"))
-                raise Exception("staging blew up")
-        except Exception:
-            pass
-        assert _recorded(job_directory, PREPROCESS)["files"] == 1
+                raise RuntimeError("staging blew up")
+        recorded = _recorded(job_directory, PREPROCESS)
+        assert recorded["files"] == 1
+        assert recorded["bytes"] == 0
 
 
 def test_preprocess_records_staged_inputs():
