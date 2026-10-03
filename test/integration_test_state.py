@@ -3,8 +3,8 @@ import os
 import threading
 import time
 
-from pulsar.client.amqp_exchange import ACK_FORCE_NOACK_KEY
 from pulsar.client.amqp_exchange_factory import get_exchange
+from pulsar.client.manager import build_client_manager
 from pulsar.manager_endpoint_util import (
     submit_job,
 )
@@ -232,12 +232,9 @@ class StateIntegrationTestCase(TempDirectoryTestCase):
     def _request_status(self, test, job_id):
         mq_url = "memory://test_%s" % test
         manager = "manager_%s" % test
-        exchange = get_exchange(mq_url, manager, {})
-        params = {
-            "job_id": job_id,
-            ACK_FORCE_NOACK_KEY: True,
-        }
-        exchange.publish("status", params)
+        client_manager = build_client_manager(amqp_url=mq_url, manager=manager)
+        client = client_manager.get_client({"jobs_directory": self.temp_directory}, job_id)
+        client.get_status()
 
 
 class SimpleConsumer:
