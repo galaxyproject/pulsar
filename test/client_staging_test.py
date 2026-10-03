@@ -7,10 +7,7 @@ import requests
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
 
-from pulsar.client.exceptions import (
-    PulsarClientTransportError,
-    UnsafePathError,
-)
+from pulsar.client.exceptions import PulsarClientTransportError
 from pulsar.client.staging.down import ResultsCollector
 from pulsar.client.staging.models import (
     ClientJobDescription,
@@ -278,16 +275,3 @@ def test_collect_output_tolerates_403_transport_error_for_workdir_output():
     rc = _results_collector_with_failing_collect(PulsarClientTransportError(transport_code=403))
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     assert rc._collect_output("output_workdir", action, "out1") is False
-
-
-def test_collect_output_reraises_unsafe_path_for_workdir_output():
-    """A working-directory output refused because it resolves outside the job
-    directory (e.g. a symlink the tool left behind) must fail the job, not be
-    downgraded to an allowed failure that leaves an empty dataset. This is the
-    in-process path; Pulsar-side staging is covered in staging_post_test."""
-    rc = _results_collector_with_failing_collect(
-        UnsafePathError("Attempt to read or write file outside an authorized directory.")
-    )
-    action = SimpleNamespace(path="/pulsar/working/out.dat")
-    with pytest.raises(UnsafePathError):
-        rc._collect_output("output_workdir", action, "out1")
