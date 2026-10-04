@@ -155,8 +155,16 @@ def _issues_section(data):
     return "\n".join(out)
 
 
+def _surveyed_line(data):
+    surveyed = data["surveyed"]
+    return (
+        f"Last surveyed {surveyed['date']} against Pulsar ``{surveyed['pulsar']}`` "
+        f"and Galaxy ``dev`` ``{surveyed['galaxy_dev']}``.\n\n"
+    )
+
+
 def render(data):
-    parts = [HEADER, _galaxy_releases_table(data), "\n"]
+    parts = [HEADER, _surveyed_line(data), _galaxy_releases_table(data), "\n"]
     for name, modality in data["modalities"].items():
         parts += [_modality_section(name, modality, data), "\n"]
     parts.append(_issues_section(data))

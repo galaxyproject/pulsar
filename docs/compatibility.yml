@@ -12,6 +12,13 @@
 
 schema_version: 1
 
+# Commits the matrix was last checked against; .agents/commands/update_compat_matrix.md
+# diffs forward from here and bumps these when done.
+surveyed:
+  date: "2026-10-04"
+  pulsar: aa6e4b6
+  galaxy_dev: bd282b3900b
+
 galaxy_releases:
   "24.0": {pulsar_galaxy_lib: "0.15.6"}
   "24.1": {pulsar_galaxy_lib: "0.15.6"}
@@ -40,12 +47,12 @@ modalities:
       "25.1": *rest_mid
       "26.0": &rest_new
         - {servers: ">=0.15.13", status: expected, issues: [jobs-directory-token-removed, tus-now-real, resubmit-same-id-ignored, status-stdout-capped]}
-        - {servers: ">=0.15.6,<0.15.13", status: expected, issues: [collector-descriptions-version-gate]}
+        - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate]}
       "26.1": *rest_new
       "26.2":
         - {servers: ">=0.16.0.dev0", status: expected, issues: [jobs-directory-token-removed, tus-now-real, resubmit-same-id-ignored, status-stdout-capped]}
         - {servers: ">=0.15.13,<0.16.0.dev0", status: expected, issues: [master-features-unavailable]}
-        - {servers: ">=0.15.6,<0.15.13", status: expected, issues: [collector-descriptions-version-gate, master-features-unavailable]}
+        - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate, master-features-unavailable]}
 
   mq:
     description: Galaxy ``PulsarMQJobRunner`` -> Pulsar over AMQP (kombu); setup built Galaxy-side (``jobs_directory`` required).
@@ -60,12 +67,12 @@ modalities:
       "25.1": *mq_mid
       "26.0": &mq_new
         - {servers: ">=0.15.13", status: expected, issues: [jobs-directory-token-removed, amqp-durable-mismatch, outbox-duplicate-final-status, status-stdout-capped]}
-        - {servers: ">=0.15.6,<0.15.13", status: expected, issues: [collector-descriptions-version-gate]}
+        - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate]}
       "26.1": *mq_new
       "26.2":
         - {servers: ">=0.16.0.dev0", status: expected, issues: [jobs-directory-token-removed, amqp-durable-mismatch, outbox-duplicate-final-status, status-stdout-capped]}
         - {servers: ">=0.15.13,<0.16.0.dev0", status: expected, issues: [master-features-unavailable]}
-        - {servers: ">=0.15.6,<0.15.13", status: expected, issues: [collector-descriptions-version-gate, master-features-unavailable]}
+        - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate, master-features-unavailable]}
 
   relay:
     description: Galaxy and Pulsar exchange MQ-shaped messages through the ``pulsar-relay`` HTTP service.
@@ -81,11 +88,11 @@ modalities:
       "25.1": [{status: n/a, note: "lib 0.15.14 has relay but the 25.1 runner rejects ``relay_url``"}]
       "26.0": &relay_new
         - {servers: ">=0.15.13", status: expected, issues: [relay-default-username-dropped, outbox-duplicate-final-status]}
-        - {servers: "==0.15.12", status: expected, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate]}
+        - {servers: "==0.15.12", status: broken, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate]}
       "26.1": *relay_new
       "26.2":
         - {servers: ">=0.15.13", status: expected, issues: [relay-default-username-dropped, outbox-duplicate-final-status, master-features-unavailable]}
-        - {servers: "==0.15.12", status: expected, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate]}
+        - {servers: "==0.15.12", status: broken, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate]}
 
   coexecution:
     description: >-
@@ -108,9 +115,9 @@ modalities:
       "25.1": &coexec_gcp_bug
         - {image: default, status: expected, issues: [coexec-token-endpoint-ignored, coexec-stdio-not-separated, gcp-runnable-ordering]}
       "26.0":
-        - {image: default, status: expected, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated, gcp-runnable-ordering]}
+        - {image: default, status: broken, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated, gcp-runnable-ordering]}
       "26.1": &coexec_new
-        - {image: default, status: expected, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated]}
+        - {image: default, status: broken, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated]}
       "26.2": *coexec_new
 
   embedded:

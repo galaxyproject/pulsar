@@ -34,6 +34,8 @@ The data lives in ``docs/compatibility.yml``.
 Galaxy Releases
 ---------------
 
+Last surveyed 2026-10-04 against Pulsar ``aa6e4b6`` and Galaxy ``dev`` ``bd282b3900b``.
+
 .. list-table::
    :header-rows: 1
 
@@ -124,7 +126,7 @@ Contract: ``pulsar/web/routes.py`` routes and params; setup response; status fie
    * - 
      - 
      - ``>=0.15.6,<0.15.13``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
    * - 26.1
      - ``0.15.15``
@@ -137,7 +139,7 @@ Contract: ``pulsar/web/routes.py`` routes and params; setup response; status fie
    * - 
      - 
      - ``>=0.15.6,<0.15.13``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
    * - 26.2
      - ``0.16``
@@ -155,7 +157,7 @@ Contract: ``pulsar/web/routes.py`` routes and params; setup response; status fie
    * - 
      - 
      - ``>=0.15.6,<0.15.13``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
        * :ref:`master-features-unavailable <compat-issue-master-features-unavailable>`
 
@@ -228,7 +230,7 @@ Contract: exchange ``pulsar``; queues ``<prefix>_{setup,kill,status,status_updat
    * - 
      - 
      - ``>=0.15.6,<0.15.13``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
    * - 26.1
      - ``0.15.15``
@@ -241,7 +243,7 @@ Contract: exchange ``pulsar``; queues ``<prefix>_{setup,kill,status,status_updat
    * - 
      - 
      - ``>=0.15.6,<0.15.13``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
    * - 26.2
      - ``0.16``
@@ -259,7 +261,7 @@ Contract: exchange ``pulsar``; queues ``<prefix>_{setup,kill,status,status_updat
    * - 
      - 
      - ``>=0.15.6,<0.15.13``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
        * :ref:`master-features-unavailable <compat-issue-master-features-unavailable>`
 
@@ -318,7 +320,7 @@ Other axes:
    * - 
      - 
      - ``==0.15.12``
-     - ``expected``
+     - ``broken``
      - * :ref:`relay-topic-prefix-needs-0.15.13 <compat-issue-relay-topic-prefix-needs-0.15.13>`
        * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
    * - 26.1
@@ -330,7 +332,7 @@ Other axes:
    * - 
      - 
      - ``==0.15.12``
-     - ``expected``
+     - ``broken``
      - * :ref:`relay-topic-prefix-needs-0.15.13 <compat-issue-relay-topic-prefix-needs-0.15.13>`
        * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
    * - 26.2
@@ -343,7 +345,7 @@ Other axes:
    * - 
      - 
      - ``==0.15.12``
-     - ``expected``
+     - ``broken``
      - * :ref:`relay-topic-prefix-needs-0.15.13 <compat-issue-relay-topic-prefix-needs-0.15.13>`
        * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
 
@@ -406,7 +408,7 @@ Backends:
    * - 26.0
      - ``0.15.14``
      - ``default``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
        * :ref:`coexec-token-endpoint-ignored <compat-issue-coexec-token-endpoint-ignored>`
        * :ref:`coexec-stdio-not-separated <compat-issue-coexec-stdio-not-separated>`
@@ -414,14 +416,14 @@ Backends:
    * - 26.1
      - ``0.15.15``
      - ``default``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
        * :ref:`coexec-token-endpoint-ignored <compat-issue-coexec-token-endpoint-ignored>`
        * :ref:`coexec-stdio-not-separated <compat-issue-coexec-stdio-not-separated>`
    * - 26.2
      - ``0.16``
      - ``default``
-     - ``expected``
+     - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
        * :ref:`coexec-token-endpoint-ignored <compat-issue-coexec-token-endpoint-ignored>`
        * :ref:`coexec-stdio-not-separated <compat-issue-coexec-stdio-not-separated>`
