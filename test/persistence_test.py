@@ -20,6 +20,7 @@ from .test_utils import (
     get_test_user_auth_manager,
     temp_directory,
     TestDependencyManager,
+    wait_for,
 )
 
 TEST_JOB_ID = "4"
@@ -98,7 +99,11 @@ def _setup_manager_that_preprocesses(app):
     try:
         queue2.recover_active_jobs()
         # Preprocessing ends by recording the job as launched, which is what the next manager recovers.
-        _wait_for(lambda: TEST_JOB_ID in queue2.active_jobs.active_job_ids(active_status=ACTIVE_STATUS_LAUNCHED))
+        wait_for(
+            lambda: TEST_JOB_ID in queue2.active_jobs.active_job_ids(active_status=ACTIVE_STATUS_LAUNCHED),
+            "the recovered job to be launched",
+            timeout=10,
+        )
     finally:
         try:
             queue2.shutdown()
@@ -124,19 +129,16 @@ def _setup_manager_that_executes(app):
         # Wait for the run to finish, not just the command: finishing still writes to the job directory.
         touch_file = join(app.staging_directory, TEST_COMMAND_TOUCH_FILE)
         job_directory = JobDirectory(app.staging_directory, TEST_JOB_ID)
-        _wait_for(lambda: exists(touch_file) and not job_directory.has_metadata(JOB_FILE_SUBMITTED))
+        wait_for(
+            lambda: exists(touch_file) and not job_directory.has_metadata(JOB_FILE_SUBMITTED),
+            "the recovered job to finish running",
+            timeout=10,
+        )
     finally:
         try:
             queue2.shutdown()
         except Exception:
             pass
-
-
-def _wait_for(condition, timeout=10):
-    # A fixed sleep raced the recovered job: it usually finishes within half a second, but not always.
-    deadline = time.time() + timeout
-    while not condition() and time.time() < deadline:
-        time.sleep(0.05)
 
 
 @contextmanager
