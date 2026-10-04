@@ -6,6 +6,8 @@ from importlib import import_module
 
 import pytest
 
+from pulsar.client.staging.models import ClientOutputs
+
 
 def test_staging_constants_import_without_site_packages():
     code = textwrap.dedent("""\
@@ -68,71 +70,26 @@ def test_backends_do_not_import_other_backend_sdks(module, forbidden):
 
 
 @pytest.mark.parametrize('package', ['pulsar.client', 'pulsar.client.staging'])
-def test_compatibility_discovery_does_not_load_implementations(package):
+def test_packages_have_no_lazy_exports_or_client_dependencies(package):
     code = textwrap.dedent("""\
         import sys
         from importlib import import_module
     """) + f'package = import_module({package!r})\n' + textwrap.dedent("""\
-        before = set(sys.modules)
-        assert set(package.__all__) <= set(dir(package))
-        assert not hasattr(package, "nonexistent_public_name")
-        assert set(sys.modules) == before
+        assert not hasattr(package, "__getattr__")
+        assert not hasattr(package, "ClientJobDescription")
+        assert not hasattr(package, "build_client_manager")
+        assert {name for name in sys.modules if name.startswith("pulsar")} <= {
+            "pulsar", "pulsar.client", "pulsar.client.staging",
+        }
     """)
     subprocess.run([sys.executable, '-S', '-c', code], check=True)
 
 
-@pytest.mark.parametrize(('name', 'module'), [
-    ('CLIENT_INPUT_PATH_TYPES', 'staging.inputs'),
-    ('EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN', 'staging'),
-    ('ClientInput', 'staging.inputs'),
-    ('ClientInputs', 'staging.inputs'),
-    ('ClientJobDescription', 'staging.models'),
-    ('ClientOutputs', 'staging.models'),
-    ('OutputNotFoundException', 'exceptions'),
-    ('PathMapper', 'path_mapper'),
-    ('PulsarClientTransportError', 'exceptions'),
-    ('PulsarOutputs', 'staging.models'),
-    ('build_client_manager', 'coexecution_manager'),
-    ('finish_job', 'staging.down'),
-    ('submit_job', 'staging.up'),
-    ('url_to_destination_params', 'destination'),
-])
-def test_existing_client_exports_are_actual_implementation_objects(name, module):
-    package = import_module('pulsar.client')
-    exported = getattr(package, name)
-    assert exported is getattr(import_module(f'pulsar.client.{module}'), name)
-    assert vars(package)[name] is exported
-
-
-@pytest.mark.parametrize(('name', 'module'), [
-    ('CLIENT_INPUT_PATH_TYPES', 'inputs'),
-    ('ClientInput', 'inputs'),
-    ('ClientInputs', 'inputs'),
-    ('ClientJobDescription', 'models'),
-    ('ClientOutputs', 'models'),
-    ('DynamicFileSourceType', 'models'),
-    ('PulsarOutputs', 'models'),
-])
-def test_existing_staging_exports_are_actual_implementation_objects(name, module):
-    package = import_module('pulsar.client.staging')
-    exported = getattr(package, name)
-    assert exported is getattr(import_module(f'pulsar.client.staging.{module}'), name)
-    assert vars(package)[name] is exported
-    if name != 'CLIENT_INPUT_PATH_TYPES':
-        legacy_class_pickle = f'cpulsar.client.staging\n{name}\n.'.encode()
-        assert pickle.loads(legacy_class_pickle) is exported
-
-
-def test_staging_object_pickle_compatibility():
-    staging = import_module('pulsar.client.staging')
-    outputs = staging.ClientOutputs(output_files=['output.txt'])
-    serialized = pickle.dumps(outputs, protocol=0)
-    legacy_serialized = serialized.replace(b'pulsar.client.staging.models\n', b'pulsar.client.staging\n')
-    assert legacy_serialized != serialized
-    for payload in (serialized, legacy_serialized):
-        restored = pickle.loads(payload)
-        assert type(restored) is staging.ClientOutputs
-        assert restored.output_files == ['output.txt']
+def test_staging_object_pickle_roundtrip():
+    outputs = ClientOutputs(output_files=['output.txt'])
+    restored = pickle.loads(pickle.dumps(outputs))
+    assert type(restored) is ClientOutputs
+    assert restored.output_files == ['output.txt']
 
 
 def test_legacy_exception_path():

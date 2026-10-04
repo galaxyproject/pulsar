@@ -1,6 +1,5 @@
 import pytest
 
-from pulsar.client import build_client_manager as build_compatible_client_manager
 from pulsar.client.client import MessageJobClient
 from pulsar.client.coexecution_manager import (
     build_client_manager,
@@ -30,15 +29,14 @@ from pulsar.client.tes import (
     ({'tes_enabled': True}, {'tes_url': 'http://tes.example'}, TesMessageCoexecutionJobClient, TesPollingCoexecutionJobClient),
     ({'gcp_batch_enabled': True}, {'project_id': 'test-project'}, GcpMessageCoexecutionJobClient, GcpPollingCoexecutionJobClient),
 ])
-@pytest.mark.parametrize('factory', [build_client_manager, build_compatible_client_manager])
 @pytest.mark.parametrize('messaging', [True, False])
-def test_factory_selects_backend_and_status_transport(options, destination, message_class, polling_class, messaging, factory):
+def test_factory_selects_backend_and_status_transport(options, destination, message_class, polling_class, messaging):
     if messaging:
-        manager = factory(amqp_url='memory://', **options)
+        manager = build_client_manager(amqp_url='memory://', **options)
         expected_manager = CoexecutionMessageQueueClientManager
         expected_client = message_class
     else:
-        manager = factory(**options)
+        manager = build_client_manager(**options)
         expected_manager = CoexecutionPollingJobClientManager
         expected_client = polling_class
     try:
@@ -60,9 +58,8 @@ def test_coexecution_factory_keeps_ordinary_amqp_destinations():
         manager.shutdown()
 
 
-@pytest.mark.parametrize('factory', [build_client_manager, build_compatible_client_manager])
-def test_coexecution_factory_accepts_legacy_positional_configuration(factory):
-    manager = factory(None, None, None, None, None, None, 'memory://', False, False, False)
+def test_coexecution_factory_accepts_legacy_positional_configuration():
+    manager = build_client_manager(None, None, None, None, None, None, 'memory://', False, False, False)
     try:
         assert isinstance(manager, CoexecutionMessageQueueClientManager)
         client = manager.get_client({'jobs_directory': '/jobs'}, 'job-123')

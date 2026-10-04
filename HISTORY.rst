@@ -13,11 +13,11 @@ History
   Google Cloud Batch, Kubernetes, and TES clients and configuration into
   backend modules. ``COMMAND_VERSION_FILENAME`` remains in
   ``pulsar.client.staging`` and can be imported without client dependencies.
-  Lazy compatibility exports preserve existing client and staging package
-  imports, including Galaxy's runner imports and the coexecution-capable
-  client factory. Concrete modules allow callers to load only the APIs they
-  need. Direct backend and backend configuration imports now use the
-  backend modules.
+  Import client and staging APIs from their implementation modules; the
+  package-level re-exports are removed. Use
+  ``pulsar.client.coexecution_manager.build_client_manager`` for a factory
+  supporting both ordinary clients and container coexecution. Staging
+  objects pickled with the old package-level paths are no longer supported.
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
   `@gkr0110`_).
