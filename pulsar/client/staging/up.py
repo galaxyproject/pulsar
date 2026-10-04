@@ -19,16 +19,14 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from pulsar.shared import COMMAND_VERSION_FILENAME
 from ..action_mapper import (
     FileActionMapper,
     MessageAction,
     path_type,
 )
 from ..job_directory import RemoteJobDirectory
-from ..staging import (
-    CLIENT_INPUT_PATH_TYPES,
-    COMMAND_VERSION_FILENAME,
-)
+from ..staging import CLIENT_INPUT_PATH_TYPES
 from ..util import (
     directory_files,
     ExternalId,

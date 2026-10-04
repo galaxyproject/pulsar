@@ -16,12 +16,12 @@ from typing import (
 from galaxy.tool_util.parser.output_collection_def import dataset_collection_description
 from galaxy.util.bunch import Bunch
 
+from pulsar.shared import COMMAND_VERSION_FILENAME
 from ..util import PathHelper
 
 if TYPE_CHECKING:
     from galaxy.tool_util.parser.interface import RequiredFiles
 
-COMMAND_VERSION_FILENAME = "COMMAND_VERSION"
 DEFAULT_DYNAMIC_COLLECTION_PATTERN = [
     r"primary_.*|galaxy.json|metadata_.*|dataset_\d+\.dat|__instrument_.*|dataset_\d+_files.+|outputs_populated/.*|tool_stdout|tool_stderr"
 ]
@@ -339,3 +339,17 @@ class PulsarOutputs:
         files_directory = "{}_files{}".format(basename(output_file)[0:-len(".dat")], self.path_helper.separator)
         names = filter(lambda o: o.startswith(files_directory), self.output_directory_contents)
         return {local_path(name): name for name in names}
+
+
+__all__ = [
+    "CLIENT_INPUT_PATH_TYPES",
+    "COMMAND_VERSION_FILENAME",
+    "DEFAULT_DYNAMIC_COLLECTION_PATTERN",
+    "EXTENDED_METADATA_DYNAMIC_COLLECTION_PATTERN",
+    "ClientInput",
+    "ClientInputs",
+    "ClientJobDescription",
+    "ClientOutputs",
+    "DynamicFileSourceType",
+    "PulsarOutputs",
+]
