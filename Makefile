@@ -19,7 +19,7 @@ PROJECT_URL?=https://github.com/galaxyproject/pulsar
 PROJECT_NAME?=pulsar-app
 TEST_DIR?=test
 
-.PHONY: clean-pyc clean-build docs clean
+.PHONY: clean-pyc clean-build docs compatibility-docs clean
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts"
@@ -33,6 +33,7 @@ help:
 	@echo "tests - run tests quickly with the default Python"
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
+	@echo "compatibility-docs - regenerate docs/compatibility.rst from docs/compatibility.yml"
 	@echo "dist - package project for PyPI distribution"
 	@echo "open-docs - open docs built locally with make docs"
 	@echo "open-rtd - open docs at pulsar.readthedocs.org"
@@ -105,6 +106,9 @@ ready-docs:
 	rm -f docs/$(SOURCE_DIR).rst
 	rm -f docs/modules.rst
 	$(IN_VENV) sphinx-apidoc -f -o docs/ $(SOURCE_DIR)
+
+compatibility-docs:
+	$(IN_VENV) python docs/gen_compatibility_doc.py
 
 docs: ready-docs
 	$(IN_VENV) $(MAKE) -C docs clean

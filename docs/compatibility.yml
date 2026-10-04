@@ -1,0 +1,170 @@
+# Galaxy <-> Pulsar compatibility matrix. Source for docs/compatibility.rst;
+# regenerate with ``make compatibility-docs`` after editing.
+#
+# Records what each Galaxy release ships and which peers we *expect* to work.
+# Not a support guarantee. Statuses:
+#   expected  - believed compatible from reading the code; nothing run yet
+#   tested    - a CI job exercised this pair
+#   broken    - a known break; see issues
+#   n/a       - modality doesn't exist for this Galaxy release
+# Server ranges are PEP 440 specifiers on the Pulsar server (pulsar-app) version.
+# The initial survey started at 0.15.6; older servers are unknown, not excluded.
+
+schema_version: 1
+
+galaxy_releases:
+  "24.0": {pulsar_galaxy_lib: "0.15.6"}
+  "24.1": {pulsar_galaxy_lib: "0.15.6"}
+  "24.2": {pulsar_galaxy_lib: "0.15.7"}
+  "25.0": {pulsar_galaxy_lib: "0.15.9"}
+  "25.1": {pulsar_galaxy_lib: "0.15.14"}
+  "26.0": {pulsar_galaxy_lib: "0.15.14"}
+  "26.1": {pulsar_galaxy_lib: "0.15.15"}
+  "26.2": {pulsar_galaxy_lib: "0.16", planned: true}
+
+pulsar_series:
+  "0.15": {branch: release_0.15, galaxy: ["24.0", "24.1", "24.2", "25.0", "25.1", "26.0", "26.1"]}
+  "0.16": {branch: release_0.16, galaxy: ["26.2"], planned: true}
+
+modalities:
+  rest:
+    description: Galaxy ``PulsarRESTJobRunner`` -> Pulsar web server over HTTP.
+    contract: '``pulsar/web/routes.py`` routes and params; setup response; status fields; file-action types.'
+    matrix:
+      "24.0": &rest_old
+        - {servers: ">=0.15.6", status: expected, issues: [live-stdout-needs-galaxy-24.2, jobs-directory-token-removed, tus-now-real, resubmit-same-id-ignored, status-stdout-capped]}
+      "24.1": *rest_old
+      "24.2": &rest_mid
+        - {servers: ">=0.15.6", status: expected, issues: [jobs-directory-token-removed, tus-now-real, resubmit-same-id-ignored, status-stdout-capped]}
+      "25.0": *rest_mid
+      "25.1": *rest_mid
+      "26.0": &rest_new
+        - {servers: ">=0.15.13", status: expected, issues: [jobs-directory-token-removed, tus-now-real, resubmit-same-id-ignored, status-stdout-capped]}
+        - {servers: ">=0.15.6,<0.15.13", status: expected, issues: [collector-descriptions-version-gate]}
+      "26.1": *rest_new
+      "26.2":
+        - {servers: ">=0.16.0.dev0", status: expected, issues: [jobs-directory-token-removed, tus-now-real, resubmit-same-id-ignored, status-stdout-capped]}
+        - {servers: ">=0.15.13,<0.16.0.dev0", status: expected, issues: [master-features-unavailable]}
+        - {servers: ">=0.15.6,<0.15.13", status: expected, issues: [collector-descriptions-version-gate, master-features-unavailable]}
+
+  mq:
+    description: Galaxy ``PulsarMQJobRunner`` -> Pulsar over AMQP (kombu); setup built Galaxy-side (``jobs_directory`` required).
+    contract: exchange ``pulsar``; queues ``<prefix>_{setup,kill,status,status_update}[_ack]``; setup/status payload dicts.
+    matrix:
+      "24.0": &mq_old
+        - {servers: ">=0.15.6", status: expected, issues: [live-stdout-needs-galaxy-24.2, jobs-directory-token-removed, amqp-durable-mismatch, outbox-duplicate-final-status, status-stdout-capped]}
+      "24.1": *mq_old
+      "24.2": &mq_mid
+        - {servers: ">=0.15.6", status: expected, issues: [jobs-directory-token-removed, amqp-durable-mismatch, outbox-duplicate-final-status, status-stdout-capped]}
+      "25.0": *mq_mid
+      "25.1": *mq_mid
+      "26.0": &mq_new
+        - {servers: ">=0.15.13", status: expected, issues: [jobs-directory-token-removed, amqp-durable-mismatch, outbox-duplicate-final-status, status-stdout-capped]}
+        - {servers: ">=0.15.6,<0.15.13", status: expected, issues: [collector-descriptions-version-gate]}
+      "26.1": *mq_new
+      "26.2":
+        - {servers: ">=0.16.0.dev0", status: expected, issues: [jobs-directory-token-removed, amqp-durable-mismatch, outbox-duplicate-final-status, status-stdout-capped]}
+        - {servers: ">=0.15.13,<0.16.0.dev0", status: expected, issues: [master-features-unavailable]}
+        - {servers: ">=0.15.6,<0.15.13", status: expected, issues: [collector-descriptions-version-gate, master-features-unavailable]}
+
+  relay:
+    description: Galaxy and Pulsar exchange MQ-shaped messages through the ``pulsar-relay`` HTTP service.
+    contract: topics ``[prefix_]job_{setup,status_request,kill,status_update}[_manager]``; same payloads as mq.
+    other_axes:
+      pulsar_relay_server: unverified; device flow, refresh tokens, topic ownership need newer relay servers.
+      pulsar_relay_client: ">=0.2.1 (lib 0.15.15+); Galaxy dev pins 0.2.2; unpinned in 26.1."
+    matrix:
+      "24.0": [{status: n/a}]
+      "24.1": [{status: n/a}]
+      "24.2": [{status: n/a}]
+      "25.0": [{status: n/a}]
+      "25.1": [{status: n/a, note: "lib 0.15.14 has relay but the 25.1 runner rejects ``relay_url``"}]
+      "26.0": &relay_new
+        - {servers: ">=0.15.13", status: expected, issues: [relay-default-username-dropped, outbox-duplicate-final-status]}
+        - {servers: "==0.15.12", status: expected, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate]}
+      "26.1": *relay_new
+      "26.2":
+        - {servers: ">=0.15.13", status: expected, issues: [relay-default-username-dropped, outbox-duplicate-final-status, master-features-unavailable]}
+        - {servers: "==0.15.12", status: expected, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate]}
+
+  coexecution:
+    description: >-
+      Galaxy K8s/TES/GCP runners launch a pod/task with a Pulsar sidecar; no long-running server.
+      The peer is the sidecar image, hardcoded in Galaxy as ``DEFAULT_PULSAR_CONTAINER``
+      (overridable per destination with ``pulsar_container_image``).
+    contract: "``pulsar-submit [--wait|--no-wait] --base64 <setup> --app_conf_base64 <conf>``; tool container waits on a ``command_line`` file."
+    default_image: {image: "galaxy/pulsar-pod-staging:0.15.0.2", pulsar: "0.15.0.dev0 (49bc5bc, 2023-02)"}
+    backends:
+      k8s: all releases
+      tes: all releases
+      gcp_batch: "Galaxy 25.1+ (lib 0.15.10+)"
+      aws_batch: lib client only; no Galaxy runner
+    matrix:
+      "24.0": &coexec_old
+        - {image: default, status: expected, issues: [coexec-token-endpoint-ignored, coexec-stdio-not-separated]}
+      "24.1": *coexec_old
+      "24.2": *coexec_old
+      "25.0": *coexec_old
+      "25.1": &coexec_gcp_bug
+        - {image: default, status: expected, issues: [coexec-token-endpoint-ignored, coexec-stdio-not-separated, gcp-runnable-ordering]}
+      "26.0":
+        - {image: default, status: expected, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated, gcp-runnable-ordering]}
+      "26.1": &coexec_new
+        - {image: default, status: expected, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated]}
+      "26.2": *coexec_new
+
+  embedded:
+    description: Pulsar runs inside Galaxy's process; always the same version. No matrix.
+
+issues:
+  collector-descriptions-version-gate:
+    severity: break
+    summary: >-
+      Galaxy 26.0+ (3a3d872460c) sends ``dataset_collector_descriptions`` in place of raw ``discover_datasets``
+      patterns once ``pulsar_version`` >= 0.15.13.dev0. With setup built Galaxy-side (``jobs_directory`` set: all
+      MQ, relay, coexecution; REST only if configured), ``pulsar_version`` is Galaxy's own lib version, not the
+      server's. Servers < 0.15.13 (2e28241) ignore the new key: custom ``discover_datasets`` outputs are never
+      staged back and the job still finishes green.
+    evidence: [galaxy release_26.1 lib/galaxy/jobs/runners/pulsar.py __client_outputs, pulsar 0.15.15 pulsar/client/setup_handler.py LocalSetupHandler]
+    verified: code-read by two agents + coordinator; not run
+  live-stdout-needs-galaxy-24.2:
+    severity: conditional
+    summary: Opt-in ``send_stdout_update`` (server, master 7b4e451). Galaxy 24.0/24.1 lack d336cadddba, so stdout is overwritten per chunk / dropped.
+  jobs-directory-token-removed:
+    severity: conditional
+    summary: Master servers (aefd720) reject jobs using ``__PULSAR_JOBS_DIRECTORY__``. The 0.15.15 sample ``job_conf_sample_mq_rsync.yml`` still uses it.
+  tus-now-real:
+    severity: conditional
+    summary: '``remote_transfer_tus`` really uses TUS on master (1f7eb9a); servers without ``tuspy`` now fail stage-out instead of silently using POST.'
+  resubmit-same-id-ignored:
+    severity: conditional
+    summary: 0.15.15+ servers (37e0ad5) ignore a setup reusing a job id whose directory still exists; Galaxy sees the old final status. Written for MQ redelivery, REST shares the path. Needs a test.
+  status-stdout-capped:
+    severity: degraded
+    summary: Master servers cap stdout/stderr in status responses at 64 KiB (6eb8dae).
+  amqp-durable-mismatch:
+    severity: conditional
+    summary: 0.15.15 (0463d37) makes durability configurable; ``amqp_durable`` false on only one side -> RabbitMQ 406, consumer thread dies.
+  outbox-duplicate-final-status:
+    severity: degraded
+    summary: 0.15.15 at-least-once outbox (de95b65) can redeliver a final status after a crash; Galaxy doesn't dedupe.
+  master-features-unavailable:
+    severity: degraded
+    summary: >-
+      Galaxy 26.2 features need a 0.16 server: per-job ``cvmfsexec`` (5ec0bc6) is silently dropped;
+      container rewrite rules using ``__PULSAR_JOB_DIRECTORY__`` (81be9db) leave the token literal and the job fails.
+  relay-topic-prefix-needs-0.15.13:
+    severity: conditional
+    summary: '``relay_topic_prefix`` arrived in 0.15.13; setting it against 0.15.12 mismatches topics.'
+  relay-default-username-dropped:
+    severity: conditional
+    summary: 0.15.15 servers drop the default relay username ``admin``; operators relying on the default must set it.
+  coexec-token-endpoint-ignored:
+    severity: degraded
+    summary: '``token_endpoint`` (lib 0.15.3, 39697ad) is ignored by the 0.15.0.2 image; OIDC-token remote file sources unusable in the pod.'
+  coexec-stdio-not-separated:
+    severity: degraded
+    summary: 0.15.0.2 image predates job/tool stdio separation (00fa8c6); Galaxy copes.
+  gcp-runnable-ordering:
+    severity: break
+    summary: GCP Batch client in lib 0.15.14 orders runnables wrongly; fixed in 0.15.15.
