@@ -16,8 +16,8 @@ History
   Lazy compatibility exports preserve existing client and staging package
   imports, including Galaxy's runner imports and the coexecution-capable
   client factory. Concrete modules allow callers to load only the APIs they
-  need. Direct backend and backend configuration imports have moved; see
-  ``docs/client_api.rst`` for those paths.
+  need. Direct backend and backend configuration imports now use the
+  backend modules.
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
   `@gkr0110`_).
