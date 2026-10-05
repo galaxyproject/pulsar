@@ -105,7 +105,7 @@ class QueueManager(Manager):
         """
         Run the next item in the queue (a job waiting to run).
         """
-        while 1:
+        while True:
             (op, obj) = self.work_queue.get()
             if op is STOP_SIGNAL:
                 return
