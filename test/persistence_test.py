@@ -8,13 +8,19 @@ from os.path import (
 from galaxy.job_metrics import NULL_JOB_INSTRUMENTER
 from galaxy.util.bunch import Bunch
 
+from pulsar.managers.base import JobDirectory
 from pulsar.managers.queued import QueueManager
-from pulsar.managers.stateful import StatefulManagerProxy
+from pulsar.managers.stateful import (
+    ACTIVE_STATUS_LAUNCHED,
+    StatefulManagerProxy,
+)
+from pulsar.managers.unqueued import JOB_FILE_SUBMITTED
 from pulsar.tools.authorization import get_authorizer
 from .test_utils import (
     get_test_user_auth_manager,
     temp_directory,
     TestDependencyManager,
+    wait_for,
 )
 
 TEST_JOB_ID = "4"
@@ -92,7 +98,12 @@ def _setup_manager_that_preprocesses(app):
     queue2 = StatefulManagerProxy(QueueManager('test', app, num_concurrent_jobs=0))
     try:
         queue2.recover_active_jobs()
-        time.sleep(1)
+        # Preprocessing ends by recording the job as launched, which is what the next manager recovers.
+        wait_for(
+            lambda: TEST_JOB_ID in queue2.active_jobs.active_job_ids(active_status=ACTIVE_STATUS_LAUNCHED),
+            "the recovered job to be launched",
+            timeout=10,
+        )
     finally:
         try:
             queue2.shutdown()
@@ -115,7 +126,14 @@ def _setup_manager_that_executes(app):
     queue2 = StatefulManagerProxy(QueueManager('test', app, num_concurrent_jobs=1))
     try:
         queue2.recover_active_jobs()
-        time.sleep(1)
+        # Wait for the run to finish, not just the command: finishing still writes to the job directory.
+        touch_file = join(app.staging_directory, TEST_COMMAND_TOUCH_FILE)
+        job_directory = JobDirectory(app.staging_directory, TEST_JOB_ID)
+        wait_for(
+            lambda: exists(touch_file) and not job_directory.has_metadata(JOB_FILE_SUBMITTED),
+            "the recovered job to finish running",
+            timeout=10,
+        )
     finally:
         try:
             queue2.shutdown()
