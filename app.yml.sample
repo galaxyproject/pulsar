@@ -217,6 +217,12 @@
 ## Sentry. Possible values are DEBUG, INFO, WARNING, ERROR or CRITICAL.
 ##sentry_event_level: WARNING
 
+## Maximum bytes of each tool and job stdout/stderr stream read when a job
+## completes. A longer stream keeps its start and end, joined by "..", since
+## the end is usually where a failing tool says why. The completion status
+## sent to Galaxy is further capped at 64 KiB per tool stream the same way.
+#maximum_stream_size: 1048576
+
 ## Stream tool stdout/stderr to Galaxy while the job is still running, so
 ## Galaxy can display live tool output instead of only showing it once the
 ## job completes. Off by default. Galaxy must also enable the feature on the

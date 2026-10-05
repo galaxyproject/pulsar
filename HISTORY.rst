@@ -9,6 +9,11 @@ History
 0.15.16.dev0
 ---------------------
 
+* Keep the end of tool and job stdout/stderr when trimming them to
+  ``maximum_stream_size`` and to the 64 KiB completion-status limit, instead of
+  only the start. The end is usually where a failing tool explains why.
+  Document ``maximum_stream_size`` in ``app.yml.sample``. `Issue 158`_
+
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
   `@gkr0110`_).
@@ -667,6 +672,7 @@ History
 
 
 .. github_links
+.. _Issue 158: https://github.com/galaxyproject/pulsar/issues/158
 .. _Pull Request 470: https://github.com/galaxyproject/pulsar/pull/470
 .. _Pull Request 466: https://github.com/galaxyproject/pulsar/pull/466
 .. _Pull Request 464: https://github.com/galaxyproject/pulsar/pull/464
