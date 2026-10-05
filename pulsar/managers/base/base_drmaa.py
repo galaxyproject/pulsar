@@ -11,6 +11,8 @@ from typing import (
 
 from typing_extensions import Literal
 
+from pulsar.managers.util.env import EnvVar
+
 if TYPE_CHECKING:
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
 
@@ -111,7 +113,7 @@ class BaseDrmaaManager(ExternalBaseManager):
         job_id: str,
         command_line: str,
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         submit_params: Dict[str, str] = {},
         setup_params: Optional[Dict[str, str]] = None,
     ) -> Dict[str, str]:

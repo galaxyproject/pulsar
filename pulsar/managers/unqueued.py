@@ -24,6 +24,7 @@ from typing import (
 from pulsar.client.util import MonitorStyle
 from pulsar.managers import status
 from pulsar.managers.base.directory import DirectoryBaseManager
+from pulsar.managers.util.env import EnvVar
 from .util import kill_pid
 
 if TYPE_CHECKING:
@@ -81,7 +82,7 @@ class BaseUnqueuedManager(DirectoryBaseManager, ABC):
         job_id: str,
         command_line: str,
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> str:
         self._check_execution_with_tool_file(job_id, command_line)
@@ -244,7 +245,7 @@ class Manager(BaseUnqueuedManager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         command_line = self._prepare_run(
@@ -302,7 +303,7 @@ class CoexecutionManager(BaseUnqueuedManager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         command_line = self._prepare_run(

@@ -11,6 +11,8 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from pulsar.managers.util.env import EnvVar
+
 if TYPE_CHECKING:
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
     from pulsar.core import PulsarApp
@@ -65,7 +67,7 @@ class QueueManager(Manager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         command_line = self._prepare_run(

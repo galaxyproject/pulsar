@@ -34,11 +34,11 @@ def postprocess(
     # Returns True if outputs were collected.
     try:
         if job_directory.has_metadata("launch_config"):
-            staging_config = job_directory.load_metadata("launch_config").get(
-                "remote_staging", None
+            staging_config = (
+                job_directory.load_metadata("launch_config").get("remote_staging") or {}
             )
         else:
-            staging_config = None
+            staging_config = {}
         collected = __collect_outputs(
             job_directory, staging_config, action_executor, was_cancelled
         )

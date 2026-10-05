@@ -12,6 +12,7 @@ from typing import (
 
 from galaxy.util import which
 
+from pulsar.managers.util.env import EnvVar
 from .base.base_drmaa import BaseDrmaaManager
 from .util.sudo import sudo_popen
 from ..managers import status
@@ -68,7 +69,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         self._check_execution_with_tool_file(job_id, command_line)

@@ -15,6 +15,7 @@ from galaxy.util import asbool
 
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from pulsar.managers.base import BaseManager
+from pulsar.managers.util.env import EnvVar
 from ..util import cvmfsexec
 from ..util.env import env_to_statement
 from ..util.job_script import (
@@ -206,7 +207,7 @@ class DirectoryBaseManager(BaseManager):
         job_id: str,
         command_line: str,
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> str:
         command_line = self._expand_command_line(
@@ -271,7 +272,7 @@ class DirectoryBaseManager(BaseManager):
         self,
         job_id: str,
         command_line: Optional[str] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         # TODO: Add option to ignore remote env.

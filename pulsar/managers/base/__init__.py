@@ -52,6 +52,7 @@ from pulsar.client.job_directory import (
 )
 from pulsar.managers import ManagerInterface
 from pulsar.managers.util.cvmfsexec import parse as parse_cvmfsexec_config
+from pulsar.managers.util.env import EnvVar
 
 if TYPE_CHECKING:
     from threading import Lock
@@ -173,12 +174,12 @@ class BaseManager(ManagerInterface, ABC):
         self.__system_properties = system_properties
 
     def __init_env_vars(self, **kwds: Any) -> None:
-        env_vars = []
+        env_vars: List[EnvVar] = []
         for key, value in kwds.items():
             if key.lower().startswith("env_"):
                 name = key[len("env_") :]
                 env_vars.append({"name": name, "value": value, "raw": False})
-        self.env_vars: List[Dict[str, str]] = env_vars
+        self.env_vars = env_vars
 
     def _galaxy_home(self) -> Optional[str]:
         return self.galaxy_home or getenv("GALAXY_HOME", None)

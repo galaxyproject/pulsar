@@ -5,6 +5,7 @@ qstat, etc...).
 
 from logging import getLogger
 from typing import (
+    cast,
     Dict,
     List,
     Optional,
@@ -12,6 +13,7 @@ from typing import (
 )
 
 from pulsar.managers import status
+from pulsar.managers.util.env import EnvVar
 from .base.external import ExternalBaseManager
 from .util.cli import (
     CliInterface,
@@ -58,7 +60,7 @@ class CliQueueManager(ExternalBaseManager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         self._check_execution_with_tool_file(job_id, command_line)
@@ -109,4 +111,4 @@ class CliQueueManager(ExternalBaseManager):
         status_command = job_interface.get_single_status(external_id)
         cmd_out = shell.execute(status_command)
         state = job_interface.parse_single_status(cmd_out.stdout, external_id)
-        return _CLI_STATE_TO_STATUS.get(state, state)
+        return cast("StateLiteral", _CLI_STATE_TO_STATUS.get(state, state))
