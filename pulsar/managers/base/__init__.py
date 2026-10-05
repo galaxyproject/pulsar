@@ -108,7 +108,7 @@ class BaseManager(ManagerInterface, ABC):
         staging_directory = kwds.get("staging_directory", app.staging_directory)
         self._setup_staging_directory(staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids"))
-        self.maximum_stream_size = kwds.get("maximum_stream_size", -1)
+        self.maximum_stream_size = int(kwds.get("maximum_stream_size", -1))
         self.__init_galaxy_system_properties(kwds)
         self.tmp_dir: Optional[str] = kwds.get("tmp_dir")
         # Default cvmfsexec configuration for this manager (app.yml). May be
