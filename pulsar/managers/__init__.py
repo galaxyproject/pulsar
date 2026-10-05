@@ -111,6 +111,11 @@ class ManagerInterface:
         job working directory.
         """
 
+    def shutdown(self, timeout: Optional[float] = None) -> None:
+        """ Release resources held by this manager. Managers holding none
+        inherit this no-op.
+        """
+
 
 class ManagerProxy:
     """
@@ -162,12 +167,7 @@ class ManagerProxy:
         return self._proxied_manager.kill(*args, **kwargs)
 
     def shutdown(self, timeout: Optional[float] = None) -> None:
-        """Optional."""
-        try:
-            shutdown_method = self._proxied_manager.shutdown
-        except AttributeError:
-            return
-        shutdown_method(timeout)
+        return self._proxied_manager.shutdown(timeout)
 
     def job_directory(self, *args, **kwargs):
         return self._proxied_manager.job_directory(*args, **kwargs)

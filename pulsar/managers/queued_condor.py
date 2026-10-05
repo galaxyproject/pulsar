@@ -1,3 +1,9 @@
+"""Job manager backed by HTCondor via the ``condor_submit`` command line.
+
+:mod:`pulsar.managers.queued_htcondor` drives the same DRM through its Python
+bindings instead, and can report holds and failures this manager cannot see;
+prefer it unless the bindings are unavailable.
+"""
 from logging import getLogger
 from os import stat
 from os.path import exists
@@ -62,13 +68,16 @@ class CondorQueueManager(ExternalBaseManager):
             # Touch log file
             pass
 
-        submit_params.update(self.submission_params)
+        # Copied rather than updated in place - submit_params defaults to a
+        # shared dict, so mutating it leaks one job's params into later jobs.
+        query_params = dict(submit_params)
+        query_params.update(self.submission_params)
         build_submit_params = {
             "executable": job_file_path,
             "output": self._job_stdout_path(job_id),
             "error": self._job_stderr_path(job_id),
             "user_log": log_path,
-            "query_params": submit_params,
+            "query_params": query_params,
         }
         submit_file_contents = build_submit_description(**build_submit_params)
         submit_file = self._write_job_file(

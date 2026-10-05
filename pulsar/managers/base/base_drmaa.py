@@ -62,9 +62,8 @@ class BaseDrmaaManager(ExternalBaseManager):
         """Cleanup DRMAA session and call shutdown of parent."""
         try:
             super().shutdown(timeout)
-        except Exception:
-            pass
-        self.drmaa_session.close()
+        finally:
+            self.drmaa_session.close()
 
     def _get_status_external(self, external_id: str) -> status.StateLiteral:
         drmaa_state = cast(
