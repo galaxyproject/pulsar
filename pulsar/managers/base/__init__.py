@@ -152,7 +152,7 @@ class BaseManager(ManagerInterface, ABC):
         )
 
     def __init_system_properties(self) -> None:
-        system_properties = {
+        system_properties: Dict[str, Any] = {
             "separator": sep,
         }
         galaxy_home = self._galaxy_home()
@@ -170,7 +170,7 @@ class BaseManager(ManagerInterface, ABC):
             if value:
                 system_properties[property] = value
 
-        self.__system_properties: Dict[str, Any] = system_properties
+        self.__system_properties = system_properties
 
     def __init_env_vars(self, **kwds: Any) -> None:
         env_vars = []

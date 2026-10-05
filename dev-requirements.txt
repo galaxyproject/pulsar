@@ -33,6 +33,8 @@ isort
 vermin
 
 mypy
+# Pinned: new releases add checks; bump deliberately.
+pyrefly==1.3.2
 types-paramiko
 types-setuptools
 types-PyYAML

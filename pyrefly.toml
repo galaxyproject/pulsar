@@ -1,0 +1,24 @@
+# Pyrefly runs alongside mypy (tox -e pyrefly). The ignore-missing-imports list
+# mirrors mypy.ini; keep the two in sync.
+project-includes = ["pulsar", "test"]
+preset = "legacy"
+ignore-missing-imports = [
+    "galaxy.*",
+    "boto3.*",
+    "drmaa.*",
+    "urllib2.*",
+    "virtualenv.*",
+    "daemonize.*",
+    "paste.*",
+    "gunicorn.*",
+    "webob.*",
+    "kombu.*",
+    "amqp.*",
+    "requests_toolbelt.*",
+    "lockfile.*",
+    "pykube.*",
+    "win32api.*",
+    "webtest.*",
+    "fastapi.*",
+    "uvicorn.*",
+]
