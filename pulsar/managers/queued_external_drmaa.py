@@ -29,8 +29,8 @@ DEFAULT_DRMAA_KILL_SCRIPT = "scripts/drmaa_kill.bash"
 DEFAULT_DRMAA_LAUNCH_SCRIPT = "scripts/drmaa_launch.bash"
 DEFAULT_USER_MAPPING_TIMEOUT = 30
 
-# A mapped username is handed to `sudo -u` and interpolated into a shell command
-# by chown_working_directory, so it is constrained to a conservative POSIX
+# A mapped username is handed to `sudo -u` and to chown by
+# chown_working_directory, so it is constrained to a conservative POSIX
 # username. Galaxy applies an equivalent constraint to the names it sends; the
 # output of an operator-supplied mapping script carries no such guarantee.
 VALID_MAPPED_USER = re.compile(r"[A-Za-z0-9._][A-Za-z0-9._-]*")
