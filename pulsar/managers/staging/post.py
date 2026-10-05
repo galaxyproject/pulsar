@@ -45,7 +45,6 @@ def postprocess(
         return collected
     finally:
         job_directory.write_file("postprocessed", "")
-    return False
 
 
 def __collect_outputs(

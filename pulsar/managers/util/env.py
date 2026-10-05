@@ -1,3 +1,5 @@
+from typing import Any
+
 from typing_extensions import TypedDict
 
 RAW_VALUE_BY_DEFAULT = False
@@ -8,7 +10,7 @@ class EnvVar(TypedDict, total=False):
     """An environment definition: a name/value pair, a file to source, or a command to execute."""
 
     name: str
-    value: str
+    value: Any
     raw: bool
     file: str
     execute: str

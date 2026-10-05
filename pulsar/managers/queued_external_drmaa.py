@@ -153,12 +153,12 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         return self.__sudo(
             self.drmaa_launch_script,
             "--job_attributes",
-            str(job_attributes_file),
+            job_attributes_file,
             user=user,
         )
 
     def __change_ownership(self, job_id: str, username: str) -> None:
-        cmds = [self.chown_working_directory_script, "--user", str(username)]
+        cmds = [self.chown_working_directory_script, "--user", username]
         if self.production:
             cmds.extend(["--job_id", job_id])
         else:

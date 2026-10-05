@@ -190,7 +190,7 @@ class BaseManager(ManagerInterface, ABC):
     def _galaxy_lib(self) -> Optional[str]:
         galaxy_home = self._galaxy_home()
         galaxy_lib = None
-        if galaxy_home and str(galaxy_home).lower() != "none":
+        if galaxy_home and galaxy_home.lower() != "none":
             galaxy_lib = join(galaxy_home, "lib")
         return galaxy_lib
 
