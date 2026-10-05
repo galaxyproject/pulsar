@@ -32,7 +32,15 @@ def status_dict(manager, job_id):
 
 def full_status(manager, job_status, job_id):
     if status.is_job_done(job_status):
-        full_status = __job_complete_dict(job_status, manager, job_id)
+        try:
+            full_status = __job_complete_dict(job_status, manager, job_id)
+        except Exception:
+            if job_status == status.COMPLETE:
+                raise
+            # A job that failed before launch may not have a readable job
+            # directory - still report the failure.
+            log.exception("Failed to collect final status details for job %s, reporting status only", job_id)
+            return {"job_id": job_id, "complete": "true", "status": job_status, "returncode": None}
         if manager.is_live_stdout_update(job_id):
             # Streams were already delivered live; don't send them twice.
             full_status["stdout"] = None
