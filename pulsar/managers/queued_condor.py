@@ -87,7 +87,7 @@ class CondorQueueManager(ExternalBaseManager):
     def _kill_external(self, external_id: str) -> None:
         failure_message = condor_stop(external_id)
         if failure_message:
-            log.warn(
+            log.warning(
                 f"Failed to stop condor job with id {external_id} - {failure_message}"
             )
 

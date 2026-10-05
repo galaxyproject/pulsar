@@ -71,7 +71,7 @@ def __collect_outputs(
         )
         collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
-            log.warn("Failures collecting results %s" % collection_failure_exceptions)
+            log.warning("Failures collecting results %s" % collection_failure_exceptions)
             collected = False
     return collected
 

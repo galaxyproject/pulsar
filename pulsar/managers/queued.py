@@ -99,7 +99,7 @@ class QueueManager(Manager):
         for worker in self.work_threads:
             worker.join(timeout)
             if worker.is_alive():
-                log.warn("Failed to stop worker thread [%s]" % worker)
+                log.warning("Failed to stop worker thread [%s]" % worker)
 
     def run_next(self) -> None:
         """
@@ -120,5 +120,5 @@ class QueueManager(Manager):
                 # _run will not do anything if job has been cancelled.
                 self._run(job_id, command_line, montior=MonitorStyle.FOREGROUND)
             except Exception:
-                log.warn("Uncaught exception running job with job_id %s" % job_id)
+                log.warning("Uncaught exception running job with job_id %s" % job_id)
                 traceback.print_exc()

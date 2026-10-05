@@ -577,7 +577,7 @@ class TransferTracker:
             path = source.get("path")
             if path is not None and not exists(path):
                 message = "__action_for_transfer called on non-existent file - [%s]" % path
-                log.warn(message)
+                log.warning(message)
                 raise Exception(message)
             action = self.__action(source, type)
         return action

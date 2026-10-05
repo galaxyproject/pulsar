@@ -139,7 +139,7 @@ class BaseDrmaaManager(ExternalBaseManager):
         if self.native_specification:
             native_specification = self.native_specification
             if submit_native_specification is not None:
-                log.warn(IGNORE_SUBMISSION_SPEC_MESSAGE)
+                log.warning(IGNORE_SUBMISSION_SPEC_MESSAGE)
         elif submit_native_specification:
             native_specification = submit_params["native_specification"]
 

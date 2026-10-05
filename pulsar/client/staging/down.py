@@ -282,7 +282,7 @@ def _clean(collection_failure_exceptions, cleanup_job, client):
         try:
             client.clean()
         except Exception:
-            log.warn("Failed to cleanup remote Pulsar job")
+            log.warning("Failed to cleanup remote Pulsar job")
 
 
 def _allow_collect_failure(output_type, exception):

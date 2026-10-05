@@ -57,7 +57,7 @@ class DrmaaSession:
         with self._session_lock():
             if DrmaaSession.session is None:
                 if DrmaaSession.session_count != 0:
-                    log.warn(
+                    log.warning(
                         "DrmaaSession.session is None but session_count is non-zero - logic error occurred."
                     )
                 log.debug(
@@ -99,7 +99,7 @@ class DrmaaSession:
     def close(self):
         with self._session_lock():
             if DrmaaSession.session_count == 0:
-                log.warn(
+                log.warning(
                     "close() called with zero active session counted - logic error."
                 )
                 return
@@ -107,7 +107,7 @@ class DrmaaSession:
             DrmaaSession.session_count -= 1
             if DrmaaSession.session_count == 0:
                 if DrmaaSession.session is None:
-                    log.warn(
+                    log.warning(
                         "close() called with a non-zero session count but no session is defined."
                     )
                     return
