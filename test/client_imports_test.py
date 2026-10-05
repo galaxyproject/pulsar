@@ -1,4 +1,5 @@
 import pickle
+import re
 import subprocess
 import sys
 import textwrap
@@ -23,7 +24,7 @@ def test_staging_constants_import_without_site_packages():
             "pulsar", "pulsar.client", "pulsar.client.staging",
         }
     """)
-    subprocess.run([sys.executable, '-S', '-c', code], check=True)
+    subprocess.run([sys.executable, '-S', '-Werror::DeprecationWarning', '-c', code], check=True)
 
 
 @pytest.mark.parametrize('module', [
@@ -78,7 +79,30 @@ def test_compatibility_discovery_does_not_load_implementations(package):
         assert not hasattr(package, "nonexistent_public_name")
         assert set(sys.modules) == before
     """)
-    subprocess.run([sys.executable, '-S', '-c', code], check=True)
+    subprocess.run([sys.executable, '-S', '-Werror::DeprecationWarning', '-c', code], check=True)
+
+
+@pytest.mark.parametrize('package', ['pulsar.client', 'pulsar.client.staging'])
+def test_legacy_import_warns_once_and_direct_import_does_not(package):
+    code = textwrap.dedent("""\
+        import warnings
+
+        with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always", DeprecationWarning)
+            from pulsar.client.staging.models import ClientOutputs as implementation
+            from pulsar.client.staging import COMMAND_VERSION_FILENAME
+        assert not [w for w in recorded if str(w.message).startswith("pulsar.client.")]
+
+        with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always", DeprecationWarning)
+    """) + f'    from {package} import ClientOutputs\n    from {package} import ClientOutputs as again\n' + textwrap.dedent("""\
+        assert ClientOutputs is again is implementation
+        assert len(recorded) == 1
+        assert recorded[0].category is DeprecationWarning
+        assert recorded[0].filename == "<string>"
+        assert "from pulsar.client.staging.models instead" in str(recorded[0].message)
+    """)
+    subprocess.run([sys.executable, '-c', code], check=True)
 
 
 @pytest.mark.parametrize(('name', 'module'), [
@@ -97,9 +121,15 @@ def test_compatibility_discovery_does_not_load_implementations(package):
     ('submit_job', 'staging.up'),
     ('url_to_destination_params', 'destination'),
 ])
-def test_existing_client_exports_are_actual_implementation_objects(name, module):
+def test_existing_client_exports_are_actual_implementation_objects(name, module, monkeypatch):
     package = import_module('pulsar.client')
-    exported = getattr(package, name)
+    monkeypatch.delitem(vars(package), name, raising=False)
+    message = f'pulsar.client.{name} is deprecated; import {name} from pulsar.client.{module} instead.'
+    with pytest.warns(DeprecationWarning, match=re.escape(message)) as recorded:
+        exported = getattr(package, name)
+        assert getattr(package, name) is exported
+    assert len(recorded) == 1
+    assert recorded[0].filename == __file__
     assert exported is getattr(import_module(f'pulsar.client.{module}'), name)
     assert vars(package)[name] is exported
 
@@ -113,9 +143,15 @@ def test_existing_client_exports_are_actual_implementation_objects(name, module)
     ('DynamicFileSourceType', 'models'),
     ('PulsarOutputs', 'models'),
 ])
-def test_existing_staging_exports_are_actual_implementation_objects(name, module):
+def test_existing_staging_exports_are_actual_implementation_objects(name, module, monkeypatch):
     package = import_module('pulsar.client.staging')
-    exported = getattr(package, name)
+    monkeypatch.delitem(vars(package), name, raising=False)
+    message = f'pulsar.client.staging.{name} is deprecated; import {name} from pulsar.client.staging.{module} instead.'
+    with pytest.warns(DeprecationWarning, match=re.escape(message)) as recorded:
+        exported = getattr(package, name)
+        assert getattr(package, name) is exported
+    assert len(recorded) == 1
+    assert recorded[0].filename == __file__
     assert exported is getattr(import_module(f'pulsar.client.staging.{module}'), name)
     assert vars(package)[name] is exported
     if name != 'CLIENT_INPUT_PATH_TYPES':

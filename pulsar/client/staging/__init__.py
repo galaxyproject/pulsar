@@ -1,5 +1,6 @@
 """Job staging constants and lazily loaded job descriptions."""
 
+import warnings
 from importlib import import_module
 from typing import TYPE_CHECKING
 
@@ -53,6 +54,11 @@ def __getattr__(name):
     if name not in _EXPORTS:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     value = getattr(import_module(_EXPORTS[name], __name__), name)
+    warnings.warn(
+        f"{__name__}.{name} is deprecated; import {name} from {__name__}{_EXPORTS[name]} instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     globals()[name] = value
     return value
 

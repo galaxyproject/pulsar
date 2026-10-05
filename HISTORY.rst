@@ -18,6 +18,9 @@ History
   client factory. Concrete modules allow callers to load only the APIs they
   need. Direct backend and backend configuration imports now use the
   backend modules.
+  Accessing a lazy compatibility export now emits a ``DeprecationWarning``
+  naming its replacement import path before caching the implementation.
+  Direct implementation imports and staging constant imports do not warn.
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
   `@gkr0110`_).
