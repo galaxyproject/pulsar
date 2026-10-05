@@ -19,7 +19,8 @@ if TYPE_CHECKING:
 try:
     from drmaa import JobState
 except (OSError, ImportError, RuntimeError):
-    JobState = None
+    if not TYPE_CHECKING:
+        JobState = None
 
 from pulsar.managers import status
 from .external import ExternalBaseManager
