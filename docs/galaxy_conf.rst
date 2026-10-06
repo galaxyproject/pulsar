@@ -14,6 +14,9 @@ destinations is Galaxy's ``job_conf.sample.yml`` file (check it out on
 These examples just provide a different Pulsar-centric perspective on some of
 the documentation in that file.
 
+For which Pulsar servers each Galaxy release is expected to work with, see
+:ref:`compatibility`.
+
 .. note::
 
     Galaxy's job configuration was historically expressed as XML

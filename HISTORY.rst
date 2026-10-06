@@ -14,6 +14,9 @@ History
   only the start. The end is usually where a failing tool explains why.
   Document ``maximum_stream_size`` in ``app.yml.sample``. `Issue 158`_
 
+* Document Galaxy and Pulsar compatibility per modality (REST, message queue,
+  relay, coexecution) in a new ``Galaxy Compatibility`` docs page generated
+  from ``docs/compatibility.yml``.
 * Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
   in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
   `@gkr0110`_).
