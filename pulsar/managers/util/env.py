@@ -1,13 +1,22 @@
-from typing import (
-    Any,
-    Dict,
-)
+from typing import Any
+
+from typing_extensions import TypedDict
 
 RAW_VALUE_BY_DEFAULT = False
 VALID_ENV_OPTIONS = ("file", "execute", "name/value")
 
 
-def env_to_statement(env: Dict[str, Any]) -> str:
+class EnvVar(TypedDict, total=False):
+    """An environment definition: a name/value pair, a file to source, or a command to execute."""
+
+    name: str
+    value: Any
+    raw: bool
+    file: str
+    execute: str
+
+
+def env_to_statement(env: EnvVar) -> str:
     """Return the abstraction description of an environment variable definition
     into a statement for shell script.
 
@@ -40,7 +49,7 @@ def env_to_statement(env: Dict[str, Any]) -> str:
     raise RuntimeError(f"Invalid env definition, must be one of {VALID_ENV_OPTIONS}: {env}")
 
 
-def __escape(value: str, env: Dict[str, Any]) -> str:
+def __escape(value: str, env: EnvVar) -> str:
     raw = env.get("raw", RAW_VALUE_BY_DEFAULT)
     if not raw:
         value = '"' + value.replace('"', '\\"') + '"'

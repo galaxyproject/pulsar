@@ -15,6 +15,7 @@ from galaxy.util import asbool
 
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from pulsar.managers.base import BaseManager
+from pulsar.managers.util.env import EnvVar
 from ..util import cvmfsexec
 from ..util.env import env_to_statement
 from ..util.job_script import (
@@ -114,8 +115,8 @@ class DirectoryBaseManager(BaseManager):
     ) -> str:
         self._setup_job_directory(job_id)
 
-        tool_id = str(tool_id) if tool_id else ""
-        tool_version = str(tool_version) if tool_version else ""
+        tool_id = tool_id or ""
+        tool_version = tool_version or ""
 
         authorization = self._get_authorization(job_id, tool_id)
         authorization.authorize_setup()
@@ -137,7 +138,7 @@ class DirectoryBaseManager(BaseManager):
             job_id, JOB_FILE_RETURN_CODE, default=PULSAR_UNKNOWN_RETURN_CODE
         )
         if return_code_str == PULSAR_UNKNOWN_RETURN_CODE:
-            self._write_job_file(job_id, JOB_FILE_RETURN_CODE, str(return_code))
+            self._write_job_file(job_id, JOB_FILE_RETURN_CODE, return_code)
 
     def _write_tool_info(self, job_id: str, tool_id: str, tool_version: str) -> None:
         job_directory = self._job_directory(job_id)
@@ -206,7 +207,7 @@ class DirectoryBaseManager(BaseManager):
         job_id: str,
         command_line: str,
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> str:
         command_line = self._expand_command_line(
@@ -271,7 +272,7 @@ class DirectoryBaseManager(BaseManager):
         self,
         job_id: str,
         command_line: Optional[str] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         # TODO: Add option to ignore remote env.

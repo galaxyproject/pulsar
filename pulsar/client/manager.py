@@ -623,7 +623,7 @@ class ClientCacher:
             try:
                 self.__perform_transfer(transfer_info)
             except BaseException as e:
-                log.warn("Transfer failed.")
+                log.warning("Transfer failed.")
                 log.exception(e)
             self.transfer_queue.task_done()
 

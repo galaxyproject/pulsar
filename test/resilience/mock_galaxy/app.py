@@ -28,6 +28,7 @@ import logging
 import os
 import threading
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import kombu
@@ -56,7 +57,15 @@ RELAY_PASS = os.environ.get("MOCK_GALAXY_RELAY_PASSWORD", "admin1234")
 MANAGER = os.environ.get("MOCK_GALAXY_MANAGER", "_default_")
 
 recorder = StatusRecorder()
-app = FastAPI()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _start_consumers()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 # ----- file-staging endpoints --------------------------------------------------
@@ -309,11 +318,6 @@ def _start_consumers():
         threading.Thread(target=_amqp_consume_loop, name="amqp-consumer", daemon=True).start()
     if RELAY_URL:
         threading.Thread(target=_relay_consume_loop, name="relay-consumer", daemon=True).start()
-
-
-@app.on_event("startup")
-def on_startup():
-    _start_consumers()
 
 
 @app.get("/healthz")

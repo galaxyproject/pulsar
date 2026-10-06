@@ -23,12 +23,12 @@ jobs:
     - name: Run lint
       run: tox -e ${{ matrix.tox-env }}
   mypy:
-    name: MyPy
+    name: Type Check
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        tox-env: [mypy]
+        tox-env: [mypy, pyrefly]
         python-version: ['3.14']
     steps:
     - uses: actions/checkout@v7.0.1

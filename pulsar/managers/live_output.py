@@ -145,8 +145,8 @@ class LiveOutputReporter:
         self._manager = manager
         self.interval = float(interval)
         self.timeout = float(timeout)
-        self.chunk_size = int(chunk_size)
-        self.maximum_stream_size = int(maximum_stream_size or -1)
+        self.chunk_size = chunk_size
+        self.maximum_stream_size = maximum_stream_size or -1
         self._name = name
         self._jobs: Dict[str, _LiveJob] = {}
         self._jobs_lock = threading.Lock()

@@ -13,6 +13,8 @@ from typing import (
     Union,
 )
 
+from pulsar.managers.util.env import EnvVar
+
 if TYPE_CHECKING:
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
 
@@ -51,7 +53,7 @@ class ManagerInterface:
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         """

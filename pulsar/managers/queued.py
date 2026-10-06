@@ -11,6 +11,8 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from pulsar.managers.util.env import EnvVar
+
 if TYPE_CHECKING:
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
     from pulsar.core import PulsarApp
@@ -65,7 +67,7 @@ class QueueManager(Manager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         command_line = self._prepare_run(
@@ -97,13 +99,13 @@ class QueueManager(Manager):
         for worker in self.work_threads:
             worker.join(timeout)
             if worker.is_alive():
-                log.warn("Failed to stop worker thread [%s]" % worker)
+                log.warning("Failed to stop worker thread [%s]" % worker)
 
     def run_next(self) -> None:
         """
         Run the next item in the queue (a job waiting to run).
         """
-        while 1:
+        while True:
             (op, obj) = self.work_queue.get()
             if op is STOP_SIGNAL:
                 return
@@ -118,5 +120,5 @@ class QueueManager(Manager):
                 # _run will not do anything if job has been cancelled.
                 self._run(job_id, command_line, montior=MonitorStyle.FOREGROUND)
             except Exception:
-                log.warn("Uncaught exception running job with job_id %s" % job_id)
+                log.warning("Uncaught exception running job with job_id %s" % job_id)
                 traceback.print_exc()

@@ -9,6 +9,13 @@ History
 0.15.16.dev0
 ---------------------
 
+* Type check with Pyrefly alongside mypy (``tox -e pyrefly``) and pin both
+  checkers in ``dev-requirements.txt``.
+
+* ``pulsar-chown-working-directory`` runs ``chown`` without a shell and exits
+  non-zero when it fails. Previously a failed ``chown`` went unnoticed by the
+  ``queued_external_drmaa`` manager, which checks the script's exit status.
+
 * Keep the end of tool and job stdout/stderr when trimming them to
   ``maximum_stream_size`` and to the 64 KiB completion-status limit, instead of
   only the start. The end is usually where a failing tool explains why.

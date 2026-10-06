@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from pulsar.managers.util.env import EnvVar
 from .queued_drmaa import DrmaaQueueManager
 
 if TYPE_CHECKING:
@@ -37,7 +38,7 @@ class XsedeDrmaaQueueManager(DrmaaQueueManager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         super().launch(

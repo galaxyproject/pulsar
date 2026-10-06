@@ -2,6 +2,7 @@
 
 import configparser
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -16,7 +17,6 @@ from os import (
     pardir,
     pathsep,
     stat,
-    system,
     X_OK,
 )
 from os.path import (
@@ -630,8 +630,8 @@ class IntegrationTestConfiguration:
         try:
             # Let external users read/execute this directory for run as user
             # test.
-            system("chmod 755 %s" % self._tmp_path)
-            system("chmod -R 755 %s" % dependencies_dir)
+            subprocess.call(["chmod", "755", str(self._tmp_path)])
+            subprocess.call(["chmod", "-R", "755", str(dependencies_dir)])
         except Exception as e:
             print(e)
         env_file = dep1_directory / "env.sh"

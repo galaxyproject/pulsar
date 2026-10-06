@@ -10,7 +10,10 @@ from galaxy.util import (
 from galaxy.util.bunch import Bunch
 
 from pulsar.managers.util.retry import RetryActionExecutor
-from .local import LocalShell
+from .local import (
+    DEFAULT_TIMEOUT_CHECK_INTERVAL,
+    LocalShell,
+)
 
 log = logging.getLogger(__name__)
 logging.getLogger("paramiko").setLevel(
@@ -38,7 +41,7 @@ class RemoteShell(LocalShell):
         self.options = options
         self.sessions = {}
 
-    def execute(self, cmd, persist=False, timeout=60):
+    def execute(self, cmd, persist=False, timeout=60, timeout_check_interval=DEFAULT_TIMEOUT_CHECK_INTERVAL, **kwds):
         # TODO: implement persistence
         fullcmd = [self.rsh]
         if self.options:
@@ -46,7 +49,7 @@ class RemoteShell(LocalShell):
         if self.username:
             fullcmd.extend(["-l", self.username])
         fullcmd.extend([self.hostname, cmd])
-        return super().execute(fullcmd, persist, timeout)
+        return super().execute(fullcmd, persist, timeout, timeout_check_interval, **kwds)
 
 
 class SecureShell(RemoteShell):

@@ -12,6 +12,7 @@ from typing import (
 
 from galaxy.util import which
 
+from pulsar.managers.util.env import EnvVar
 from .base.base_drmaa import BaseDrmaaManager
 from .util.sudo import sudo_popen
 from ..managers import status
@@ -29,8 +30,8 @@ DEFAULT_DRMAA_KILL_SCRIPT = "scripts/drmaa_kill.bash"
 DEFAULT_DRMAA_LAUNCH_SCRIPT = "scripts/drmaa_launch.bash"
 DEFAULT_USER_MAPPING_TIMEOUT = 30
 
-# A mapped username is handed to `sudo -u` and interpolated into a shell command
-# by chown_working_directory, so it is constrained to a conservative POSIX
+# A mapped username is handed to `sudo -u` and to chown by
+# chown_working_directory, so it is constrained to a conservative POSIX
 # username. Galaxy applies an equivalent constraint to the names it sends; the
 # output of an operator-supplied mapping script carries no such guarantee.
 VALID_MAPPED_USER = re.compile(r"[A-Za-z0-9._][A-Za-z0-9._-]*")
@@ -68,7 +69,7 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         self._check_execution_with_tool_file(job_id, command_line)
@@ -152,12 +153,12 @@ class ExternalDrmaaQueueManager(BaseDrmaaManager):
         return self.__sudo(
             self.drmaa_launch_script,
             "--job_attributes",
-            str(job_attributes_file),
+            job_attributes_file,
             user=user,
         )
 
     def __change_ownership(self, job_id: str, username: str) -> None:
-        cmds = [self.chown_working_directory_script, "--user", str(username)]
+        cmds = [self.chown_working_directory_script, "--user", username]
         if self.production:
             cmds.extend(["--job_id", job_id])
         else:

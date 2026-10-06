@@ -52,6 +52,7 @@ from pulsar.client.job_directory import (
 )
 from pulsar.managers import ManagerInterface
 from pulsar.managers.util.cvmfsexec import parse as parse_cvmfsexec_config
+from pulsar.managers.util.env import EnvVar
 
 if TYPE_CHECKING:
     from threading import Lock
@@ -107,7 +108,7 @@ class BaseManager(ManagerInterface, ABC):
         staging_directory = kwds.get("staging_directory", app.staging_directory)
         self._setup_staging_directory(staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids"))
-        self.maximum_stream_size = kwds.get("maximum_stream_size", -1)
+        self.maximum_stream_size = int(kwds.get("maximum_stream_size", -1))
         self.__init_galaxy_system_properties(kwds)
         self.tmp_dir: Optional[str] = kwds.get("tmp_dir")
         # Default cvmfsexec configuration for this manager (app.yml). May be
@@ -152,7 +153,7 @@ class BaseManager(ManagerInterface, ABC):
         )
 
     def __init_system_properties(self) -> None:
-        system_properties = {
+        system_properties: Dict[str, Any] = {
             "separator": sep,
         }
         galaxy_home = self._galaxy_home()
@@ -170,15 +171,15 @@ class BaseManager(ManagerInterface, ABC):
             if value:
                 system_properties[property] = value
 
-        self.__system_properties: Dict[str, Any] = system_properties
+        self.__system_properties = system_properties
 
     def __init_env_vars(self, **kwds: Any) -> None:
-        env_vars = []
+        env_vars: List[EnvVar] = []
         for key, value in kwds.items():
             if key.lower().startswith("env_"):
                 name = key[len("env_") :]
                 env_vars.append({"name": name, "value": value, "raw": False})
-        self.env_vars: List[Dict[str, str]] = env_vars
+        self.env_vars = env_vars
 
     def _galaxy_home(self) -> Optional[str]:
         return self.galaxy_home or getenv("GALAXY_HOME", None)
@@ -189,7 +190,7 @@ class BaseManager(ManagerInterface, ABC):
     def _galaxy_lib(self) -> Optional[str]:
         galaxy_home = self._galaxy_home()
         galaxy_lib = None
-        if galaxy_home and str(galaxy_home).lower() != "none":
+        if galaxy_home and galaxy_home.lower() != "none":
             galaxy_lib = join(galaxy_home, "lib")
         return galaxy_lib
 

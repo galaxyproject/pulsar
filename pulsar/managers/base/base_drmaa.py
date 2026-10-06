@@ -11,6 +11,8 @@ from typing import (
 
 from typing_extensions import Literal
 
+from pulsar.managers.util.env import EnvVar
+
 if TYPE_CHECKING:
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
 
@@ -19,7 +21,8 @@ if TYPE_CHECKING:
 try:
     from drmaa import JobState
 except (OSError, ImportError, RuntimeError):
-    JobState = None
+    if not TYPE_CHECKING:
+        JobState = None
 
 from pulsar.managers import status
 from .external import ExternalBaseManager
@@ -110,7 +113,7 @@ class BaseDrmaaManager(ExternalBaseManager):
         job_id: str,
         command_line: str,
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         submit_params: Dict[str, str] = {},
         setup_params: Optional[Dict[str, str]] = None,
     ) -> Dict[str, str]:
@@ -136,7 +139,7 @@ class BaseDrmaaManager(ExternalBaseManager):
         if self.native_specification:
             native_specification = self.native_specification
             if submit_native_specification is not None:
-                log.warn(IGNORE_SUBMISSION_SPEC_MESSAGE)
+                log.warning(IGNORE_SUBMISSION_SPEC_MESSAGE)
         elif submit_native_specification:
             native_specification = submit_params["native_specification"]
 
