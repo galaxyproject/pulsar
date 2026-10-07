@@ -104,22 +104,26 @@ def start_version(history, version):
     return history.replace(".. to_doc\n", ".. to_doc\n" + section, 1)
 
 
+def references(history):
+    return {" ".join(ref.split()) for ref in REFERENCE.findall(history)}
+
+
 def missing_history_prs(history, merge_subjects):
+    referenced = references(history)
     missing = []
     for subject in merge_subjects:
         match = PR_MERGE.match(subject)
         if not match or "dependabot" in match.group(2):
             continue
         number = match.group(1)
-        if f"`Pull Request {number}`_" not in history:
+        if f"Pull Request {number}" not in referenced:
             missing.append(number)
     return missing
 
 
 def missing_targets(history):
     targets = set(TARGET.findall(history))
-    references = {" ".join(ref.split()) for ref in REFERENCE.findall(history)}
-    return sorted(references - targets)
+    return sorted(references(history) - targets)
 
 
 def upstream_remote():
@@ -138,6 +142,27 @@ def latest_tag():
     return git("describe", "--tags", "--abbrev=0", "HEAD")
 
 
+def merge_subjects(previous):
+    """Subjects of merges on this branch since ``previous``, and on release branches merged into it.
+
+    First-parent history skips PR merges made on forks, but would also skip PRs
+    that reach master through a release branch merge, so follow those.
+    """
+    subjects, seen, tips = [], set(), ["HEAD"]
+    while tips:
+        log = git("log", "--first-parent", "--merges", "--format=%H %P%x00%s", f"{previous}..{tips.pop()}")
+        for line in log.splitlines():
+            shas, subject = line.split("\0", 1)
+            sha, *parents = shas.split()
+            if sha in seen:
+                continue
+            seen.add(sha)
+            subjects.append(subject)
+            if "release_" in subject:
+                tips.extend(parents[1:])
+    return subjects
+
+
 def ci_problems(sha):
     """Return (errors, warnings) for GitHub Actions runs on ``sha``."""
     if not shutil.which("gh"):
@@ -148,10 +173,10 @@ def ci_problems(sha):
         text=True,
     )
     if result.returncode != 0:
-        return [], [f"could not query CI: {result.stderr.strip()}"]
+        return [f"could not query CI: {result.stderr.strip()}"], []
     runs = json.loads(result.stdout)
     if not runs:
-        return [], [f"no CI runs found for {sha[:10]}"]
+        return [f"no CI runs found for {sha[:10]}"], []
     errors = []
     for run in runs:
         if run["status"] != "completed":
@@ -161,7 +186,7 @@ def ci_problems(sha):
     return errors, []
 
 
-def check(allow_missing_history=False):
+def check(allow_missing_history=False, skip_ci=False):
     errors, warnings = [], []
     dev_version = current_version()
     try:
@@ -200,8 +225,7 @@ def check(allow_missing_history=False):
         previous = None
         warnings.append("no previous tag; skipping HISTORY coverage check")
     if previous:
-        subjects = git("log", "--first-parent", "--format=%s", f"{previous}..HEAD").splitlines()
-        missing = missing_history_prs(history, subjects)
+        missing = missing_history_prs(history, merge_subjects(previous))
         if missing:
             message = f"{HISTORY} is missing PRs merged since {previous}: {', '.join(missing)}"
             message += " (make add-history ITEM=prN adds one)"
@@ -210,7 +234,7 @@ def check(allow_missing_history=False):
         errors.append(f"{HISTORY} references `{target}`_ with no target")
 
     ci_errors, ci_warnings = ci_problems(head)
-    errors.extend(ci_errors)
+    (warnings if skip_ci else errors).extend(ci_errors)
     warnings.extend(ci_warnings)
 
     for warning in warnings:
@@ -229,12 +253,18 @@ def commit_start_version(version):
     git("commit", "--quiet", "-m", f"Start work on {version}", HISTORY, INIT)
 
 
-def create(next_version=None, allow_missing_history=False):
-    dev_version = current_version()
-    version = check(allow_missing_history)
-    next_version = next_version or next_patch(version)
+def validate_next_version(version, next_version, branch):
     if version_tuple(next_version) <= version_tuple(version):
         raise ReleaseError(f"next version {next_version} must be after {version}")
+    if branch.startswith("release_") and series(next_version) != series(version):
+        raise ReleaseError(f"next version {next_version} does not belong on {branch}")
+
+
+def create(next_version=None, allow_missing_history=False, skip_ci=False):
+    dev_version = current_version()
+    next_version = next_version or next_patch(release_version(dev_version))
+    validate_next_version(release_version(dev_version), next_version, current_branch())
+    version = check(allow_missing_history, skip_ci)
     today = datetime.date.today().isoformat()
     write(HISTORY, mark_released(read(HISTORY), dev_version, version, today))
     write(INIT, set_version(read(INIT), version))
@@ -305,15 +335,16 @@ def main(argv=None):
     for name in ("check", "create"):
         command = commands.add_parser(name)
         command.add_argument("--allow-missing-history", action="store_true")
+        command.add_argument("--skip-ci", action="store_true", help="warn instead of failing on CI problems")
     commands.choices["create"].add_argument("--next", help="next version (default: next patch release)")
     commands.add_parser("branch")
     commands.add_parser("push")
     args = parser.parse_args(argv)
     try:
         if args.command == "check":
-            check(args.allow_missing_history)
+            check(args.allow_missing_history, args.skip_ci)
         elif args.command == "create":
-            create(args.next, args.allow_missing_history)
+            create(args.next, args.allow_missing_history, args.skip_ci)
         elif args.command == "branch":
             branch()
         else:

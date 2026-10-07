@@ -1,6 +1,9 @@
 import importlib.util
 import os
+import subprocess
 import sys
+
+import pytest
 
 TOOLS = os.path.join(os.path.dirname(__file__), os.pardir, "tools")
 
@@ -65,6 +68,55 @@ def test_missing_history_prs_skips_dependabot_and_non_pr_merges():
     assert release.missing_history_prs(HISTORY, subjects) == ["3"]
 
 
+def test_missing_history_prs_accepts_wrapped_references():
+    wrapped = HISTORY.replace("* Fix a thing. `Pull Request 2`_", "* Fix a thing. `Pull\n  Request 2`_")
+    assert release.missing_history_prs(wrapped, ["Merge pull request #2 from someone/fix"]) == []
+
+
+def test_merged_prs_follow_release_branches_but_not_fork_merges(tmp_path, monkeypatch):
+    def run(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    run("init", "-q", "-b", "master")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "base")
+    run("tag", "0.15.16")
+    run("checkout", "-q", "-b", "release_0.15")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "fix")
+    run("checkout", "-q", "-b", "fix", "0.15.16")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "fix 2")
+    run("checkout", "-q", "release_0.15")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-ff", "fix", "-m",
+        "Merge pull request #7 from someone/fix")
+    # A feature branch carrying a PR merged on a fork; only the upstream PR counts.
+    run("checkout", "-q", "-b", "feature", "0.15.16")
+    run("checkout", "-q", "-b", "fork_pr", "0.15.16")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "fork work")
+    run("checkout", "-q", "feature")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-ff", "fork_pr", "-m",
+        "Merge pull request #5 from someone/fork_pr")
+    run("checkout", "-q", "master")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-ff", "feature", "-m",
+        "Merge pull request #9 from someone/feature")
+    run("-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-ff", "release_0.15", "-m",
+        "Merge branch 'release_0.15'")
+    monkeypatch.setattr(release, "PROJECT_DIRECTORY", str(tmp_path))
+    assert sorted(release.missing_history_prs(HISTORY, release.merge_subjects("0.15.16"))) == ["7", "9"]
+
+
+@pytest.mark.parametrize("branch,next_version,ok", [
+    ("release_0.15", "0.15.17", True),
+    ("release_0.15", "0.16.0", False),
+    ("master", "0.16.0", True),
+    ("master", "0.15.16", False),
+])
+def test_validate_next_version(branch, next_version, ok):
+    if ok:
+        release.validate_next_version("0.15.16", next_version, branch)
+    else:
+        with pytest.raises(release.ReleaseError):
+            release.validate_next_version("0.15.16", next_version, branch)
+
+
 def test_missing_targets():
     assert release.missing_targets(HISTORY) == []
     broken = HISTORY.replace("* Fix a thing.", "* Fix a thing (thanks to `@new`_).")
@@ -82,3 +134,19 @@ def test_add_history_entry_goes_under_dev_header():
     history = bootstrap_history.add_entry(HISTORY, "* New thing. `Pull Request 3`_")
     assert release.top_header(history) == "0.15.16.dev0"
     assert history.index("0.15.16.dev0") < history.index("* New thing.") < history.index("* Fix a thing.")
+
+
+@pytest.mark.parametrize("returncode,stdout,blocked", [
+    (0, "[]", True),
+    (1, "", True),
+    (0, '[{"name": "Tests", "status": "completed", "conclusion": "success"}]', False),
+    (0, '[{"name": "Tests", "status": "completed", "conclusion": "failure"}]', True),
+])
+def test_ci_problems(monkeypatch, returncode, stdout, blocked):
+    monkeypatch.setattr(release.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(
+        release.subprocess, "run",
+        lambda *args, **kwds: subprocess.CompletedProcess(args, returncode, stdout, "boom"),
+    )
+    errors, _ = release.ci_problems("abc123")
+    assert bool(errors) == blocked

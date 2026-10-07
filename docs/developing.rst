@@ -51,15 +51,19 @@ authors of rescued PRs.
   ``.dev0`` version, with a clean tree in sync with ``galaxyproject/pulsar``;
 * the top ``HISTORY.rst`` section matches the version, every PR merged since
   the previous tag is listed, and every reference has a link target;
-* the tag does not exist yet, and CI passed on the commit (requires ``gh``).
+* the tag does not exist yet, and CI passed on the commit (requires ``gh``;
+  without it this is a warning).
+
+``ALLOW_MISSING_HISTORY=1`` or ``SKIP_CI=1`` turn those failures into warnings
+for ``make release-check`` and ``make release``.
 
 Cutting a Release
 -----------------
 
 1. ``make release`` runs the checks, then commits ``Create pulsar release
    X.Y.Z`` (dates the ``HISTORY.rst`` header, drops ``.dev0``), tags it, and
-   commits ``Start work on X.Y.Z+1`` with a new ``.dev0`` section. Pass
-   ``NEXT=0.16.0`` to start a different version.
+   commits ``Start work on X.Y.Z+1`` with a new ``.dev0`` section. On
+   ``master``, pass ``NEXT=0.16.0`` to start a different version.
 2. ``make push-release`` shows the push and asks for confirmation, then
    pushes the branch and tag to ``galaxyproject/pulsar`` in one atomic push.
 3. Watch the ``Deploy`` workflow run for the tag, then confirm both

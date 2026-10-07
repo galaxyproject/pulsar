@@ -31,7 +31,7 @@ help:
 	@echo "compatibility-docs - regenerate docs/compatibility.rst from docs/compatibility.yml"
 	@echo "dist - package project for PyPI distribution"
 	@echo "add-history ITEM=prN - add a HISTORY.rst entry for pull request N"
-	@echo "release-check - check the current branch is ready to release"
+	@echo "release-check [ALLOW_MISSING_HISTORY=1] [SKIP_CI=1] - check the current branch is ready to release"
 	@echo "release [NEXT=X.Y.Z] - create the release commit, tag and next .dev0 commit"
 	@echo "release-branch - create release_X.Y from the release just cut on master"
 	@echo "push-release - push the release branch(es) and tag, publishing to PyPI"
@@ -138,11 +138,13 @@ dist: clean-build clean-pyc
 
 dist-all: dist _dist-lib _lint-dist
 
+RELEASE_CHECK_ARGS=$(if $(ALLOW_MISSING_HISTORY),--allow-missing-history) $(if $(SKIP_CI),--skip-ci)
+
 release-check:
-	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py check
+	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py check $(RELEASE_CHECK_ARGS)
 
 release:
-	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py create $(if $(NEXT),--next $(NEXT))
+	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py create $(if $(NEXT),--next $(NEXT)) $(RELEASE_CHECK_ARGS)
 
 release-branch:
 	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py branch
