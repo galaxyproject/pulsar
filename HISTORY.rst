@@ -503,7 +503,7 @@ History
   galaxy-lib can no longer be installed in Pulsar's environment, so you will
   likely need to rebuild your Pulsar virtualenv for this release.
   `Pull Request 187`_
-* Add a ``Dockerfile`` for Pulsar with CVMFS (thanks to `@nuwang`_ and `@afgane`).
+* Add a ``Dockerfile`` for Pulsar with CVMFS (thanks to `@nuwang`_ and `@afgane`_).
   `Pull Request 166`_
 * Various small improvements to Kubernetes pod execution environment.
   `Pull Request 190`_

@@ -39,70 +39,53 @@ Preparing a Release
 Releases are cut from the branch that owns the series: ``master`` for a new
 minor series, ``release_0.N`` for a point release.
 
-* Check that ``HISTORY.rst`` covers every PR merged since the previous tag.
-  For example::
+``HISTORY.rst`` needs an entry for every PR merged since the previous tag
+(dependabot bumps excepted). ``make add-history ITEM=pr526`` adds one from the
+PR title, crediting outside contributors. Edit the result into a user-facing
+description, call out behavior changes with **Note:**, and credit the original
+authors of rescued PRs.
 
-      git log --first-parent --format=%s <previous-tag>..HEAD | grep '^Merge pull request'
+``make release-check`` reports whether the current branch is ready:
 
-  Add a bullet for each user-facing change, crediting outside contributors
-  (including the original authors of rescued PRs) and calling out behavior
-  changes with **Note:**. Dependabot bumps are not listed. Each PR reference
-  needs a link under ``.. github_links``, and each new contributor a link at the
-  end of the file::
-
-      * Follow redirects in the curl transport (thanks to `@nuwang`_).
-        `Pull Request 526`_
-
-      .. _Pull Request 526: https://github.com/galaxyproject/pulsar/pull/526
-      .. _@nuwang: https://github.com/nuwang
-* Make sure CI is green on the commit being released.
+* on ``master`` or the ``release_0.N`` matching the version, which is a
+  ``.dev0`` version, with a clean tree in sync with ``galaxyproject/pulsar``;
+* the top ``HISTORY.rst`` section matches the version, every PR merged since
+  the previous tag is listed, and every reference has a link target;
+* the tag does not exist yet, and CI passed on the commit (requires ``gh``).
 
 Cutting a Release
 -----------------
 
-Using ``0.15.16`` as the example, with ``master`` at ``0.15.16.dev0``:
-
-1. Create the release commit. In ``HISTORY.rst``, replace the
-   ``0.15.16.dev0`` header with ``0.15.16 (YYYY-MM-DD)``. In
-   ``pulsar/__init__.py``, set ``__version__ = '0.15.16'``. Commit as
-   ``Create pulsar release 0.15.16``.
-2. Tag that commit: ``git tag 0.15.16``. The tag must point at the release
-   commit, not at the next ``.dev0`` commit.
-3. Start the next version. Add a new ``.dev0`` section to the top of
-   ``HISTORY.rst`` under ``.. to_doc``, set ``__version__`` to match, and
-   commit as ``Start work on <version>``. On a release branch this is the
-   next point release (``0.15.17.dev0``). On ``master`` it is either the next
-   point release or, when a release branch is being cut (see below), the next
-   minor (``0.16.0.dev0``).
-4. Push the branch and the tag together to ``galaxyproject/pulsar``::
-
-      git push <galaxyproject-remote> <branch> 0.15.16
-
-5. Watch the ``Deploy`` workflow run for the tag, then confirm both
+1. ``make release`` runs the checks, then commits ``Create pulsar release
+   X.Y.Z`` (dates the ``HISTORY.rst`` header, drops ``.dev0``), tags it, and
+   commits ``Start work on X.Y.Z+1`` with a new ``.dev0`` section. Pass
+   ``NEXT=0.16.0`` to start a different version.
+2. ``make push-release`` shows the push and asks for confirmation, then
+   pushes the branch and tag to ``galaxyproject/pulsar`` in one atomic push.
+3. Watch the ``Deploy`` workflow run for the tag, then confirm both
    ``pulsar-app`` and ``pulsar-galaxy-lib`` show the new version on PyPI.
-6. Create a GitHub release for the tag with generated release notes.
+4. Create the GitHub release (``push-release`` prints the ``gh release
+   create`` command).
 
-``make docs`` and ``make open-docs`` regenerate the API stubs in
-``docs/pulsar.*.rst``. Don't let unrelated stub changes ride along in the
-release commit.
+Nothing is pushed until step 2. To abandon a release before then, delete the
+tag and reset the two commits.
 
 Cutting a Release Branch
 ------------------------
 
-When Galaxy branches a new release, cut the matching Pulsar series:
+When Galaxy branches a new release, cut the last release of the current series
+from ``master`` and start the next minor there::
 
-1. Cut the last release of the current series from ``master`` as above, but
-   in step 3 bump ``master`` to the next minor (e.g. ``0.16.0.dev0``).
-2. Create the release branch from that release's tag and push it::
+    make release NEXT=0.16.0
+    make release-branch
+    make push-release
 
-      git branch release_0.15 0.15.16
-      git push <galaxyproject-remote> release_0.15
+``make release-branch`` creates ``release_0.15`` from the ``0.15.16`` tag and
+commits ``Start work on 0.15.17`` on it. ``make push-release`` then pushes
+``master``, ``release_0.15`` and the tag together.
 
-3. On the release branch, start the next point release (``0.15.17.dev0``).
-
-A point release from a release branch follows `Cutting a Release`_ on that
-branch. Afterwards, merge the release branch into ``master``. In
-``HISTORY.rst``, keep ``master``'s ``.dev0`` section on top and the point
+After a point release on a release branch, merge the branch into ``master``.
+In ``HISTORY.rst``, keep ``master``'s ``.dev0`` section on top and the point
 release's section below it.
 
 After a Release
@@ -114,7 +97,3 @@ After a Release
   ``make compatibility-docs``) when a series is added, a Galaxy pin changes,
   or a release fixes or introduces a known break.
   ``.agents/commands/update_compat_matrix.md`` describes the survey.
-
-The ``release``, ``release-local`` and ``push-release`` Makefile targets and
-the ``tools/commit_version.py`` and ``tools/new_version.py`` scripts predate
-this process and are not used.

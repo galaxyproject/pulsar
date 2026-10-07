@@ -8,18 +8,13 @@ ARGS?=
 VENV?=.venv
 # Source virtualenv to execute command (flake8, sphinx, twine, etc...)
 IN_VENV=if [ -f $(VENV)/bin/activate ]; then . $(VENV)/bin/activate; fi;
-# TODO: add this upstream as a remote if it doesn't already exist.
-UPSTREAM?=galaxyproject
 SOURCE_DIR?=pulsar
 BUILD_SCRIPTS_DIR=tools
-DEV_RELEASE?=0
-VERSION?=$(shell DEV_RELEASE=$(DEV_RELEASE) python $(BUILD_SCRIPTS_DIR)/print_version_for_release.py $(SOURCE_DIR) $(DEV_RELEASE))
 DOC_URL?=https://pulsar.readthedocs.org
 PROJECT_URL?=https://github.com/galaxyproject/pulsar
-PROJECT_NAME?=pulsar-app
 TEST_DIR?=test
 
-.PHONY: clean-pyc clean-build docs compatibility-docs clean
+.PHONY: clean-pyc clean-build docs compatibility-docs clean release-check release release-branch push-release
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts"
@@ -35,6 +30,11 @@ help:
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "compatibility-docs - regenerate docs/compatibility.rst from docs/compatibility.yml"
 	@echo "dist - package project for PyPI distribution"
+	@echo "add-history ITEM=prN - add a HISTORY.rst entry for pull request N"
+	@echo "release-check - check the current branch is ready to release"
+	@echo "release [NEXT=X.Y.Z] - create the release commit, tag and next .dev0 commit"
+	@echo "release-branch - create release_X.Y from the release just cut on master"
+	@echo "push-release - push the release branch(es) and tag, publishing to PyPI"
 	@echo "open-docs - open docs built locally with make docs"
 	@echo "open-rtd - open docs at pulsar.readthedocs.org"
 	@echo "open-project - open project on github"
@@ -136,37 +136,19 @@ dist: clean-build clean-pyc
 	$(IN_VENV) python -m build
 	ls -l dist
 
-_release-test-artifacts:
-	$(IN_VENV) twine upload -r test dist/*
-	open https://testpypi.python.org/pypi/$(PROJECT_NAME) || xdg-open https://testpypi.python.org/pypi/$(PROJECT_NAME)
-
 dist-all: dist _dist-lib _lint-dist
 
-release-test-artifacts: dist-all _release-test-artifacts
+release-check:
+	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py check
 
-_release-artifacts:
-	@while [ -z "$$CONTINUE" ]; do \
-	  read -r -p "Have you executed release-test and reviewed results? [y/N]: " CONTINUE; \
-	done ; \
-	[ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ] || (echo "Exiting."; exit 1;)
-	@echo "Releasing"
-	$(IN_VENV) twine upload dist/*
+release:
+	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py create $(if $(NEXT),--next $(NEXT))
 
-release-artifacts: release-test-artifacts _release-artifacts
-
-commit-version:
-	$(IN_VENV) DEV_RELEASE=$(DEV_RELEASE) python $(BUILD_SCRIPTS_DIR)/commit_version.py $(SOURCE_DIR) $(VERSION)
-
-new-version:
-	$(IN_VENV) DEV_RELEASE=$(DEV_RELEASE) python $(BUILD_SCRIPTS_DIR)/new_version.py $(SOURCE_DIR) $(VERSION)
-
-release-local: commit-version release-artifacts new-version
+release-branch:
+	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py branch
 
 push-release:
-	git push $(UPSTREAM) master
-	git push --tags $(UPSTREAM)
-
-release: release-local push-release
+	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py push
 
 add-history:
 	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/bootstrap_history.py $(ITEM)
@@ -179,6 +161,3 @@ dist-lib: clean-pyc clean-build _dist-lib
 
 build-coexecutor-container:
 	$(MAKE) -C docker/coexecutor all
-
-#release-test-lib-artifacts: dist-lib _release-test-artifacts
-#release-lib-artifacts: release-test-lib-artifacts _release-artifacts
