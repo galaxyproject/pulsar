@@ -4,13 +4,13 @@ import fnmatch
 import sys
 import uuid
 
-from pulsar.client import (
+from pulsar.client.staging.down import finish_job
+from pulsar.client.staging.models import (
     ClientJobDescription,
     ClientOutputs,
-    finish_job,
     PulsarOutputs,
-    submit_job,
 )
+from pulsar.client.staging.up import submit_job
 from pulsar.client.test.check import (
     client_info,
     extract_client_options,

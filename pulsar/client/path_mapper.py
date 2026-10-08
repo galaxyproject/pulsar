@@ -7,7 +7,7 @@ from .action_mapper import (
     FileActionMapper,
     path_type,
 )
-from .staging import CLIENT_INPUT_PATH_TYPES
+from .staging.inputs import CLIENT_INPUT_PATH_TYPES
 from .util import PathHelper
 
 log = logging.getLogger(__name__)

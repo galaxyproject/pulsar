@@ -18,17 +18,19 @@ from collections import namedtuple
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
 
-from pulsar.client import (
-    build_client_manager,
+from pulsar.client.coexecution_manager import build_client_manager
+from pulsar.client.staging.down import finish_job
+from pulsar.client.staging.inputs import (
     CLIENT_INPUT_PATH_TYPES,
     ClientInput,
     ClientInputs,
+)
+from pulsar.client.staging.models import (
     ClientJobDescription,
     ClientOutputs,
-    finish_job,
     PulsarOutputs,
-    submit_job,
 )
+from pulsar.client.staging.up import submit_job
 from .test_common import write_config
 
 TEST_SCRIPT = b"""# -*- coding: utf-8 -*-

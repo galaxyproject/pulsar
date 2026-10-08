@@ -19,16 +19,14 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from . import COMMAND_VERSION_FILENAME
+from .inputs import CLIENT_INPUT_PATH_TYPES
 from ..action_mapper import (
     FileActionMapper,
     MessageAction,
     path_type,
 )
 from ..job_directory import RemoteJobDirectory
-from ..staging import (
-    CLIENT_INPUT_PATH_TYPES,
-    COMMAND_VERSION_FILENAME,
-)
 from ..util import (
     directory_files,
     ExternalId,
@@ -36,7 +34,7 @@ from ..util import (
 )
 
 if TYPE_CHECKING:
-    from pulsar.client.staging import ClientJobDescription
+    from .models import ClientJobDescription
 
 log = getLogger(__name__)
 

@@ -7,13 +7,13 @@ import requests
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
 
-from pulsar.client import (
-    ClientJobDescription,
-    ClientOutputs,
-    submit_job,
-)
 from pulsar.client.exceptions import PulsarClientTransportError
 from pulsar.client.staging.down import ResultsCollector
+from pulsar.client.staging.models import (
+    ClientJobDescription,
+    ClientOutputs,
+)
+from pulsar.client.staging.up import submit_job
 from pulsar.client.test.test_common import write_config
 from .test_utils import TempDirectoryTestCase
 

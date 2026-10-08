@@ -150,6 +150,70 @@ pulsar.client.util module
    :undoc-members:
    :show-inheritance:
 
+pulsar.client.aws\_batch module
+-------------------------------
+
+.. automodule:: pulsar.client.aws_batch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.coexecution module
+--------------------------------
+
+.. automodule:: pulsar.client.coexecution
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.coexecution\_manager module
+-----------------------------------------
+
+.. automodule:: pulsar.client.coexecution_manager
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.gcp module
+------------------------
+
+.. automodule:: pulsar.client.gcp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.gcp\_job\_config module
+-------------------------------------
+
+.. automodule:: pulsar.client.gcp_job_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.kubernetes module
+-------------------------------
+
+.. automodule:: pulsar.client.kubernetes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.tes module
+------------------------
+
+.. automodule:: pulsar.client.tes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.tes\_job\_config module
+-------------------------------------
+
+.. automodule:: pulsar.client.tes_job_config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

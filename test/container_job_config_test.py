@@ -1,13 +1,13 @@
 import pytest
 
-from pulsar.client.container_job_config import (
+from pulsar.client.gcp_job_config import (
     _validate_ssd_size,
     DEFAULT_GCP_WALLTIME_LIMIT,
     gcp_job_template,
     GcpJobParams,
     parse_gcp_job_params,
-    TesJobParams,
 )
+from pulsar.client.tes_job_config import TesJobParams
 from pulsar.managers.util.gcp_util import (
     compute_machine_type,
     convert_cpu_to_milli,

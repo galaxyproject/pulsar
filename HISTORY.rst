@@ -9,6 +9,16 @@ History
 0.16.0.dev0
 ---------------------
 
+* Keep client and staging package initializers lightweight, and separate
+  Google Cloud Batch, Kubernetes, and TES clients and configuration into
+  backend modules. ``COMMAND_VERSION_FILENAME`` remains in
+  ``pulsar.client.staging`` and can be imported without client dependencies.
+  Import client and staging APIs from their implementation modules; the
+  package-level re-exports are removed. Use
+  ``pulsar.client.coexecution_manager.build_client_manager`` for a factory
+  supporting both ordinary clients and container coexecution. Staging
+  objects pickled with the old package-level paths are no longer supported.
+  `Pull Request 537`_
 
 
 ---------------------
@@ -754,6 +764,7 @@ History
 
 
 .. github_links
+.. _Pull Request 537: https://github.com/galaxyproject/pulsar/pull/537
 .. _Pull Request 543: https://github.com/galaxyproject/pulsar/pull/543
 .. _Pull Request 540: https://github.com/galaxyproject/pulsar/pull/540
 .. _Pull Request 539: https://github.com/galaxyproject/pulsar/pull/539

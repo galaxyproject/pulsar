@@ -20,6 +20,22 @@ pulsar.client.staging.up module
    :undoc-members:
    :show-inheritance:
 
+pulsar.client.staging.inputs module
+-----------------------------------
+
+.. automodule:: pulsar.client.staging.inputs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pulsar.client.staging.models module
+-----------------------------------
+
+.. automodule:: pulsar.client.staging.models
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

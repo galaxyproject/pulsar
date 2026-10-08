@@ -12,12 +12,12 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from pulsar.client import (
-    action_mapper,
-    staging,
-)
-from pulsar.client.staging import PulsarOutputs
+from pulsar.client import action_mapper
 from pulsar.client.staging.down import ResultsCollector
+from pulsar.client.staging.models import (
+    ClientOutputs,
+    PulsarOutputs,
+)
 
 if TYPE_CHECKING:
     from pulsar.managers.base import JobDirectory
@@ -58,7 +58,7 @@ def __collect_outputs(
         file_action_mapper = action_mapper.FileActionMapper(
             config=staging_config["action_mapper"]
         )
-        client_outputs = staging.ClientOutputs.from_dict(
+        client_outputs = ClientOutputs.from_dict(
             staging_config["client_outputs"]
         )
         pulsar_outputs = __pulsar_outputs(job_directory)

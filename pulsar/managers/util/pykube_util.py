@@ -3,8 +3,9 @@
 import logging
 import os
 import re
-import uuid
 from typing import TYPE_CHECKING
+
+from .job_name import produce_unique_k8s_job_name
 
 try:
     from pykube.config import KubeConfig
@@ -51,20 +52,6 @@ def pykube_client_from_dict(params):
             config_path = "~/.kube/config"
         pykube_client = HTTPClient(KubeConfig.from_file(config_path))
     return pykube_client
-
-
-def produce_unique_k8s_job_name(app_prefix=None, instance_id=None, job_id=None):
-    if job_id is None:
-        job_id = str(uuid.uuid4())
-
-    job_name = ""
-    if app_prefix:
-        job_name += "%s-" % app_prefix
-
-    if instance_id and len(instance_id) > 0:
-        job_name += "%s-" % instance_id
-
-    return job_name + job_id
 
 
 def pull_policy(params):

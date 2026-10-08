@@ -14,7 +14,9 @@ from queue import Queue
 from typing import (
     Any,
     Callable,
+    ClassVar,
     Dict,
+    Mapping,
     Optional,
     Type,
     TYPE_CHECKING,
@@ -25,17 +27,11 @@ from typing_extensions import Protocol
 from .amqp_exchange_factory import get_exchange
 from .client import (
     BaseJobClient,
-    GcpMessageCoexecutionJobClient,
-    GcpPollingCoexecutionJobClient,
     InputCachingJobClient,
     JobClient,
-    K8sMessageCoexecutionJobClient,
-    K8sPollingCoexecutionJobClient,
     MessageCLIJobClient,
     MessageJobClient,
     RelayJobClient,
-    TesMessageCoexecutionJobClient,
-    TesPollingCoexecutionJobClient,
 )
 from .destination import url_to_destination_params
 from .object_client import ObjectStoreClient
@@ -172,9 +168,20 @@ except ImportError:
 
 
 class BaseRemoteConfiguredJobClientManager(ClientManagerInterface):
+    coexecution_clients: ClassVar[Mapping[str, Type[BaseJobClient]]] = {}
 
     def __init__(self, **kwds: Any):
         self.manager_name = kwds.get("manager") or "_default_"
+
+    def _coexecution_client_class(self, destination_params):
+        for backend, option in (("k8s", "k8s_enabled"), ("tes", "tes_url"), ("gcp", "project_id")):
+            if destination_params.get(option, False):
+                if backend not in self.coexecution_clients:
+                    raise ValueError(
+                        f"The {backend} backend requires the client factory in pulsar.client.coexecution_manager."
+                    )
+                return self.coexecution_clients[backend]
+        return None
 
 
 class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
@@ -295,14 +302,9 @@ class MessageQueueClientManager(BaseRemoteConfiguredJobClientManager):
         if 'shell_plugin' in destination_params:
             shell = cli_factory.get_shell(destination_params)
             return MessageCLIJobClient(destination_params, job_id, self, shell)
-        elif destination_params.get('k8s_enabled', False):
-            return K8sMessageCoexecutionJobClient(destination_params, job_id, self)
-        elif destination_params.get("tes_url", False):
-            return TesMessageCoexecutionJobClient(destination_params, job_id, self)
-        elif destination_params.get("project_id", False):
-            return GcpMessageCoexecutionJobClient(destination_params, job_id, self)
         else:
-            return MessageJobClient(destination_params, job_id, self)
+            client_class = self._coexecution_client_class(destination_params) or MessageJobClient
+            return client_class(destination_params, job_id, self)
 
 
 class RelayClientManager(BaseRemoteConfiguredJobClientManager):
@@ -531,12 +533,9 @@ class PollingJobClientManager(BaseRemoteConfiguredJobClientManager):
         destination_params = _parse_destination_params(destination_params)
         destination_params.update(**kwargs)
         # TODO: cli version of this...
-        if destination_params.get('k8s_enabled', False):
-            return K8sPollingCoexecutionJobClient(destination_params, job_id, self)
-        elif destination_params.get("tes_url", False):
-            return TesPollingCoexecutionJobClient(destination_params, job_id, self)
-        elif destination_params.get("project_id", False):
-            return GcpPollingCoexecutionJobClient(destination_params, job_id, self)
+        client_class = self._coexecution_client_class(destination_params)
+        if client_class:
+            return client_class(destination_params, job_id, self)
         else:
             raise Exception("Unknown client configuration")
 
@@ -555,6 +554,9 @@ def build_client_manager(
     k8s_enabled: Optional[bool] = None,
     tes_enabled: Optional[bool] = None,
     gcp_batch_enabled: Optional[bool] = None,
+    *,
+    message_queue_client_manager_class: Type[MessageQueueClientManager] = MessageQueueClientManager,
+    polling_job_client_manager_class: Type[PollingJobClientManager] = PollingJobClientManager,
     **kwargs
 ) -> ClientManagerInterface:
     if job_manager:
@@ -576,9 +578,9 @@ def build_client_manager(
             **kwargs
         )
     elif amqp_url:
-        return MessageQueueClientManager(amqp_url=amqp_url, **kwargs)
+        return message_queue_client_manager_class(amqp_url=amqp_url, **kwargs)
     elif k8s_enabled or tes_enabled or gcp_batch_enabled:
-        return PollingJobClientManager(**kwargs)
+        return polling_job_client_manager_class(**kwargs)
     else:
         return ClientManager(**kwargs)
 
