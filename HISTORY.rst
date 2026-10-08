@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.15.16.dev0
+0.15.16 (2026-10-08)
 ---------------------
 
 * Send tool stdout and stderr to Galaxy while the job is running, enabled with
