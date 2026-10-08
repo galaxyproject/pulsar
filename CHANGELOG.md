@@ -430,21 +430,21 @@
 ## 0.11.0 (2019-05-16)
 
 - Implement staging Galaxy metadata input files in the client.
-  39de377_
+  [39de377](https://github.com/galaxyproject/pulsar/commit/39de377)
 - Fix 'amqp_ack_republish_time' in sample (thanks to [@dannon](https://github.com/dannon)).
   [Pull Request 185](https://github.com/galaxyproject/pulsar/pull/185)
 - Updated amqp_url in job_conf_sample_mq_rsync.xml (thanks to [@AndreasSko](https://github.com/AndreasSko)).
   [Pull Request 184](https://github.com/galaxyproject/pulsar/pull/184)
 - Use wildcard char for pulsar version (thanks to [@VJalili](https://github.com/VJalili)).
   [Pull Request 181](https://github.com/galaxyproject/pulsar/pull/181)
-- Refactor toward more structured inputs. f477bc4_
+- Refactor toward more structured inputs. [f477bc4](https://github.com/galaxyproject/pulsar/commit/f477bc4)
 - Refactor toward passing objectstore identifying information around.
   [Pull Request 180](https://github.com/galaxyproject/pulsar/pull/180)
-- Rework imports for new Galaxy library structure. da086c9_
+- Rework imports for new Galaxy library structure. [da086c9](https://github.com/galaxyproject/pulsar/commit/da086c9)
 - Revert empty input testing, it really probably should cause a failure
   to transfer a non-existent file.
-  8bd5511_
-- Better client mapper documentation. b6278b4_
+  [8bd5511](https://github.com/galaxyproject/pulsar/commit/8bd5511)
+- Better client mapper documentation. [b6278b4](https://github.com/galaxyproject/pulsar/commit/b6278b4)
 
 ## 0.10.0 (2019-05-06)
 
@@ -508,10 +508,10 @@
 
 ## 0.7.4 (2017-02-07)
 
-- Fix Conda resolution and add a test case. 11ce744_
-- Style fixes for updated flake8 libraries. 93ab8a1_, 3573341_
-- Remove unused script. 929bffa_
-- Fixup README. 629fdea_
+- Fix Conda resolution and add a test case. [11ce744](https://github.com/galaxyproject/pulsar/commit/11ce744)
+- Style fixes for updated flake8 libraries. [93ab8a1](https://github.com/galaxyproject/pulsar/commit/93ab8a1), [3573341](https://github.com/galaxyproject/pulsar/commit/3573341)
+- Remove unused script. [929bffa](https://github.com/galaxyproject/pulsar/commit/929bffa)
+- Fixup README. [629fdea](https://github.com/galaxyproject/pulsar/commit/629fdea)
     
 
 ## 0.7.3 (2016-10-31)
@@ -534,18 +534,18 @@
   for Galaxy at the same time.
 - Small update to test scripts for TravisCI changes.
 - Improvements for embedded Galaxy runner. (TODO: fill this out)
-- Remove support for Python 2.6. 60bf962_
+- Remove support for Python 2.6. [60bf962](https://github.com/galaxyproject/pulsar/commit/60bf962)
 - Update docs to describe project goverance and reuse Galaxy's
-  Code of Conduct. 7e23d43_, dc47140_
-- Updated cluster slots detection for SLURM from Galaxy. cadfc5a_
-- Various changes to allow usage within Galaxy as a library. ce9d4f9_
+  Code of Conduct. [7e23d43](https://github.com/galaxyproject/pulsar/commit/7e23d43), [dc47140](https://github.com/galaxyproject/pulsar/commit/dc47140)
+- Updated cluster slots detection for SLURM from Galaxy. [cadfc5a](https://github.com/galaxyproject/pulsar/commit/cadfc5a)
+- Various changes to allow usage within Galaxy as a library. [ce9d4f9](https://github.com/galaxyproject/pulsar/commit/ce9d4f9)
 - Various changes to allow embedded Pulsar managers within Galaxy.
-  ce9d4f9_, d262323_, 8f7c04a_
+  [ce9d4f9](https://github.com/galaxyproject/pulsar/commit/ce9d4f9), [d262323](https://github.com/galaxyproject/pulsar/commit/d262323), [8f7c04a](https://github.com/galaxyproject/pulsar/commit/8f7c04a)
 - Introduce a separate working and metadata directory as required for
-  Galaxy 16.04 that requires this separation. 6f4328e_
-- Improve logging and comments. 38953f3_, a985107_, ad33cb9_
-- Add Tox target for Python 2.7 unit testing. d7c524e_
-- Add `Makefile` command for setup.py develop. fd82d00_
+  Galaxy 16.04 that requires this separation. [6f4328e](https://github.com/galaxyproject/pulsar/commit/6f4328e)
+- Improve logging and comments. [38953f3](https://github.com/galaxyproject/pulsar/commit/38953f3), [a985107](https://github.com/galaxyproject/pulsar/commit/a985107), [ad33cb9](https://github.com/galaxyproject/pulsar/commit/ad33cb9)
+- Add Tox target for Python 2.7 unit testing. [d7c524e](https://github.com/galaxyproject/pulsar/commit/d7c524e)
+- Add `Makefile` command for setup.py develop. [fd82d00](https://github.com/galaxyproject/pulsar/commit/fd82d00)
 
 ## 0.6.1 (2015-12-23)
 
@@ -556,31 +556,31 @@
 - Pulsar now depends on the new `galaxy-lib` Python package instead of
   manually synchronizing Python files across Pulsar and Galaxy.
 - Numerous build and testing improvements.
-- Fixed a documentation bug in the code (thanks to @erasche). e8814ae_
-- Remove galaxy.eggs stuff from Pulsar client (thanks to @natefoo). 00197f2_
-- Add new logo to README (thanks to @martenson). abbba40_
+- Fixed a documentation bug in the code (thanks to @erasche). [e8814ae](https://github.com/galaxyproject/pulsar/commit/e8814ae)
+- Remove galaxy.eggs stuff from Pulsar client (thanks to @natefoo). [00197f2](https://github.com/galaxyproject/pulsar/commit/00197f2)
+- Add new logo to README (thanks to @martenson). [abbba40](https://github.com/galaxyproject/pulsar/commit/abbba40)
 - Implement an optional awknowledgement system on top of the message queue
-  system (thanks to @natefoo). [Pull Request 82](https://github.com/galaxyproject/pulsar/pull/82) 431088c_
+  system (thanks to @natefoo). [Pull Request 82](https://github.com/galaxyproject/pulsar/pull/82) [431088c](https://github.com/galaxyproject/pulsar/commit/431088c)
 - Documentation fixes thanks to @remimarenco. [Pull Request 78](https://github.com/galaxyproject/pulsar/pull/78), [Pull Request 80](https://github.com/galaxyproject/pulsar/pull/80)
-- Fix project script bug introduced this cycle (thanks to @nsoranzo). 140a069_
+- Fix project script bug introduced this cycle (thanks to @nsoranzo). [140a069](https://github.com/galaxyproject/pulsar/commit/140a069)
 - Fix config.py on Windows (thanks to @ssorgatem). [Pull Request 84](https://github.com/galaxyproject/pulsar/pull/84)
-- Add a job manager for XSEDE jobs (thanks to @natefoo). 1017bc5_
+- Add a job manager for XSEDE jobs (thanks to @natefoo). [1017bc5](https://github.com/galaxyproject/pulsar/commit/1017bc5)
 - Fix pip dependency installation (thanks to @afgane) [Pull Request 73](https://github.com/galaxyproject/pulsar/pull/73)
 
 ## 0.5.0 (2015-05-08)
 
 - Allow cURL downloader to resume transfers during staging in (thanks to
-  @natefoo). 0c61bd9_
-- Fix to cURL downloaders status code handling (thanks to @natefoo). 86f95ce_
+  @natefoo). [0c61bd9](https://github.com/galaxyproject/pulsar/commit/0c61bd9)
+- Fix to cURL downloaders status code handling (thanks to @natefoo). [86f95ce](https://github.com/galaxyproject/pulsar/commit/86f95ce)
 - Fix non-wheel installs from PyPI. [Issue 72](https://github.com/galaxyproject/pulsar/issues/72)
-- Fix mesos imports for newer versions of mesos (thanks to @kellrott). fe3e919_
-- More, better logging. 2b3942d_, fa2b6dc_
+- Fix mesos imports for newer versions of mesos (thanks to @kellrott). [fe3e919](https://github.com/galaxyproject/pulsar/commit/fe3e919)
+- More, better logging. [2b3942d](https://github.com/galaxyproject/pulsar/commit/2b3942d), [fa2b6dc](https://github.com/galaxyproject/pulsar/commit/fa2b6dc)
 
 ## 0.4.0 (2015-04-20)
 
 - Python 3 support. [Pull Request 62](https://github.com/galaxyproject/pulsar/pull/62)
-- Fix bug encountered when running `pulsar-main` and `pulsar-config` commands as scripts. 9d43ae0_
-- Add `pulsar-run` script for issues commands against a Pulsar server (experimental). 3cc7f74_
+- Fix bug encountered when running `pulsar-main` and `pulsar-config` commands as scripts. [9d43ae0](https://github.com/galaxyproject/pulsar/commit/9d43ae0)
+- Add `pulsar-run` script for issues commands against a Pulsar server (experimental). [3cc7f74](https://github.com/galaxyproject/pulsar/commit/3cc7f74)
 
 ## 0.3.0 (2015-04-12)
 

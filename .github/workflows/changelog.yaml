@@ -6,7 +6,7 @@ permissions: {}
 jobs:
   check:
     name: Check changes/ entry
-    if: github.actor != 'dependabot[bot]' && !contains(github.event.pull_request.labels.*.name, 'no changelog')
+    if: github.event.pull_request.user.login != 'dependabot[bot]' && !contains(github.event.pull_request.labels.*.name, 'no changelog')
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v7.0.1
@@ -22,3 +22,11 @@ jobs:
       env:
         BASE_REF: ${{ github.base_ref }}
       run: towncrier check --compare-with "origin/$BASE_REF"
+    - name: Check CHANGELOG.md is not edited directly
+      env:
+        BASE_REF: ${{ github.base_ref }}
+      run: |
+        if ! git diff --quiet "origin/$BASE_REF...HEAD" -- CHANGELOG.md; then
+          echo "::error::Add a changes/ entry instead of editing CHANGELOG.md (see changes/README.md)."
+          exit 1
+        fi

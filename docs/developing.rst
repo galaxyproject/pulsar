@@ -42,8 +42,9 @@ minor series, ``release_0.N`` for a point release.
 Each PR adds a changelog entry, ``changes/<PR number>.<type>.md``, where the
 type is ``change`` (behavior changes and removals), ``feature``, ``bugfix`` or
 ``misc``; ``changes/README.md`` describes them. The ``changelog`` workflow fails
-PRs without one unless they are labeled ``no changelog`` (dependabot PRs are
-exempt). ``make add-change PR=526 TYPE=bugfix`` writes one from the PR title,
+PRs without one, or that edit ``CHANGELOG.md`` directly, unless they are labeled
+``no changelog`` (dependabot PRs are exempt). Label PRs that merge a release
+branch forward ``no changelog``; they carry its released sections. ``make add-change PR=526 TYPE=bugfix`` writes one from the PR title,
 crediting outside contributors. Edit the result into a user-facing description,
 and credit the original authors of rescued PRs. ``make release`` collects the
 entries into ``CHANGELOG.md`` with `towncrier <https://towncrier.readthedocs.io/>`__.
