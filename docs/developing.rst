@@ -39,31 +39,34 @@ Preparing a Release
 Releases are cut from the branch that owns the series: ``master`` for a new
 minor series, ``release_0.N`` for a point release.
 
-``HISTORY.rst`` needs an entry for every PR merged since the previous tag
-(dependabot bumps excepted). ``make add-history ITEM=pr526`` adds one from the
-PR title, crediting outside contributors. Edit the result into a user-facing
-description, call out behavior changes with **Note:**, and credit the original
-authors of rescued PRs.
+Each PR adds a changelog entry, ``changes/<PR number>.<type>.md``, where the
+type is ``change`` (behavior changes and removals), ``feature``, ``bugfix`` or
+``misc``; ``changes/README.md`` describes them. The ``changelog`` workflow fails
+PRs without one unless they are labeled ``no changelog`` (dependabot PRs are
+exempt). ``make add-change PR=526 TYPE=bugfix`` writes one from the PR title,
+crediting outside contributors. Edit the result into a user-facing description,
+and credit the original authors of rescued PRs. ``make release`` collects the
+entries into ``CHANGELOG.md`` with `towncrier <https://towncrier.readthedocs.io/>`__.
 
 ``make release-check`` reports whether the current branch is ready:
 
 * on ``master`` or the ``release_0.N`` matching the version, which is a
   ``.dev0`` version, with a clean tree in sync with ``galaxyproject/pulsar``;
-* the top ``HISTORY.rst`` section matches the version, every PR merged since
-  the previous tag is listed, and every reference has a link target;
+* every PR merged since the previous tag has a ``changes/`` entry, is already
+  in ``CHANGELOG.md``, or is labeled ``no changelog``, and the entries build;
 * the tag does not exist yet, and CI passed on the commit (requires ``gh``;
   without it this is a warning).
 
-``ALLOW_MISSING_HISTORY=1`` or ``SKIP_CI=1`` turn those failures into warnings
+``ALLOW_MISSING_CHANGES=1`` or ``SKIP_CI=1`` turn those failures into warnings
 for ``make release-check`` and ``make release``.
 
 Cutting a Release
 -----------------
 
 1. ``make release`` runs the checks, then commits ``Create pulsar release
-   X.Y.Z`` (dates the ``HISTORY.rst`` header, drops ``.dev0``), tags it, and
-   commits ``Start work on X.Y.Z+1`` with a new ``.dev0`` section. On
-   ``master``, pass ``NEXT=0.16.0`` to start a different version.
+   X.Y.Z`` (moves the ``changes/`` entries into a dated ``CHANGELOG.md``
+   section, drops ``.dev0``), tags it, and commits ``Start work on X.Y.Z+1``.
+   On ``master``, pass ``NEXT=0.16.0`` to start a different version.
 2. ``make push-release`` shows the push and asks for confirmation, then
    pushes the branch and tag to ``galaxyproject/pulsar`` in one atomic push.
 3. Watch the ``Deploy`` workflow run for the tag, then confirm both
@@ -89,8 +92,8 @@ commits ``Start work on 0.15.17`` on it. ``make push-release`` then pushes
 ``master``, ``release_0.15`` and the tag together.
 
 After a point release on a release branch, merge the branch into ``master``.
-In ``HISTORY.rst``, keep ``master``'s ``.dev0`` section on top and the point
-release's section below it.
+The point release's ``CHANGELOG.md`` section comes along; on a
+``pulsar/__init__.py`` conflict keep ``master``'s version.
 
 After a Release
 ---------------

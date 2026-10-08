@@ -43,8 +43,8 @@ date with changes in Pulsar and Galaxy since the commits recorded under
    - Pulsar: `git log <surveyed.pulsar>..origin/master` plus the same range on
      any `release_0.*` branch. Pay attention to `pulsar/client/**`,
      `pulsar/web/routes.py`, `pulsar/messaging/**`, `pulsar/managers/staging/**`,
-     `pulsar/client/setup_handler.py`, `pulsar/capabilities.py`, and
-     `HISTORY.rst`.
+     `pulsar/client/setup_handler.py`, `pulsar/capabilities.py`,
+     `CHANGELOG.md`, and `changes/`.
    - Galaxy: `git log <surveyed.galaxy_dev>..origin/dev -- lib/galaxy/jobs/runners/pulsar.py`
      plus the pins file and `DEFAULT_PULSAR_CONTAINER`, and the same paths on
      each release branch (backports land there too).

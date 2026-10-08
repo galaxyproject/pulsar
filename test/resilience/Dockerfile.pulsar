@@ -13,7 +13,6 @@ COPY requirements.txt /pulsar/requirements.txt
 COPY setup.py /pulsar/setup.py
 COPY setup.cfg /pulsar/setup.cfg
 COPY README.rst /pulsar/README.rst
-COPY HISTORY.rst /pulsar/HISTORY.rst
 COPY pulsar /pulsar/pulsar
 COPY scripts /pulsar/scripts
 COPY test/resilience/entrypoint.sh /pulsar/entrypoint.sh

@@ -5,6 +5,7 @@
   release.py create [--next]  release commit, tag, and next .dev0 commit
   release.py branch           create release_X.Y from the release just cut on master
   release.py push             push branch(es) and tag to galaxyproject/pulsar
+  release.py add-change PR TYPE  write changes/PR.TYPE.md from the pull request title
 """
 import argparse
 import datetime
@@ -14,18 +15,22 @@ import re
 import shutil
 import subprocess
 import sys
+import urllib.request
 
 PROJECT_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-HISTORY = "HISTORY.rst"
+CHANGELOG = "CHANGELOG.md"
+CHANGES = "changes"
+CHANGE_TYPES = ("change", "feature", "bugfix", "misc")
+SKIP_LABEL = "no changelog"
 INIT = os.path.join("pulsar", "__init__.py")
 GITHUB_REPO = "galaxyproject/pulsar"
-HEADER_RULE = "-" * 21
 VERSION_LINE = re.compile(r"^__version__ = '([^']+)'$", re.MULTILINE)
 DEV_VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)\.dev\d+$")
 RELEASE_VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 PR_MERGE = re.compile(r"^Merge pull request #(\d+) from (\S+)")
-REFERENCE = re.compile(r"`([^`<>]+)`_(?!\w)")
-TARGET = re.compile(r"^\.\. _([^:]+):", re.MULTILINE)
+FRAGMENT = re.compile(r"^(\d+)\.[a-z]+(\.\d+)?\.md$")
+PR_LINK = re.compile(rf"github\.com/{GITHUB_REPO}/pull/(\d+)\)")
+AUTHORS_SKIP_CREDIT = ("jmchilton",)
 
 
 class ReleaseError(Exception):
@@ -84,46 +89,41 @@ def series(version):
     return f"{major}.{minor}"
 
 
-def top_header(history):
-    lines = history.split(".. to_doc\n", 1)[1].splitlines()
-    for previous, line in zip(lines, lines[1:]):
-        if previous == HEADER_RULE and line.strip():
-            return line.strip()
-    raise ReleaseError(f"no version header under .. to_doc in {HISTORY}")
+def documented_prs(changelog, fragments):
+    """PR numbers with a pending fragment, or already linked from the changelog or a fragment."""
+    numbers = set(PR_LINK.findall(changelog))
+    for name, contents in fragments.items():
+        match = FRAGMENT.match(name)
+        if match:
+            numbers.add(match.group(1))
+        numbers.update(PR_LINK.findall(contents))
+    return numbers
 
 
-def mark_released(history, dev_version, version, date):
-    header = f"\n{dev_version}\n"
-    if top_header(history) != dev_version:
-        raise ReleaseError(f"top {HISTORY} section is {top_header(history)}, expected {dev_version}")
-    return history.replace(header, f"\n{version} ({date})\n", 1)
-
-
-def start_version(history, version):
-    section = f"\n{HEADER_RULE}\n{version}.dev0\n{HEADER_RULE}\n\n\n"
-    return history.replace(".. to_doc\n", ".. to_doc\n" + section, 1)
-
-
-def references(history):
-    return {" ".join(ref.split()) for ref in REFERENCE.findall(history)}
-
-
-def missing_history_prs(history, merge_subjects):
-    referenced = references(history)
+def missing_change_prs(documented, merge_subjects, skipped=()):
     missing = []
     for subject in merge_subjects:
         match = PR_MERGE.match(subject)
         if not match or "dependabot" in match.group(2):
             continue
         number = match.group(1)
-        if f"Pull Request {number}" not in referenced:
+        if number not in documented and number not in skipped:
             missing.append(number)
     return missing
 
 
-def missing_targets(history):
-    targets = set(TARGET.findall(history))
-    return sorted(references(history) - targets)
+def read_fragments():
+    directory = os.path.join(PROJECT_DIRECTORY, CHANGES)
+    return {name: read(os.path.join(CHANGES, name)) for name in sorted(os.listdir(directory)) if name != "README.md"}
+
+
+def towncrier(*args):
+    result = subprocess.run(
+        [sys.executable, "-m", "towncrier", *args], cwd=PROJECT_DIRECTORY, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise ReleaseError(f"towncrier {' '.join(args)} failed: {(result.stderr or result.stdout).strip()}")
+    return result.stdout
 
 
 def upstream_remote():
@@ -163,18 +163,32 @@ def merge_subjects(previous):
     return subjects
 
 
+def gh(*args):
+    """Run ``gh`` and return (stdout, error), or (None, None) when gh is not installed."""
+    if not shutil.which("gh"):
+        return None, None
+    result = subprocess.run(["gh", *args, "--repo", GITHUB_REPO], capture_output=True, text=True)
+    if result.returncode != 0:
+        return None, result.stderr.strip() or "gh failed"
+    return result.stdout, None
+
+
+def skipped_prs():
+    """Return (PR numbers labeled SKIP_LABEL, problem)."""
+    stdout, error = gh("pr", "list", "--state", "merged", "--label", SKIP_LABEL, "--limit", "1000", "--json", "number")
+    if stdout is None:
+        return set(), error or f"gh not installed; PRs labeled '{SKIP_LABEL}' count as missing changes"
+    return {str(pr["number"]) for pr in json.loads(stdout)}, None
+
+
 def ci_problems(sha):
     """Return (errors, warnings) for GitHub Actions runs on ``sha``."""
-    if not shutil.which("gh"):
+    stdout, error = gh("run", "list", "--commit", sha, "--json", "name,status,conclusion")
+    if error:
+        return [f"could not query CI: {error}"], []
+    if stdout is None:
         return [], ["gh not installed; check CI by hand"]
-    result = subprocess.run(
-        ["gh", "run", "list", "--repo", GITHUB_REPO, "--commit", sha, "--json", "name,status,conclusion"],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        return [f"could not query CI: {result.stderr.strip()}"], []
-    runs = json.loads(result.stdout)
+    runs = json.loads(stdout)
     if not runs:
         return [f"no CI runs found for {sha[:10]}"], []
     errors = []
@@ -186,7 +200,7 @@ def ci_problems(sha):
     return errors, []
 
 
-def check(allow_missing_history=False, skip_ci=False):
+def check(allow_missing_changes=False, skip_ci=False):
     errors, warnings = [], []
     dev_version = current_version()
     try:
@@ -215,23 +229,26 @@ def check(allow_missing_history=False, skip_ci=False):
     if remote_sha != head:
         errors.append(f"{branch} differs from {remote}/{branch}; pull or push first")
 
-    history = read(HISTORY)
-    header = top_header(history)
-    if header != dev_version:
-        errors.append(f"top {HISTORY} section is {header}, expected {dev_version}")
+    fragments = read_fragments()
+    try:
+        towncrier("build", "--draft", "--version", version)
+    except ReleaseError as e:
+        errors.append(str(e))
     try:
         previous = latest_tag()
     except ReleaseError:
         previous = None
-        warnings.append("no previous tag; skipping HISTORY coverage check")
+        warnings.append("no previous tag; skipping changelog coverage check")
     if previous:
-        missing = missing_history_prs(history, merge_subjects(previous))
+        skipped, problem = skipped_prs()
+        if problem:
+            warnings.append(problem)
+        documented = documented_prs(read(CHANGELOG), fragments)
+        missing = missing_change_prs(documented, merge_subjects(previous), skipped)
         if missing:
-            message = f"{HISTORY} is missing PRs merged since {previous}: {', '.join(missing)}"
-            message += " (make add-history ITEM=prN adds one)"
-            (warnings if allow_missing_history else errors).append(message)
-    for target in missing_targets(history):
-        errors.append(f"{HISTORY} references `{target}`_ with no target")
+            message = f"no {CHANGES}/ entry for PRs merged since {previous}: {', '.join(missing)}"
+            message += f" (make add-change PR=N TYPE=... adds one, or label the PR '{SKIP_LABEL}')"
+            (warnings if allow_missing_changes else errors).append(message)
 
     ci_errors, ci_warnings = ci_problems(head)
     (warnings if skip_ci else errors).extend(ci_errors)
@@ -248,9 +265,8 @@ def check(allow_missing_history=False, skip_ci=False):
 
 
 def commit_start_version(version):
-    write(HISTORY, start_version(read(HISTORY), version))
     write(INIT, set_version(read(INIT), f"{version}.dev0"))
-    git("commit", "--quiet", "-m", f"Start work on {version}", HISTORY, INIT)
+    git("commit", "--quiet", "-m", f"Start work on {version}", INIT)
 
 
 def validate_next_version(version, next_version, branch):
@@ -260,15 +276,16 @@ def validate_next_version(version, next_version, branch):
         raise ReleaseError(f"next version {next_version} does not belong on {branch}")
 
 
-def create(next_version=None, allow_missing_history=False, skip_ci=False):
+def create(next_version=None, allow_missing_changes=False, skip_ci=False):
     dev_version = current_version()
     next_version = next_version or next_patch(release_version(dev_version))
     validate_next_version(release_version(dev_version), next_version, current_branch())
-    version = check(allow_missing_history, skip_ci)
+    version = check(allow_missing_changes, skip_ci)
     today = datetime.date.today().isoformat()
-    write(HISTORY, mark_released(read(HISTORY), dev_version, version, today))
+    towncrier("build", "--yes", "--version", version, "--date", today)
     write(INIT, set_version(read(INIT), version))
-    git("commit", "--quiet", "-m", f"Create pulsar release {version}", HISTORY, INIT)
+    git("add", CHANGELOG, INIT)
+    git("commit", "--quiet", "-m", f"Create pulsar release {version}")
     git("tag", version)
     commit_start_version(next_version)
     print(git("log", "--oneline", "--decorate", "-2"))
@@ -329,26 +346,57 @@ Check: https://pypi.org/project/pulsar-app/{tag}/
 Then:  gh release create {tag} --repo {GITHUB_REPO} --verify-tag --generate-notes""")
 
 
+def pull_request(number):
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{GITHUB_REPO}/pulls/{number}", headers={"Accept": "application/vnd.github+json"}
+    )
+    with urllib.request.urlopen(request) as response:
+        return json.load(response)
+
+
+def change_entry(pr):
+    entry = pr["title"].strip().rstrip(".")
+    login = pr["user"]["login"]
+    if login not in AUTHORS_SKIP_CREDIT and not login.endswith("[bot]"):
+        entry += f" (thanks to [@{login}](https://github.com/{login}))"
+    return entry + ".\n"
+
+
+def add_change(number, change_type):
+    if change_type not in CHANGE_TYPES:
+        raise ReleaseError(f"TYPE must be one of {', '.join(CHANGE_TYPES)}")
+    path = os.path.join(CHANGES, f"{number}.{change_type}.md")
+    if os.path.exists(os.path.join(PROJECT_DIRECTORY, path)):
+        raise ReleaseError(f"{path} already exists")
+    write(path, change_entry(pull_request(number)))
+    print(f"wrote {path}; edit it into a user-facing description")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("check", "create"):
         command = commands.add_parser(name)
-        command.add_argument("--allow-missing-history", action="store_true")
+        command.add_argument("--allow-missing-changes", action="store_true")
         command.add_argument("--skip-ci", action="store_true", help="warn instead of failing on CI problems")
     commands.choices["create"].add_argument("--next", help="next version (default: next patch release)")
     commands.add_parser("branch")
     commands.add_parser("push")
+    add = commands.add_parser("add-change")
+    add.add_argument("pr", type=int)
+    add.add_argument("type", choices=CHANGE_TYPES)
     args = parser.parse_args(argv)
     try:
         if args.command == "check":
-            check(args.allow_missing_history, args.skip_ci)
+            check(args.allow_missing_changes, args.skip_ci)
         elif args.command == "create":
-            create(args.next, args.allow_missing_history, args.skip_ci)
+            create(args.next, args.allow_missing_changes, args.skip_ci)
         elif args.command == "branch":
             branch()
-        else:
+        elif args.command == "push":
             push()
+        else:
+            add_change(args.pr, args.type)
     except ReleaseError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

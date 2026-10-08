@@ -1,36 +1,20 @@
 import importlib.util
 import os
 import subprocess
-import sys
 
 import pytest
 
 TOOLS = os.path.join(os.path.dirname(__file__), os.pardir, "tools")
 
-HISTORY = """History
--------
+CHANGELOG = """# History
 
-.. to_doc
+<!-- towncrier release notes start -->
 
----------------------
-0.15.16.dev0
----------------------
+## 0.15.15 (2026-07-13)
 
-* Fix a thing. `Pull Request 2`_
-
-
----------------------
-0.15.15 (2026-07-13)
----------------------
-
-* Older thing (thanks to `@someone`_). `Pull Request 1`_
-
-.. github_links
-.. _Pull Request 2: https://github.com/galaxyproject/pulsar/pull/2
-.. _Pull Request 1: https://github.com/galaxyproject/pulsar/pull/1
-
-.. _@someone: https://github.com/someone
+- Older thing. [Pull Request 1](https://github.com/galaxyproject/pulsar/pull/1)
 """
+FRAGMENTS = {"2.bugfix.md": "Fix a thing.\n"}
 
 
 def _tool(name):
@@ -43,34 +27,31 @@ def _tool(name):
 release = _tool("release")
 
 
-def test_release_then_start_next_version():
-    released = release.mark_released(HISTORY, "0.15.16.dev0", "0.15.16", "2026-10-06")
-    assert "\n0.15.16 (2026-10-06)\n" in released
-    assert "dev0" not in released
-    started = release.start_version(released, release.next_patch("0.15.16"))
-    assert release.top_header(started) == "0.15.17.dev0"
-    assert started.index("0.15.17.dev0") < started.index("0.15.16 (2026-10-06)")
-
-
 def test_set_version():
     init = "__version__ = '0.15.16.dev0'\n\nPROJECT_NAME = \"pulsar\"\n"
     assert release.set_version(init, "0.15.16").startswith("__version__ = '0.15.16'\n")
     assert release.release_version("0.15.16.dev0") == "0.15.16"
 
 
-def test_missing_history_prs_skips_dependabot_and_non_pr_merges():
+def test_missing_change_prs_skips_dependabot_labeled_and_non_pr_merges():
     subjects = [
         "Merge pull request #3 from someone/feature",
         "Merge pull request #4 from galaxyproject/dependabot/pip/foo-1.2",
         "Merge pull request #2 from someone/fix",
+        "Merge pull request #6 from someone/ci",
         "Merge branch 'release_0.15'",
     ]
-    assert release.missing_history_prs(HISTORY, subjects) == ["3"]
+    documented = release.documented_prs(CHANGELOG, FRAGMENTS)
+    assert release.missing_change_prs(documented, subjects, skipped={"6"}) == ["3"]
 
 
-def test_missing_history_prs_accepts_wrapped_references():
-    wrapped = HISTORY.replace("* Fix a thing. `Pull Request 2`_", "* Fix a thing. `Pull\n  Request 2`_")
-    assert release.missing_history_prs(wrapped, ["Merge pull request #2 from someone/fix"]) == []
+def test_documented_prs_reads_fragment_names_and_links():
+    fragments = {
+        "2.bugfix.md": "Fix.\n",
+        "3.feature.2.md": "Feature.\n",
+        "+docs.misc.md": "Also covers [Pull Request 8](https://github.com/galaxyproject/pulsar/pull/8).\n",
+    }
+    assert release.documented_prs(CHANGELOG, fragments) == {"1", "2", "3", "8"}
 
 
 def test_merged_prs_follow_release_branches_but_not_fork_merges(tmp_path, monkeypatch):
@@ -100,7 +81,8 @@ def test_merged_prs_follow_release_branches_but_not_fork_merges(tmp_path, monkey
     run("-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-ff", "release_0.15", "-m",
         "Merge branch 'release_0.15'")
     monkeypatch.setattr(release, "PROJECT_DIRECTORY", str(tmp_path))
-    assert sorted(release.missing_history_prs(HISTORY, release.merge_subjects("0.15.16"))) == ["7", "9"]
+    documented = release.documented_prs(CHANGELOG, FRAGMENTS)
+    assert sorted(release.missing_change_prs(documented, release.merge_subjects("0.15.16"))) == ["7", "9"]
 
 
 @pytest.mark.parametrize("branch,next_version,ok", [
@@ -117,23 +99,15 @@ def test_validate_next_version(branch, next_version, ok):
             release.validate_next_version("0.15.16", next_version, branch)
 
 
-def test_missing_targets():
-    assert release.missing_targets(HISTORY) == []
-    broken = HISTORY.replace("* Fix a thing.", "* Fix a thing (thanks to `@new`_).")
-    assert release.missing_targets(broken) == ["@new"]
+def test_change_entry_credits_outside_authors():
+    pr = {"title": "Fix the thing.", "user": {"login": "natefoo"}}
+    assert release.change_entry(pr) == "Fix the thing (thanks to [@natefoo](https://github.com/natefoo)).\n"
+    pr = {"title": "Fix the thing", "user": {"login": "jmchilton"}}
+    assert release.change_entry(pr) == "Fix the thing.\n"
 
 
-def test_repository_history_references_resolve():
-    with open(os.path.join(release.PROJECT_DIRECTORY, release.HISTORY), encoding="utf-8") as f:
-        assert release.missing_targets(f.read()) == []
-
-
-def test_add_history_entry_goes_under_dev_header():
-    sys.path.insert(0, release.PROJECT_DIRECTORY)
-    bootstrap_history = _tool("bootstrap_history")
-    history = bootstrap_history.add_entry(HISTORY, "* New thing. `Pull Request 3`_")
-    assert release.top_header(history) == "0.15.16.dev0"
-    assert history.index("0.15.16.dev0") < history.index("* New thing.") < history.index("* Fix a thing.")
+def test_repository_changelog_renders_with_pending_changes():
+    release.towncrier("build", "--draft", "--version", "99.0.0")
 
 
 @pytest.mark.parametrize("returncode,stdout,blocked", [

@@ -118,3 +118,5 @@ Before you submit a pull request, check that it meets these guidelines:
    Put your new functionality into a function with a docstring. (Until the
    @jmchilton learns to do this consistently this is only a suggestion though.)
 2. The pull request tests should pass on GitHub for all supported Python versions.
+3. The pull request should add a changelog entry to ``changes/``, as described
+   in ``changes/README.md``.
