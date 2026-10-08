@@ -34,18 +34,17 @@ def postprocess(
     # Returns True if outputs were collected.
     try:
         if job_directory.has_metadata("launch_config"):
-            staging_config = job_directory.load_metadata("launch_config").get(
-                "remote_staging", None
+            staging_config = (
+                job_directory.load_metadata("launch_config").get("remote_staging") or {}
             )
         else:
-            staging_config = None
+            staging_config = {}
         collected = __collect_outputs(
             job_directory, staging_config, action_executor, was_cancelled
         )
         return collected
     finally:
         job_directory.write_file("postprocessed", "")
-    return False
 
 
 def __collect_outputs(
@@ -71,7 +70,7 @@ def __collect_outputs(
         )
         collection_failure_exceptions = results_collector.collect()
         if collection_failure_exceptions:
-            log.warn("Failures collecting results %s" % collection_failure_exceptions)
+            log.warning("Failures collecting results %s" % collection_failure_exceptions)
             collected = False
     return collected
 

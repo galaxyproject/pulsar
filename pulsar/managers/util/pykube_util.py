@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+from typing import TYPE_CHECKING
 
 from .job_name import produce_unique_k8s_job_name
 
@@ -14,9 +15,10 @@ try:
         Pod,
     )
 except ImportError as exc:
-    KubeConfig = None
-    Job = None
-    Pod = None
+    if not TYPE_CHECKING:
+        KubeConfig = None
+        Job = None
+        Pod = None
     K8S_IMPORT_MESSAGE = (
         "The Python pykube package is required to use "
         "this feature, please install it or correct the "

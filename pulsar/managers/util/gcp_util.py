@@ -4,14 +4,16 @@ import re
 from typing import (
     Any,
     Optional,
+    TYPE_CHECKING,
 )
 
 try:
     from google.cloud import batch_v1  # type: ignore
     from google.oauth2 import service_account  # type: ignore
 except ImportError as exc:
-    service_account = None  # type: ignore[assignment]
-    batch_v1 = None  # type: ignore[assignment]
+    if not TYPE_CHECKING:
+        service_account = None
+        batch_v1 = None
     GCP_IMPORT_MESSAGE = (
         "The Python google-cloud-batch package is required to use "
         "this feature, please install it or correct the "

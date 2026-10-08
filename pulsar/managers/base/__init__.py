@@ -40,6 +40,11 @@ from typing import (
 )
 from uuid import uuid4
 
+from galaxy.util import (
+    shrink_stream_by_size,
+    smart_str,
+)
+
 from pulsar import locks
 from pulsar.client.job_directory import (
     get_mapped_file,
@@ -47,6 +52,7 @@ from pulsar.client.job_directory import (
 )
 from pulsar.managers import ManagerInterface
 from pulsar.managers.util.cvmfsexec import parse as parse_cvmfsexec_config
+from pulsar.managers.util.env import EnvVar
 
 if TYPE_CHECKING:
     from threading import Lock
@@ -77,6 +83,15 @@ ID_ASSIGNER = {
 
 log = logging.getLogger(__name__)
 
+# Same shape as Galaxy's own trimming of job streams (galaxy.util.shrink_and_unicodify).
+STREAM_SHRINK_KWDS: Dict[str, Any] = {"join_by": "\n..\n", "left_larger": True, "beginning_on_size_error": True}
+
+
+def shrink_stream(stream: IO[bytes], size: int) -> bytes:
+    """Read a binary stream, shrunk to ``size`` bytes keeping its start and end."""
+    # Returns text, or raw bytes when size is too small to join start and end.
+    return smart_str(shrink_stream_by_size(stream, size, **STREAM_SHRINK_KWDS))
+
 
 def get_id_assigner(assign_ids):
     default_id_assigner = ID_ASSIGNER[DEFAULT_ID_ASSIGNER]
@@ -93,7 +108,7 @@ class BaseManager(ManagerInterface, ABC):
         staging_directory = kwds.get("staging_directory", app.staging_directory)
         self._setup_staging_directory(staging_directory)
         self.id_assigner = get_id_assigner(kwds.get("assign_ids"))
-        self.maximum_stream_size = kwds.get("maximum_stream_size", -1)
+        self.maximum_stream_size = int(kwds.get("maximum_stream_size", -1))
         self.__init_galaxy_system_properties(kwds)
         self.tmp_dir: Optional[str] = kwds.get("tmp_dir")
         # Default cvmfsexec configuration for this manager (app.yml). May be
@@ -138,7 +153,7 @@ class BaseManager(ManagerInterface, ABC):
         )
 
     def __init_system_properties(self) -> None:
-        system_properties = {
+        system_properties: Dict[str, Any] = {
             "separator": sep,
         }
         galaxy_home = self._galaxy_home()
@@ -156,15 +171,15 @@ class BaseManager(ManagerInterface, ABC):
             if value:
                 system_properties[property] = value
 
-        self.__system_properties: Dict[str, Any] = system_properties
+        self.__system_properties = system_properties
 
     def __init_env_vars(self, **kwds: Any) -> None:
-        env_vars = []
+        env_vars: List[EnvVar] = []
         for key, value in kwds.items():
             if key.lower().startswith("env_"):
                 name = key[len("env_") :]
                 env_vars.append({"name": name, "value": value, "raw": False})
-        self.env_vars: List[Dict[str, str]] = env_vars
+        self.env_vars = env_vars
 
     def _galaxy_home(self) -> Optional[str]:
         return self.galaxy_home or getenv("GALAXY_HOME", None)
@@ -175,7 +190,7 @@ class BaseManager(ManagerInterface, ABC):
     def _galaxy_lib(self) -> Optional[str]:
         galaxy_home = self._galaxy_home()
         galaxy_lib = None
-        if galaxy_home and str(galaxy_home).lower() != "none":
+        if galaxy_home and galaxy_home.lower() != "none":
             galaxy_lib = join(galaxy_home, "lib")
         return galaxy_lib
 
@@ -334,6 +349,21 @@ class JobDirectory(RemoteJobDirectory):
         finally:
             if job_file:
                 job_file.close()
+
+    def read_stream(self, name: str, size: int, default: Optional[bytes] = None) -> bytes:
+        """Read a stdout/stderr file, keeping its start and end if longer than ``size``.
+
+        The end of a stream is usually where a failing tool says why.
+        """
+        try:
+            with open(self._job_file(name), "rb") as stream:
+                if size < 0 or os.fstat(stream.fileno()).st_size <= size:
+                    return stream.read()
+                return shrink_stream(stream, size)
+        except Exception:
+            if default is not None:
+                return default
+            raise
 
     def write_file(self, name: str, contents: Union[str, bytes], atomic: bool = False) -> str:
         path = self._job_file(name)

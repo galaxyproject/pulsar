@@ -32,8 +32,13 @@ ruff
 isort
 vermin
 
-mypy
+# Type checkers are pinned: new releases add checks; bump deliberately.
+# Markers keep dev-requirements installable on older Pythons; CI type checks run on 3.14.
+mypy==2.4.0; python_version >= '3.10'
+pyrefly==1.3.2; python_version >= '3.8'
 types-paramiko
+types-WebOb
+types-WebTest
 types-setuptools
 types-PyYAML
 types-pycurl

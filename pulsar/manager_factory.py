@@ -121,7 +121,7 @@ def _load_manager_modules():
         except BaseException as exception:
             exception_str = str(exception)
             message = f"{manager_module_name} manager module could not be loaded: {exception_str}"
-            log.warn(message)
+            log.warning(message)
             continue
 
     return modules

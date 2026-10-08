@@ -8,6 +8,7 @@ try:
     import requests
 except ImportError:
     requests = None
+import re
 import textwrap
 import urllib.parse
 
@@ -23,6 +24,7 @@ PROJECT_NAME = project.PROJECT_NAME
 PROJECT_URL = f"https://github.com/{PROJECT_OWNER}/{PROJECT_NAME}"
 PROJECT_API = f"https://api.github.com/repos/{PROJECT_OWNER}/{PROJECT_NAME}/"
 AUTHORS_SKIP_CREDIT = ["jmchilton"]
+TOP_SECTION_HEADER = re.compile(r"^\.\. to_doc\n\s*-+\n[^\n]+\n-+\n", re.MULTILINE)
 
 
 def main(argv):
@@ -52,7 +54,9 @@ def main(argv):
         login = req["user"]["login"]
         if login not in AUTHORS_SKIP_CREDIT:
             message = message.rstrip(".")
-            message += " (thanks to `@%s`_)." % req["user"]["login"]
+            message += " (thanks to `@%s`_)." % login
+            if f".. _@{login}:" not in history:
+                history = history.rstrip("\n") + f"\n.. _@{login}: https://github.com/{login}\n"
     elif requests is not None and ident.startswith("issue"):
         issue = ident[len("issue"):]
         api_url = urllib.parse.urljoin(PROJECT_API, "issues/%s" % issue)
@@ -79,9 +83,16 @@ def main(argv):
         history = extend(".. github_links", text)
         to_doc += f"{short_rev}_"
 
-    to_doc = wrap(to_doc)
-    history = extend(".. to_doc", to_doc)
+    history = add_entry(history, wrap(to_doc))
     open(history_path, "w", encoding="utf-8").write(history)
+
+
+def add_entry(history, entry):
+    """Add ``entry`` to the top of the newest (``.dev0``) section."""
+    header = TOP_SECTION_HEADER.search(history)
+    if header is None:
+        raise Exception("No version section found under '.. to_doc'")
+    return history[:header.end()] + entry + "\n" + history[header.end():]
 
 
 def get_first_sentence(message):

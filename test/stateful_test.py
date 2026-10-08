@@ -11,7 +11,10 @@ from pulsar.managers import (
 )
 from pulsar.managers.queued import QueueManager
 from pulsar.managers.stateful import StatefulManagerProxy
-from .test_utils import minimal_app_for_managers
+from .test_utils import (
+    minimal_app_for_managers,
+    wait_for,
+)
 
 TEST_JOB_ID = "4"
 # An empty staging config exercises postprocessing without external transfers.
@@ -353,23 +356,15 @@ def _postprocessing_held(timeout=5):
         yield release
 
 
-def _wait_for(condition, description, timeout=5):
-    time_end = time.time() + timeout
-    while time.time() < time_end:
-        if condition():
-            return
-        time.sleep(.01)
-    raise AssertionError("Timed out waiting for %s." % description)
-
-
 def _wait_for_callback(proxy, timeout=5):
-    _wait_for(lambda: proxy.callbacks, "a state change callback", timeout=timeout)
+    wait_for(lambda: proxy.callbacks, "a state change callback", timeout=timeout)
 
 
 def _wait_for_postprocessing_index_cleared(proxy, timeout=5):
-    _wait_for(
-        lambda: _postprocessing_job_ids(proxy) == [],
+    wait_for(
+        lambda: _postprocessing_job_ids(proxy),
         "the postprocessing index to be cleared",
+        until=lambda job_ids: job_ids == [],
         timeout=timeout,
     )
 

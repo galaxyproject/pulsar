@@ -453,19 +453,19 @@ class StatefulManagerProxy(ManagerProxy):
         ):
             job_directory = self._proxied_manager.job_directory(job_id)
             if not job_directory.has_metadata("launch_config"):
-                log.warn(
+                log.warning(
                     "Failed to find launch parameters for job scheduled to prepreprocess [%s]"
                     % job_id
                 )
                 unqueue_preprocessing_ids.append(job_id)
             elif job_directory.has_metadata(JOB_FILE_PREPROCESSED):
-                log.warn(
+                log.warning(
                     "Job scheduled to prepreprocess [%s] already preprocessed, skipping"
                     % job_id
                 )
                 unqueue_preprocessing_ids.append(job_id)
             elif job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
-                log.warn(
+                log.warning(
                     "Job scheduled to prepreprocess [%s] previously failed preprocessing, skipping"
                     % job_id
                 )
@@ -602,7 +602,7 @@ class ActiveJobs:
             try:
                 open(path, "w").close()
             except Exception:
-                log.warn(ACTIVATE_FAILED_MESSAGE % job_id)
+                log.warning(ACTIVATE_FAILED_MESSAGE % job_id)
 
     def deactivate_job(self, job_id: str, active_status=ACTIVE_STATUS_LAUNCHED) -> None:
         if self._active_job_directory(active_status):
@@ -611,7 +611,7 @@ class ActiveJobs:
                 try:
                     os.remove(path)
                 except Exception:
-                    log.warn(DECACTIVATE_FAILED_MESSAGE % job_id)
+                    log.warning(DECACTIVATE_FAILED_MESSAGE % job_id)
 
     def _active_job_directory(self, active_status: str) -> Optional[str]:
         if active_status not in self._active_job_directories:
@@ -641,7 +641,7 @@ class ManagerMonitor:
         self.active = False
         self.thread.join(timeout)
         if self.thread.is_alive():
-            log.warn("Failed to join monitor thread [%s]" % self.thread)
+            log.warning("Failed to join monitor thread [%s]" % self.thread)
 
     def _run(self) -> None:
         """Main loop, repeatedly checking active jobs of stateful manager."""

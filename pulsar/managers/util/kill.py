@@ -3,6 +3,7 @@ import signal
 import subprocess
 from platform import system
 from time import sleep
+from typing import TYPE_CHECKING
 
 try:
     from psutil import (
@@ -11,7 +12,8 @@ try:
     )
 except ImportError:
     """Don't make psutil a strict requirement, but use if available."""
-    Process = None  # type: ignore
+    if not TYPE_CHECKING:
+        Process = None
 
 
 def kill_pid(pid: int, use_psutil: bool = True):

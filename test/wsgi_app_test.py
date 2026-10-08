@@ -1,17 +1,18 @@
 import json
 import os
-import time
 from urllib.parse import quote
 
 from pulsar import __version__ as pulsar_version
+from .test_utils import (
+    test_pulsar_app,
+    wait_for,
+)
 
 
 def test_standard_requests():
     """ Tests app controller methods. These tests should be
     compartmentalized. Also these methods should be made to not retest
     the behavior of the associated Manager class. """
-    from .test_utils import test_pulsar_app
-
     with test_pulsar_app(test_conf={"extra_environ": {"REMOTE_ADDR": "127.101.101.98"}}) as app:
         staging_directory = app.app.staging_directory
         setup_response = app.post("/jobs?job_id=12345")
@@ -74,11 +75,10 @@ def test_standard_requests():
 
 
 def _wait_for_complete_status(app, job_id, timeout=10):
-    time_end = time.time() + timeout
-    while True:
-        status = json.loads(app.get("/jobs/%s/status" % job_id).body.decode("utf-8"))
-        if status["complete"] == "true":
-            return status
-        if time.time() >= time_end:
-            raise AssertionError(f"Timed out waiting for job {job_id} to complete, last status: {status}")
-        time.sleep(.05)
+    return wait_for(
+        lambda: json.loads(app.get("/jobs/%s/status" % job_id).body.decode("utf-8")),
+        f"job {job_id} to complete",
+        until=lambda status: status["complete"] == "true",
+        timeout=timeout,
+        interval=.05,
+    )

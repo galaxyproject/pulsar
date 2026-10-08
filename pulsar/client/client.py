@@ -479,8 +479,8 @@ class MessageJobClient(BaseMessageJobClient):
 
     def get_status(self):
         status_params = self._build_status_request_message()
-        response = self.client_manager.exchange.publish("setup", status_params)
-        log.info("Job status request published to setup message queue: %s", self.job_id)
+        response = self.client_manager.exchange.publish("status", status_params)
+        log.info("Job status request published to status message queue: %s", self.job_id)
         return response
 
     def kill(self):

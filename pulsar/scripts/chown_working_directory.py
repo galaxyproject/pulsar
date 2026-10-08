@@ -1,4 +1,4 @@
-from os import system
+import subprocess
 from os.path import (
     abspath,
     join,
@@ -35,8 +35,7 @@ def main(argv=None):
     else:
         job_directory = abspath(args.job_directory)
         assert job_directory
-    command = "chown -Rh '{}' '{}'".format(user, job_directory)
-    system(command)
+    subprocess.check_call(["chown", "-Rh", user, job_directory])
 
 
 if __name__ == "__main__":

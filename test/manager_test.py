@@ -1,5 +1,6 @@
 from os.path import join
 
+from pulsar.managers.base.directory import JOB_FILE_STANDARD_OUTPUT
 from pulsar.managers.unqueued import Manager
 from .test_utils import (
     BaseManagerTestCase,
@@ -50,6 +51,13 @@ class ManagerTest(BaseManagerTestCase):
         self._set_manager(assign_ids="uuid")
         job_id = self.manager.setup_job("124", "tool1", "1.0.0")
         self.assertNotEqual(job_id, "124")
+
+    def test_maximum_stream_size_from_string_config(self):
+        # Config sources that only produce strings (e.g. INI) must still cap streams.
+        self._set_manager(maximum_stream_size="4")
+        job_id = self.manager.setup_job("123", "tool1", "1.0.0")
+        self.manager.job_directory(job_id).write_file(JOB_FILE_STANDARD_OUTPUT, b"0123456789")
+        self.assertEqual(self.manager.job_stdout_contents(job_id), b"0123")
 
     def test_unauthorized_config_file(self):
         self.authorizer.authorization.allow_config = False

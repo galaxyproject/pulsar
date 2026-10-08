@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.15.16.dev0
+0.16.0.dev0
 ---------------------
 
 * Keep client and staging package initializers lightweight, and separate
@@ -18,21 +18,80 @@ History
   ``pulsar.client.coexecution_manager.build_client_manager`` for a factory
   supporting both ordinary clients and container coexecution. Staging
   objects pickled with the old package-level paths are no longer supported.
-* Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
-  in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
-  `@gkr0110`_).
+  `Pull Request 537`_
+
+
+---------------------
+0.15.16 (2026-10-08)
+---------------------
+
+* Send tool stdout and stderr to Galaxy while the job is running, enabled with
+  ``send_stdout_update`` and tuned with ``stdout_update_interval``,
+  ``stdout_update_timeout`` and ``stdout_update_chunk_size`` (thanks to
+  `@gecage952`_). `Pull Request 503`_
+* Recover jobs that were postprocessing when Pulsar restarted instead of losing
+  them. `Issue 354`_, `Issue 393`_, `Pull Request 519`_
+* Support configuring the AMQP heartbeat interval with ``amqp_heartbeat``, or
+  disabling heartbeats with ``false`` or ``0`` (thanks to `@natefoo`_).
+  `Pull Request 502`_
+* Allow a ``user_mapping_script`` for the ``queued_external_drmaa`` manager,
+  mapping the client-supplied user name to a local user when submitting as the
+  real user (thanks to `@bernt-matthias`_). `Pull Request 451`_
 * Add native ``cvmfsexec`` support to Pulsar managers (``mountrepo`` and
   ``namespace`` modes), configured via a ``cvmfsexec`` manager option or a
   per-job override, for accessing CVMFS repositories (and CVMFS-hosted
-  container images) on hosts without a system-wide ``/cvmfs``.
+  container images) on hosts without a system-wide ``/cvmfs`` (thanks to
+  `@natefoo`_). `Pull Request 475`_
 * Add a dedicated ``container`` file-action path type for rewriting resolved
   container image paths (e.g. a Singularity/Apptainer image on CVMFS) via a
   ``rewrite`` action, without overloading the ``unstructured`` tool-parameter
   path type. **Note:** ``path_types: "*any*"`` now also matches container image
-  paths.
+  paths. `Pull Request 475`_
+* Size GCP Batch jobs from the requested ``cores`` and ``mem``, selecting a
+  machine type when ``machine_type`` is not configured (thanks to
+  `@ksuderman`_). `Pull Request 493`_
+* Support a custom GCP Batch VM boot disk image (``custom_vm_image``) and size
+  (``boot_disk_size_gb``) (thanks to `@ksuderman`_). `Pull Request 472`_
 * Report DRM-side job failures as ``failed`` instead of ``complete`` (thanks to
   `@gkr0110`_), and make ``failed`` terminal in ``StatefulManagerProxy`` so such
   jobs are deactivated, staged back, and reported to the client.
+  `Pull Request 485`_
+* Fail the job instead of reporting success with missing outputs when an
+  infrastructure error (disk full, I/O error, transport error) blocks output
+  collection or working directory stage out (thanks to `@ksuderman`_).
+  `Pull Request 467`_, `Pull Request 505`_
+* Fix a job recovery startup race where the monitor could poll recovered jobs
+  before their external IDs were restored, without losing the ``lost`` status
+  notification when recovery fails (thanks to `@mvdbeek`_). `Pull Request 496`_
+* Follow redirects in the curl transport, restart downloads the server cannot
+  resume, and keep TUS uploads when Pulsar rebuilds a ``remote_transfer_tus``
+  action. **Note:** ``remote_transfer_tus`` now really uses TUS, so servers
+  without ``tuspy`` fail stage out instead of silently falling back to a POST
+  (thanks to `@nuwang`_). `Pull Request 526`_
+* Send ``MessageJobClient.get_status()`` requests to the ``status`` queue
+  instead of ``setup``, and publish ``failed`` statuses when setup fails before
+  the job directory is readable. `Pull Request 532`_
+* Cap tool stdout and stderr in status responses at 64 KiB, so a large
+  ``maximum_stream_size`` cannot produce an oversized completion message
+  (thanks to `@mvdbeek`_). `Pull Request 499`_
+* Keep the end of tool and job stdout/stderr when trimming them to
+  ``maximum_stream_size`` and to the 64 KiB completion-status limit, instead of
+  only the start. The end is usually where a failing tool explains why.
+  Document ``maximum_stream_size`` in ``app.yml.sample``. `Issue 158`_,
+  `Pull Request 524`_
+* Use the task ID recorded by TES for polling and cancellation instead of the
+  Galaxy job ID. `Pull Request 491`_
+* Close leaked file, pycurl and requests handles (thanks to `@mvdbeek`_).
+  `Pull Request 500`_
+* Report malformed ``env`` entries in job destinations clearly instead of
+  crashing while building environment statements (thanks to `@natefoo`_).
+  `Pull Request 504`_
+* ``pulsar-chown-working-directory`` runs ``chown`` without a shell and exits
+  non-zero when it fails. Previously a failed ``chown`` went unnoticed by the
+  ``queued_external_drmaa`` manager, which checks the script's exit status.
+* Honor daemon-control arguments in ``--mode webless``, preserve daemon logs
+  in ``pulsar.log``, and add a ``daemon`` installation extra (thanks to
+  `@gkr0110`_). `Pull Request 494`_
 * Remove the ``__PULSAR_JOBS_DIRECTORY__`` destination token, which never
   worked. Substitution only ever reached the job's command line, so staged
   config files, metadata and tool scripts kept the literal token. The command
@@ -44,20 +103,49 @@ History
   directory, so little could run. Set ``jobs_directory`` to the staging path
   configured on the Pulsar side instead. The per-job
   ``__PULSAR_JOB_DIRECTORY__`` token used by ``rewrite`` file actions is
-  unaffected.
+  unaffected. `Pull Request 515`_
 * Remove the experimental Apache Mesos framework and executor. Apache Mesos has
   been retired to the Apache Attic, the ``mesos.native`` bindings the code
   imported were only ever distributed with a Mesos build, and nothing here has
-  had a functional change since 2015.
+  had a functional change since 2015. `Pull Request 511`_
 * Bind Pulsar to the manager name Galaxy returns from compute-resource
   registration rather than to the relay ``sub`` claim. ``pulsar-config
   register-with-galaxy`` wrote the wrong name into ``app.yml``, so registration
   reported success while jobs stayed queued (thanks to `@dSizovs`_).
+  `Pull Request 514`_
 * Require that manager name: ``register-with-galaxy`` no longer falls back to
   the relay ``sub`` and no longer proposes a name in the registration payload
   (Galaxy mints its own and ignores ours). A registration response without a
   manager name now fails loudly instead of writing an ``app.yml`` bound to a
-  guessed name.
+  guessed name (thanks to `@mvdbeek`_). `Pull Request 516`_
+* Document Galaxy and Pulsar compatibility per modality (REST, message queue,
+  relay, coexecution) in a new ``Galaxy Compatibility`` docs page generated
+  from ``docs/compatibility.yml``. `Pull Request 536`_
+* Document the release-branch process (``master`` carries the next minor,
+  ``release_0.N`` its point releases) and replace the old release targets with
+  ``make release-check``, ``make release``, ``make release-branch``, and
+  ``make push-release``. Backfill this section with every PR merged since
+  0.15.15. `Pull Request 540`_, `Pull Request 543`_
+* Document ``min_polling_interval`` in ``app.yml.sample`` (thanks to
+  `@martenson`_). `Pull Request 379`_
+* Documentation fixes for running jobs as the real user, AMQP queue
+  durability, and typos and grammar (thanks to `@bernt-matthias`_,
+  `@mvdbeek`_, and `@martincarrere`_). `Pull Request 424`_,
+  `Pull Request 474`_, `Pull Request 495`_, `Pull Request 497`_
+* Add type annotations to the job managers (thanks to `@bernt-matthias`_).
+  `Pull Request 427`_
+* Replace flake8 with ruff, check import order with isort in CI, and type check
+  with Pyrefly alongside mypy (``tox -e pyrefly``), pinning both checkers in
+  ``dev-requirements.txt``. `Pull Request 489`_, `Pull Request 507`_,
+  `Pull Request 539`_
+* Harden GitHub workflows following zizmor recommendations and move CI to
+  ``ubuntu-24.04`` (thanks to `@nsoranzo`_). `Pull Request 478`_,
+  `Pull Request 506`_, `Pull Request 508`_
+* Fix the resilience harness readiness checks, move it into ``pulsar.testing``,
+  and make the persistence and WSGI tests poll instead of sleeping (thanks to
+  `@nuwang`_). `Pull Request 487`_, `Pull Request 488`_, `Pull Request 509`_,
+  `Pull Request 525`_, `Pull Request 528`_, `Pull Request 531`_,
+  `Pull Request 534`_
 
 ---------------------
 0.15.15 (2026-07-13)
@@ -436,7 +524,7 @@ History
   galaxy-lib can no longer be installed in Pulsar's environment, so you will
   likely need to rebuild your Pulsar virtualenv for this release.
   `Pull Request 187`_
-* Add a ``Dockerfile`` for Pulsar with CVMFS (thanks to `@nuwang`_ and `@afgane`).
+* Add a ``Dockerfile`` for Pulsar with CVMFS (thanks to `@nuwang`_ and `@afgane`_).
   `Pull Request 166`_
 * Various small improvements to Kubernetes pod execution environment.
   `Pull Request 190`_
@@ -676,6 +764,55 @@ History
 
 
 .. github_links
+.. _Pull Request 537: https://github.com/galaxyproject/pulsar/pull/537
+.. _Pull Request 543: https://github.com/galaxyproject/pulsar/pull/543
+.. _Pull Request 540: https://github.com/galaxyproject/pulsar/pull/540
+.. _Pull Request 539: https://github.com/galaxyproject/pulsar/pull/539
+.. _Pull Request 536: https://github.com/galaxyproject/pulsar/pull/536
+.. _Pull Request 534: https://github.com/galaxyproject/pulsar/pull/534
+.. _Pull Request 532: https://github.com/galaxyproject/pulsar/pull/532
+.. _Pull Request 531: https://github.com/galaxyproject/pulsar/pull/531
+.. _Pull Request 528: https://github.com/galaxyproject/pulsar/pull/528
+.. _Pull Request 526: https://github.com/galaxyproject/pulsar/pull/526
+.. _Pull Request 525: https://github.com/galaxyproject/pulsar/pull/525
+.. _Pull Request 524: https://github.com/galaxyproject/pulsar/pull/524
+.. _Pull Request 519: https://github.com/galaxyproject/pulsar/pull/519
+.. _Pull Request 516: https://github.com/galaxyproject/pulsar/pull/516
+.. _Pull Request 515: https://github.com/galaxyproject/pulsar/pull/515
+.. _Pull Request 514: https://github.com/galaxyproject/pulsar/pull/514
+.. _Pull Request 511: https://github.com/galaxyproject/pulsar/pull/511
+.. _Pull Request 509: https://github.com/galaxyproject/pulsar/pull/509
+.. _Pull Request 508: https://github.com/galaxyproject/pulsar/pull/508
+.. _Pull Request 507: https://github.com/galaxyproject/pulsar/pull/507
+.. _Pull Request 506: https://github.com/galaxyproject/pulsar/pull/506
+.. _Pull Request 505: https://github.com/galaxyproject/pulsar/pull/505
+.. _Pull Request 504: https://github.com/galaxyproject/pulsar/pull/504
+.. _Pull Request 503: https://github.com/galaxyproject/pulsar/pull/503
+.. _Pull Request 502: https://github.com/galaxyproject/pulsar/pull/502
+.. _Pull Request 500: https://github.com/galaxyproject/pulsar/pull/500
+.. _Pull Request 499: https://github.com/galaxyproject/pulsar/pull/499
+.. _Pull Request 497: https://github.com/galaxyproject/pulsar/pull/497
+.. _Pull Request 496: https://github.com/galaxyproject/pulsar/pull/496
+.. _Pull Request 495: https://github.com/galaxyproject/pulsar/pull/495
+.. _Pull Request 494: https://github.com/galaxyproject/pulsar/pull/494
+.. _Pull Request 493: https://github.com/galaxyproject/pulsar/pull/493
+.. _Pull Request 491: https://github.com/galaxyproject/pulsar/pull/491
+.. _Pull Request 489: https://github.com/galaxyproject/pulsar/pull/489
+.. _Pull Request 488: https://github.com/galaxyproject/pulsar/pull/488
+.. _Pull Request 487: https://github.com/galaxyproject/pulsar/pull/487
+.. _Pull Request 485: https://github.com/galaxyproject/pulsar/pull/485
+.. _Pull Request 478: https://github.com/galaxyproject/pulsar/pull/478
+.. _Pull Request 475: https://github.com/galaxyproject/pulsar/pull/475
+.. _Pull Request 474: https://github.com/galaxyproject/pulsar/pull/474
+.. _Pull Request 472: https://github.com/galaxyproject/pulsar/pull/472
+.. _Pull Request 467: https://github.com/galaxyproject/pulsar/pull/467
+.. _Pull Request 451: https://github.com/galaxyproject/pulsar/pull/451
+.. _Pull Request 427: https://github.com/galaxyproject/pulsar/pull/427
+.. _Pull Request 424: https://github.com/galaxyproject/pulsar/pull/424
+.. _Pull Request 379: https://github.com/galaxyproject/pulsar/pull/379
+.. _Issue 393: https://github.com/galaxyproject/pulsar/issues/393
+.. _Issue 354: https://github.com/galaxyproject/pulsar/issues/354
+.. _Issue 158: https://github.com/galaxyproject/pulsar/issues/158
 .. _Pull Request 470: https://github.com/galaxyproject/pulsar/pull/470
 .. _Pull Request 466: https://github.com/galaxyproject/pulsar/pull/466
 .. _Pull Request 464: https://github.com/galaxyproject/pulsar/pull/464
@@ -898,3 +1035,5 @@ History
 .. _@dSizovs: https://github.com/dSizovs
 .. _@jeis4wpi: https://github.com/jeis4wpi
 .. _@gkr0110: https://github.com/gkr0110
+.. _@martenson: https://github.com/martenson
+.. _@gecage952: https://github.com/gecage952

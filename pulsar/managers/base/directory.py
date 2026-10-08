@@ -15,6 +15,7 @@ from galaxy.util import asbool
 
 from pulsar.managers import PULSAR_UNKNOWN_RETURN_CODE
 from pulsar.managers.base import BaseManager
+from pulsar.managers.util.env import EnvVar
 from ..util import cvmfsexec
 from ..util.env import env_to_statement
 from ..util.job_script import (
@@ -67,35 +68,23 @@ class DirectoryBaseManager(BaseManager):
 
     def stdout_contents(self, job_id: str) -> bytes:
         try:
-            return self._read_job_file(
-                job_id, TOOL_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size
-            )
+            return self._read_job_stream(job_id, TOOL_FILE_STANDARD_OUTPUT)
         except FileNotFoundError:
             # Could be old job finishing up, drop in 2024?
-            return self._read_job_file(
-                job_id, "tool_stdout", size=self.maximum_stream_size, default=b""
-            )
+            return self._read_job_stream(job_id, "tool_stdout", default=b"")
 
     def stderr_contents(self, job_id: str) -> bytes:
         try:
-            return self._read_job_file(
-                job_id, TOOL_FILE_STANDARD_ERROR, size=self.maximum_stream_size
-            )
+            return self._read_job_stream(job_id, TOOL_FILE_STANDARD_ERROR)
         except FileNotFoundError:
             # Could be old job finishing up, drop in 2024?
-            return self._read_job_file(
-                job_id, "tool_stderr", size=self.maximum_stream_size, default=b""
-            )
+            return self._read_job_stream(job_id, "tool_stderr", default=b"")
 
     def job_stdout_contents(self, job_id: str) -> bytes:
-        return self._read_job_file(
-            job_id, JOB_FILE_STANDARD_OUTPUT, size=self.maximum_stream_size, default=b""
-        )
+        return self._read_job_stream(job_id, JOB_FILE_STANDARD_OUTPUT, default=b"")
 
     def job_stderr_contents(self, job_id: str) -> bytes:
-        return self._read_job_file(
-            job_id, JOB_FILE_STANDARD_ERROR, size=self.maximum_stream_size, default=b""
-        )
+        return self._read_job_stream(job_id, JOB_FILE_STANDARD_ERROR, default=b"")
 
     def read_command_line(self, job_id: str) -> Any:
         command_line = self._read_job_file(job_id, JOB_FILE_COMMAND_LINE)
@@ -126,8 +115,8 @@ class DirectoryBaseManager(BaseManager):
     ) -> str:
         self._setup_job_directory(job_id)
 
-        tool_id = str(tool_id) if tool_id else ""
-        tool_version = str(tool_version) if tool_version else ""
+        tool_id = tool_id or ""
+        tool_version = tool_version or ""
 
         authorization = self._get_authorization(job_id, tool_id)
         authorization.authorize_setup()
@@ -138,6 +127,9 @@ class DirectoryBaseManager(BaseManager):
     def _read_job_file(self, job_id: str, name: str, **kwds) -> bytes:
         return self._job_directory(job_id).read_file(name, **kwds)
 
+    def _read_job_stream(self, job_id: str, name: str, default: Optional[bytes] = None) -> bytes:
+        return self._job_directory(job_id).read_stream(name, self.maximum_stream_size, default=default)
+
     def _write_job_file(self, job_id: str, name: str, contents) -> str:
         return self._job_directory(job_id).write_file(name, contents)
 
@@ -146,7 +138,7 @@ class DirectoryBaseManager(BaseManager):
             job_id, JOB_FILE_RETURN_CODE, default=PULSAR_UNKNOWN_RETURN_CODE
         )
         if return_code_str == PULSAR_UNKNOWN_RETURN_CODE:
-            self._write_job_file(job_id, JOB_FILE_RETURN_CODE, str(return_code))
+            self._write_job_file(job_id, JOB_FILE_RETURN_CODE, return_code)
 
     def _write_tool_info(self, job_id: str, tool_id: str, tool_version: str) -> None:
         job_directory = self._job_directory(job_id)
@@ -215,7 +207,7 @@ class DirectoryBaseManager(BaseManager):
         job_id: str,
         command_line: str,
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> str:
         command_line = self._expand_command_line(
@@ -280,7 +272,7 @@ class DirectoryBaseManager(BaseManager):
         self,
         job_id: str,
         command_line: Optional[str] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         # TODO: Add option to ignore remote env.

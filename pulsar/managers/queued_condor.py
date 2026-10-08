@@ -9,6 +9,8 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from pulsar.managers.util.env import EnvVar
+
 if TYPE_CHECKING:
     from galaxy.tool_util.deps.dependencies import DependenciesDescription
     from pulsar.core import PulsarApp
@@ -46,7 +48,7 @@ class CondorQueueManager(ExternalBaseManager):
         command_line: str,
         submit_params: Dict[str, str] = {},
         dependencies_description: Optional["DependenciesDescription"] = None,
-        env: List[Dict[str, str]] = [],
+        env: List[EnvVar] = [],
         setup_params: Optional[Dict[str, str]] = None,
     ) -> None:
         self._check_execution_with_tool_file(job_id, command_line)
@@ -85,7 +87,7 @@ class CondorQueueManager(ExternalBaseManager):
     def _kill_external(self, external_id: str) -> None:
         failure_message = condor_stop(external_id)
         if failure_message:
-            log.warn(
+            log.warning(
                 f"Failed to stop condor job with id {external_id} - {failure_message}"
             )
 
