@@ -105,6 +105,11 @@ History
 * Document Galaxy and Pulsar compatibility per modality (REST, message queue,
   relay, coexecution) in a new ``Galaxy Compatibility`` docs page generated
   from ``docs/compatibility.yml``. `Pull Request 536`_
+* Document the release-branch process (``master`` carries the next minor,
+  ``release_0.N`` its point releases) and replace the old release targets with
+  ``make release-check``, ``make release``, ``make release-branch``, and
+  ``make push-release``. Backfill this section with every PR merged since
+  0.15.15. `Pull Request 540`_, `Pull Request 543`_
 * Document ``min_polling_interval`` in ``app.yml.sample`` (thanks to
   `@martenson`_). `Pull Request 379`_
 * Documentation fixes for running jobs as the real user, AMQP queue
@@ -743,6 +748,8 @@ History
 
 
 .. github_links
+.. _Pull Request 543: https://github.com/galaxyproject/pulsar/pull/543
+.. _Pull Request 540: https://github.com/galaxyproject/pulsar/pull/540
 .. _Pull Request 539: https://github.com/galaxyproject/pulsar/pull/539
 .. _Pull Request 536: https://github.com/galaxyproject/pulsar/pull/536
 .. _Pull Request 534: https://github.com/galaxyproject/pulsar/pull/534
