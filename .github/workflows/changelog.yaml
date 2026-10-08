@@ -1,0 +1,32 @@
+name: changelog
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+permissions: {}
+jobs:
+  check:
+    name: Check changes/ entry
+    if: github.event.pull_request.user.login != 'dependabot[bot]' && !contains(github.event.pull_request.labels.*.name, 'no changelog')
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v7.0.1
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+    - uses: actions/setup-python@v7
+      with:
+        python-version: '3.14'
+    - name: Install towncrier
+      run: pip install towncrier
+    - name: Check for a changes/ entry
+      env:
+        BASE_REF: ${{ github.base_ref }}
+      run: towncrier check --compare-with "origin/$BASE_REF"
+    - name: Check CHANGELOG.md is not edited directly
+      env:
+        BASE_REF: ${{ github.base_ref }}
+      run: |
+        if ! git diff --quiet "origin/$BASE_REF...HEAD" -- CHANGELOG.md; then
+          echo "::error::Add a changes/ entry instead of editing CHANGELOG.md (see changes/README.md)."
+          exit 1
+        fi

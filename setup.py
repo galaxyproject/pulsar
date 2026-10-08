@@ -13,7 +13,6 @@ DEFAULT_PULSAR_GALAXY_LIB = 0
 PULSAR_GALAXY_LIB = os.environ.get("PULSAR_GALAXY_LIB", "%d" % DEFAULT_PULSAR_GALAXY_LIB) == "1"
 
 readme = open('README.rst').read()
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 if os.path.exists("requirements.txt"):
     # PEP 508 environment markers (``foo; python_version >= "3.10"``) are
@@ -47,11 +46,14 @@ setup(
     name=name,
     version=version,
     description='Distributed job execution application built for Galaxy (http://galaxyproject.org/).',
-    long_description=readme + '\n\n' + history,
+    long_description=readme,
     long_description_content_type='text/x-rst',
     author='Galaxy Project',
     author_email='jmchilton@gmail.com',
     url='https://github.com/galaxyproject/pulsar',
+    project_urls={
+        'Changelog': 'https://github.com/galaxyproject/pulsar/blob/master/CHANGELOG.md',
+    },
     packages=[
         'pulsar',
         'pulsar.cache',

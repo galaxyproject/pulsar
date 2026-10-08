@@ -26,6 +26,7 @@ a2wsgi; python_version >= '3.8'
 # For dev
 sphinx
 sphinxcontrib-apidoc
+myst-parser
 
 # Used for code checking.
 ruff
@@ -48,5 +49,6 @@ sentry-sdk
 types-google-cloud-ndb
 
 # For release
+towncrier
 build
 twine
