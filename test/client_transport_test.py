@@ -286,6 +286,23 @@ def test_curl_status_code():
             raise AssertionError("curl post_file did not raise on error response")
 
 
+@skip_unless_module("pycurl")
+def test_pycurl_transport_status_code(tmp_path):
+    """Like urllib, the curl transport must raise on an error response.
+
+    Downloading an output that the Pulsar server refuses (e.g. one that resolves
+    outside the job directory) must fail rather than write the error page into
+    the dataset.
+    """
+    with files_server() as (server, directory):
+        absent_path = os.path.join(directory, f"test_for_GET_absent_{uuid4()!s}")
+        request_url = f"{server.application_url}?path={absent_path}"
+        for output_path in (None, str(tmp_path / "output")):
+            with pytest.raises(PulsarClientTransportError) as exc_info:
+                PycurlTransport().execute(request_url, data=None, output_path=output_path)
+            assert isinstance(exc_info.value.transport_code, int) and exc_info.value.transport_code >= 400
+
+
 class _FlakyApp:
     """WSGI middleware that returns ``status`` for the first ``fail_count``
     requests, then delegates to the wrapped app."""

@@ -52,3 +52,11 @@ class OutputNotFoundException(Exception):
 
     def __str__(self):
         return "No remote output found for path %s" % self.path
+
+
+class UnsafePathError(Exception):
+    """A staged file was refused because reading or writing it could escape its job directory.
+
+    Collecting an output that raises this always fails the job, so a refused
+    output never turns into a silently empty dataset.
+    """

@@ -6,7 +6,10 @@ from webob import exc
 
 from pulsar import __version__ as pulsar_version
 from pulsar.client.action_mapper import path_type
-from pulsar.client.job_directory import verify_is_in_directory
+from pulsar.client.job_directory import (
+    verify_is_in_directory,
+    verify_is_not_special_file,
+)
 from pulsar.manager_endpoint_util import (
     setup_job,
     status_dict,
@@ -134,6 +137,7 @@ def _output_path(manager, job_id, name, output_type):
         directory = manager.job_directory(job_id).metadata_directory()
     path = os.path.join(directory, name)
     verify_is_in_directory(path, directory)
+    verify_is_not_special_file(path)
     return path
 
 
