@@ -8,6 +8,7 @@ History
 ---------------------
 0.16.1.dev0
 ---------------------
+* Fix the Ruff 0.17 datetime import-alias lint failures. `Pull Request 546`_
 
 
 
@@ -770,6 +771,7 @@ History
 
 
 .. github_links
+.. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
 .. _Pull Request 537: https://github.com/galaxyproject/pulsar/pull/537
 .. _Pull Request 543: https://github.com/galaxyproject/pulsar/pull/543
 .. _Pull Request 540: https://github.com/galaxyproject/pulsar/pull/540
