@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.16.0.dev0
+0.16.0 (2026-10-11)
 ---------------------
 
 * Keep client and staging package initializers lightweight, and separate
