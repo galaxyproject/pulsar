@@ -6,6 +6,7 @@
   release.py branch           create release_X.Y from the release just cut on master
   release.py push             push branch(es) and tag to galaxyproject/pulsar
   release.py add-change PR TYPE  write changes/PR.TYPE.md from the pull request title
+  release.py check-changes    verify changes/ entry names
 """
 import argparse
 import datetime
@@ -15,7 +16,6 @@ import re
 import shutil
 import subprocess
 import sys
-import urllib.request
 
 PROJECT_DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CHANGELOG = "CHANGELOG.md"
@@ -28,7 +28,7 @@ VERSION_LINE = re.compile(r"^__version__ = '([^']+)'$", re.MULTILINE)
 DEV_VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)\.dev\d+$")
 RELEASE_VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 PR_MERGE = re.compile(r"^Merge pull request #(\d+) from (\S+)")
-FRAGMENT = re.compile(r"^(\d+)\.[a-z]+(\.\d+)?\.md$")
+FRAGMENT = re.compile(rf"^(\d+|\+[\w-]+)\.({'|'.join(CHANGE_TYPES)})(\.\d+)?\.md$")
 PR_LINK = re.compile(rf"github\.com/{GITHUB_REPO}/pull/(\d+)\)")
 AUTHORS_SKIP_CREDIT = ("jmchilton",)
 
@@ -94,7 +94,7 @@ def documented_prs(changelog, fragments):
     numbers = set(PR_LINK.findall(changelog))
     for name, contents in fragments.items():
         match = FRAGMENT.match(name)
-        if match:
+        if match and match.group(1).isdigit():
             numbers.add(match.group(1))
         numbers.update(PR_LINK.findall(contents))
     return numbers
@@ -115,6 +115,19 @@ def missing_change_prs(documented, merge_subjects, skipped=()):
 def read_fragments():
     directory = os.path.join(PROJECT_DIRECTORY, CHANGES)
     return {name: read(os.path.join(CHANGES, name)) for name in sorted(os.listdir(directory)) if name != "README.md"}
+
+
+def invalid_fragments(names):
+    return [name for name in names if not FRAGMENT.match(name)]
+
+
+def check_changes():
+    invalid = invalid_fragments(read_fragments())
+    if invalid:
+        raise ReleaseError(
+            f"{CHANGES}/ entries must be named <PR>.<type>.md or +<name>.<type>.md with type one of "
+            f"{', '.join(CHANGE_TYPES)}: {', '.join(invalid)}"
+        )
 
 
 def towncrier(*args):
@@ -231,6 +244,7 @@ def check(allow_missing_changes=False, skip_ci=False):
 
     fragments = read_fragments()
     try:
+        check_changes()
         towncrier("build", "--draft", "--version", version)
     except ReleaseError as e:
         errors.append(str(e))
@@ -347,24 +361,21 @@ Then:  gh release create {tag} --repo {GITHUB_REPO} --verify-tag --generate-note
 
 
 def pull_request(number):
-    request = urllib.request.Request(
-        f"https://api.github.com/repos/{GITHUB_REPO}/pulls/{number}", headers={"Accept": "application/vnd.github+json"}
-    )
-    with urllib.request.urlopen(request) as response:
-        return json.load(response)
+    stdout, error = gh("pr", "view", str(number), "--json", "title,author")
+    if stdout is None:
+        raise ReleaseError(f"could not fetch pull request {number}: {error or 'gh not installed'}")
+    return json.loads(stdout)
 
 
 def change_entry(pr):
     entry = pr["title"].strip().rstrip(".")
-    login = pr["user"]["login"]
-    if login not in AUTHORS_SKIP_CREDIT and not login.endswith("[bot]"):
+    login = pr["author"]["login"]
+    if login not in AUTHORS_SKIP_CREDIT and not pr["author"].get("is_bot"):
         entry += f" (thanks to [@{login}](https://github.com/{login}))"
     return entry + ".\n"
 
 
 def add_change(number, change_type):
-    if change_type not in CHANGE_TYPES:
-        raise ReleaseError(f"TYPE must be one of {', '.join(CHANGE_TYPES)}")
     path = os.path.join(CHANGES, f"{number}.{change_type}.md")
     if os.path.exists(os.path.join(PROJECT_DIRECTORY, path)):
         raise ReleaseError(f"{path} already exists")
@@ -385,6 +396,7 @@ def main(argv=None):
     add = commands.add_parser("add-change")
     add.add_argument("pr", type=int)
     add.add_argument("type", choices=CHANGE_TYPES)
+    commands.add_parser("check-changes")
     args = parser.parse_args(argv)
     try:
         if args.command == "check":
@@ -395,8 +407,10 @@ def main(argv=None):
             branch()
         elif args.command == "push":
             push()
-        else:
+        elif args.command == "add-change":
             add_change(args.pr, args.type)
+        else:
+            check_changes()
     except ReleaseError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

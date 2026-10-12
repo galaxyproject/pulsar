@@ -44,8 +44,9 @@ type is ``change`` (behavior changes and removals), ``feature``, ``bugfix`` or
 ``misc``; ``changes/README.md`` describes them. The ``changelog`` workflow fails
 PRs without one, or that edit ``CHANGELOG.md`` directly, unless they are labeled
 ``no changelog`` (dependabot PRs are exempt). Label PRs that merge a release
-branch forward ``no changelog``; they carry its released sections. ``make add-change PR=526 TYPE=bugfix`` writes one from the PR title,
-crediting outside contributors. Edit the result into a user-facing description,
+branch forward ``no changelog``; they carry its released sections. ``make
+add-change PR=526 TYPE=bugfix`` writes one from the PR title, crediting
+outside contributors. Edit the result into a user-facing description,
 and credit the original authors of rescued PRs. ``make release`` collects the
 entries into ``CHANGELOG.md`` with `towncrier <https://towncrier.readthedocs.io/>`__.
 
@@ -93,8 +94,11 @@ commits ``Start work on 0.15.17`` on it. ``make push-release`` then pushes
 ``master``, ``release_0.15`` and the tag together.
 
 After a point release on a release branch, merge the branch into ``master``.
-The point release's ``CHANGELOG.md`` section comes along; on a
-``pulsar/__init__.py`` conflict keep ``master``'s version.
+The point release's ``CHANGELOG.md`` section comes along. If ``master`` has
+released since the last merge, both branches added a section at the top of
+``CHANGELOG.md`` and they conflict: keep ``master``'s sections on top and the
+point release's below them. On a ``pulsar/__init__.py`` conflict keep
+``master``'s version.
 
 After a Release
 ---------------

@@ -1,5 +1,8 @@
+import datetime
 import importlib.util
+import json
 import os
+import shutil
 import subprocess
 
 import pytest
@@ -54,6 +57,12 @@ def test_documented_prs_reads_fragment_names_and_links():
     assert release.documented_prs(CHANGELOG, fragments) == {"1", "2", "3", "8"}
 
 
+def test_invalid_fragments():
+    valid = ["2.bugfix.md", "3.feature.2.md", "+docs.misc.md", "+multi-pr.change.md"]
+    invalid = ["docs.misc.md", "2.bugfix", "2.fix.md", "2.bugfix.rst", "+.misc.md"]
+    assert release.invalid_fragments(valid + invalid) == invalid
+
+
 def test_merged_prs_follow_release_branches_but_not_fork_merges(tmp_path, monkeypatch):
     def run(*args):
         subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
@@ -100,10 +109,73 @@ def test_validate_next_version(branch, next_version, ok):
 
 
 def test_change_entry_credits_outside_authors():
-    pr = {"title": "Fix the thing.", "user": {"login": "natefoo"}}
+    pr = {"title": "Fix the thing.", "author": {"login": "natefoo", "is_bot": False}}
     assert release.change_entry(pr) == "Fix the thing (thanks to [@natefoo](https://github.com/natefoo)).\n"
-    pr = {"title": "Fix the thing", "user": {"login": "jmchilton"}}
+    pr = {"title": "Fix the thing", "author": {"login": "jmchilton", "is_bot": False}}
     assert release.change_entry(pr) == "Fix the thing.\n"
+    pr = {"title": "Bump foo", "author": {"login": "app/dependabot", "is_bot": True}}
+    assert release.change_entry(pr) == "Bump foo.\n"
+
+
+def test_add_change_writes_fragment_from_gh(tmp_path, monkeypatch):
+    (tmp_path / "changes").mkdir()
+    monkeypatch.setattr(release, "PROJECT_DIRECTORY", str(tmp_path))
+    pr = {"title": "Fix the thing", "author": {"login": "natefoo", "is_bot": False}}
+    monkeypatch.setattr(release, "gh", lambda *args: (json.dumps(pr), None))
+    release.add_change(526, "bugfix")
+    assert (tmp_path / "changes" / "526.bugfix.md").read_text() == release.change_entry(pr)
+    with pytest.raises(release.ReleaseError, match="already exists"):
+        release.add_change(526, "bugfix")
+
+
+def test_add_change_reports_gh_failure(tmp_path, monkeypatch):
+    (tmp_path / "changes").mkdir()
+    monkeypatch.setattr(release, "PROJECT_DIRECTORY", str(tmp_path))
+    monkeypatch.setattr(release, "gh", lambda *args: (None, "HTTP 404: Not Found"))
+    with pytest.raises(release.ReleaseError, match="HTTP 404"):
+        release.add_change(99999, "bugfix")
+    assert not (tmp_path / "changes" / "99999.bugfix.md").exists()
+
+
+def test_skipped_prs_without_gh(monkeypatch):
+    monkeypatch.setattr(release.shutil, "which", lambda name: None)
+    skipped, problem = release.skipped_prs()
+    assert skipped == set() and "gh not installed" in problem
+
+
+def test_create_builds_changelog_tags_and_starts_next_version(tmp_path, monkeypatch):
+    def run(*args):
+        return subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True, text=True).stdout
+
+    for name in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
+        monkeypatch.setenv(name, "t")
+    for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(name, "t@t")
+    shutil.copy(os.path.join(release.PROJECT_DIRECTORY, "towncrier.toml"), tmp_path)
+    (tmp_path / "CHANGELOG.md").write_text(CHANGELOG)
+    (tmp_path / "changes").mkdir()
+    (tmp_path / "changes" / "README.md").write_text("Entries.\n")
+    (tmp_path / "changes" / "2.bugfix.md").write_text("Fix a thing.\n")
+    (tmp_path / "pulsar").mkdir()
+    (tmp_path / "pulsar" / "__init__.py").write_text("__version__ = '0.15.16.dev0'\n")
+    run("init", "-q", "-b", "release_0.15")
+    run("add", ".")
+    run("commit", "-q", "-m", "base")
+    monkeypatch.setattr(release, "PROJECT_DIRECTORY", str(tmp_path))
+    monkeypatch.setattr(release, "check", lambda *args: "0.15.16")
+
+    release.create()
+
+    today = datetime.date.today().isoformat()
+    changelog = run("show", "0.15.16:CHANGELOG.md")
+    section = f"## 0.15.16 ({today})\n\n### Bug Fixes\n\n- Fix a thing. ([Pull Request 2](https://github.com/galaxyproject/pulsar/pull/2))"
+    assert section in changelog
+    assert changelog.index("## 0.15.16") < changelog.index("## 0.15.15")
+    assert run("ls-tree", "--name-only", "0.15.16", "changes/").split() == ["changes/README.md"]
+    assert "__version__ = '0.15.16'" in run("show", "0.15.16:pulsar/__init__.py")
+    assert run("log", "--format=%s", "-2").splitlines() == ["Start work on 0.15.17", "Create pulsar release 0.15.16"]
+    assert "__version__ = '0.15.17.dev0'" in (tmp_path / "pulsar" / "__init__.py").read_text()
+    assert run("status", "--porcelain") == ""
 
 
 def test_repository_changelog_renders_with_pending_changes():

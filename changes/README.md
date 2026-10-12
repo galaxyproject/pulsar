@@ -19,5 +19,6 @@ Follow redirects in the curl transport (thanks to [@nuwang](https://github.com/n
 
 `make add-change PR=526 TYPE=bugfix` starts one from the pull request title.
 A change spanning PRs can repeat the same text in each PR's file; towncrier
-merges them into one entry. Pull requests that need no entry get the
-`no changelog` label.
+merges them into one entry. An entry not tied to one PR is named
+`+<name>.<type>.md` and links the PRs it covers, so `make release-check` counts
+them. Pull requests that need no entry get the `no changelog` label.

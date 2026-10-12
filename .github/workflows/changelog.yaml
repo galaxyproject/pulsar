@@ -22,6 +22,8 @@ jobs:
       env:
         BASE_REF: ${{ github.base_ref }}
       run: towncrier check --compare-with "origin/$BASE_REF"
+    - name: Check changes/ entry names
+      run: python tools/release.py check-changes
     - name: Check CHANGELOG.md is not edited directly
       env:
         BASE_REF: ${{ github.base_ref }}
