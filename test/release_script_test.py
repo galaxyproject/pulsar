@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import importlib.util
 import json
 import os
@@ -166,7 +166,7 @@ def test_create_builds_changelog_tags_and_starts_next_version(tmp_path, monkeypa
 
     release.create()
 
-    today = datetime.date.today().isoformat()
+    today = dt.date.today().isoformat()
     changelog = run("show", "0.15.16:CHANGELOG.md")
     section = f"## 0.15.16 ({today})\n\n### Bug Fixes\n\n- Fix a thing. ([Pull Request 2](https://github.com/galaxyproject/pulsar/pull/2))"
     assert section in changelog

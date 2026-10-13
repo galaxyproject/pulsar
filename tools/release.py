@@ -9,7 +9,7 @@
   release.py check-changes    verify changes/ entry names
 """
 import argparse
-import datetime
+import datetime as dt
 import json
 import os
 import re
@@ -295,7 +295,7 @@ def create(next_version=None, allow_missing_changes=False, skip_ci=False):
     next_version = next_version or next_patch(release_version(dev_version))
     validate_next_version(release_version(dev_version), next_version, current_branch())
     version = check(allow_missing_changes, skip_ci)
-    today = datetime.date.today().isoformat()
+    today = dt.date.today().isoformat()
     towncrier("build", "--yes", "--version", version, "--date", today)
     write(INIT, set_version(read(INIT), version))
     git("add", CHANGELOG, INIT)
