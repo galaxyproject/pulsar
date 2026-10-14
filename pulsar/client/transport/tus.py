@@ -15,6 +15,8 @@ TUS_CLIENT_UNAVAILABLE_MESSAGE = \
     "You are attempting to use the Tus transport with the Pulsar client but tuspy is unavailable."
 DEFAULT_PULSAR_TUS_CHUNK_SIZE = 10**7
 PULSAR_TUS_CHUNK_SIZE = int(os.getenv('PULSAR_TUS_CHUNK_SIZE', DEFAULT_PULSAR_TUS_CHUNK_SIZE))
+PULSAR_TUS_RETRIES = int(os.getenv('PULSAR_TUS_RETRIES', 10))
+PULSAR_TUS_RETRY_DELAY = int(os.getenv('PULSAR_TUS_RETRY_DELAY', 30))
 
 
 def tus_upload_file(url: str, path: str) -> None:
@@ -27,7 +29,13 @@ def tus_upload_file(url: str, path: str) -> None:
     headers: Dict[str, str] = {}
     tus_url = find_tus_endpoint(url)
     my_client = client.TusClient(tus_url, headers=headers)
-    uploader = my_client.uploader(path, metadata=metadata, url_storage=storage)
+    uploader = my_client.uploader(
+        path,
+        metadata=metadata,
+        url_storage=storage,
+        retries=PULSAR_TUS_RETRIES,
+        retry_delay=PULSAR_TUS_RETRY_DELAY,
+    )
     uploader.chunk_size = PULSAR_TUS_CHUNK_SIZE
     uploader.upload()
     upload_session_url = uploader.url
