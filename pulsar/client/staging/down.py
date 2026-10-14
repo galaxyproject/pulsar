@@ -274,10 +274,10 @@ def _clean(collection_failure_exceptions, cleanup_job, client):
     failed = (len(collection_failure_exceptions) > 0)
     do_clean = (not failed and cleanup_job != "never") or cleanup_job == "always"
     if do_clean:
-        message = "Cleaning up job (failed [%s], cleanup_job [%s])"
+        message = "Cleaning up job (job_id [%s], failed [%s], cleanup_job [%s])"
     else:
-        message = "Skipping job cleanup (failed [%s], cleanup_job [%s])"
-    log.debug(message % (failed, cleanup_job))
+        message = "Skipping job cleanup (job_id [%s], failed [%s], cleanup_job [%s])"
+    log.debug(message % (client.job_id, failed, cleanup_job))
     if do_clean:
         try:
             client.clean()
