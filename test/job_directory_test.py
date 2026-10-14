@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from pulsar.client.exceptions import UnsafePathError
 from pulsar.managers.base import JobDirectory
 from .test_utils import TempDirectoryTestCase
 
@@ -51,3 +52,16 @@ class JobDirectoryTestCase(TempDirectoryTestCase):
 
     def prep(self):
         self.job_directory.setup()
+
+    def test_calculate_path_refuses_glob_match_outside_working_directory(self):
+        self.prep()
+        working_directory = self.job_directory.working_directory()
+        os.makedirs(working_directory)
+        outside = os.path.join(self.temp_directory, "outside")
+        os.makedirs(outside)
+        with open(os.path.join(outside, "secret"), "w") as f:
+            f.write("SECRET")
+        os.symlink(outside, os.path.join(working_directory, "linkdir"))
+
+        with pytest.raises(UnsafePathError):
+            self.job_directory.calculate_path("link*/secret", "output_workdir")
