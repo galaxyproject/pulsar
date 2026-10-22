@@ -260,6 +260,19 @@ class StatefulManagerProxy(ManagerProxy):
             yield
             if self._proxied_manager._was_cancelled(job_id):
                 log.info("Exiting job launch, job is cancelled")
+                if self._supports_detached_cancellation():
+                    # Cancellation before launch must not leave the wrapper in
+                    # PREPROCESSING forever. Yield has returned, so transfers
+                    # have stopped. The manager also waits for any concurrent
+                    # preparation writer before recording no-command proof.
+                    try:
+                        self._proxied_manager.confirm_cancelled_before_launch(job_id)
+                    except Exception:
+                        # An unreadable execution record is not evidence that
+                        # command/preparation writers have stopped.
+                        log.exception("Cannot confirm cancelled preprocessing for %s; retaining staging", job_id)
+                        return
+                    self._record_launch_accepted(job_directory, job_id)
                 return
             launch_kwds = {}
             if launch_config.get("dependencies_description"):
@@ -274,9 +287,7 @@ class StatefulManagerProxy(ManagerProxy):
             self._proxied_manager.launch(
                 job_id, launch_config["command_line"], **launch_kwds
             )
-            with job_directory.lock("status"):
-                job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
-            self.active_jobs.activate_job(job_id)
+            self._record_launch_accepted(job_directory, job_id)
         except Exception as e:
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSING_FAILED, True)
@@ -284,6 +295,24 @@ class StatefulManagerProxy(ManagerProxy):
                 job_directory.write_file("stderr", str(e))
             self.__state_change_callback(status.FAILED, job_id)
             log.exception("Failed job preprocessing for job %s:", job_id)
+
+    def _supports_detached_cancellation(self):
+        properties = self.system_properties()
+        detached = properties.get("detached_local", {}) if isinstance(properties, dict) else {}
+        return isinstance(detached, dict) and detached.get("schema") == 1 and detached.get("asynchronous_cancel")
+
+    def _record_launch_accepted(self, job_directory, job_id):
+        if self._supports_detached_cancellation():
+            with job_directory.lock("status"):
+                job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
+                # get_status may already have reconciled an immediate durable
+                # cancellation. Never reactivate its terminal active-job index.
+                if not job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
+                    self.active_jobs.activate_job(job_id)
+        else:
+            with job_directory.lock("status"):
+                job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
+            self.active_jobs.activate_job(job_id)
 
     def handle_failure_before_launch(self, job_id: str) -> None:
         self.__state_change_callback(status.FAILED, job_id)
@@ -348,6 +377,14 @@ class StatefulManagerProxy(ManagerProxy):
                 state_change = "to_preprocessing_failed"
         elif not job_directory.has_metadata(JOB_FILE_PREPROCESSED):
             proxy_status = cast("StateLiteral", status.PREPROCESSING)
+            if self._supports_detached_cancellation() and self._proxied_manager.get_status(job_id) == status.CANCELLED:
+                # Recover a crash between durable no-command cancellation and
+                # the proxy's PREPROCESSED flag. The manager returns CANCELLED
+                # only after it has terminal proof, never merely a stop request.
+                job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
+                job_directory.store_metadata(JOB_FILE_FINAL_STATUS, status.CANCELLED)
+                proxy_status = cast("StateLiteral", status.CANCELLED)
+                state_change = "to_complete"
         elif job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
             proxy_status = cast(
                 "StateLiteral", job_directory.load_metadata(JOB_FILE_FINAL_STATUS)
