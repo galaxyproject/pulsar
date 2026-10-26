@@ -164,6 +164,45 @@ class TestStager(TempDirectoryTestCase):
         ]
         assert staged_inputs == [("dataset_3.dat", url)]
 
+    def test_input_with_url_staged_by_a_local_action_must_exist(self):
+        # Only remote transfers fetch from the URL: other actions read the path.
+        self._assert_url_input_needs_its_path("transfer")
+
+    def test_input_with_url_staged_by_a_remote_copy_must_exist(self):
+        self._assert_url_input_needs_its_path("remote_copy")
+
+    def _assert_url_input_needs_its_path(self, file_action):
+        self.client.default_file_action = file_action
+        self.job_config["job_directory"] = "/pulsar/staging/1"
+        never_pulled = os.path.join(self.temp_directory, "files", "dataset_3.dat")
+        url = "https://galaxy.test/api/jobs/1/staging/inputs/dataset/3?exp=1&sig=abc"
+        self.client_job_description.client_inputs = ClientInputs(
+            [ClientInput(never_pulled, CLIENT_INPUT_PATH_TYPES.INPUT_PATH, url=url)]
+        )
+        with pytest.raises(Exception, match="non-existent file"):
+            self._submit()
+
+    def test_empty_extra_files_manifest_stages_nothing_without_a_local_directory(self):
+        self.client.default_file_action = "remote_transfer"
+        self.job_config["job_directory"] = "/pulsar/staging/1"
+        never_pulled = os.path.join(self.temp_directory, "files", "dataset_3_files")
+        self.client_job_description.client_inputs = ClientInputs(
+            [ClientInput(never_pulled, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH, extra_files={})]
+        )
+        self._submit()
+        staged = self.client.launched_remote_staging.get("setup", [])
+        assert [action for action in staged if action["type"] == "input"] == []
+
+    def test_extra_files_manifest_staged_by_an_action_that_reads_its_path_must_exist(self):
+        self.client.default_file_action = "transfer"
+        never_pulled = os.path.join(self.temp_directory, "files", "dataset_3_files")
+        manifest = {"index.html": "https://galaxy.test/staging/extra/3/index.html?sig=b"}
+        self.client_job_description.client_inputs = ClientInputs(
+            [ClientInput(never_pulled, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH, extra_files=manifest)]
+        )
+        with pytest.raises(Exception, match="non-existent file"):
+            self._submit()
+
     def test_extra_files_manifest_is_staged_from_urls_without_a_local_directory(self):
         # Galaxy lists a composite input's extra files from the object store and
         # hands out one URL per file, so the directory need not exist locally.
