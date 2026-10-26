@@ -135,6 +135,37 @@ def test_complete_status_postprocesses_and_notifies():
         assert proxy.get_status(job_id) == status.COMPLETE
 
 
+def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
+    # With remote metadata the outputs' metadata still comes back when their files could not
+    # be staged; a client told the job completed would accept outputs that were never delivered.
+    with _launched_job() as (proxy, manager, job_id):
+        manager.scripted_status = status.COMPLETE
+        with _postprocessing_failed():
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.get_status(job_id) == status.FAILED
+
+
+def test_postprocessing_redone_after_a_failed_attempt_reports_its_new_outcome():
+    app = minimal_app_for_managers()
+    try:
+        with _proxy(app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            _interrupt_postprocessing(proxy, manager, job_id)
+            # Killed after recording a failed attempt, before marking postprocessing done.
+            manager.job_directory(job_id).store_metadata(stateful.JOB_FILE_POSTPROCESSING_FAILED, True)
+
+        with _proxy(app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, job_id)]
+            assert proxy.get_status(job_id) == status.COMPLETE
+    finally:
+        rmtree(app.staging_directory, ignore_errors=True)
+
+
 def test_cancelled_status_deactivates_without_notification():
     with _launched_job() as (proxy, manager, job_id):
         manager.scripted_status = status.CANCELLED
@@ -354,6 +385,19 @@ def _postprocessing_held(timeout=5):
 
     with mock.patch.object(stateful, "postprocess", held_postprocess):
         yield release
+
+
+@contextmanager
+def _postprocessing_failed():
+    """Postprocessing that runs as usual but could not stage the job's outputs."""
+    real_postprocess = stateful.postprocess
+
+    def failed_postprocess(*args, **kwds):
+        real_postprocess(*args, **kwds)
+        return False
+
+    with mock.patch.object(stateful, "postprocess", failed_postprocess):
+        yield
 
 
 def _wait_for_callback(proxy, timeout=5):
