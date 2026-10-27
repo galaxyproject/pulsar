@@ -9,6 +9,13 @@ History
 0.16.1.dev0
 ---------------------
 * Fix the Ruff 0.17 datetime import-alias lint failures. `Pull Request 546`_
+* Send all chunks of a ``remote_transfer_tus`` stage-out over one connection
+  instead of a new TCP and TLS connection per chunk, using a built-in tus
+  client; ``tuspy`` is no longer required. Retry a failed chunk from the
+  server's offset (``PULSAR_TUS_RETRIES``, ``PULSAR_TUS_RETRY_DELAY``) and time
+  out stalled requests (``PULSAR_TUS_TIMEOUT``). A failed TUS upload of a
+  working-directory output now fails the job instead of only logging a
+  warning. `Pull Request 549`_
 
 
 
@@ -771,6 +778,7 @@ History
 
 
 .. github_links
+.. _Pull Request 549: https://github.com/galaxyproject/pulsar/pull/549
 .. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
 .. _Pull Request 537: https://github.com/galaxyproject/pulsar/pull/537
 .. _Pull Request 543: https://github.com/galaxyproject/pulsar/pull/543

@@ -142,7 +142,7 @@ issues:
     summary: Master servers (aefd720) reject jobs using ``__PULSAR_JOBS_DIRECTORY__``. The 0.15.15 sample ``job_conf_sample_mq_rsync.yml`` still uses it.
   tus-now-real:
     severity: conditional
-    summary: '``remote_transfer_tus`` really uses TUS on master (1f7eb9a); servers without ``tuspy`` now fail stage-out instead of silently using POST.'
+    summary: '``remote_transfer_tus`` really uses TUS since 0.15.16 (1f7eb9a); 0.15.16 and 0.16.0 servers without ``tuspy`` fail stage-out instead of silently using POST. From 0.16.1 Pulsar has its own tus client and needs no ``tuspy``.'
   resubmit-same-id-ignored:
     severity: conditional
     summary: 0.15.15+ servers (37e0ad5) ignore a setup reusing a job id whose directory still exists; Galaxy sees the old final status. Written for MQ redelivery, REST shares the path. Needs a test.
