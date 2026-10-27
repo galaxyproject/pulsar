@@ -83,7 +83,8 @@ def exit_handler_setup(commands: List[str]) -> str:
     Cleanup that is known at job-script generation time is collected into a
     single ``_galaxy_on_exit`` function driven by one ``trap`` rather than each
     mechanism clobbering the single EXIT slot. Returns an empty string (no
-    function, no trap) when there is nothing to run.
+    function, no trap) when there is nothing to run. When set, :func:`job_script`
+    runs the job command in a subshell so traps it sets can't replace this one.
 
     >>> exit_handler_setup([])
     ''
@@ -178,6 +179,8 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
 
     template_params = OPTIONAL_TEMPLATE_PARAMS.copy()
     template_params.update(**kwds)
+    if template_params["exit_handler_setup"]:
+        template_params["command"] = "(\n%s\n)" % template_params["command"]
     env_setup_commands_str = "\n".join(template_params["env_setup_commands"])
     template_params["env_setup_commands"] = env_setup_commands_str
     for key, value in template_params.items():
