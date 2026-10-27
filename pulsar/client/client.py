@@ -202,6 +202,16 @@ class JobClient(BaseJobClient):
         self._raw_execute("clean", {"job_id": self.job_id})
 
     @parseJson()
+    def acknowledge_collection(self):
+        """Confirm that Galaxy successfully imported this attempt's outputs.
+
+        Call only for managers advertising ``detached_local.collection_ack``.
+        This acknowledgment is separate from a cleanup request so a failed
+        import can never authorize deletion of the only remaining outputs.
+        """
+        return self._raw_execute("acknowledge_collection", {"job_id": self.job_id})
+
+    @parseJson()
     def remote_setup(self, **setup_args):
         """
         Setup remote Pulsar server to run this job.

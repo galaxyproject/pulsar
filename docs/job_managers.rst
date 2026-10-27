@@ -22,7 +22,7 @@ a configuration of
 
 The ``type`` of ``queued_python`` is indicating that the jobs are queued but
 that the queue is managed locally by Pulsar. Other possible values for
-``type`` include ``queued_drmaa``, ``queued_condor``, ``queued_cli``,
+``type`` include ``detached_local``, ``queued_drmaa``, ``queued_condor``, ``queued_cli``,
 ``queued_external_drmaa`` (examples of each follow).
 
 Named Managers
@@ -43,6 +43,102 @@ In this instance, Pulsar creates a second named queued (``example``) that will
 run as many concurrent jobs as the server has cores. The Galaxy Pulsar url
 should have ``/managers/example`` appended to it to use a named manager such
 as this.
+
+Detached local execution
+-------------------------------
+
+``detached_local`` runs ordinary Pulsar commands on the same POSIX host while
+keeping their execution independent of the Pulsar server process. Galaxy can
+use it through its existing ``PulsarEmbeddedJobRunner`` with matching
+capability-aware integration for attempt IDs, asynchronous cancellation,
+execution policies, and collection acknowledgment. Unmodified Galaxy does not
+implement this client contract. With that integration, restarting Galaxy
+restarts its embedded Pulsar control code, while detached tools continue and
+the replacement manager reconnects to their saved identities and exit records.
+No separately managed execution service is required. For example::
+
+    managers:
+      local:
+        type: detached_local
+        staging_directory: /fast-local-disk/pulsar-staging
+        num_concurrent_jobs: 2
+        cancel_grace_seconds: 10
+        poll_interval: 0.5
+        supervisor_respawn_interval: 3
+
+``num_concurrent_jobs`` defaults to one. A positive integer caps concurrent
+executions, ``null`` or zero allows unlimited executions, and ``"*"`` uses the
+host CPU count. Boolean, negative, and fractional values are invalid. All
+managers sharing a staging directory share one FIFO capacity pool, coordinated
+using a file lock; conflicting capacities fail at startup. Use separate staging
+directories for independent batch and interactive pools. The cap is an
+execution count, not a CPU or memory quota. Native dependency resolution, Conda,
+staging, job scripts, metadata, and output collection remain available.
+Capacity is recorded in ``.pulsar-detached-pool/configuration.json`` under the
+staging directory. To change it, stop every manager sharing that directory,
+update or remove that configuration record, and restart all managers with the
+same new value. Keep the lock file and job manifests in place; existing
+executions retain their reservations and new work waits for the new capacity.
+
+Each ``setup_job`` generates a fresh remote identifier by default, allowing
+resubmission of one Galaxy job to create a distinct attempt. Deployments that
+explicitly choose ``assign_ids: galaxy`` must supply a distinct input ID per
+attempt. Repeating ``launch`` for an existing attempt reconnects without
+executing its command again.
+
+The detached worker is copied into the private job directory before launch.
+It records the host and boot identity, process IDs with creation times, launch
+ownership, cancellation requests, and terminal exit proof. Replacement
+supervisors reconnect to the same command. An ambiguous launch, inaccessible
+process, host/boot mismatch, or Docker daemon outage retains the job and its
+capacity rather than replaying a command or reporting false completion.
+This supports server restarts on the same running host, not host reboot or
+cross-host process recovery. Staging must remain available and the execution
+identity must retain access to its Python environment (including ``psutil``).
+
+Host commands and foreground Apptainer ``exec`` are tracked through their
+process session. Docker batch and interactive commands additionally require
+container lifecycle descriptors from a capable client. The native Galaxy
+integration supplies a private ``configs/detached_execution.json`` policy with
+``schema: 1``, a ``containers`` list, and ``limits``. Docker descriptors contain
+``container_type: docker``, ``container_name``, ``connection_configuration``,
+``expected_mount``, and ``role``. The expected mount is an absolute path or a
+mapping with ``source`` and ``destination``. The worker records the immutable
+container ID and verifies the mount before managing it. Foreground Apptainer
+needs no Docker descriptor; independently managed Apptainer instances are not
+supported. ``walltime_seconds`` and ``output_size_bytes`` remain enforced while
+the server is down. ``output_size_bytes`` applies separately to each declared
+file in ``output_paths``, matching Galaxy's native output-size limit. An
+optional aggregate directory policy uses the distinct
+``output_directory_size_bytes`` limit together with ``output_directory``;
+it counts regular files recursively without following symlinks. Host CPU and
+memory settings retain ordinary local execution semantics.
+
+Interactive tools keep Galaxy's normal entry-point records and authentication.
+The manager consumes the native ``configs/container_config.json`` callback
+configuration, persists port discovery, and retries publication while Galaxy is
+unavailable. Stop revokes access at the client and requests asynchronous worker
+termination. A job becomes cancelled only after all verified process/container
+writers have stopped. There is no implicit interactive-session expiry.
+Command/dependency preparation holds an attempt-specific lock, so a slow
+environment installation does not block other jobs' status, cancellation, or
+admission. Cancellation before launch is confirmed only after preprocessing
+and command-preparation writers return. A setup followed by Stop without any
+submit remains uncertain: the manager cannot prove the client has finished
+staging, so it retains that attempt rather than reporting false completion.
+
+Cleanup is deliberately two-phase. ``clean(job_id)`` requests deletion, while
+``acknowledge_collection(job_id)`` confirms the client has successfully imported
+outputs and metadata. Only a verified terminal job with both records may be
+deleted; duplicate cleanup calls do not count as acknowledgment. Failed or
+uncertain collection therefore preserves staging. The capability map returned
+by ``system_properties()["detached_local"]`` advertises ``schema: 1``,
+``asynchronous_cancel``, ``collection_ack``, and ``execution_policy`` so clients
+can opt into these interfaces. Existing managers are unaffected.
+
+Detached execution and native completion recovery do not make arbitrary
+external completion hooks transactional. Applications requiring stronger
+output-import checkpoints must implement those guarantees separately.
 
 DRMAA
 -------------------------------
