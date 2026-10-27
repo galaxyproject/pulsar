@@ -35,11 +35,12 @@ def kill_pid(pid: int, use_psutil: bool = True, grace_period: float = 5):
 def _psutil_kill_pid(pid: int, grace_period: float = 5):
     try:
         parent = Process(pid)
-        processes = [*parent.children(recursive=True), parent]
+        processes = [parent, *parent.children(recursive=True)]
     except NoSuchProcess:
         return
 
-    # Signal children before their waiting shells so EXIT traps can run.
+    # Signal waiting shells first: terminating a child can start its shell's
+    # EXIT trap, which a later TERM to that shell would interrupt.
     for process in processes:
         try:
             process.terminate()
