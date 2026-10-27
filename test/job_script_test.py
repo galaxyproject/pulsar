@@ -1,17 +1,20 @@
 import os
 import subprocess
 
-from galaxy.tool_util.deps.container_classes import DockerContainer
-from galaxy.tool_util.deps.dependencies import (
-    AppInfo,
-    JobInfo,
-    ToolInfo,
-)
-
 from pulsar.managers.util.job_script import (
     ExitHandlers,
     job_script,
 )
+
+# Shape of Galaxy's DockerContainer.containerize_command output.
+GALAXY_DOCKER_COMMAND = """_on_exit() {
+  docker kill job_container &> /dev/null
+}
+trap _on_exit EXIT
+docker inspect busybox > /dev/null 2>&1
+[ $? -ne 0 ] && docker pull busybox > /dev/null 2>&1
+
+docker run --name job_container --rm busybox echo tool-ran"""
 
 
 def _render(tmp_path, command, exit_handler_commands, **kwds):
@@ -35,16 +38,6 @@ def _run(tmp_path, script, env=None):
     return subprocess.run(["/bin/bash", str(script_path)], cwd=tmp_path, env=env)
 
 
-def _galaxy_docker_command(tmp_path):
-    job_dir = str(tmp_path)
-    job_info = JobInfo(f"{job_dir}/working", "/tools", job_dir, f"{job_dir}/tmp", f"{job_dir}/home", "pulsar")
-    container = DockerContainer(
-        "busybox", AppInfo(container_image_cache_path=f"{job_dir}/cache"), ToolInfo(), {"docker_enabled": True},
-        job_info, None,
-    )
-    return container.containerize_command("echo tool-ran")
-
-
 def test_galaxy_docker_trap_does_not_replace_exit_handlers(tmp_path):
     log = tmp_path / "exit.log"
     bin_dir = tmp_path / "bin"
@@ -52,7 +45,7 @@ def test_galaxy_docker_trap_does_not_replace_exit_handlers(tmp_path):
     docker = bin_dir / "docker"
     docker.write_text(f'#!/bin/sh\necho "DOCKER $1" >> "{log}"\n')
     docker.chmod(0o755)
-    script = _render(tmp_path, _galaxy_docker_command(tmp_path), [f'echo UMOUNT >> "{log}"'])
+    script = _render(tmp_path, GALAXY_DOCKER_COMMAND, [f'echo UMOUNT >> "{log}"'])
     env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}")
     result = _run(tmp_path, script, env=env)
     assert result.returncode == 0
