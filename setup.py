@@ -52,7 +52,7 @@ setup(
     author_email='jmchilton@gmail.com',
     url='https://github.com/galaxyproject/pulsar',
     project_urls={
-        'Changelog': 'https://github.com/galaxyproject/pulsar/blob/master/CHANGELOG.md',
+        'Changelog': 'https://pulsar.readthedocs.io/en/latest/history.html',
     },
     packages=[
         'pulsar',
