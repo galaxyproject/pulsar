@@ -149,6 +149,36 @@ def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
         assert proxy.get_status(job_id) == status.FAILED
 
 
+def test_polling_stays_postprocessing_until_failed_outcome_is_persisted():
+    with _launched_job() as (proxy, manager, job_id):
+        manager.scripted_status = status.COMPLETE
+        job_directory = manager.job_directory(job_id)
+        storing_failure = threading.Event()
+        release = threading.Event()
+        real_store_metadata = type(job_directory).store_metadata
+
+        def held_store_metadata(directory, name, *args, **kwds):
+            if name == stateful.JOB_FILE_POSTPROCESSING_FAILED:
+                storing_failure.set()
+                if not release.wait(5):
+                    raise AssertionError("Timed out waiting to publish the failed outcome")
+            return real_store_metadata(directory, name, *args, **kwds)
+
+        with mock.patch.object(type(job_directory), "store_metadata", held_store_metadata), _postprocessing_failed():
+            try:
+                proxy.get_status(job_id)
+                assert storing_failure.wait(5)
+                assert proxy.get_status(job_id) == status.POSTPROCESSING
+                assert not job_directory.has_metadata(stateful.JOB_FILE_POSTPROCESSED)
+                assert proxy.callbacks == []
+            finally:
+                release.set()
+                _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.get_status(job_id) == status.FAILED
+        _wait_for_postprocessing_index_cleared(proxy)
+
+
 @pytest.mark.parametrize("failed_write", [stateful.JOB_FILE_POSTPROCESSED, stateful.JOB_FILE_POSTPROCESSING_FAILED])
 def test_postprocessing_publication_failure_notifies_and_remains_recoverable(failed_write):
     app = minimal_app_for_managers()
