@@ -180,7 +180,8 @@ def job_script(template=DEFAULT_JOB_FILE_TEMPLATE, **kwds):
     template_params = OPTIONAL_TEMPLATE_PARAMS.copy()
     template_params.update(**kwds)
     if template_params["exit_handler_setup"]:
-        template_params["command"] = "(\n%s\n)" % template_params["command"]
+        # Keep an ``exit`` in the command ending the job script with its status.
+        template_params["command"] = "(\n%s\n) || exit $?" % template_params["command"]
     env_setup_commands_str = "\n".join(template_params["env_setup_commands"])
     template_params["env_setup_commands"] = env_setup_commands_str
     for key, value in template_params.items():
