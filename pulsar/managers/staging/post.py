@@ -19,7 +19,6 @@ from pulsar.client.staging.models import (
     PulsarOutputs,
 )
 from pulsar.managers.util.retry import RetryActionExecutor
-
 from .metrics import (
     POSTPROCESS,
     record_transfer,
