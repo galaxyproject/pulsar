@@ -64,6 +64,8 @@ ACTIVATE_FAILED_MESSAGE = "Failed to activate job with job id %s. This job may n
 
 JOB_FILE_FINAL_STATUS = "final_status"
 JOB_FILE_POSTPROCESSED = "postprocessed"
+# Recorded when postprocessing could not stage a job's outputs, before it is marked done.
+JOB_FILE_POSTPROCESSING_FAILED = "postprocessing_failed"
 JOB_FILE_PREPROCESSED = "preprocessed"
 JOB_FILE_PREPROCESSING_FAILED = "preprocessing_failed"
 JOB_METADATA_RUNNING = "running"
@@ -369,8 +371,11 @@ class StatefulManagerProxy(ManagerProxy):
         """Use proxied manager's status to compute the real
         (stateful) status of job.
         """
-        if proxy_status in POSTPROCESSED_STATUSES and self.__postprocessing_pending(job_directory):
-            return cast("StateLiteral", status.POSTPROCESSING)
+        if proxy_status in POSTPROCESSED_STATUSES:
+            if self.__postprocessing_pending(job_directory):
+                return cast("StateLiteral", status.POSTPROCESSING)
+            if job_directory.has_metadata(JOB_FILE_POSTPROCESSING_FAILED):
+                return cast("StateLiteral", status.FAILED)
         return proxy_status
 
     def __postprocessing_pending(self, job_directory: "JobDirectory") -> bool:
@@ -420,17 +425,32 @@ class StatefulManagerProxy(ManagerProxy):
                 )
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
+            outcome_persisted = False
+            try:
+                # Recorded before postprocessing is marked done, so a client polling for
+                # status never sees the job complete when its outputs could not be staged.
+                if postprocess_success:
+                    job_directory.remove_metadata(JOB_FILE_POSTPROCESSING_FAILED)
+                else:
+                    job_directory.store_metadata(JOB_FILE_POSTPROCESSING_FAILED, True)
+                job_directory.write_file(JOB_FILE_POSTPROCESSED, "")
+                outcome_persisted = True
+            except Exception:
+                log.exception("Failed to persist postprocessing outcome for job id %s", job_id)
+                postprocess_success = False
             try:
                 final_status = terminal_status if postprocess_success else status.FAILED
                 if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
                     final_status = status.FAILED
                 self.__state_change_callback(final_status, job_id)
             finally:
-                # Cleared after the callback, so a crash here costs a duplicate
-                # terminal message rather than a job.
-                self.active_jobs.deactivate_job(
-                    job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
-                )
+                # Keep recovery possible if the outcome could not be persisted.
+                # Otherwise clear after the callback, so a crash here costs a
+                # duplicate terminal message rather than a job.
+                if outcome_persisted:
+                    self.active_jobs.deactivate_job(
+                        job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+                    )
 
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
