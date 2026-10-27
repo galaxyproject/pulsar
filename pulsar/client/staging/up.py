@@ -286,6 +286,12 @@ class FileStager:
 
     def __upload_input_extra_files(self, input_action_source):
         if self.__stage_input(input_action_source):
+            extra_files = input_action_source.get("extra_files")
+            if extra_files is not None:
+                self.transfer_tracker.handle_transfer_manifest(
+                    path_type.INPUT, input_action_source["path"], extra_files
+                )
+                return
             # TODO: needs to happen else where if using remote object store staging
             # but we don't have the action type yet.
             self.transfer_tracker.handle_transfer_directory(
@@ -519,6 +525,21 @@ class TransferTracker:
             )
             self.handle_transfer_path(directory_file_path, type, name=remote_name)
 
+    def handle_transfer_manifest(self, type, directory, manifest):
+        """Stage a directory's files from the URLs Galaxy issued for them, without walking it.
+
+        ``directory`` is the directory's path on Galaxy and need not exist here; it names the
+        files on Pulsar as a whole directory transfer would. ``manifest`` maps each file's path
+        relative to the directory to its URL.
+        """
+        for directory_file_name, url in manifest.items():
+            directory_file_path = join(directory, directory_file_name)
+            remote_name = self.path_helper.remote_name(
+                relpath(directory_file_path, dirname(directory))
+            )
+            source = {"path": directory_file_path, "url": url}
+            self.handle_transfer_source(source, type, name=remote_name)
+
     def handle_transfer_source(self, source, type, name=None, contents=None):
         action = self.__action_for_transfer(source, type, contents)
 
@@ -572,12 +593,14 @@ class TransferTracker:
             # just transfer.
             action = MessageAction(contents=contents, client=self.client)
         else:
+            action = self.__action(source, type)
             path = source.get("path")
-            if path is not None and not exists(path):
+            # A remote transfer fetches from the URL Galaxy issued, if any; other actions read the path.
+            fetched_from_url = bool(source.get("url")) and getattr(action, "inject_url", False)
+            if path is not None and not fetched_from_url and not exists(path):
                 message = "__action_for_transfer called on non-existent file - [%s]" % path
                 log.warning(message)
                 raise Exception(message)
-            action = self.__action(source, type)
         return action
 
     def register_rewrite(self, local_path, remote_path, type, force=False):

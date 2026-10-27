@@ -17,6 +17,15 @@ def test_endpoint_validation():
     assert exception_found
 
 
+def test_source_url_is_used_for_remote_transfer():
+    # Galaxy may hand out its own URL per input; no files_endpoint is then needed.
+    mapper = FileActionMapper(_min_client("remote_transfer"))
+    url = "https://galaxy.test/api/jobs/1/staging/inputs/dataset/3?exp=1&sig=abc"
+    action = mapper.action({'path': '/galaxy/files/dataset_3.dat', 'url': url}, 'input')
+    assert action.url == url
+    assert action.to_dict()["url"] == url
+
+
 def test_ssh_key_validation():
     client = _min_client("remote_rsync_transfer")
     mapper = FileActionMapper(client)
