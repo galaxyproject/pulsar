@@ -1,4 +1,5 @@
 sphinx>=2
 sphinx-rtd-theme>=0.5.2
+myst-parser
 # Required by sphinx.builders.latex
 roman

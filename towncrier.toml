@@ -1,0 +1,29 @@
+[tool.towncrier]
+name = "Pulsar"
+filename = "CHANGELOG.md"
+directory = "changes"
+ignore = ["README.md"]
+start_string = "<!-- towncrier release notes start -->\n"
+title_format = "## {version} ({project_date})"
+issue_format = "[Pull Request {issue}](https://github.com/galaxyproject/pulsar/pull/{issue})"
+wrap = false
+
+[[tool.towncrier.type]]
+directory = "change"
+name = "Behavior Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bug Fixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Other Changes"
+showcontent = true

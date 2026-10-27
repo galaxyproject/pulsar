@@ -30,8 +30,8 @@ help:
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "compatibility-docs - regenerate docs/compatibility.rst from docs/compatibility.yml"
 	@echo "dist - package project for PyPI distribution"
-	@echo "add-history ITEM=prN - add a HISTORY.rst entry for pull request N"
-	@echo "release-check [ALLOW_MISSING_HISTORY=1] [SKIP_CI=1] - check the current branch is ready to release"
+	@echo "add-change PR=N TYPE=feature|bugfix|change|misc - add a changes/ entry for pull request N"
+	@echo "release-check [ALLOW_MISSING_CHANGES=1] [SKIP_CI=1] - check the current branch is ready to release"
 	@echo "release [NEXT=X.Y.Z] - create the release commit, tag and next .dev0 commit"
 	@echo "release-branch - create release_X.Y from the release just cut on master"
 	@echo "push-release - push the release branch(es) and tag, publishing to PyPI"
@@ -138,7 +138,7 @@ dist: clean-build clean-pyc
 
 dist-all: dist _dist-lib _lint-dist
 
-RELEASE_CHECK_ARGS=$(if $(ALLOW_MISSING_HISTORY),--allow-missing-history) $(if $(SKIP_CI),--skip-ci)
+RELEASE_CHECK_ARGS=$(if $(ALLOW_MISSING_CHANGES),--allow-missing-changes) $(if $(SKIP_CI),--skip-ci)
 
 release-check:
 	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py check $(RELEASE_CHECK_ARGS)
@@ -152,8 +152,8 @@ release-branch:
 push-release:
 	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py push
 
-add-history:
-	$(IN_VENV) python $(BUILD_SCRIPTS_DIR)/bootstrap_history.py $(ITEM)
+add-change:
+	$(IN_VENV) python3 $(BUILD_SCRIPTS_DIR)/release.py add-change $(PR) $(TYPE)
 
 _dist-lib:
 	$(IN_VENV) PULSAR_GALAXY_LIB=1 python -m build
