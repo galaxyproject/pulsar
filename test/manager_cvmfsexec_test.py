@@ -43,6 +43,8 @@ class CvmfsExecManagerTest(BaseManagerTestCase):
         assert "_galaxy_on_exit() {" not in contents  # no EXIT handler defined
         assert "trap _galaxy_on_exit EXIT" not in contents  # no EXIT trap set
         assert "-- /bin/bash -c" not in contents  # no namespace wrap
+        assert f"\n{SINGULARITY_COMMAND}" in contents
+        assert f"(\n{SINGULARITY_COMMAND}" not in contents  # no subshell
         assert "/opt/cvmfsexec" not in contents  # no configured install copied
         assert "/cvmfs/singularity.galaxyproject.org/all/img" in contents
 
@@ -63,6 +65,8 @@ class CvmfsExecManagerTest(BaseManagerTestCase):
         # is a Galaxy file_actions rewrite rule. The command passes through as-is.
         assert SINGULARITY_COMMAND in contents
         assert ".cvmfsexec/dist/cvmfs/singularity" not in contents
+        # Subshell keeps traps set by the command from replacing the unmount.
+        assert f"\n(\n{SINGULARITY_COMMAND}" in contents
         # Preamble is injected into the template (after dir prep, before cd).
         assert contents.index("cp /opt/cvmfsexec") < contents.index("\ncd ")
 
@@ -77,6 +81,8 @@ class CvmfsExecManagerTest(BaseManagerTestCase):
         ) in contents
         # No bind-mount preamble in namespace mode.
         assert "mountrepo" not in contents
+        assert "\n/opt/cvmfsexec data.galaxyproject.org" in contents
+        assert "(\n/opt/cvmfsexec" not in contents
 
     def test_setup_params_override_takes_precedence(self):
         override = {
