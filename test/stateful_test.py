@@ -5,6 +5,8 @@ from contextlib import contextmanager
 from shutil import rmtree
 from unittest import mock
 
+import pytest
+
 from pulsar.managers import (
     stateful,
     status,
@@ -145,6 +147,41 @@ def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
             _wait_for_callback(proxy)
         assert proxy.callbacks == [(status.FAILED, job_id)]
         assert proxy.get_status(job_id) == status.FAILED
+
+
+@pytest.mark.parametrize("failed_write", [stateful.JOB_FILE_POSTPROCESSED, stateful.JOB_FILE_POSTPROCESSING_FAILED])
+def test_postprocessing_publication_failure_notifies_and_remains_recoverable(failed_write):
+    app = minimal_app_for_managers()
+    try:
+        with _proxy(app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            manager.scripted_status = status.COMPLETE
+            job_directory = manager.job_directory(job_id)
+            real_write_file = type(job_directory).write_file
+
+            def failing_write_file(directory, name, *args, **kwds):
+                if name == failed_write:
+                    raise OSError("Test failure publishing postprocessing outcome")
+                return real_write_file(directory, name, *args, **kwds)
+
+            # Run the worker inline so its completion and index cleanup are deterministic.
+            with mock.patch.object(stateful, "new_thread_for_job", side_effect=lambda manager, phase, job_id, target, **kwds: target()):
+                with mock.patch.object(type(job_directory), "write_file", failing_write_file), _postprocessing_failed():
+                    assert proxy.get_status(job_id) == status.POSTPROCESSING
+            assert proxy.callbacks == [(status.FAILED, job_id)]
+            assert _postprocessing_job_ids(proxy) == [job_id]
+            assert not job_directory.has_metadata(stateful.JOB_FILE_POSTPROCESSED)
+
+        # Once storage is writable again, a fresh proxy can finish the indexed job.
+        with _proxy(app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, job_id)]
+            assert proxy.get_status(job_id) == status.COMPLETE
+            _wait_for_postprocessing_index_cleared(proxy)
+    finally:
+        rmtree(app.staging_directory, ignore_errors=True)
 
 
 def test_postprocessing_redone_after_a_failed_attempt_reports_its_new_outcome():

@@ -425,6 +425,7 @@ class StatefulManagerProxy(ManagerProxy):
                 )
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
+            outcome_persisted = False
             try:
                 # Recorded before postprocessing is marked done, so a client polling for
                 # status never sees the job complete when its outputs could not be staged.
@@ -433,16 +434,23 @@ class StatefulManagerProxy(ManagerProxy):
                 else:
                     job_directory.store_metadata(JOB_FILE_POSTPROCESSING_FAILED, True)
                 job_directory.write_file(JOB_FILE_POSTPROCESSED, "")
+                outcome_persisted = True
+            except Exception:
+                log.exception("Failed to persist postprocessing outcome for job id %s", job_id)
+                postprocess_success = False
+            try:
                 final_status = terminal_status if postprocess_success else status.FAILED
                 if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
                     final_status = status.FAILED
                 self.__state_change_callback(final_status, job_id)
             finally:
-                # Cleared after the callback, so a crash here costs a duplicate
-                # terminal message rather than a job.
-                self.active_jobs.deactivate_job(
-                    job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
-                )
+                # Keep recovery possible if the outcome could not be persisted.
+                # Otherwise clear after the callback, so a crash here costs a
+                # duplicate terminal message rather than a job.
+                if outcome_persisted:
+                    self.active_jobs.deactivate_job(
+                        job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+                    )
 
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
