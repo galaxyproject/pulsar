@@ -37,7 +37,7 @@ def test_every_dictifiable_action_is_round_tripped_below():
 @pytest.mark.parametrize("action", DICTIFIABLE_ACTIONS, ids=lambda action: type(action).__name__)
 def test_action_survives_being_rebuilt_from_its_dict(action):
     as_dict = action.to_dict()
-    if getattr(action, "inject_ssh_properties", False):
+    if "ssh_key" in getattr(action, "destination_defaults", ()):
         # The key is never serialized; Pulsar adds it back from the staging config.
         as_dict["ssh_key"] = action.ssh_key
     rebuilt = from_dict(as_dict)
