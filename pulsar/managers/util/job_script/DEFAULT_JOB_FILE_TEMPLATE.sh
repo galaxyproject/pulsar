@@ -26,8 +26,7 @@ _galaxy_setup_environment() {
 }
 
 # Cleanup registered at job-script generation time collected into a single
-# _galaxy_on_exit function run from one EXIT trap. When set, the job command runs
-# in a subshell so its own EXIT traps can't replace this one.
+# _galaxy_on_exit function run from one EXIT trap.
 $exit_handler_setup
 
 $integrity_injection
