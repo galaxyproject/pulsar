@@ -298,8 +298,11 @@ class MessageQueueUUIDStore:
                 raise KeyError(key)
             raise
 
-    def keys(self):
+    def __iter__(self):
         return iter(listdir(self.__store))
+
+    def keys(self):
+        return iter(self)
 
     def get_time(self, key):
         try:
