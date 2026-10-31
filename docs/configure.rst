@@ -329,6 +329,9 @@ with proxy parameters::
     The ``relay_topic_prefix`` must match on both Galaxy and Pulsar sides.
     If set on one side but not the other, messages will not be routed correctly.
 
+Because ``jobs_directory`` is set, Galaxy doesn't learn the remote Pulsar's
+version - see :ref:`remote_pulsar_version`.
+
 
 Capability Snapshot
 ```````````````````

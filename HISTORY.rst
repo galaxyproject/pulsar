@@ -16,6 +16,12 @@ History
   out stalled requests (``PULSAR_TUS_TIMEOUT``). A failed TUS upload of a
   working-directory output now fails the job instead of only logging a
   warning. `Pull Request 549`_
+* Add a ``remote_pulsar_version`` destination parameter to declare the remote
+  Pulsar's version for ``jobs_directory`` destinations, which never contact
+  Pulsar to learn it. The version of published ``galaxy/pulsar-pod-staging``
+  images is known without it. Job configs now record where ``pulsar_version``
+  came from, so Galaxy no longer mistakes the client library's version for the
+  remote's. `Issue 135`_
 
 
 
@@ -829,6 +835,7 @@ History
 .. _Issue 393: https://github.com/galaxyproject/pulsar/issues/393
 .. _Issue 354: https://github.com/galaxyproject/pulsar/issues/354
 .. _Issue 158: https://github.com/galaxyproject/pulsar/issues/158
+.. _Issue 135: https://github.com/galaxyproject/pulsar/issues/135
 .. _Pull Request 470: https://github.com/galaxyproject/pulsar/pull/470
 .. _Pull Request 466: https://github.com/galaxyproject/pulsar/pull/466
 .. _Pull Request 464: https://github.com/galaxyproject/pulsar/pull/464
