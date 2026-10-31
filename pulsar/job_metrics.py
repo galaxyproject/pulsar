@@ -31,7 +31,7 @@ def build_job_metrics(config_dir: str, conf: Dict[str, Any]) -> JobMetrics:
     available = [c for c in configured if c.get("type") in known_types]
     skipped = [str(c.get("type")) for c in configured if c.get("type") not in known_types]
     if skipped:
-        log.info(
+        log.warning(
             "Skipping job metrics plugin(s) %s configured in %s - not available to this "
             "Pulsar, which knows %s. Nothing to do here if Galaxy collects them without "
             "instrumenting the job script; otherwise this Pulsar's galaxy-job-metrics is "
