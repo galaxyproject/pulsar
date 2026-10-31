@@ -8,6 +8,9 @@ History
 ---------------------
 0.16.1.dev0
 ---------------------
+* Record preprocess and postprocess file transfer time, count, and bytes for
+  Galaxy's ``pulsar`` job metrics plugin. `Pull Request 518`_
+* Skip unavailable job metrics plugins in Pulsar's shared configuration. `Pull Request 518`_
 * Fix the Ruff 0.17 datetime import-alias lint failures. `Pull Request 546`_
 * Send all chunks of a ``remote_transfer_tus`` stage-out over one connection
   instead of a new TCP and TLS connection per chunk, using a built-in tus
@@ -786,6 +789,7 @@ History
 .. github_links
 .. _Pull Request 549: https://github.com/galaxyproject/pulsar/pull/549
 .. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
+.. _Pull Request 518: https://github.com/galaxyproject/pulsar/pull/518
 .. _Pull Request 537: https://github.com/galaxyproject/pulsar/pull/537
 .. _Pull Request 543: https://github.com/galaxyproject/pulsar/pull/543
 .. _Pull Request 540: https://github.com/galaxyproject/pulsar/pull/540
