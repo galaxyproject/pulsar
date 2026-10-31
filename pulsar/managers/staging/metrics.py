@@ -55,11 +55,11 @@ def record_transfer(
 ) -> Iterator[TransferMetrics]:
     """Record a staging phase, including partial transfers on failure."""
     metrics = TransferMetrics()
-    started = time.time()
+    started = time.monotonic()
     try:
         yield metrics
     finally:
-        metrics.seconds = time.time() - started
+        metrics.seconds = time.monotonic() - started
         try:
             path = job_directory.calculate_path(
                 transfer_metrics_file_name(phase), "metadata"
