@@ -22,8 +22,8 @@ a configuration of
 
 The ``type`` of ``queued_python`` is indicating that the jobs are queued but
 that the queue is managed locally by Pulsar. Other possible values for
-``type`` include ``queued_drmaa``, ``queued_condor``, ``queued_cli``,
-``queued_external_drmaa`` (examples of each follow).
+``type`` include ``queued_drmaa``, ``queued_condor``, ``queued_htcondor``,
+``queued_cli``, ``queued_external_drmaa`` (examples of each follow).
 
 Named Managers
 -------------------------------
@@ -77,10 +77,90 @@ dependency ``drmaa`` will need to be installed as well to use the
 If you are using DRMAA, be sure to define ``DRMAA_LIBRARY_PATH`` in Pulsar's
 ``local_env.sh`` file.
 
-Condor
+HTCondor
 -------------------------------
 
-Condor_ can also be used as a backend.
+Condor_ can be used as a backend through either of two managers.
+``queued_htcondor`` talks to the scheduler through HTCondor's version 2 Python
+bindings; ``queued_condor`` runs ``condor_submit``/``condor_rm`` and determines
+job state by scraping the text of the job event log.
+
+Prefer ``queued_htcondor`` unless the ``htcondor2`` package cannot be installed
+alongside Pulsar.  It is not merely the newer of the two - it reports outcomes
+``queued_condor`` cannot see:
+
+* Held jobs.  ``queued_condor`` never inspects hold events, so a job held for
+  exceeding its memory or wall time stays ``queued`` indefinitely.
+  ``queued_htcondor`` classifies the hold and bounds it.  A hold is not by
+  itself terminal: the pool may release the job on its own, and sites commonly
+  configure ``periodic_release`` to retry a held job - at times against a raised
+  ``request_memory``, so that the retry succeeds where the first attempt was
+  held.  Failing on the hold reason alone would pre-empt that policy, so a held
+  job stays ``queued`` and is failed only once it has either stayed held for
+  ``held_grace_seconds`` without a release, or been held ``max_held_count``
+  separate times - thrashing the grace window cannot catch, because each release
+  restarts it.  A release resets both.  When the job is finally failed, the
+  classified hold reason supplies the message naming the limit to raise.
+* Jobs removed from the queue, jobs killed for using too much memory, and jobs
+  whose script could not be executed - all reported as ``complete`` by
+  ``queued_condor``.
+* A missing job event log, also reported as ``complete`` by ``queued_condor``.
+
+``queued_htcondor`` can additionally submit to a remote collector or schedd and
+hold jobs that exceed a wall time; ``queued_condor`` submits only through the
+local command line.  Both build their submit description the same way, so
+``submit_``-prefixed options carry over unchanged between them.
+
+Python bindings (``queued_htcondor``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This manager reads the job event log with ``htcondor2.JobEventLog`` rather than
+by scraping its text.  It shares its HTCondor support code with Galaxy's
+``htcondor`` job runner, so hold classification and failure reporting behave
+the same whether or not a job travelled through Pulsar.
+
+It requires the ``htcondor2`` package::
+
+    pip install htcondor2
+
+::
+
+    managers:
+      _default_:
+        type: queued_htcondor
+        # Optional attributes...
+        submit_universe: vanilla
+        submit_request_memory: 32
+        submit_request_cpus: 4
+        submit_requirements: 'OpSys == "LINUX" && Arch =="INTEL"'
+        # Wall time after which HTCondor holds the job (also accepts
+        # MM:SS, HH:MM:SS, D-HH:MM:SS or a plain number of seconds).
+        request_walltime: "24:00:00"
+        # Fail a job held this many times without being released (0 disables).
+        max_held_count: 3
+        # Fail a job that stays held this long without being released. Give a
+        # pool that releases held jobs itself room to do so before giving up.
+        held_grace_seconds: 300
+        # Remote collector/schedd and an alternate HTCondor configuration.
+        htcondor_collector: collector.example.org:9618
+        htcondor_schedd: schedd.example.org
+        htcondor_config: /etc/condor/remote.config
+
+``request_walltime``, ``max_held_count`` and ``held_grace_seconds`` configure
+this manager rather than HTCondor and are never submitted; they can also be set
+per job from the Galaxy destination as ``submit_request_walltime``,
+``submit_max_held_count`` and ``submit_held_grace_seconds``.
+
+Because ``htcondor2`` reads its configuration once per process, setting
+``htcondor_config`` makes the manager route submissions through a helper
+subprocess started with that ``CONDOR_CONFIG``; leaving it unset talks to the
+schedd in-process using Pulsar's own HTCondor configuration.
+
+Command line (``queued_condor``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This manager requires the HTCondor command-line tools on Pulsar's ``PATH`` but
+no Python dependency beyond Pulsar's own.
 
 ::
 
