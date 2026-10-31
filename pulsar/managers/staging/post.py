@@ -91,7 +91,12 @@ def __stage_out_transfer_metrics(
     client_outputs: ClientOutputs,
     was_cancelled,
 ) -> None:
-    """Stage out metrics recorded after output collection, on a best effort basis."""
+    """Stage out metrics recorded after output collection, on a best effort basis.
+
+    This push ignores the client's dynamic output patterns, so the postprocess file reaches
+    Galaxy even with extended metadata, whose patterns leave every other ``__instrument_*``
+    file - preprocess metrics included - on the Pulsar side.
+    """
     metadata_directory = client_outputs.metadata_directory
     if not metadata_directory:
         return
