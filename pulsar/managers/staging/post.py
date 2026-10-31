@@ -38,19 +38,15 @@ def postprocess(
     was_cancelled: Callable[[], Optional[bool]],
 ) -> bool:
     # Returns True if outputs were collected.
-    try:
-        if job_directory.has_metadata("launch_config"):
-            staging_config = (
-                job_directory.load_metadata("launch_config").get("remote_staging") or {}
-            )
-        else:
-            staging_config = {}
-        collected = __collect_outputs(
-            job_directory, staging_config, action_executor, was_cancelled
+    if job_directory.has_metadata("launch_config"):
+        staging_config = (
+            job_directory.load_metadata("launch_config").get("remote_staging") or {}
         )
-        return collected
-    finally:
-        job_directory.write_file("postprocessed", "")
+    else:
+        staging_config = {}
+    return __collect_outputs(
+        job_directory, staging_config, action_executor, was_cancelled
+    )
 
 
 def __collect_outputs(

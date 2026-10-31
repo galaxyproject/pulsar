@@ -5,6 +5,8 @@ from contextlib import contextmanager
 from shutil import rmtree
 from unittest import mock
 
+import pytest
+
 from pulsar.managers import (
     stateful,
     status,
@@ -133,6 +135,102 @@ def test_complete_status_postprocesses_and_notifies():
         assert proxy.callbacks == [(status.COMPLETE, job_id)]
         assert proxy.active_jobs.active_job_ids() == []
         assert proxy.get_status(job_id) == status.COMPLETE
+
+
+def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
+    # With remote metadata the outputs' metadata still comes back when their files could not
+    # be staged; a client told the job completed would accept outputs that were never delivered.
+    with _launched_job() as (proxy, manager, job_id):
+        manager.scripted_status = status.COMPLETE
+        with _postprocessing_failed():
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.get_status(job_id) == status.FAILED
+
+
+def test_polling_stays_postprocessing_until_failed_outcome_is_persisted():
+    with _launched_job() as (proxy, manager, job_id):
+        manager.scripted_status = status.COMPLETE
+        job_directory = manager.job_directory(job_id)
+        storing_failure = threading.Event()
+        release = threading.Event()
+        real_store_metadata = type(job_directory).store_metadata
+
+        def held_store_metadata(directory, name, *args, **kwds):
+            if name == stateful.JOB_FILE_POSTPROCESSING_FAILED:
+                storing_failure.set()
+                if not release.wait(5):
+                    raise AssertionError("Timed out waiting to publish the failed outcome")
+            return real_store_metadata(directory, name, *args, **kwds)
+
+        with mock.patch.object(type(job_directory), "store_metadata", held_store_metadata), _postprocessing_failed():
+            try:
+                proxy.get_status(job_id)
+                assert storing_failure.wait(5)
+                assert proxy.get_status(job_id) == status.POSTPROCESSING
+                assert not job_directory.has_metadata(stateful.JOB_FILE_POSTPROCESSED)
+                assert proxy.callbacks == []
+            finally:
+                release.set()
+                _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.get_status(job_id) == status.FAILED
+        _wait_for_postprocessing_index_cleared(proxy)
+
+
+@pytest.mark.parametrize("failed_write", [stateful.JOB_FILE_POSTPROCESSED, stateful.JOB_FILE_POSTPROCESSING_FAILED])
+def test_postprocessing_publication_failure_notifies_and_remains_recoverable(failed_write):
+    app = minimal_app_for_managers()
+    try:
+        with _proxy(app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            manager.scripted_status = status.COMPLETE
+            job_directory = manager.job_directory(job_id)
+            real_write_file = type(job_directory).write_file
+
+            def failing_write_file(directory, name, *args, **kwds):
+                if name == failed_write:
+                    raise OSError("Test failure publishing postprocessing outcome")
+                return real_write_file(directory, name, *args, **kwds)
+
+            # Run the worker inline so its completion and index cleanup are deterministic.
+            with mock.patch.object(stateful, "new_thread_for_job", side_effect=lambda manager, phase, job_id, target, **kwds: target()):
+                with mock.patch.object(type(job_directory), "write_file", failing_write_file), _postprocessing_failed():
+                    assert proxy.get_status(job_id) == status.POSTPROCESSING
+            assert proxy.callbacks == [(status.FAILED, job_id)]
+            assert _postprocessing_job_ids(proxy) == [job_id]
+            assert not job_directory.has_metadata(stateful.JOB_FILE_POSTPROCESSED)
+
+        # Once storage is writable again, a fresh proxy can finish the indexed job.
+        with _proxy(app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, job_id)]
+            assert proxy.get_status(job_id) == status.COMPLETE
+            _wait_for_postprocessing_index_cleared(proxy)
+    finally:
+        rmtree(app.staging_directory, ignore_errors=True)
+
+
+def test_postprocessing_redone_after_a_failed_attempt_reports_its_new_outcome():
+    app = minimal_app_for_managers()
+    try:
+        with _proxy(app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            _interrupt_postprocessing(proxy, manager, job_id)
+            # Killed after recording a failed attempt, before marking postprocessing done.
+            manager.job_directory(job_id).store_metadata(stateful.JOB_FILE_POSTPROCESSING_FAILED, True)
+
+        with _proxy(app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, job_id)]
+            assert proxy.get_status(job_id) == status.COMPLETE
+    finally:
+        rmtree(app.staging_directory, ignore_errors=True)
 
 
 def test_cancelled_status_deactivates_without_notification():
@@ -354,6 +452,19 @@ def _postprocessing_held(timeout=5):
 
     with mock.patch.object(stateful, "postprocess", held_postprocess):
         yield release
+
+
+@contextmanager
+def _postprocessing_failed():
+    """Postprocessing that runs as usual but could not stage the job's outputs."""
+    real_postprocess = stateful.postprocess
+
+    def failed_postprocess(*args, **kwds):
+        real_postprocess(*args, **kwds)
+        return False
+
+    with mock.patch.object(stateful, "postprocess", failed_postprocess):
+        yield
 
 
 def _wait_for_callback(proxy, timeout=5):
