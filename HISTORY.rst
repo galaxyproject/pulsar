@@ -8,7 +8,9 @@ History
 ---------------------
 0.16.4.dev0
 ---------------------
-
+* Create the ``unstructured`` job directory when setting up a job, so container
+  bind mounts of it don't fail before any unstructured files are staged.
+  `Pull Request XXX`_
 
 
 ---------------------
@@ -886,6 +888,7 @@ History
 
 
 .. github_links
+.. _Pull Request XXX: https://github.com/galaxyproject/pulsar/pull/XXX
 .. _Pull Request 589: https://github.com/galaxyproject/pulsar/pull/589
 .. _Pull Request 588: https://github.com/galaxyproject/pulsar/pull/588
 .. _Pull Request 587: https://github.com/galaxyproject/pulsar/pull/587
