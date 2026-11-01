@@ -10,7 +10,7 @@ History
 ---------------------
 * Create the ``unstructured`` job directory when setting up a job, so container
   bind mounts of it don't fail before any unstructured files are staged.
-  `Pull Request XXX`_
+  `Pull Request 558`_
 * Record preprocess and postprocess file transfer time, count, and bytes for
   Galaxy's ``pulsar`` job metrics plugin. `Pull Request 518`_
 * Skip unavailable job metrics plugins in Pulsar's shared configuration. `Pull Request 518`_
@@ -790,7 +790,7 @@ History
 
 
 .. github_links
-.. _Pull Request XXX: https://github.com/galaxyproject/pulsar/pull/XXX
+.. _Pull Request 558: https://github.com/galaxyproject/pulsar/pull/558
 .. _Pull Request 549: https://github.com/galaxyproject/pulsar/pull/549
 .. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
 .. _Pull Request 518: https://github.com/galaxyproject/pulsar/pull/518
