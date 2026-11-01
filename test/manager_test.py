@@ -1,4 +1,7 @@
-from os.path import join
+from os.path import (
+    isdir,
+    join,
+)
 
 from pulsar.managers.base.directory import JOB_FILE_STANDARD_OUTPUT
 from pulsar.managers.unqueued import Manager
@@ -16,6 +19,22 @@ class ManagerTest(BaseManagerTestCase):
 
     def _set_manager(self, **kwds):
         self.manager = Manager('_default_', self.app, **kwds)
+
+    def test_setup_job_creates_job_subdirectories(self):
+        # Galaxy bind-mounts some of these into tool containers, and a bind
+        # source must exist before the container starts.
+        job_id = self.manager.setup_job("123", "tool1", "1.0.0")
+        job_directory = self.manager.job_directory(job_id)
+        for directory in [
+            job_directory.inputs_directory(),
+            job_directory.working_directory(),
+            job_directory.outputs_directory(),
+            job_directory.configs_directory(),
+            job_directory.tool_files_directory(),
+            job_directory.metadata_directory(),
+            job_directory.unstructured_files_directory(),
+        ]:
+            self.assertTrue(isdir(directory), f"{directory} was not created")
 
     def test_unauthorized_tool_submission(self):
         self.authorizer.authorization.allow_setup = False
