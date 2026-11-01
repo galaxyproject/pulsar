@@ -69,6 +69,7 @@ JOB_DIRECTORY_WORKING = "working"
 JOB_DIRECTORY_METADATA = "metadata"
 JOB_DIRECTORY_CONFIGS = "configs"
 JOB_DIRECTORY_TOOL_FILES = "tool_files"
+JOB_DIRECTORY_UNSTRUCTURED = "unstructured"
 
 DEFAULT_ID_ASSIGNER = "galaxy"
 
@@ -221,6 +222,7 @@ class BaseManager(ManagerInterface, ABC):
             JOB_DIRECTORY_CONFIGS,
             JOB_DIRECTORY_TOOL_FILES,
             JOB_DIRECTORY_METADATA,
+            JOB_DIRECTORY_UNSTRUCTURED,
         ]:
             job_directory.make_directory(directory)
         return job_directory
