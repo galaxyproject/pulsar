@@ -372,6 +372,13 @@ A Galaxy job configuration (job_conf.yml) for using GCP with Pulsar and RabbitMQ
             #walltime_limit: 216000
             # GCP Credentials setup.
             #credentials_file: ~/.config/gcloud/application_default_credentials.json
+            # Batch jobs are named <job_id_prefix>-<galaxy job id>. The prefix defaults to
+            # "pulsar" (or "pulsar-<galaxy_instance_id>") and must follow GCP job name
+            # rules: lowercase letters, digits and hyphens, starting with a letter.
+            #job_id_prefix: pulsar
+            # What stopping a job in Galaxy does to the Batch job: "delete" (default) removes
+            # it, "cancel" stops its VMs but keeps the job record and its Cloud Logging output.
+            #gcp_kill_action: delete
             pulsar_app_config:
                # RabbitMQ URL the execute nodes should use to connect to the AMQP server.
                message_queue_url: <amqp_url>

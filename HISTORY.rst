@@ -25,6 +25,11 @@ History
   images is known without it. Job configs now record where ``pulsar_version``
   came from, so Galaxy no longer mistakes the client library's version for the
   remote's. `Issue 135`_
+* Keep Google Cloud Batch job names stable across Pulsar clients and record the
+  launched name as the job's external id, so Galaxy polls and stops the right
+  job after a resubmission. Add ``job_id_prefix`` (validated against GCP's job
+  name rules) and ``gcp_kill_action: delete|cancel`` destination parameters.
+  `Pull Request 473`_
 
 
 
@@ -790,6 +795,7 @@ History
 .. _Pull Request 549: https://github.com/galaxyproject/pulsar/pull/549
 .. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
 .. _Pull Request 518: https://github.com/galaxyproject/pulsar/pull/518
+.. _Pull Request 473: https://github.com/galaxyproject/pulsar/pull/473
 .. _Pull Request 537: https://github.com/galaxyproject/pulsar/pull/537
 .. _Pull Request 543: https://github.com/galaxyproject/pulsar/pull/543
 .. _Pull Request 540: https://github.com/galaxyproject/pulsar/pull/540

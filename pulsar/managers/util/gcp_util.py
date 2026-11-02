@@ -8,12 +8,14 @@ from typing import (
 )
 
 try:
+    from google.api_core.exceptions import AlreadyExists as GcpAlreadyExists  # type: ignore
     from google.cloud import batch_v1  # type: ignore
     from google.oauth2 import service_account  # type: ignore
 except ImportError as exc:
     if not TYPE_CHECKING:
         service_account = None
         batch_v1 = None
+        GcpAlreadyExists = None
     GCP_IMPORT_MESSAGE = (
         "The Python google-cloud-batch package is required to use "
         "this feature, please install it or correct the "
@@ -194,6 +196,11 @@ def gcp_client(credentials_file: Optional[str]) -> "batch_v1.BatchServiceClient"
     return client
 
 
+def gcp_job_resource_name(project_id: str, region: str, job_name: str) -> str:
+    """Fully qualified resource name of a GCP Batch job."""
+    return f"projects/{project_id}/locations/{region}/jobs/{job_name}"
+
+
 def get_gcp_job(
     project_id: str,
     region: str,
@@ -214,9 +221,7 @@ def get_gcp_job(
     """
     ensure_client()
     client = gcp_client(credentials_file)
-    return client.get_job(
-        name=f"projects/{project_id}/locations/{region}/jobs/{job_name}"
-    )
+    return client.get_job(name=gcp_job_resource_name(project_id, region, job_name))
 
 
 def delete_gcp_job(
@@ -225,22 +230,36 @@ def delete_gcp_job(
     job_name: str,
     credentials_file: Optional[str] = None,
 ) -> Any:
+    """Delete a GCP Batch job, cancelling it first if it is still running."""
     ensure_client()
     client = gcp_client(credentials_file)
-    return client.delete_job(
-        name=f"projects/{project_id}/locations/{region}/jobs/{job_name}"
-    )
+    return client.delete_job(name=gcp_job_resource_name(project_id, region, job_name))
+
+
+def cancel_gcp_job(
+    project_id: str,
+    region: str,
+    job_name: str,
+    credentials_file: Optional[str] = None,
+) -> Any:
+    """Cancel a GCP Batch job, stopping its VMs while keeping the job record and its logs."""
+    ensure_client()
+    client = gcp_client(credentials_file)
+    return client.cancel_job(name=gcp_job_resource_name(project_id, region, job_name))
 
 
 __all__ = (
     "DEFAULT_CPU_MILLI",
     "DEFAULT_MEMORY_MIB",
+    "GcpAlreadyExists",
     "batch_v1",
+    "cancel_gcp_job",
     "compute_machine_type",
     "convert_cpu_to_milli",
     "convert_memory_to_mib",
     "delete_gcp_job",
     "ensure_client",
     "gcp_client",
+    "gcp_job_resource_name",
     "get_gcp_job",
 )
