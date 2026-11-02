@@ -36,10 +36,11 @@ class BaseJobExec(metaclass=ABCMeta):
         return {}
 
     @abstractmethod
-    def submit(self, script_file):
+    def submit(self, script_file, native_specification=None):
         """
         Given specified script_file path, yield command to submit it
-        to external job manager.
+        to external job manager. If native_specification is given, it is
+        passed to the submit command as is.
         """
 
     @abstractmethod

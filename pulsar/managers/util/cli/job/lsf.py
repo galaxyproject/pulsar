@@ -47,12 +47,13 @@ class LSF(BaseJobExec):
             template_scriptargs += f"#BSUB -R \"select[hname!='{host}']\"\n"
         return {"headers": template_scriptargs}
 
-    def submit(self, script_file):
+    def submit(self, script_file, native_specification=None):
         # bsub returns Job <9147983> is submitted to default queue <research-rh7>.
         # This should be really handled outside with something like
         # parse_external. Currently CLI runner expect this to just send it in the last position
         # of the string.
-        return "bsub <%s | awk '{ print $2}' | sed 's/[<>]//g'" % script_file
+        bsub = f"bsub {native_specification}" if native_specification else "bsub"
+        return "%s <%s | awk '{ print $2}' | sed 's/[<>]//g'" % (bsub, script_file)
 
     def delete(self, job_id):
         return f"bkill {job_id}"
