@@ -1,6 +1,7 @@
 import os
 from collections import deque
 from types import SimpleNamespace
+from urllib.parse import urlencode
 
 import pytest
 import requests
@@ -20,7 +21,12 @@ from pulsar.client.staging.models import (
 )
 from pulsar.client.staging.up import submit_job
 from pulsar.client.test.test_common import write_config
-from .test_utils import TempDirectoryTestCase
+from pulsar.managers.base import JobDirectory
+from pulsar.managers.staging.pre import preprocess
+from .test_utils import (
+    files_server,
+    TempDirectoryTestCase,
+)
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
 TEST_REQUIREMENT_2 = ToolRequirement("test2", "1.0")
@@ -227,6 +233,78 @@ class TestStager(TempDirectoryTestCase):
             "dataset_3_files/moo/cow.txt": manifest["moo/cow.txt"],
             "dataset_3_files/index.html": manifest["index.html"],
         }
+
+    def test_extra_files_manifest_naming_a_file_outside_its_directory_is_refused(self):
+        # "../dataset_4.dat" would otherwise be staged over the job's dataset_4.dat input.
+        self.client.default_file_action = "remote_transfer"
+        self.job_config["job_directory"] = "/pulsar/staging/1"
+        self.job_config["system_properties"]["separator"] = "/"
+        never_pulled = os.path.join(self.temp_directory, "files", "dataset_3_files")
+        for name in ["../dataset_4.dat", "moo/../../dataset_4.dat", "/etc/passwd"]:
+            manifest = {name: "https://galaxy.test/staging/extra/3/x?sig=c"}
+            self.client_job_description.client_inputs = ClientInputs(
+                [ClientInput(never_pulled, CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH, extra_files=manifest)]
+            )
+            with pytest.raises(Exception, match="names a file outside it"):
+                self._submit()
+
+    def test_url_inputs_are_fetched_into_the_job_directory_by_pulsar(self):
+        # The client describes the inputs and Pulsar's preprocessing fetches each one from
+        # its URL; none of them exists at its path on Galaxy.
+        store = os.path.join(self.temp_directory, "object_store")
+        contents = {
+            "dataset": b"dataset",
+            "metadata": b"metadata",
+            "extra/index.html": b"index",
+            "extra/moo/cow.txt": b"cow",
+        }
+        for name, data in contents.items():
+            os.makedirs(os.path.dirname(os.path.join(store, name)), exist_ok=True)
+            open(os.path.join(store, name), "wb").write(data)
+        galaxy_files = os.path.join(self.temp_directory, "files")
+        job_directory = JobDirectory(os.path.join(self.temp_directory, "pulsar_staging"), "1")
+        self.client.default_file_action = "remote_transfer"
+        self.job_config["job_directory"] = job_directory.path
+        self.job_config["system_properties"]["separator"] = "/"
+
+        with files_server(store) as server:
+            def url(name):
+                return "{}?{}".format(server.application_url, urlencode({"path": os.path.join(store, name)}))
+
+            self.client_job_description.client_inputs = ClientInputs([
+                ClientInput(
+                    os.path.join(galaxy_files, "dataset_3.dat"),
+                    CLIENT_INPUT_PATH_TYPES.INPUT_PATH,
+                    url=url("dataset"),
+                ),
+                ClientInput(
+                    os.path.join(galaxy_files, "_metadata_files", "metadata_4.dat"),
+                    CLIENT_INPUT_PATH_TYPES.INPUT_METADATA_PATH,
+                    url=url("metadata"),
+                ),
+                ClientInput(
+                    os.path.join(galaxy_files, "dataset_3_files"),
+                    CLIENT_INPUT_PATH_TYPES.INPUT_EXTRA_FILES_PATH,
+                    extra_files={"index.html": url("extra/index.html"), "moo/cow.txt": url("extra/moo/cow.txt")},
+                ),
+            ])
+            self._submit()
+            preprocess(
+                job_directory,
+                self.client.launched_remote_staging["setup"],
+                SimpleNamespace(execute=lambda action, description: action()),
+                was_cancelled=lambda: False,
+            )
+
+        inputs_directory = job_directory.inputs_directory()
+
+        def staged(*path):
+            return open(os.path.join(inputs_directory, *path), "rb").read()
+
+        assert staged("dataset_3.dat") == b"dataset"
+        assert staged("metadata_metadata_4.dat") == b"metadata"
+        assert staged("dataset_3_files", "index.html") == b"index"
+        assert staged("dataset_3_files", "moo", "cow.txt") == b"cow"
 
     def _assert_inputs_uploaded(self):
         # Expect both files staged
