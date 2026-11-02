@@ -102,6 +102,10 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
         gcp_job_params = parse_gcp_job_params(self.destination_params)
         return gcp_job_params
 
+    def kill(self):
+        gcp_job_params = self._gcp_job_params
+        delete_gcp_job(gcp_job_params.project_id, gcp_job_params.region, self._job_name, gcp_job_params.credentials_file)
+
 
 class GcpMessageCoexecutionJobClient(BaseMessageCoexecutionJobClient, LaunchesGcpContainersMixin):
     """A client that co-executes pods via GCP and depends on amqp for status updates."""
@@ -117,10 +121,6 @@ class GcpPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesGc
     def __init__(self, destination_params, job_id, client_manager):
         super().__init__(destination_params, job_id, client_manager)
         self._setup_gcp_batch_client_properties(destination_params)
-
-    def kill(self):
-        gcp_job_params = self._gcp_job_params
-        delete_gcp_job(gcp_job_params.project_id, gcp_job_params.region, self._job_name, gcp_job_params.credentials_file)
 
     def clean(self):
         pass

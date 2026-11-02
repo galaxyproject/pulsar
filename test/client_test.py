@@ -15,6 +15,11 @@ from pulsar.client.decorators import (
     MAX_RETRY_COUNT,
     retry,
 )
+from pulsar.client.gcp import (
+    GcpMessageCoexecutionJobClient,
+    GcpPollingCoexecutionJobClient,
+    LaunchesGcpContainersMixin,
+)
 from pulsar.client.manager import HttpPulsarInterface
 from pulsar.client.tes import TesPollingCoexecutionJobClient
 from pulsar.client.transport import UrllibTransport
@@ -316,3 +321,16 @@ def test_tes_poll_and_cancel_use_recorded_external_id():
 
     assert tes_client.cancelled == ["tes-task-abc"]
     assert tes_client.polled == [("tes-task-abc", "FULL")]
+
+
+def test_gcp_clients_share_kill():
+    assert GcpMessageCoexecutionJobClient.kill is LaunchesGcpContainersMixin.kill
+    assert GcpPollingCoexecutionJobClient.kill is LaunchesGcpContainersMixin.kill
+
+
+def test_gcp_message_client_kill_deletes_batch_job():
+    client_manager = SimpleNamespace(manager_name="_default_")
+    client = GcpMessageCoexecutionJobClient({"project_id": "moo"}, "543", client_manager)
+    with patch("pulsar.client.gcp.delete_gcp_job") as delete_gcp_job:
+        client.kill()
+    delete_gcp_job.assert_called_once_with("moo", "us-central1", "pulsar-543", None)
