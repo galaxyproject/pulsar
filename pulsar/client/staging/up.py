@@ -16,6 +16,8 @@ from re import (
     findall,
 )
 from typing import (
+    Callable,
+    List,
     Optional,
     TYPE_CHECKING,
 )
@@ -42,7 +44,20 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-def submit_job(client, client_job_description: "ClientJobDescription", job_config=None):
+def submit_job(
+    client,
+    client_job_description: "ClientJobDescription",
+    job_config=None,
+    staging_manifest_callback: Optional[Callable[[List[str]], None]] = None,
+):
+    """Stage the job's files and launch it.
+
+    If ``staging_manifest_callback`` is set, it is called once, before the job
+    is launched, with the source path of every setup action the remote Pulsar
+    fetches from the client's files endpoint by path (``remote_transfer`` and
+    ``remote_transfer_tus``). An action that fetches from a URL its source
+    names is not reported.
+    """
     file_stager = FileStager(client, client_job_description, job_config)
     rebuilt_command_line = file_stager.get_command_line()
     job_id = file_stager.job_id
@@ -78,6 +93,8 @@ def submit_job(client, client_job_description: "ClientJobDescription", job_confi
     # it needs to be in the response to Pulsar even Pulsar is inititing staging actions
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
+    if staging_manifest_callback is not None:
+        staging_manifest_callback(file_stager.transfer_tracker.remote_transfer_paths)
     # for pulsar modalities that skip the explicit "setup" step, give them a chance to set an external
     # id from the submission process (e.g. to TES).
     launch_response = client.launch(**launch_kwds)
@@ -484,6 +501,7 @@ class TransferTracker:
         self.job_directory = job_directory
         self.file_renames = {}
         self.remote_staging_actions = []
+        self.remote_transfer_paths = []
 
     def handle_transfer_path(self, path, type, name=None, contents=None):
         source = {"path": path}
@@ -613,6 +631,10 @@ class TransferTracker:
             # Older servers ignore this key.
             input_dict["executable"] = True
         self.remote_staging_actions.append(input_dict)
+        # Only a remote transfer fetching from the client's files endpoint by path, not one
+        # fetching from a URL its source names.
+        if isinstance(action, BaseRemoteTransferAction) and action.url != action.source.get("url"):
+            self.remote_transfer_paths.append(action.path)
 
     def __action_for_transfer(self, source, type, contents):
         if contents:

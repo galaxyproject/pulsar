@@ -8,7 +8,11 @@ History
 ---------------------
 0.16.4.dev0
 ---------------------
-
+* Add a ``staging_manifest_callback`` argument to ``submit_job``. It is called
+  before launch with the source paths the remote Pulsar will fetch from the
+  client's files endpoint by path (``remote_transfer`` and
+  ``remote_transfer_tus`` setup actions), so the client can serve only those
+  paths.
 
 
 ---------------------
