@@ -35,7 +35,9 @@ class Slurm(BaseJobExec):
             template_scriptargs += f"#SBATCH {k} {v}\n"
         return {"headers": template_scriptargs}
 
-    def submit(self, script_file):
+    def submit(self, script_file, native_specification=None):
+        if native_specification:
+            return f"sbatch {native_specification} {script_file}"
         return f"sbatch {script_file}"
 
     def delete(self, job_id):
