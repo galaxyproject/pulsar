@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 from collections import deque
 from types import SimpleNamespace
@@ -11,13 +12,21 @@ import pytest
 
 from pulsar import __version__ as pulsar_version
 from pulsar.client.client import JobClient
+from pulsar.client.coexecution_manager import CoexecutionPollingJobClientManager
+from pulsar.client.container_job_config import CoexecutionContainerCommand
 from pulsar.client.decorators import (
     MAX_RETRY_COUNT,
     retry,
 )
+from pulsar.client.gcp import (
+    GcpMessageCoexecutionJobClient,
+    GcpPollingCoexecutionJobClient,
+    LaunchesGcpContainersMixin,
+)
 from pulsar.client.manager import HttpPulsarInterface
 from pulsar.client.tes import TesPollingCoexecutionJobClient
 from pulsar.client.transport import UrllibTransport
+from pulsar.managers.util.gcp_util import GcpAlreadyExists
 
 
 def test_with_retry():
@@ -316,3 +325,98 @@ def test_tes_poll_and_cancel_use_recorded_external_id():
 
     assert tes_client.cancelled == ["tes-task-abc"]
     assert tes_client.polled == [("tes-task-abc", "FULL")]
+
+
+def _gcp_client(job_id="543", **destination_params):
+    """Build a GCP client the way Galaxy does for every submit, poll and stop."""
+    destination_params.setdefault("project_id", "moo")
+    return CoexecutionPollingJobClientManager().get_client(destination_params, job_id)
+
+
+class RecordingBatchClient:
+    def __init__(self, existing=()):
+        self.existing = set(existing)
+        self.created = []
+
+    def create_job(self, request):
+        if request.job_id in self.existing:
+            raise GcpAlreadyExists(f"job {request.job_id} already exists")
+        self.created.append(request.job_id)
+        return request.job
+
+
+def _launch_gcp_containers(client, batch_client):
+    pulsar_container = CoexecutionContainerCommand("galaxy/pulsar-pod-staging:0.15.0.0", "pulsar-submit", ["--base64", "e30="], "/")
+    with patch("pulsar.client.gcp.gcp_client", return_value=batch_client):
+        return client._launch_containers(pulsar_container, None, None)
+
+
+def test_gcp_job_name_is_the_same_for_every_client():
+    first = _gcp_client()
+    second = _gcp_client()
+    assert isinstance(first, GcpPollingCoexecutionJobClient)
+    assert first._job_name == second._job_name == "pulsar-543"
+
+
+@pytest.mark.parametrize(("destination_params", "expected"), [
+    ({"galaxy_instance_id": "main"}, "pulsar-main-543"),
+    ({"job_id_prefix": "My_Galaxy"}, "my-galaxy-543"),
+    ({"job_id_prefix": "jhu", "galaxy_instance_id": "main"}, "jhu-543"),
+])
+def test_gcp_job_name_prefix(destination_params, expected):
+    assert _gcp_client(**destination_params)._job_name == expected
+
+
+def test_gcp_job_name_prefers_recorded_external_id():
+    client = _gcp_client(external_id="pulsar-543-0badf00d")
+    assert client._job_name == "pulsar-543-0badf00d"
+
+
+def test_gcp_launch_records_job_name_as_external_id():
+    batch_client = RecordingBatchClient()
+    external_id = _launch_gcp_containers(_gcp_client(), batch_client)
+    assert external_id.external_id == "pulsar-543"
+    assert batch_client.created == ["pulsar-543"]
+
+
+def test_gcp_launch_uses_unique_name_when_job_exists():
+    batch_client = RecordingBatchClient(existing=["pulsar-543"])
+    external_id = _launch_gcp_containers(_gcp_client(), batch_client)
+    assert re.fullmatch(r"pulsar-543-[0-9a-f]{8}", external_id.external_id)
+    assert batch_client.created == [external_id.external_id]
+    assert _gcp_client(external_id=external_id.external_id)._job_name == external_id.external_id
+
+
+def test_gcp_kill_deletes_job_by_default():
+    with patch("pulsar.client.gcp.delete_gcp_job") as delete_gcp_job, patch("pulsar.client.gcp.cancel_gcp_job") as cancel_gcp_job:
+        _gcp_client(external_id="pulsar-543-0badf00d").kill()
+    delete_gcp_job.assert_called_once_with("moo", "us-central1", "pulsar-543-0badf00d", None)
+    cancel_gcp_job.assert_not_called()
+
+
+def test_gcp_kill_cancels_job_when_configured():
+    with patch("pulsar.client.gcp.delete_gcp_job") as delete_gcp_job, patch("pulsar.client.gcp.cancel_gcp_job") as cancel_gcp_job:
+        _gcp_client(gcp_kill_action="cancel", credentials_file="creds.json").kill()
+    cancel_gcp_job.assert_called_once_with("moo", "us-central1", "pulsar-543", "creds.json")
+    delete_gcp_job.assert_not_called()
+
+
+def test_gcp_kill_logs_failures_with_the_exception(caplog):
+    with patch("pulsar.client.gcp.delete_gcp_job", side_effect=RuntimeError("boom")):
+        _gcp_client().kill()
+    (record,) = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert "pulsar-543" in record.getMessage()
+    assert record.exc_info[0] is RuntimeError
+
+
+def test_gcp_clients_share_kill():
+    assert GcpMessageCoexecutionJobClient.kill is LaunchesGcpContainersMixin.kill
+    assert GcpPollingCoexecutionJobClient.kill is LaunchesGcpContainersMixin.kill
+
+
+def test_gcp_message_client_kill_deletes_batch_job():
+    client_manager = SimpleNamespace(manager_name="_default_")
+    client = GcpMessageCoexecutionJobClient({"project_id": "moo"}, "543", client_manager)
+    with patch("pulsar.client.gcp.delete_gcp_job") as delete_gcp_job:
+        client.kill()
+    delete_gcp_job.assert_called_once_with("moo", "us-central1", "pulsar-543", None)
