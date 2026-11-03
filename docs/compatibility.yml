@@ -50,9 +50,9 @@ modalities:
         - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate]}
       "26.1": *rest_new
       "26.2":
-        - {servers: ">=0.16.0.dev0", status: expected, issues: [jobs-directory-token-removed, tus-now-real, resubmit-same-id-ignored, status-stdout-capped]}
-        - {servers: ">=0.15.13,<0.16.0.dev0", status: expected, issues: [master-features-unavailable]}
-        - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate, master-features-unavailable]}
+        - {servers: ">=0.16.0.dev0", status: expected, issues: [jobs-directory-token-removed, tus-now-real, resubmit-same-id-ignored, status-stdout-capped, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
+        - {servers: ">=0.15.13,<0.16.0.dev0", status: expected, issues: [master-features-unavailable, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
+        - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate, master-features-unavailable, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
 
   mq:
     description: Galaxy ``PulsarMQJobRunner`` -> Pulsar over AMQP (kombu); setup built Galaxy-side (``jobs_directory`` required).
@@ -70,9 +70,9 @@ modalities:
         - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate]}
       "26.1": *mq_new
       "26.2":
-        - {servers: ">=0.16.0.dev0", status: expected, issues: [jobs-directory-token-removed, amqp-durable-mismatch, outbox-duplicate-final-status, status-stdout-capped]}
-        - {servers: ">=0.15.13,<0.16.0.dev0", status: expected, issues: [master-features-unavailable]}
-        - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate, master-features-unavailable]}
+        - {servers: ">=0.16.0.dev0", status: expected, issues: [jobs-directory-token-removed, amqp-durable-mismatch, outbox-duplicate-final-status, status-stdout-capped, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
+        - {servers: ">=0.15.13,<0.16.0.dev0", status: expected, issues: [master-features-unavailable, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
+        - {servers: ">=0.15.6,<0.15.13", status: broken, issues: [collector-descriptions-version-gate, master-features-unavailable, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
 
   relay:
     description: Galaxy and Pulsar exchange MQ-shaped messages through the ``pulsar-relay`` HTTP service.
@@ -91,8 +91,8 @@ modalities:
         - {servers: "==0.15.12", status: broken, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate]}
       "26.1": *relay_new
       "26.2":
-        - {servers: ">=0.15.13", status: expected, issues: [relay-default-username-dropped, outbox-duplicate-final-status, master-features-unavailable]}
-        - {servers: "==0.15.12", status: broken, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate]}
+        - {servers: ">=0.15.13", status: expected, issues: [relay-default-username-dropped, outbox-duplicate-final-status, master-features-unavailable, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
+        - {servers: "==0.15.12", status: broken, issues: [relay-topic-prefix-needs-0.15.13, collector-descriptions-version-gate, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
 
   coexecution:
     description: >-
@@ -118,12 +118,32 @@ modalities:
         - {image: default, status: broken, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated, gcp-runnable-ordering]}
       "26.1": &coexec_new
         - {image: default, status: broken, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated]}
-      "26.2": *coexec_new
+      "26.2":
+        - {image: default, status: broken, issues: [collector-descriptions-version-gate, coexec-token-endpoint-ignored, coexec-stdio-not-separated, job-files-manifest-needs-lib-0.16.1, client-staging-stricter-paths]}
 
   embedded:
     description: Pulsar runs inside Galaxy's process; always the same version. No matrix.
 
 issues:
+  job-files-manifest-needs-lib-0.16.1:
+    severity: conditional
+    summary: >-
+      Galaxy's ``job_files_strict_access`` (galaxy#24646, not merged) serves job files API reads only from the
+      ``job_files_manifest.json`` Galaxy writes from ``submit_job``'s ``staging_manifest_callback``, new in lib 0.16.1.
+      Galaxy passes the callback for every Pulsar job, so it needs lib >= 0.16.1; with 0.16.0 every job fails with
+      ``TypeError``. The lib builds the manifest inside Galaxy from the setup actions it sends, and servers fetch only
+      those, so any server works. Jobs submitted before the upgrade have no manifest; with the option on, their reads
+      are refused.
+    evidence: [pulsar pulsar/client/staging/up.py submit_job, pulsar pulsar/managers/staging/pre.py preprocess (0.15.6 to master)]
+    verified: code-read; unit tests on the client side only
+  client-staging-stricter-paths:
+    severity: conditional
+    summary: >-
+      Lib 0.16.1 stages tool directory and unstructured paths more strictly, on the Galaxy side and whatever the
+      server: a ``prefix`` file action matches whole path segments (``/data/ref`` no longer matches ``/data/refX``);
+      ``depth`` stops at the mapped directory; a referenced path whose ``..`` segments leave the tool directory or the
+      mapped path is not staged, so the job sees the local path. Data table paths Galaxy maps to a staging file
+      action are staged instead of failing with ``TypeError``.
   collector-descriptions-version-gate:
     severity: break
     summary: >-
