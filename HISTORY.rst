@@ -47,6 +47,9 @@ History
   leave the tool directory or the mapped path. ``depth`` expansion of
   ``prefix`` and ``glob`` file actions no longer climbs above the mapped
   directory.
+* Stage unstructured paths that Galaxy maps from tool parameters to a staging
+  file action instead of failing with a ``TypeError``, and stage them from
+  their normalized path, the one the file action matched.
 
 
 
