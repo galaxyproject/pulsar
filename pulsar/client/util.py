@@ -23,6 +23,7 @@ from os.path import (
     abspath,
     exists,
     join,
+    normpath,
     relpath,
     sep,
 )
@@ -84,6 +85,29 @@ def path_within(path, directory):
     True
     """
     return path == directory or path.startswith(directory.rstrip(sep) + sep)
+
+
+def resolve_parent_references(path):
+    """Resolve the ``..`` segments of ``path`` lexically, and return any other path unchanged.
+
+    Only a ``..`` segment can make the file the OS opens differ from the lexical
+    path, by stepping back out of a symlink. A trailing separator is kept.
+
+    >>> resolve_parent_references("/data/ref/link/../x")
+    '/data/ref/x'
+    >>> resolve_parent_references("/data/ref/sub/../lib/")
+    '/data/ref/lib/'
+    >>> resolve_parent_references("/data/ref/lib/")
+    '/data/ref/lib/'
+    >>> resolve_parent_references("/data/ref/./x")
+    '/data/ref/./x'
+    """
+    if ".." not in path.split(sep):
+        return path
+    resolved = normpath(path)
+    if path.endswith(sep) and not resolved.endswith(sep):
+        resolved += sep
+    return resolved
 
 
 def unique_path_prefix(path):

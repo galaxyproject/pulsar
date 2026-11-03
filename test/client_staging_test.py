@@ -82,6 +82,56 @@ class TestStager(TempDirectoryTestCase):
         assert uploaded_file1[1] == "tool"
         self.assertEqual(uploaded_file1[0], "%s/tool1_wrapper.py" % tool_dir)
 
+    def test_tool_file_reference_is_normalized(self):
+        self.client_job_description.rewrite_paths = True
+        tool_dir = os.path.abspath(self.tool.tool_dir)
+        self.client_job_description.command_line = f"python {tool_dir}/../{os.path.basename(tool_dir)}/tool1_wrapper.py"
+        self.client.expect_put_paths(["/pulsar/staging/1/tools/tool1_wrapper.py"])
+        self.client.expect_command_line("python /pulsar/staging/1/tools/tool1_wrapper.py")
+        self._submit()
+        assert self.client.put_files[0][:3] == ("%s/tool1_wrapper.py" % tool_dir, "tool", "tool1_wrapper.py")
+
+    def test_tool_file_reference_outside_tool_directory_is_not_staged(self):
+        self.client_job_description.rewrite_paths = True
+        tool_dir = os.path.abspath(self.tool.tool_dir)
+        secret = os.path.join(self.temp_directory, "secret")
+        open(secret, "w").write("secret")
+        command_line = f"python {tool_dir}/{os.path.relpath(secret, tool_dir)}"
+        self.client_job_description.command_line = command_line
+        self.client.expect_command_line(command_line)
+        self._submit()
+        assert self.client.put_files == []
+
+    def test_unstructured_path_is_normalized_and_stays_inside_mapped_path(self):
+        self.client_job_description.rewrite_paths = True
+        ref = os.path.join(self.temp_directory, "ref")
+        outside = os.path.join(self.temp_directory, "outside")
+        os.makedirs(os.path.join(outside, "inner"))
+        os.makedirs(ref)
+        os.symlink(os.path.join(outside, "inner"), os.path.join(ref, "link"))
+        for path in [os.path.join(ref, "genome.fa"), os.path.join(outside, "genome.fa"), os.path.join(self.temp_directory, "secret")]:
+            open(path, "w").write(path)
+        self.client.set_action_map_config({"paths": [{"path": ref, "path_types": "*any*"}]})
+        escaping_path = f"{ref}/../secret"
+        self.client_job_description.command_line = f"foo.exe {ref}/link/../genome.fa {escaping_path}"
+        self.client.expect_put_paths(["/pulsar/staging/1/other/genome.fa"])
+        self.client.expect_command_line(f"foo.exe /pulsar/staging/1/other/genome.fa {escaping_path}")
+        self._submit()
+        assert [put_file[:2] for put_file in self.client.put_files] == [(os.path.join(ref, "genome.fa"), "unstructured")]
+
+    def test_resolving_a_reference_leaves_longer_paths_alone(self):
+        self.client_job_description.rewrite_paths = True
+        ref = os.path.join(self.temp_directory, "ref")
+        os.makedirs(os.path.join(ref, "g"))
+        open(os.path.join(ref, "g", "hg19.fa"), "w").write("x")
+        self.client.set_action_map_config({"paths": [{"path": ref, "path_types": "*any*"}]})
+        self.client_job_description.command_line = f"foo.exe --dir {ref}/g/ --fa {ref}/g/hg19.fa --x {ref}/sub/../g/hg19.fa"
+        self.client.put_file = lambda path, type, name, contents, action_type="transfer": {
+            "path": path.replace(ref, "/remote/ref")
+        }
+        self.client.expect_command_line("foo.exe --dir /remote/ref/g/ --fa /remote/ref/g/hg19.fa --x /remote/ref/g/hg19.fa")
+        self._submit()
+
     def test_input_extra_rewrite(self):
         self.client_job_description.rewrite_paths = True
         extra_file = os.path.join(self.input1_files_path, "moo", "cow.txt")
