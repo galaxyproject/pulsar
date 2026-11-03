@@ -1,8 +1,12 @@
+import os
+
+import pytest
 from galaxy.util.bunch import Bunch
 
 from pulsar.client.action_mapper import (
     FileActionMapper,
 )
+from pulsar.client.util import PathHelper
 
 
 def test_endpoint_validation():
@@ -47,6 +51,36 @@ def test_prefix_mapper_matches_whole_path_segments():
 def test_root_prefix_mapper_matches_everything():
     mapper = FileActionMapper(_mapped_client({"path": "/", "action": "copy"}))
     assert mapper.action({"path": "/data/ref/hg19.fa"}, "input").action_type == "copy"
+
+
+@pytest.mark.parametrize("match_type,mapped_path", [
+    ("prefix", "{ref}"),
+    ("glob", "{ref}/*"),
+    ("glob", "{ref}/genomes/hg19.fa*"),
+])
+def test_depth_is_clamped_to_mapped_directory(tmp_path, match_type, mapped_path):
+    ref = tmp_path / "ref"
+    (ref / "genomes").mkdir(parents=True)
+    for path in [ref / "genomes" / "hg19.fa", ref / "genomes" / "hg19.fa.fai", tmp_path / "secret"]:
+        path.write_text("x")
+    mapper = FileActionMapper(_mapped_client(
+        {"path": mapped_path.format(ref=ref), "match_type": match_type, "depth": 3, "path_types": "unstructured"}
+    ))
+    action = mapper.action({"path": str(ref / "genomes" / "hg19.fa")}, "unstructured")
+    staged = action.unstructured_map(PathHelper(os.sep))
+    assert sorted(staged) == [str(ref / "genomes" / "hg19.fa"), str(ref / "genomes" / "hg19.fa.fai")]
+
+
+def test_depth_of_glob_with_wildcard_in_directory_name_stays_in_matched_directory(tmp_path):
+    (tmp_path / "genomes").mkdir()
+    for path in [tmp_path / "genomes" / "hg19.fa", tmp_path / "genomes" / "hg19.fa.fai", tmp_path / "secret"]:
+        path.write_text("x")
+    mapper = FileActionMapper(_mapped_client(
+        {"path": f"{tmp_path}/gen*/hg19.fa", "match_type": "glob", "depth": 3, "path_types": "unstructured"}
+    ))
+    action = mapper.action({"path": str(tmp_path / "genomes" / "hg19.fa")}, "unstructured")
+    staged = action.unstructured_map(PathHelper(os.sep))
+    assert sorted(staged) == [str(tmp_path / "genomes" / "hg19.fa"), str(tmp_path / "genomes" / "hg19.fa.fai")]
 
 
 def _mapped_client(*paths):

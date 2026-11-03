@@ -11,11 +11,13 @@ from os.path import (
     dirname,
     exists,
     join,
+    relpath,
     sep,
 )
 from re import (
     compile,
     escape,
+    split,
 )
 from typing import (
     Any,
@@ -763,6 +765,7 @@ class PrefixPathMapper(BasePathMapper):
     def __init__(self, config):
         super().__init__(config)
         self.prefix_path = abspath(config['path'])
+        self.file_lister = FileLister(config, root=lambda path: self.prefix_path)
 
     def _path_matches(self, path):
         return path is not None and path_within(path, self.prefix_path)
@@ -781,6 +784,25 @@ class GlobPathMapper(BasePathMapper):
     def __init__(self, config):
         super().__init__(config)
         self.glob_path = config['path']
+        self.file_lister = FileLister(config, root=self._root)
+
+    def _root(self, path):
+        """Return the directory that ``path``, matched by the glob, is expanded within.
+
+        That is the directory holding the glob's leading literal part, e.g.
+        /data/ref for /data/ref/**/*.fa. If the first wildcard is inside a
+        directory name, as in /data/ref*/x.fa, it is the directory ``path``
+        has there, e.g. /data/refA for /data/refA/x.fa. A glob without a
+        leading directory has none.
+        """
+        literal = split(r"[*?[]", self.glob_path, maxsplit=1)[0]
+        directory = dirname(literal)
+        if not directory:
+            return None
+        remainder = relpath(path, directory).split(sep)
+        if literal.endswith(sep) or len(remainder) == 1:
+            return directory
+        return join(directory, remainder[0])
 
     def _path_matches(self, path):
         return path is not None and fnmatch.fnmatch(path, self.glob_path)
@@ -827,9 +849,16 @@ def _mappper_from_dict(mapper_dict):
 
 
 class FileLister:
+    """Expand a path to the files staged with it.
 
-    def __init__(self, config):
+    With a ``depth`` of ``n``, list every file below the path's ``n``-th parent
+    directory, climbing no higher than the directory ``root`` returns for the
+    path, if any.
+    """
+
+    def __init__(self, config, root=None):
         self.depth = int(config.get("depth", "0"))
+        self.root = root
 
     def to_dict(self):
         return {
@@ -837,14 +866,16 @@ class FileLister:
         }
 
     def unstructured_map(self, path):
-        depth = self.depth
         if self.depth == 0:
             return {path: basename(path)}
-        else:
-            while depth > 0:
-                path = dirname(path)
-                depth -= 1
-            return {join(path, f): f for f in directory_files(path)}
+        root = self.root(path) if self.root else None
+        directory = path
+        for _ in range(self.depth):
+            parent = dirname(directory)
+            if root is not None and not path_within(parent, root):
+                break
+            directory = parent
+        return {join(directory, f): f for f in directory_files(directory)}
 
 
 DEFAULT_FILE_LISTER = FileLister({'depth': 0})

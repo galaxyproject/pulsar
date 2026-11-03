@@ -42,6 +42,11 @@ History
   paths.
 * Match ``prefix`` file action paths on whole path segments: ``/data/ref``
   matches ``/data/ref`` and ``/data/ref/x`` but no longer ``/data/refX``.
+* Resolve ``..`` segments in tool directory and unstructured paths found in
+  the command line and config files before staging them, and skip any that
+  leave the tool directory or the mapped path. ``depth`` expansion of
+  ``prefix`` and ``glob`` file actions no longer climbs above the mapped
+  directory.
 
 
 
