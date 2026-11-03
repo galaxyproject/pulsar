@@ -24,6 +24,7 @@ from os.path import (
     exists,
     join,
     relpath,
+    sep,
 )
 from threading import (
     Event,
@@ -68,6 +69,21 @@ def b64encode(val, **kwargs):
 @wraps(_b64decode)
 def b64decode(val, **kwargs):
     return _b64decode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
+
+
+def path_within(path, directory):
+    """Return True if ``path`` is ``directory`` or below it, comparing whole path segments.
+
+    >>> path_within("/data/ref", "/data/ref")
+    True
+    >>> path_within("/data/ref/hg19.fa", "/data/ref")
+    True
+    >>> path_within("/data/refX/hg19.fa", "/data/ref")
+    False
+    >>> path_within("/data/ref", "/")
+    True
+    """
+    return path == directory or path.startswith(directory.rstrip(sep) + sep)
 
 
 def unique_path_prefix(path):

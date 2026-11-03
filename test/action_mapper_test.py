@@ -36,6 +36,28 @@ def test_ssh_key_defaults():
     action.to_dict()
 
 
+def test_prefix_mapper_matches_whole_path_segments():
+    mapper = FileActionMapper(_mapped_client({"path": "/data/ref", "action": "copy"}))
+    assert mapper.action({"path": "/data/ref"}, "input").action_type == "copy"
+    assert mapper.action({"path": "/data/ref/hg19.fa"}, "input").action_type == "copy"
+    assert mapper.action({"path": "/data/refX/hg19.fa"}, "input").action_type == "none"
+    assert mapper.action({"path": "/data/ref2"}, "input").action_type == "none"
+
+
+def test_root_prefix_mapper_matches_everything():
+    mapper = FileActionMapper(_mapped_client({"path": "/", "action": "copy"}))
+    assert mapper.action({"path": "/data/ref/hg19.fa"}, "input").action_type == "copy"
+
+
+def _mapped_client(*paths):
+    return Bunch(
+        default_file_action="none",
+        action_config_path=None,
+        files_endpoint=None,
+        file_actions={"paths": list(paths)},
+    )
+
+
 def _min_client(default_action):
     """Minimal client, missing properties for certain actions."""
     mock_client = Bunch(
