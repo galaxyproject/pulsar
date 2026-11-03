@@ -35,6 +35,11 @@ History
   job after a resubmission. Add ``job_id_prefix`` (validated against GCP's job
   name rules) and ``gcp_kill_action: delete|cancel`` destination parameters.
   `Pull Request 473`_
+* Add a ``staging_manifest_callback`` argument to ``submit_job``. It is called
+  before launch with the source paths the remote Pulsar will fetch from the
+  client's files endpoint by path (``remote_transfer`` and
+  ``remote_transfer_tus`` setup actions), so the client can serve only those
+  paths.
 
 
 
