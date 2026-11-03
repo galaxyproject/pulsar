@@ -8,11 +8,13 @@ from os.path import (
     exists,
     isdir,
     join,
+    normpath,
     relpath,
 )
 from re import (
     escape,
     findall,
+    sub,
 )
 from typing import (
     Callable,
@@ -33,7 +35,9 @@ from ..job_directory import RemoteJobDirectory
 from ..util import (
     directory_files,
     ExternalId,
+    path_within,
     PathHelper,
+    resolve_parent_references,
 )
 
 if TYPE_CHECKING:
@@ -226,11 +230,14 @@ class FileStager:
             return None
 
     def __initialize_referenced_tool_files(self):
+        self.referenced_tool_files = []
         if self.tool_directory_required_files:
-            self.referenced_tool_files = [(join(self.tool_dir, x), x) for x in self.tool_directory_required_files.find_required_files(self.tool_dir)]
+            for required_file in self.tool_directory_required_files.find_required_files(self.tool_dir):
+                self.__add_referenced_tool_file(join(self.tool_dir, required_file))
         else:
             # Was this following line only for interpreter, should we disable it of 16.04+ tools
-            self.referenced_tool_files = [(x, relpath(x, self.tool_dir)) for x in self.job_inputs.find_referenced_subfiles(self.tool_dir)]
+            for referenced_file in self.job_inputs.find_referenced_subfiles(self.tool_dir):
+                self.__add_referenced_tool_file(referenced_file)
             # If the tool was created with a correct $__tool_directory__ find those files and transfer
             new_tool_directory = self.new_tool_directory
             if not new_tool_directory:
@@ -239,7 +246,22 @@ class FileStager:
             for potential_tool_file in self.job_inputs.find_referenced_subfiles(new_tool_directory):
                 local_file = potential_tool_file.replace(new_tool_directory, self.tool_dir)
                 if exists(local_file):
-                    self.referenced_tool_files.append((local_file, relpath(local_file, self.tool_dir)))
+                    self.__add_referenced_tool_file(local_file)
+
+    def __add_referenced_tool_file(self, path):
+        if not path_within(normpath(path), self.tool_dir):
+            log.warning("Not staging [%s], it is outside of the tool directory [%s]", path, self.tool_dir)
+            return
+        tool_file = self.__resolve_job_input_path(path)
+        self.referenced_tool_files.append((tool_file, relpath(tool_file, self.tool_dir)))
+
+    def __resolve_job_input_path(self, path):
+        # Staging and the rewrite to the remote path use the resolved path,
+        # so the command line and config files must reference it too.
+        resolved_path = resolve_parent_references(path)
+        if resolved_path != path:
+            self.job_inputs.rewrite_path_references(path, resolved_path)
+        return resolved_path
 
     def __initialize_referenced_arbitrary_files(self):
         referenced_arbitrary_path_mappers = {}
@@ -252,7 +274,12 @@ class FileStager:
                 if path not in referenced_arbitrary_path_mappers:
                     referenced_arbitrary_path_mappers[path] = mapper
         for path, mapper in referenced_arbitrary_path_mappers.items():
-            action = self.action_mapper.action({"path": path}, path_type.UNSTRUCTURED, mapper)
+            normalized_path = normpath(path)
+            if not mapper.matches(normalized_path, path_type.UNSTRUCTURED):
+                log.warning("Not staging [%s], its normalized path [%s] is outside of the mapped paths", path, normalized_path)
+                continue
+            resolved_path = self.__resolve_job_input_path(path)
+            action = self.action_mapper.action({"path": resolved_path}, path_type.UNSTRUCTURED, mapper)
             unstructured_map = action.unstructured_map(self.path_helper)
             self.arbitrary_files.update(unstructured_map)
 
@@ -467,6 +494,21 @@ class JobInputs:
         """
         self.__rewrite_command_line(local_path, remote_path)
         self.__rewrite_config_files(local_path, remote_path)
+
+    def rewrite_path_references(self, path, new_path):
+        """
+        Rewrite whole references to `path` with `new_path` in job inputs,
+        leaving longer paths that start with `path` alone.
+        """
+        # A reference ends where the patterns finding referenced files stop.
+        pattern = escape(path) + r"""(?=[\s,'"]|$)"""
+
+        def rewrite(contents):
+            return sub(pattern, lambda match: new_path, contents)
+
+        self.command_line = rewrite(self.command_line)
+        for config_file, contents in self.config_files.items():
+            self.config_files[config_file] = rewrite(contents)
 
     def __rewrite_command_line(self, local_path, remote_path):
         self.command_line = self.command_line.replace(local_path, remote_path)
