@@ -8,7 +8,10 @@ from .action_mapper import (
     path_type,
 )
 from .staging.inputs import CLIENT_INPUT_PATH_TYPES
-from .util import PathHelper
+from .util import (
+    PathHelper,
+    resolve_parent_references,
+)
 
 log = logging.getLogger(__name__)
 
@@ -65,10 +68,12 @@ class PathMapper:
 
     def check_for_arbitrary_rewrite(self, local_path):
         path = str(local_path)  # Use false_path if needed.
+        # The action mapper matches the normalized path, so stage the file the OS finds there.
+        path = resolve_parent_references(path)
         action = self.action_mapper.action({"path": path}, path_type.UNSTRUCTURED)
         if not action.staging_needed:
             return action.path_rewrite(self.path_helper), []
-        unique_names = action.unstructured_map()
+        unique_names = action.unstructured_map(self.path_helper)
         name = unique_names[path]
         remote_path = self.path_helper.remote_join(self.unstructured_files_directory, name)
         return remote_path, unique_names
