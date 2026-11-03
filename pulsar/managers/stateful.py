@@ -1,5 +1,5 @@
 import contextlib
-import datetime
+import datetime as dt
 import os
 import threading
 import time
@@ -113,7 +113,7 @@ class StatefulManagerProxy(ManagerProxy):
         self.__postprocess_action_executor = RetryActionExecutor(
             **postprocess_retry_action_kwds
         )
-        self.min_polling_interval = datetime.timedelta(0, min_polling_interval)
+        self.min_polling_interval = dt.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs.from_manager(manager)
         self.__state_change_callback = self._default_status_change_callback
         self.__monitor = None
@@ -656,7 +656,7 @@ class ManagerMonitor:
 
     def _monitor_active_jobs(self) -> None:
         active_job_ids = self.stateful_manager.active_jobs.active_job_ids()
-        iteration_start = datetime.datetime.now()
+        iteration_start = dt.datetime.now()
         for active_job_id in active_job_ids:
             try:
                 self._check_active_job_status(active_job_id)
@@ -664,7 +664,7 @@ class ManagerMonitor:
                 log.exception(
                     "Failed checking active job status for job_id %s" % active_job_id
                 )
-        iteration_end = datetime.datetime.now()
+        iteration_end = dt.datetime.now()
         iteration_length = iteration_end - iteration_start
 
         if iteration_length < self.stateful_manager.min_polling_interval:

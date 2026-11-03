@@ -16,6 +16,7 @@ from pulsar.client import (
     action_mapper,
     staging,
 )
+from pulsar.client.job_directory import verify_is_not_special_file
 from pulsar.client.staging import PulsarOutputs
 from pulsar.client.staging.down import ResultsCollector
 
@@ -132,6 +133,7 @@ class PulsarServerOutputCollector:
             name = os.path.basename(action.path)
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
+        verify_is_not_special_file(pulsar_path)
         description = f"staging out file {pulsar_path} via {action}"
         self.action_executor.execute(action_if_not_cancelled, description)
 

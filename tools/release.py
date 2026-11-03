@@ -7,7 +7,7 @@
   release.py push             push branch(es) and tag to galaxyproject/pulsar
 """
 import argparse
-import datetime
+import datetime as dt
 import json
 import os
 import re
@@ -265,7 +265,7 @@ def create(next_version=None, allow_missing_history=False, skip_ci=False):
     next_version = next_version or next_patch(release_version(dev_version))
     validate_next_version(release_version(dev_version), next_version, current_branch())
     version = check(allow_missing_history, skip_ci)
-    today = datetime.date.today().isoformat()
+    today = dt.date.today().isoformat()
     write(HISTORY, mark_released(read(HISTORY), dev_version, version, today))
     write(INIT, set_version(read(INIT), version))
     git("commit", "--quiet", "-m", f"Create pulsar release {version}", HISTORY, INIT)

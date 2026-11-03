@@ -4,7 +4,7 @@ This module provides functionality to bind Pulsar job managers to the
 pulsar-relay, allowing them to receive control messages (setup, status
 requests, kill) and publish status updates.
 """
-import datetime
+import datetime as dt
 import functools
 import logging
 import os
@@ -315,7 +315,7 @@ def publish_manager_capabilities_to_relay(app, manager, relay_transport, conf):
     relay_topic_prefix = conf.get('relay_topic_prefix', '')
     topic = __make_capabilities_topic_name(relay_topic_prefix, manager.name)
     payload = capabilities.to_dict()
-    payload["published_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    payload["published_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     try:
         relay_transport.post_message(topic, payload)
         log.info("Published capabilities for manager %s to relay topic %s", manager.name, topic)
