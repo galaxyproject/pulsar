@@ -1,7 +1,10 @@
 import io
 import logging
 import os.path
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+    suppress,
+)
 
 import requests
 
@@ -39,6 +42,7 @@ class PycurlTransport:
     def execute(self, url, method=None, data=None, input_path=None, output_path=None):
         buf = _open_output(output_path)
         input_fh = None
+        completed = False
         try:
             with _curl_object_for_url(url) as c:
                 c.setopt(c.WRITEFUNCTION, buf.write)
@@ -69,7 +73,14 @@ class PycurlTransport:
                     )
                 if not output_path:
                     return buf.getvalue()
+            completed = True
         finally:
+            if output_path and not completed:
+                # The response body (an error page, or a partial download) was
+                # streamed into output_path; don't leave it there as the output.
+                with suppress(OSError):
+                    buf.seek(0)
+                    buf.truncate()
             buf.close()
             if input_fh:
                 input_fh.close()

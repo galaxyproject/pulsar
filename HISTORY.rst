@@ -20,6 +20,10 @@ History
   downloaded outputs over HTTP. Such tools need to copy the input instead.
 * Raise on HTTP error responses in the curl transport, so an error page is
   never saved as a downloaded output.
+* Give an empty dataset rather than a failed job when Galaxy downloads a
+  ``from_work_dir`` output the tool didn't produce, as copying, Pulsar-side
+  staging and Galaxy's local runner already did. The server serves such an
+  output as an empty file instead of an error, so this works with any Galaxy.
 
 
 ---------------------

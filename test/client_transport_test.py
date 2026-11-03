@@ -301,6 +301,8 @@ def test_pycurl_transport_status_code(tmp_path):
             with pytest.raises(PulsarClientTransportError) as exc_info:
                 PycurlTransport().execute(request_url, data=None, output_path=output_path)
             assert isinstance(exc_info.value.transport_code, int) and exc_info.value.transport_code >= 400
+        # The error page streamed into the output file must not be left behind.
+        assert (tmp_path / "output").read_bytes() == b""
 
 
 class _FlakyApp:

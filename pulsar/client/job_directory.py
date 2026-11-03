@@ -2,6 +2,7 @@
 """
 import os.path
 import posixpath
+import stat
 from collections import deque
 from glob import glob
 from logging import getLogger
@@ -177,7 +178,12 @@ def verify_is_not_special_file(path):
     A tool can leave a FIFO, socket or device node where an output is expected;
     reading a FIFO would block staging out indefinitely.
     """
-    if os.path.exists(path) and not (os.path.isfile(path) or os.path.isdir(path)):
+    try:
+        mode = os.stat(path).st_mode
+    except (OSError, ValueError):
+        # Missing or unreadable, as os.path.exists() would report; the read reports it.
+        return
+    if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
         msg = "Attempt to read a special file, which is neither a regular file nor a directory."
         log.warning(f"{msg} Attempted path: {path}")
         raise UnsafePathError(msg)

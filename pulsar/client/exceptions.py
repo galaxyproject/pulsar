@@ -46,8 +46,10 @@ class PulsarClientTransportError(Exception):
 
 
 class UnsafePathError(Exception):
-    """A staged file was refused because reading or writing it could escape its job directory.
+    """A staged file was refused as unsafe to read or write.
 
-    Collecting an output that raises this always fails the job, so a refused
-    output never turns into a silently empty dataset.
+    Either it resolves outside its job directory (e.g. through a symlink a tool
+    left there), or it is a special file such as a FIFO, which would block
+    staging. Collecting an output that raises this always fails the job, so a
+    refused output never turns into a silently empty dataset.
     """

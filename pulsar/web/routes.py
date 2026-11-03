@@ -1,5 +1,6 @@
 import logging
 import os
+from glob import glob
 from json import loads
 
 from webob import exc
@@ -20,7 +21,10 @@ from pulsar.util import (
     copy_to_path,
     copy_to_temp,
 )
-from pulsar.web.framework import Controller
+from pulsar.web.framework import (
+    Controller,
+    EMPTY_FILE,
+)
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +121,23 @@ def path(manager, type, job_id, name):
 
 @PulsarController(path="/jobs/{job_id}/files", method="GET", response_type='file')
 def download_output(manager, job_id, name, type=path_type.OUTPUT):
-    return _output_path(manager, job_id, name, type)
+    path = _output_path(manager, job_id, name, type)
+    if type == path_type.OUTPUT_WORKDIR and _does_not_exist(path):
+        # A from_work_dir output the tool didn't produce. Galaxy's local runner
+        # leaves its dataset empty, and so do a copy action and Pulsar-side
+        # staging, so serve it as an empty file rather than as an error.
+        return EMPTY_FILE
+    return path
+
+
+def _does_not_exist(path):
+    # Only a missing file counts, as with the copy action and Pulsar-side
+    # staging; e.g. permission denied must not pass for one.
+    try:
+        os.stat(path)
+    except FileNotFoundError:
+        return True
+    return False
 
 
 def output_path(manager, job_id, name, type=path_type.OUTPUT):
@@ -137,6 +157,15 @@ def _output_path(manager, job_id, name, output_type):
         directory = manager.job_directory(job_id).metadata_directory()
     path = os.path.join(directory, name)
     verify_is_in_directory(path, directory)
+    glob_name = '*' in name or '?' in name  # the glob syntax Pulsar-side staging supports
+    if output_type == path_type.OUTPUT_WORKDIR and glob_name and not os.path.lexists(path):
+        # Galaxy resolves a from_work_dir glob against Pulsar's listing of the
+        # working directory, which doesn't descend into symlinked directories;
+        # resolve what it couldn't here, as Pulsar-side staging does.
+        matches = sorted(glob(path))
+        if matches:
+            path = matches[0]
+            verify_is_in_directory(path, directory)
     verify_is_not_special_file(path)
     return path
 
