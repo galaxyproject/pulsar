@@ -35,6 +35,8 @@ History
   client's files endpoint by path (``remote_transfer`` and
   ``remote_transfer_tus`` setup actions), so the client can serve only those
   paths.
+* Match ``prefix`` file action paths on whole path segments: ``/data/ref``
+  matches ``/data/ref`` and ``/data/ref/x`` but no longer ``/data/refX``.
 
 
 

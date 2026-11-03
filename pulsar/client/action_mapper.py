@@ -43,6 +43,7 @@ from .transport.tus import (
 from .util import (
     copy_to_path,
     directory_files,
+    path_within,
     unique_path_prefix,
 )
 
@@ -764,7 +765,7 @@ class PrefixPathMapper(BasePathMapper):
         self.prefix_path = abspath(config['path'])
 
     def _path_matches(self, path):
-        return path is not None and path.startswith(self.prefix_path)
+        return path is not None and path_within(path, self.prefix_path)
 
     def to_pattern(self):
         pattern_str = rf"({escape(self.prefix_path)}{escape(sep)}[^\s,\"\']+)"
