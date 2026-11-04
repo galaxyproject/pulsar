@@ -261,7 +261,9 @@ def test_collect_output_reraises_transport_error_for_workdir_output():
     zero-length outputs. PulsarClientTransportError is not an OSError, so it has
     to be recognized explicitly."""
     rc = _results_collector_with_failing_collect(
-        PulsarClientTransportError(transport_code=500, transport_message="POST failed")
+        PulsarClientTransportError(
+            code=PulsarClientTransportError.NOT_200, transport_code=500, transport_message="POST failed"
+        )
     )
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     with pytest.raises(PulsarClientTransportError):
@@ -272,6 +274,8 @@ def test_collect_output_tolerates_403_transport_error_for_workdir_output():
     """The 403 carve-out is keyed on the status code, not the exception class, so
     it applies to a transport error carrying 403 just as it does to a
     requests.HTTPError."""
-    rc = _results_collector_with_failing_collect(PulsarClientTransportError(transport_code=403))
+    rc = _results_collector_with_failing_collect(
+        PulsarClientTransportError(code=PulsarClientTransportError.NOT_200, transport_code=403)
+    )
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     assert rc._collect_output("output_workdir", action, "out1") is False
