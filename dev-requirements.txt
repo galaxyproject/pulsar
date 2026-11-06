@@ -10,6 +10,8 @@ boto3
 
 # For testing
 simple-job-files
+# The CLI adapter stays optional; executor integration tests run only where supported.
+engagequeue==0.1.1; python_version >= '3.10' and (sys_platform == 'linux' or sys_platform == 'darwin')
 pytest
 pytest-timeout
 responses

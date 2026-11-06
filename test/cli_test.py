@@ -1,7 +1,16 @@
+import sys
+
 from pulsar.managers import status
 from pulsar.managers.queued_cli import _CLI_STATE_TO_STATUS
 from pulsar.managers.util.cli import factory
 from pulsar.managers.util.cli.job import job_states
+from pulsar.managers.util.cli.shell.local import LocalShell
+
+
+def test_local_shell_preserves_rejected_command_exit_status():
+    result = LocalShell().execute([sys.executable, "-c", "import sys; sys.stderr.write('rejected'); sys.exit(3)"])
+    assert result.returncode == 3
+    assert result.stderr == "rejected"
 
 
 def test_torque_cli():

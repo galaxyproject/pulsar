@@ -78,6 +78,9 @@ jobs:
       run: pip install tox
     - name: Run setup
       run: .ci/setup_tests.sh
+    - name: Preload EngageQueue container fixture
+      if: matrix.tox-env != 'install_wheel'
+      run: docker pull alpine@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
     - name: Run tests
       run: . local_env.sh; tox -e ${{ matrix.tox-env }}
       env:
@@ -85,6 +88,65 @@ jobs:
         PULSAR_TEST_EXTERNAL_JOB_FILES_URL: "http://localhost:8000"
         PULSAR_TEST_EXTERNAL_JOB_FILES_DIRECTORY: "/tmp"
         TEST_WEBAPP_POST_SHUTDOWN_SLEEP: 1
+  engagequeue-macos:
+    name: Native EngageQueue (${{ matrix.runner }}, Python 3.12)
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - runner: macos-15-intel
+          machine: x86_64
+        - runner: macos-26
+          machine: arm64
+    env:
+      CONDA_PKGS_DIRS: ${{ github.workspace }}/.cache/conda/pkgs
+      PIP_CACHE_DIR: ${{ github.workspace }}/.cache/pip
+      PYTHONDONTWRITEBYTECODE: '1'
+      TEST_WEBAPP_POST_SHUTDOWN_SLEEP: '1'
+    steps:
+    - uses: actions/checkout@v7.0.1
+      with:
+        persist-credentials: false
+    - name: Install native Miniforge
+      shell: bash
+      run: |
+        if [ ! -x "$HOME/miniforge3/bin/conda" ]; then
+          curl -fsSL "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh" -o "$RUNNER_TEMP/miniforge.sh"
+          bash "$RUNNER_TEMP/miniforge.sh" -b -p "$HOME/miniforge3"
+        fi
+    - name: Create project-local environment
+      run: '"$HOME/miniforge3/bin/conda" create -y --prefix "$PWD/.conda/pulsar" --override-channels -c conda-forge python=3.12 pip'
+    - name: Install Pulsar and optional executor test dependencies
+      run: .conda/pulsar/bin/python -m pip install -e . 'engagequeue==0.1.1' pytest pytest-timeout responses webtest simple-job-files
+    - name: Require native macOS and the published executor
+      run: |
+        .conda/pulsar/bin/python - <<'PY'
+        import importlib.metadata
+        import platform
+        import sys
+        from pathlib import Path
+        import engagequeue
+
+        assert sys.platform == 'darwin'
+        assert sys.version_info[:2] == (3, 12)
+        assert platform.machine() == '${{ matrix.machine }}'
+        assert importlib.metadata.version('engagequeue') == '0.1.1'
+        assert Path(engagequeue.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
+        PY
+    - name: Native foreground execution and client compatibility
+      run: |
+        PATH="$PWD/.conda/pulsar/bin:$PATH" .conda/pulsar/bin/python -m pytest -q --timeout=60 --junitxml=reports/engagequeue-macos.xml \
+          test/engagequeue_cli_test.py test/engagequeue_optional_test.py \
+          test/collection_ack_test.py test/cli_test.py test/stateful_test.py
+    - name: Save native macOS reports
+      if: always()
+      uses: actions/upload-artifact@v7.0.2
+      with:
+        name: pulsar-engagequeue-${{ matrix.runner }}-py312
+        path: reports/engagequeue-macos.xml
+        if-no-files-found: ignore
   resilience:
     name: Resilience Suite
     runs-on: ubuntu-24.04
