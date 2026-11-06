@@ -8,13 +8,17 @@ from os.path import (
     exists,
     isdir,
     join,
+    normpath,
     relpath,
 )
 from re import (
     escape,
     findall,
+    sub,
 )
 from typing import (
+    Callable,
+    List,
     Optional,
     TYPE_CHECKING,
 )
@@ -22,6 +26,7 @@ from typing import (
 from . import COMMAND_VERSION_FILENAME
 from .inputs import CLIENT_INPUT_PATH_TYPES
 from ..action_mapper import (
+    BaseRemoteTransferAction,
     FileActionMapper,
     MessageAction,
     path_type,
@@ -30,7 +35,9 @@ from ..job_directory import RemoteJobDirectory
 from ..util import (
     directory_files,
     ExternalId,
+    path_within,
     PathHelper,
+    resolve_parent_references,
 )
 
 if TYPE_CHECKING:
@@ -39,7 +46,20 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-def submit_job(client, client_job_description: "ClientJobDescription", job_config=None):
+def submit_job(
+    client,
+    client_job_description: "ClientJobDescription",
+    job_config=None,
+    staging_manifest_callback: Optional[Callable[[List[str]], None]] = None,
+):
+    """Stage the job's files and launch it.
+
+    If ``staging_manifest_callback`` is set, it is called once, before the job
+    is launched, with the source path of every setup action the remote Pulsar
+    fetches from the client's files endpoint by path (``remote_transfer`` and
+    ``remote_transfer_tus``). An action that fetches from a URL its source
+    names is not reported.
+    """
     file_stager = FileStager(client, client_job_description, job_config)
     rebuilt_command_line = file_stager.get_command_line()
     job_id = file_stager.job_id
@@ -75,6 +95,8 @@ def submit_job(client, client_job_description: "ClientJobDescription", job_confi
     # it needs to be in the response to Pulsar even Pulsar is inititing staging actions
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
+    if staging_manifest_callback is not None:
+        staging_manifest_callback(file_stager.transfer_tracker.remote_transfer_paths)
     # for pulsar modalities that skip the explicit "setup" step, give them a chance to set an external
     # id from the submission process (e.g. to TES).
     launch_response = client.launch(**launch_kwds)
@@ -208,11 +230,14 @@ class FileStager:
             return None
 
     def __initialize_referenced_tool_files(self):
+        self.referenced_tool_files = []
         if self.tool_directory_required_files:
-            self.referenced_tool_files = [(join(self.tool_dir, x), x) for x in self.tool_directory_required_files.find_required_files(self.tool_dir)]
+            for required_file in self.tool_directory_required_files.find_required_files(self.tool_dir):
+                self.__add_referenced_tool_file(join(self.tool_dir, required_file))
         else:
             # Was this following line only for interpreter, should we disable it of 16.04+ tools
-            self.referenced_tool_files = [(x, relpath(x, self.tool_dir)) for x in self.job_inputs.find_referenced_subfiles(self.tool_dir)]
+            for referenced_file in self.job_inputs.find_referenced_subfiles(self.tool_dir):
+                self.__add_referenced_tool_file(referenced_file)
             # If the tool was created with a correct $__tool_directory__ find those files and transfer
             new_tool_directory = self.new_tool_directory
             if not new_tool_directory:
@@ -221,7 +246,22 @@ class FileStager:
             for potential_tool_file in self.job_inputs.find_referenced_subfiles(new_tool_directory):
                 local_file = potential_tool_file.replace(new_tool_directory, self.tool_dir)
                 if exists(local_file):
-                    self.referenced_tool_files.append((local_file, relpath(local_file, self.tool_dir)))
+                    self.__add_referenced_tool_file(local_file)
+
+    def __add_referenced_tool_file(self, path):
+        if not path_within(normpath(path), self.tool_dir):
+            log.warning("Not staging [%s], it is outside of the tool directory [%s]", path, self.tool_dir)
+            return
+        tool_file = self.__resolve_job_input_path(path)
+        self.referenced_tool_files.append((tool_file, relpath(tool_file, self.tool_dir)))
+
+    def __resolve_job_input_path(self, path):
+        # Staging and the rewrite to the remote path use the resolved path,
+        # so the command line and config files must reference it too.
+        resolved_path = resolve_parent_references(path)
+        if resolved_path != path:
+            self.job_inputs.rewrite_path_references(path, resolved_path)
+        return resolved_path
 
     def __initialize_referenced_arbitrary_files(self):
         referenced_arbitrary_path_mappers = {}
@@ -234,7 +274,12 @@ class FileStager:
                 if path not in referenced_arbitrary_path_mappers:
                     referenced_arbitrary_path_mappers[path] = mapper
         for path, mapper in referenced_arbitrary_path_mappers.items():
-            action = self.action_mapper.action({"path": path}, path_type.UNSTRUCTURED, mapper)
+            normalized_path = normpath(path)
+            if not mapper.matches(normalized_path, path_type.UNSTRUCTURED):
+                log.warning("Not staging [%s], its normalized path [%s] is outside of the mapped paths", path, normalized_path)
+                continue
+            resolved_path = self.__resolve_job_input_path(path)
+            action = self.action_mapper.action({"path": resolved_path}, path_type.UNSTRUCTURED, mapper)
             unstructured_map = action.unstructured_map(self.path_helper)
             self.arbitrary_files.update(unstructured_map)
 
@@ -450,6 +495,21 @@ class JobInputs:
         self.__rewrite_command_line(local_path, remote_path)
         self.__rewrite_config_files(local_path, remote_path)
 
+    def rewrite_path_references(self, path, new_path):
+        """
+        Rewrite whole references to `path` with `new_path` in job inputs,
+        leaving longer paths that start with `path` alone.
+        """
+        # A reference ends where the patterns finding referenced files stop.
+        pattern = escape(path) + r"""(?=[\s,'"]|$)"""
+
+        def rewrite(contents):
+            return sub(pattern, lambda match: new_path, contents)
+
+        self.command_line = rewrite(self.command_line)
+        for config_file, contents in self.config_files.items():
+            self.config_files[config_file] = rewrite(contents)
+
     def __rewrite_command_line(self, local_path, remote_path):
         self.command_line = self.command_line.replace(local_path, remote_path)
 
@@ -475,6 +535,7 @@ class TransferTracker:
         self.job_directory = job_directory
         self.file_renames = {}
         self.remote_staging_actions = []
+        self.remote_transfer_paths = []
 
     def handle_transfer_path(self, path, type, name=None, contents=None):
         source = {"path": path}
@@ -565,6 +626,10 @@ class TransferTracker:
             "action": action.to_dict(),
         }
         self.remote_staging_actions.append(input_dict)
+        # Only a remote transfer fetching from the client's files endpoint by path, not one
+        # fetching from a URL its source names.
+        if isinstance(action, BaseRemoteTransferAction) and action.url != action.source.get("url"):
+            self.remote_transfer_paths.append(action.path)
 
     def __action_for_transfer(self, source, type, contents):
         if contents:

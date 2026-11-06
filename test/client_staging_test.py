@@ -7,14 +7,21 @@ import requests
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
 
+from pulsar.client.action_mapper import FileActionMapper
 from pulsar.client.exceptions import PulsarClientTransportError
+from pulsar.client.job_directory import RemoteJobDirectory
 from pulsar.client.staging.down import ResultsCollector
 from pulsar.client.staging.models import (
+    ClientInputs,
     ClientJobDescription,
     ClientOutputs,
 )
-from pulsar.client.staging.up import submit_job
+from pulsar.client.staging.up import (
+    submit_job,
+    TransferTracker,
+)
 from pulsar.client.test.test_common import write_config
+from pulsar.client.util import PathHelper
 from .test_utils import TempDirectoryTestCase
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
@@ -74,6 +81,56 @@ class TestStager(TempDirectoryTestCase):
         uploaded_file1 = self.client.put_files[0]
         assert uploaded_file1[1] == "tool"
         self.assertEqual(uploaded_file1[0], "%s/tool1_wrapper.py" % tool_dir)
+
+    def test_tool_file_reference_is_normalized(self):
+        self.client_job_description.rewrite_paths = True
+        tool_dir = os.path.abspath(self.tool.tool_dir)
+        self.client_job_description.command_line = f"python {tool_dir}/../{os.path.basename(tool_dir)}/tool1_wrapper.py"
+        self.client.expect_put_paths(["/pulsar/staging/1/tools/tool1_wrapper.py"])
+        self.client.expect_command_line("python /pulsar/staging/1/tools/tool1_wrapper.py")
+        self._submit()
+        assert self.client.put_files[0][:3] == ("%s/tool1_wrapper.py" % tool_dir, "tool", "tool1_wrapper.py")
+
+    def test_tool_file_reference_outside_tool_directory_is_not_staged(self):
+        self.client_job_description.rewrite_paths = True
+        tool_dir = os.path.abspath(self.tool.tool_dir)
+        secret = os.path.join(self.temp_directory, "secret")
+        open(secret, "w").write("secret")
+        command_line = f"python {tool_dir}/{os.path.relpath(secret, tool_dir)}"
+        self.client_job_description.command_line = command_line
+        self.client.expect_command_line(command_line)
+        self._submit()
+        assert self.client.put_files == []
+
+    def test_unstructured_path_is_normalized_and_stays_inside_mapped_path(self):
+        self.client_job_description.rewrite_paths = True
+        ref = os.path.join(self.temp_directory, "ref")
+        outside = os.path.join(self.temp_directory, "outside")
+        os.makedirs(os.path.join(outside, "inner"))
+        os.makedirs(ref)
+        os.symlink(os.path.join(outside, "inner"), os.path.join(ref, "link"))
+        for path in [os.path.join(ref, "genome.fa"), os.path.join(outside, "genome.fa"), os.path.join(self.temp_directory, "secret")]:
+            open(path, "w").write(path)
+        self.client.set_action_map_config({"paths": [{"path": ref, "path_types": "*any*"}]})
+        escaping_path = f"{ref}/../secret"
+        self.client_job_description.command_line = f"foo.exe {ref}/link/../genome.fa {escaping_path}"
+        self.client.expect_put_paths(["/pulsar/staging/1/other/genome.fa"])
+        self.client.expect_command_line(f"foo.exe /pulsar/staging/1/other/genome.fa {escaping_path}")
+        self._submit()
+        assert [put_file[:2] for put_file in self.client.put_files] == [(os.path.join(ref, "genome.fa"), "unstructured")]
+
+    def test_resolving_a_reference_leaves_longer_paths_alone(self):
+        self.client_job_description.rewrite_paths = True
+        ref = os.path.join(self.temp_directory, "ref")
+        os.makedirs(os.path.join(ref, "g"))
+        open(os.path.join(ref, "g", "hg19.fa"), "w").write("x")
+        self.client.set_action_map_config({"paths": [{"path": ref, "path_types": "*any*"}]})
+        self.client_job_description.command_line = f"foo.exe --dir {ref}/g/ --fa {ref}/g/hg19.fa --x {ref}/sub/../g/hg19.fa"
+        self.client.put_file = lambda path, type, name, contents, action_type="transfer": {
+            "path": path.replace(ref, "/remote/ref")
+        }
+        self.client.expect_command_line("foo.exe --dir /remote/ref/g/ --fa /remote/ref/g/hg19.fa --x /remote/ref/g/hg19.fa")
+        self._submit()
 
     def test_input_extra_rewrite(self):
         self.client_job_description.rewrite_paths = True
@@ -142,6 +199,45 @@ class TestStager(TempDirectoryTestCase):
         self._submit()
         self._assert_inputs_uploaded()
 
+    def test_staging_manifest_callback_lists_remote_transfer_paths_before_launch(self):
+        files_directory = os.path.dirname(self.input1)
+        inputs = {}
+        for action_type in ["remote_transfer", "remote_transfer_tus", "remote_copy", "copy", "transfer", "none"]:
+            path = os.path.join(files_directory, f"{action_type}_input.dat")
+            with open(path, "w") as f:
+                f.write(action_type)
+            inputs[action_type] = path
+        self.client_job_description.client_inputs = ClientInputs.for_simple_input_paths(list(inputs.values()))
+        self.client.files_endpoint = "http://galaxy.test/api/jobs/1/files?job_key=x"
+        self.client.set_action_map_config({"paths": [
+            {"path": path, "action": action_type} for action_type, path in inputs.items()
+        ]})
+        self.client.expect_put_paths([
+            "/pulsar/staging/1/inputs/copy_input.dat",
+            "/pulsar/staging/1/inputs/transfer_input.dat",
+        ])
+        self.job_config["job_directory"] = "/pulsar/staging/1"
+        events = []
+        launch = self.client.launch
+
+        def record_launch(**kwds):
+            events.append("launch")
+            return launch(**kwds)
+
+        self.client.launch = record_launch
+        submit_job(
+            self.client,
+            self.client_job_description,
+            self.job_config,
+            staging_manifest_callback=lambda paths: events.append(paths),
+        )
+        assert events == [[inputs["remote_transfer"], inputs["remote_transfer_tus"]], "launch"]
+
+    def test_staging_manifest_callback_without_remote_transfers(self):
+        manifests = []
+        self._submit(staging_manifest_callback=manifests.append)
+        assert manifests == [[]]
+
     def _assert_inputs_uploaded(self):
         # Expect both files staged
         uploaded_file1 = self.client.put_files[0]
@@ -151,8 +247,8 @@ class TestStager(TempDirectoryTestCase):
         assert uploaded_file2[1] == "input"
         assert uploaded_file2[0] == self.input2
 
-    def _submit(self):
-        return submit_job(self.client, self.client_job_description, self.job_config)
+    def _submit(self, **kwds):
+        return submit_job(self.client, self.client_job_description, self.job_config, **kwds)
 
 
 class MockClient:
@@ -275,3 +371,42 @@ def test_collect_output_tolerates_403_transport_error_for_workdir_output():
     rc = _results_collector_with_failing_collect(PulsarClientTransportError(transport_code=403))
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     assert rc._collect_output("output_workdir", action, "out1") is False
+
+
+class SourceUrlActionMapper:
+    """Give remote transfers the URL their source names, as a mapper that fetches inputs from URLs Galaxy issues does."""
+
+    def __init__(self, action_mapper):
+        self.action_mapper = action_mapper
+
+    def action(self, source, type, mapper=None):
+        action = self.action_mapper.action(source, type, mapper)
+        if source.get("url"):
+            action.url = source["url"]
+        return action
+
+
+@pytest.mark.parametrize("action_type", ["remote_transfer", "remote_transfer_tus"])
+def test_staging_manifest_omits_remote_transfers_from_source_urls(tmp_path, action_type):
+    by_path = tmp_path / "by_path.dat"
+    by_url = tmp_path / "by_url.dat"
+    by_path.write_text("by path")
+    by_url.write_text("by url")
+    action_mapper = FileActionMapper(config={
+        "default_action": action_type,
+        "files_endpoint": "http://galaxy.test/api/jobs/1/files?job_key=x",
+    })
+    tracker = TransferTracker(
+        None,
+        PathHelper("/"),
+        SourceUrlActionMapper(action_mapper),
+        None,
+        False,
+        RemoteJobDirectory("/pulsar/staging", "1", "/"),
+    )
+    tracker.handle_transfer_source({"path": str(by_path)}, "input")
+    tracker.handle_transfer_source(
+        {"path": str(by_url), "url": "http://galaxy.test/api/jobs/1/staging/inputs/dataset/1?sig=x"}, "input"
+    )
+    assert [action["name"] for action in tracker.remote_staging_actions] == ["by_path.dat", "by_url.dat"]
+    assert tracker.remote_transfer_paths == [str(by_path)]
