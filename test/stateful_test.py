@@ -21,6 +21,11 @@ from .test_utils import (
 TEST_JOB_ID = "4"
 # An empty staging config exercises postprocessing without external transfers.
 TEST_LAUNCH_CONFIG = {"command_line": "true", "remote_staging": {}}
+# A non-empty setup list routes the job through the preprocessing thread.
+STAGING_LAUNCH_CONFIG = {
+    "command_line": "true",
+    "remote_staging": {"setup": [{"name": "input1", "type": "input", "action": {}}]},
+}
 
 
 class _ScriptedStatusManager(QueueManager):
@@ -268,6 +273,46 @@ def test_preprocessing_failure_is_reported_once():
         assert proxy.callbacks == [(status.FAILED, job_id)]
 
 
+@pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (0, 3)])
+def test_staging_concurrency_is_capped_by_preprocess_max_concurrent(max_concurrent, expected_peak):
+    release = threading.Event()
+    lock = threading.Lock()
+    running = 0
+    peak = 0
+    started = 0
+
+    def held_preprocess(*args, **kwds):
+        nonlocal running, peak, started
+        with lock:
+            running += 1
+            started += 1
+            peak = max(peak, running)
+        release.wait(5)
+        with lock:
+            running -= 1
+
+    options = {"preprocess_max_concurrent": max_concurrent}
+    with _proxy(**options) as (proxy, manager):
+        with mock.patch.object(stateful, "preprocess", held_preprocess):
+            job_ids = [proxy.setup_job(str(i), "tool1", "1.0.0") for i in (1, 2, 3)]
+            for job_id in job_ids:
+                proxy.preprocess_and_launch(job_id, STAGING_LAUNCH_CONFIG)
+            # Every job is tracked as preprocessing, slot or no slot.
+            preprocessing = proxy.active_jobs.active_job_ids(stateful.ACTIVE_STATUS_PREPROCESSING)
+            assert sorted(preprocessing) == sorted(job_ids)
+            wait_for(lambda: started == expected_peak, "jobs to start staging", until=lambda n: n)
+            time.sleep(.2)
+            assert started == expected_peak
+            release.set()
+            wait_for(lambda: started == 3, "all jobs to stage", until=lambda n: n)
+        wait_for(
+            lambda: not proxy.active_jobs.active_job_ids(stateful.ACTIVE_STATUS_PREPROCESSING),
+            "staging to finish",
+            until=lambda done: done,
+        )
+    assert peak == expected_peak
+
+
 def test_monitor_can_start_after_external_job_recovery():
     with _proxy(_RecoveringStatusManager) as (proxy, manager):
         job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
@@ -401,7 +446,7 @@ def test_interrupted_postprocessing_is_not_reported_lost():
 
 
 @contextmanager
-def _proxy(manager_class=_ScriptedStatusManager, app=None):
+def _proxy(manager_class=_ScriptedStatusManager, app=None, **proxy_options):
     """Yield a proxy, owning the app whose staging directory it uses.
 
     Pass ``app`` to build a second proxy over state a first one left behind -
@@ -411,7 +456,7 @@ def _proxy(manager_class=_ScriptedStatusManager, app=None):
     if owns_app:
         app = minimal_app_for_managers()
     manager = manager_class("test", app, num_concurrent_jobs=0)
-    proxy = _RecordingStatefulManagerProxy(manager)
+    proxy = _RecordingStatefulManagerProxy(manager, **proxy_options)
     try:
         yield proxy, manager
     finally:
