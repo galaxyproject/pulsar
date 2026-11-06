@@ -115,6 +115,12 @@ class StatefulManagerProxy(ManagerProxy):
         self.__postprocess_action_executor = RetryActionExecutor(
             **postprocess_retry_action_kwds
         )
+        self.__preprocess_slots = _staging_slots(
+            manager_options.get("preprocess_max_concurrent")
+        )
+        self.__postprocess_slots = _staging_slots(
+            manager_options.get("postprocess_max_concurrent")
+        )
         self.min_polling_interval = dt.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs.from_manager(manager)
         self.__state_change_callback = self._default_status_change_callback
@@ -240,13 +246,14 @@ class StatefulManagerProxy(ManagerProxy):
                             ssh_key=staging_config["action_mapper"]["ssh_key"]
                         )
                 setup_config = staging_config.get("setup", [])
-                preprocess(
-                    job_directory,
-                    setup_config,
-                    self.__preprocess_action_executor,
-                    was_cancelled,
-                    object_store=self.object_store,
-                )
+                with _staging_slot(self.__preprocess_slots, "preprocess", job_id):
+                    preprocess(
+                        job_directory,
+                        setup_config,
+                        self.__preprocess_action_executor,
+                        was_cancelled,
+                        object_store=self.object_store,
+                    )
                 self.active_jobs.deactivate_job(
                     job_id, active_status=ACTIVE_STATUS_PREPROCESSING
                 )
@@ -420,9 +427,10 @@ class StatefulManagerProxy(ManagerProxy):
             was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
             try:
                 self._finish_live_output(job_id)
-                postprocess_success = postprocess(
-                    job_directory, self.__postprocess_action_executor, was_cancelled
-                )
+                with _staging_slot(self.__postprocess_slots, "postprocess", job_id):
+                    postprocess_success = postprocess(
+                        job_directory, self.__postprocess_action_executor, was_cancelled
+                    )
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
             outcome_persisted = False
@@ -699,6 +707,35 @@ class ManagerMonitor:
         # Manager itself will handle state transitions when status changes,
         # just need to poll get_status
         self.stateful_manager.get_status(active_job_id)
+
+
+def _staging_slots(max_concurrent: Any) -> Optional[threading.BoundedSemaphore]:
+    """Build the semaphore for a ``*_max_concurrent`` option; unset or 0 is unlimited."""
+    max_concurrent = int(max_concurrent or 0)
+    if max_concurrent <= 0:
+        return None
+    return threading.BoundedSemaphore(max_concurrent)
+
+
+@contextlib.contextmanager
+def _staging_slot(
+    slots: Optional[threading.BoundedSemaphore], action: str, job_id: str
+) -> Generator[None, None, None]:
+    """Hold a staging slot for the duration of a job's transfers.
+
+    Every job still gets its own thread, so queued jobs stay tracked as
+    preprocessing/postprocessing; only the transfers themselves wait.
+    """
+    if slots is None:
+        yield
+        return
+    if not slots.acquire(blocking=False):
+        log.info("[action=%s]-[job=%s] waiting for a staging slot", action, job_id)
+        slots.acquire()
+    try:
+        yield
+    finally:
+        slots.release()
 
 
 def new_thread_for_job(
