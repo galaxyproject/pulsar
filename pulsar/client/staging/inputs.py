@@ -12,15 +12,34 @@ CLIENT_INPUT_PATH_TYPES = Bunch(
 
 
 class ClientInput:
+    """An input of a job, named by its path on Galaxy.
 
-    def __init__(self, path, input_type, object_store_ref=None):
+    ``path`` is always set: the job's command line and config files refer to the
+    input by it, it is rewritten to where Pulsar stages the input, and it names
+    the staged copy. Unless told otherwise, the input is read from ``path``.
+
+    Galaxy may instead say where to fetch the input, so that ``path`` need not
+    exist on Galaxy's disk: ``url`` for a file, or for an extra files directory
+    ``extra_files``, mapping each file's path relative to the directory to its
+    URL. Only remote transfers fetch from these URLs; any other action still
+    reads ``path``.
+    """
+
+    def __init__(self, path, input_type, object_store_ref=None, url=None, extra_files=None):
         self.path = path
         self.input_type = input_type
         self.object_store_ref = object_store_ref
+        self.url = url
+        self.extra_files = extra_files
 
     @property
     def action_source(self):
-        return {"path": self.path, "object_store_ref": self.object_store_ref}
+        return {
+            "path": self.path,
+            "object_store_ref": self.object_store_ref,
+            "url": self.url,
+            "extra_files": self.extra_files,
+        }
 
 
 class ClientInputs:
