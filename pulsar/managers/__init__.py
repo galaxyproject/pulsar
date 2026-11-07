@@ -129,6 +129,14 @@ class ManagerProxy:
     def clean(self, *args, **kwargs) -> None:
         return self._proxied_manager.clean(*args, **kwargs)
 
+    def acknowledge_collection(self, *args, **kwargs):
+        """Forward the optional, capability-advertised collection acknowledgment."""
+        return self._proxied_manager.acknowledge_collection(*args, **kwargs)
+
+    def confirm_cancelled_before_launch(self, *args, **kwargs):
+        """Forward optional cancellation confirmation after preprocessing exits."""
+        return self._proxied_manager.confirm_cancelled_before_launch(*args, **kwargs)
+
     def launch(self, *args, **kwargs) -> None:
         return self._proxied_manager.launch(*args, **kwargs)
 

@@ -60,6 +60,12 @@ def clean(manager, job_id):
     manager.clean(job_id)
 
 
+@PulsarController(path="/jobs/{job_id}/collection", method="PUT", response_type='json')
+def acknowledge_collection(manager, job_id):
+    """Acknowledge successful client import without implicitly requesting cleanup."""
+    return {"acknowledged": bool(manager.acknowledge_collection(job_id))}
+
+
 @PulsarController(path="/jobs/{job_id}/submit", method="POST")
 def submit(manager, job_id, command_line, params='{}', dependencies_description='null', setup_params='{}',
            remote_staging='{}', env='[]', submit_extras='{}', dynamic_file_sources='null', cvmfsexec='null'):

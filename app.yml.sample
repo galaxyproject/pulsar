@@ -31,6 +31,15 @@
 #    ## job destination (not here) with a file_actions rewrite rule; see the
 #    ## example in the "Galaxy Configuration" section of Pulsar's docs:
 #    ## https://pulsar.readthedocs.io/en/latest/galaxy_conf.html
+#  ## Local tools that continue through a Pulsar or embedded Galaxy restart.
+#  ## Use a separate staging_directory for each independent capacity pool.
+#  #local_detached:
+#  #  type: detached_local
+#  #  staging_directory: /fast-local-disk/pulsar-staging
+#  #  num_concurrent_jobs: 2  # null or 0: unlimited; "*": host CPU count
+#  #  cancel_grace_seconds: 10
+#  #  poll_interval: 0.5
+#  #  supervisor_respawn_interval: 3
 
 
 ## Mode to create job releated directories with. If unset
