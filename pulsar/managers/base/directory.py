@@ -41,11 +41,14 @@ JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
 JOB_FILE_COMMAND_LINE = "command_line"
 CREATE_TMP_PATTERN = """$([ ! -e '{0}/tmp' ] || mv '{0}/tmp' '{0}'/tmp.$(date +%Y%m%d-%H%M%S) ; mkdir '{0}/tmp'; echo '{0}/tmp')"""
+# A ``.orig`` directory only ever appears through a rename of a completed copy,
+# so a rerun never restores from a partial backup.
 PREPARE_DIRS_TEMPLATE = """for dir in {working_directory} {outputs_directory} {configs_directory}; do
     if [ -d "${{dir}}.orig" ]; then
         rm -rf "$dir"; cp -R "${{dir}}.orig" "$dir"
     else
-        cp -R "$dir" "${{dir}}.orig"
+        rm -rf "${{dir}}.orig.tmp"
+        cp -R "$dir" "${{dir}}.orig.tmp" && mv "${{dir}}.orig.tmp" "${{dir}}.orig"
     fi
 done
 """
