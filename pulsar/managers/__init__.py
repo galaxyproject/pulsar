@@ -106,6 +106,13 @@ class ManagerInterface:
         End or cancel execution of the specified job.
         """
 
+    def runner_state(self, job_id: str) -> Optional[str]:
+        """
+        Return why the job failed as one of the ``runner_states`` values, or
+        ``None`` if this manager cannot tell.
+        """
+        return None
+
     # TODO return type? Is this implemented anywhere, should be or? Found it only in ManagerProxy
     @abstractmethod
     def job_directory(self, job_id: str):
@@ -137,6 +144,9 @@ class ManagerProxy:
 
     def return_code(self, *args, **kwargs) -> Union[int, bytes, str]:
         return self._proxied_manager.return_code(*args, **kwargs)
+
+    def runner_state(self, *args, **kwargs) -> Optional[str]:
+        return self._proxied_manager.runner_state(*args, **kwargs)
 
     def stdout_contents(self, *args, **kwargs) -> bytes:
         return self._proxied_manager.stdout_contents(*args, **kwargs)

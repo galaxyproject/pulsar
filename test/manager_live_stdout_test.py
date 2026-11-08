@@ -676,6 +676,9 @@ class _StatusManager:
         self._live = live
         self._job_directory = _StatusJobDirectory()
 
+    def runner_state(self, job_id):
+        return None
+
     def is_live_stdout_update(self, job_id):
         return self._live
 

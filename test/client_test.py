@@ -4,6 +4,7 @@ import tempfile
 from collections import deque
 from types import SimpleNamespace
 from unittest.mock import (
+    Mock,
     patch,
     PropertyMock,
 )
@@ -11,7 +12,10 @@ from unittest.mock import (
 import pytest
 
 from pulsar import __version__ as pulsar_version
-from pulsar.client.client import JobClient
+from pulsar.client.client import (
+    JobClient,
+    MessageJobClient,
+)
 from pulsar.client.coexecution_manager import CoexecutionPollingJobClientManager
 from pulsar.client.container_job_config import CoexecutionContainerCommand
 from pulsar.client.decorators import (
@@ -184,6 +188,30 @@ def test_local_setup_rejects_malformed_remote_version():
 def _jobs_directory_client(**destination_params):
     interface = HttpPulsarInterface({"url": "http://test:803/"}, TestTransport(None))
     return JobClient({"jobs_directory": "/pulsar/staging", **destination_params}, "543", interface)
+
+
+def _message_client(**destination_params):
+    return MessageJobClient({"jobs_directory": "/pulsar/staging", **destination_params}, "543", Mock())
+
+
+def _setup_message(client):
+    return client._build_setup_message(
+        "python",
+        dependencies_description=None,
+        env=None,
+        remote_staging=None,
+        job_config=None,
+        dynamic_file_sources=None,
+        token_endpoint=None,
+    )
+
+
+def test_setup_message_identifies_resubmission():
+    assert _setup_message(_message_client(resubmission_count=2))["resubmission_count"] == 2
+
+
+def test_setup_message_omits_resubmission_count_on_first_attempt():
+    assert "resubmission_count" not in _setup_message(_message_client())
 
 
 def test_launch():

@@ -106,9 +106,29 @@ class CliQueueManager(ExternalBaseManager):
         kill_command = job_interface.delete(external_id)
         shell.execute(kill_command)
 
+    def get_status(self, job_id: str) -> "StateLiteral":
+        job_status = super().get_status(job_id)
+        if job_status == status.FAILED:
+            self.__record_failure_reason(job_id)
+        return job_status
+
+    def __record_failure_reason(self, job_id: str) -> None:
+        external_id = self._external_id(job_id)
+        try:
+            shell, job_interface = self.__get_cli_plugins()
+            failure_reason_command = job_interface.get_failure_reason(external_id)
+            if failure_reason_command is None:
+                return
+            cmd_out = shell.execute(failure_reason_command)
+            runner_state = job_interface.parse_failure_reason(cmd_out.stdout, external_id)
+            if runner_state:
+                self._record_runner_state(job_id, runner_state)
+        except Exception:
+            log.exception("Failed to determine why job %s failed", job_id)
+
     def _get_status_external(self, external_id: str) -> "StateLiteral":
         shell, job_interface = self.__get_cli_plugins()
         status_command = job_interface.get_single_status(external_id)
         cmd_out = shell.execute(status_command)
-        state = job_interface.parse_single_status(cmd_out.stdout, external_id)
+        state = job_interface.parse_single_status(cmd_out.stdout.strip(), external_id)
         return cast("StateLiteral", _CLI_STATE_TO_STATUS.get(state, state))

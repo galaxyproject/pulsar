@@ -62,6 +62,7 @@ class BaseJobClient:
         self.files_endpoint = destination_params.get("files_endpoint", None)
         self.token_endpoint = destination_params.get("token_endpoint", None)
         self.external_id = destination_params.get("external_id", None)
+        self.resubmission_count = destination_params.get("resubmission_count", 0)
 
         default_file_action = self.destination_params.get("default_file_action", "transfer")
         if default_file_action not in actions:
@@ -332,6 +333,8 @@ class BaseRemoteConfiguredJobClient(BaseJobClient):
             launch_params['remote_staging']['ssh_key'] = self.ssh_key
         launch_params['dynamic_file_sources'] = dynamic_file_sources
         launch_params['token_endpoint'] = token_endpoint
+        if self.resubmission_count:
+            launch_params['resubmission_count'] = self.resubmission_count
         if self.cvmfsexec is not None:
             launch_params['cvmfsexec'] = self.cvmfsexec
 
