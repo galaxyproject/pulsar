@@ -103,6 +103,10 @@ class CliManagerTest(BaseManagerTestCase):
         assert self.manager.get_status(self.job_id) == status.FAILED
         assert self.manager.runner_state(self.job_id) is None
 
+    def test_slurm_preempted_job_is_finished(self):
+        self._use_plugins(*self._slurm_shell("PR", f"JobId={EXTERNAL_ID} JobState=PREEMPTED Reason=None\n"))
+        assert self.manager.get_status(self.job_id) == status.FAILED
+
     def test_slurm_job_gone_from_squeue_uses_sacct(self):
         job_interface = Slurm()
         shell = _StubShell(

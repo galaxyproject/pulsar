@@ -144,7 +144,7 @@ class Slurm(BaseJobExec):
             "NF": job_states.ERROR,
             "OOM": job_states.ERROR,
             "PD": job_states.QUEUED,
-            "PR": job_states.RUNNING,
+            "PR": job_states.ERROR,
             "R": job_states.RUNNING,
             "RQ": job_states.RUNNING,
             "RS": job_states.RUNNING,
