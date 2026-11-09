@@ -16,6 +16,8 @@ Contents:
    install
    configure
    job_managers
+   engagequeue
+   collection_ack
    containers
    galaxy_conf
    compatibility

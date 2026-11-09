@@ -2,6 +2,7 @@ import logging
 import os
 from json import loads
 
+from galaxy.util import asbool
 from webob import exc
 
 from pulsar import __version__ as pulsar_version
@@ -45,8 +46,12 @@ class PulsarController(Controller):
 
 
 @PulsarController(path="/jobs", method="POST", response_type='json')
-def setup(manager, job_id, tool_id=None, tool_version=None, use_metadata='true'):
-    return __setup(manager, job_id, tool_id=tool_id, tool_version=tool_version)
+def setup(manager, job_id, tool_id=None, tool_version=None, use_metadata='true', require_collection_ack='false'):
+    result = __setup(manager, job_id, tool_id=tool_id, tool_version=tool_version)
+    if asbool(require_collection_ack):
+        manager.require_collection_ack(result["job_id"])
+        result["require_collection_ack"] = True
+    return result
 
 
 def __setup(manager, job_id, tool_id, tool_version):
@@ -58,6 +63,12 @@ def __setup(manager, job_id, tool_id, tool_version):
 @PulsarController(path="/jobs/{job_id}", method="DELETE")
 def clean(manager, job_id):
     manager.clean(job_id)
+
+
+@PulsarController(path="/jobs/{job_id}/collection", method="PUT", response_type='json')
+def acknowledge_collection(manager, job_id):
+    """Confirm client import without implicitly requesting directory cleanup."""
+    return {"acknowledged": bool(manager.acknowledge_collection(job_id))}
 
 
 @PulsarController(path="/jobs/{job_id}/submit", method="POST")

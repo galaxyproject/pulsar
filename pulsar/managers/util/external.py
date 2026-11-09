@@ -5,6 +5,10 @@ from typing_extensions import Literal
 
 EXTERNAL_ID_TYPE_ANY = None
 
+
+class SubmissionUncertain(RuntimeError):
+    """A scheduler may accept work; recovery must look it up, not replay."""
+
 EXTERNAL_ID_PATTERNS = [
     ("condor", r"submitted to cluster (\d+)\."),
     ("slurm", r"Submitted batch job (\w+)"),

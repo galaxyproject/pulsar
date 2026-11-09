@@ -1,6 +1,7 @@
 import os
 from uuid import uuid4
 
+from galaxy.util import asbool
 from packaging.version import (
     InvalidVersion,
     Version,
@@ -73,7 +74,7 @@ class LocalSetupHandler:
         else:
             self.pulsar_version, self.pulsar_version_source = pulsar_version, "client"
 
-    def setup(self, job_id, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
+    def setup(self, job_id, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None, require_collection_ack=None):
         if self.assign_ids == "uuid":
             job_id = uuid4().hex
 
@@ -81,7 +82,7 @@ class LocalSetupHandler:
         if self.client.job_id != job_id:
             self.client.assign_job_id(job_id)
 
-        return build_job_config(
+        job_config = build_job_config(
             job_id=job_id,
             job_directory=self.client.job_directory,
             system_properties=self.system_properties,
@@ -91,6 +92,9 @@ class LocalSetupHandler:
             pulsar_version=self.pulsar_version,
             pulsar_version_source=self.pulsar_version_source,
         )
+        if asbool(require_collection_ack):
+            job_config["require_collection_ack"] = True
+        return job_config
 
     @property
     def local(self):

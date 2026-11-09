@@ -10,10 +10,7 @@ from time import sleep
 from galaxy.util.bunch import Bunch
 
 from . import BaseShellExec
-from ....util.process_groups import (
-    check_pg,
-    kill_pg,
-)
+from ....util.process_groups import kill_pg
 
 log = getLogger(__name__)
 
@@ -71,7 +68,10 @@ class LocalShell(BaseShellExec):
 
         for _ in range(int(timeout / timeout_check_interval)):
             sleep(0.1)  # For fast returning commands
-            if not check_pg(p.pid):
+            # check_pg() uses waitpid and consumes the exit status. Poll this
+            # Popen directly so rejected scheduler commands retain their real
+            # nonzero status instead of being reported as successful later.
+            if p.poll() is not None:
                 break
             sleep(timeout_check_interval)
         else:

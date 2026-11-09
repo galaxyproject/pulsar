@@ -133,14 +133,53 @@ class BaseManager(ManagerInterface, ABC):
             return
 
         job_directory = self._job_directory(job_id)
-        if job_directory.exists():
-            try:
-                job_directory.delete()
-            except Exception:
-                pass
+        if job_directory.exists() and job_directory.has_metadata("collection_ack_required"):
+            with self._collection_lock():
+                if not job_directory.exists():
+                    return
+                if not job_directory.load_metadata("collection_acknowledged", False):
+                    job_directory.store_metadata("collection_clean_requested", True, atomic=True)
+                    return
+                self._delete_job_directory(job_directory)
+        elif job_directory.exists():
+            self._delete_job_directory(job_directory)
+
+    @staticmethod
+    def _delete_job_directory(job_directory) -> None:
+        try:
+            job_directory.delete()
+        except Exception:
+            pass
+
+    def _collection_lock(self):
+        # The lock must survive deletion of a job directory. One lock per
+        # staging root avoids abandoned per-job lock artifacts after cleanup.
+        return locks.interprocess_lock(join(self.staging_directory, ".collection.lock"))
+
+    def require_collection_ack(self, job_id: str) -> None:
+        """Opt one accepted job into post-import cleanup acknowledgment."""
+        directory = self._job_directory(job_id)
+        with self._collection_lock():
+            if not directory.exists():
+                raise KeyError("Cannot require collection acknowledgment for an unknown job")
+            directory.store_metadata("collection_ack_required", True, atomic=True)
+
+    def acknowledge_collection(self, job_id: str) -> bool:
+        """Record successful client import, separately from cleanup requests."""
+        directory = self._job_directory(job_id)
+        if not directory.exists():
+            return True
+        with self._collection_lock():
+            if not directory.exists():
+                return True
+            directory.store_metadata("collection_acknowledged", True, atomic=True)
+            clean_requested = directory.load_metadata("collection_clean_requested", False)
+            if clean_requested and not self.debug:
+                self._delete_job_directory(directory)
+        return True
 
     def system_properties(self) -> Dict[str, Any]:
-        return self.__system_properties
+        return {**self.__system_properties, "collection_ack": {"schema": 1}}
 
     # TODO
     def __init_galaxy_system_properties(self, kwds):

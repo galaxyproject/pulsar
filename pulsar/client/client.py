@@ -9,6 +9,7 @@ from typing import (
     Optional,
 )
 
+from galaxy.util import asbool
 from typing_extensions import Protocol
 
 from .action_mapper import (
@@ -92,7 +93,7 @@ class BaseJobClient:
             job_directory = None
         self.job_directory = job_directory
 
-    def setup(self, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None):
+    def setup(self, tool_id=None, tool_version=None, preserve_galaxy_python_environment=None, require_collection_ack=None):
         """
         Setup remote Pulsar server to run this job.
         """
@@ -103,7 +104,12 @@ class BaseJobClient:
             setup_args["tool_version"] = tool_version
         if preserve_galaxy_python_environment:
             setup_args["preserve_galaxy_python_environment"] = preserve_galaxy_python_environment
-        return self.setup_handler.setup(**setup_args)
+        if asbool(require_collection_ack):
+            setup_args["require_collection_ack"] = True
+        response = self.setup_handler.setup(**setup_args)
+        if asbool(require_collection_ack) and response.get("require_collection_ack") is not True:
+            raise RuntimeError("Pulsar did not confirm the requested collection acknowledgment contract")
+        return response
 
     @property
     def prefer_local_staging(self):
@@ -200,6 +206,11 @@ class JobClient(BaseJobClient):
         Cleanup the remote job.
         """
         self._raw_execute("clean", {"job_id": self.job_id})
+
+    @parseJson()
+    def acknowledge_collection(self):
+        """Acknowledge imported outputs for an explicitly opted-in job."""
+        return self._raw_execute("acknowledge_collection", {"job_id": self.job_id})
 
     @parseJson()
     def remote_setup(self, **setup_args):
@@ -645,10 +656,13 @@ def _setup_params_from_job_config(job_config):
     preserve_galaxy_python_environment = job_config.get("preserve_galaxy_python_environment", None)
     # use_metadata ignored post Pulsar 0.14.12+ but keep setting it for older Pulsar's that
     # had hacks for pre-2017 Galaxies.
-    return {
+    setup_params = {
         "job_id": job_id,
         "tool_id": tool_id,
         "tool_version": tool_version,
         "use_metadata": True,
         "preserve_galaxy_python_environment": preserve_galaxy_python_environment,
     }
+    if asbool(job_config.get("require_collection_ack", False)):
+        setup_params["require_collection_ack"] = True
+    return setup_params

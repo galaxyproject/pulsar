@@ -41,6 +41,7 @@ COMMAND_TO_PATH = {
 
     "setup": Template("jobs"),
     "clean": Template("jobs/${job_id}"),
+    "acknowledge_collection": Template("jobs/${job_id}/collection"),
     "status": Template("jobs/${job_id}/status"),
     "cancel": Template("jobs/${job_id}/cancel"),
     "submit": Template("jobs/${job_id}/submit"),
@@ -68,6 +69,7 @@ COMMAND_TO_METHOD = {
     "setup": "POST",
     "submit": "POST",
     "clean": "DELETE",
+    "acknowledge_collection": "PUT",
     "cancel": "PUT",
 
     "object_store_update_from_file": "PUT",

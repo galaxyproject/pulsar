@@ -40,6 +40,7 @@ from pulsar.managers.live_output import (
     LiveOutputReporter,
     load_state as load_live_output_state,
 )
+from pulsar.managers.util.external import SubmissionUncertain
 from pulsar.managers.util.retry import RetryActionExecutor
 from .staging import (
     postprocess,
@@ -69,6 +70,7 @@ JOB_FILE_POSTPROCESSING_FAILED = "postprocessing_failed"
 JOB_FILE_PREPROCESSED = "preprocessed"
 JOB_FILE_PREPROCESSING_FAILED = "preprocessing_failed"
 JOB_METADATA_RUNNING = "running"
+JOB_METADATA_SUBMISSION_STARTED = "submission_started"
 
 # LOST is excluded because it can be transient while external job IDs are
 # being recovered; treating it as terminal could discard recoverable jobs.
@@ -218,6 +220,8 @@ class StatefulManagerProxy(ManagerProxy):
 
     def preprocess_and_launch(self, job_id: str, launch_config: Dict[str, Any]) -> None:
         self._persist_launch_config(job_id, launch_config)
+        if str(launch_config.get("setup_params", {}).get("require_collection_ack", False)).lower() == "true":
+            self._proxied_manager.require_collection_ack(job_id)
         requires_preprocessing = launch_config.get("remote_staging") and launch_config[
             "remote_staging"
         ].get("setup")
@@ -270,8 +274,10 @@ class StatefulManagerProxy(ManagerProxy):
         self, job_id, launch_config: Dict[str, Any]
     ) -> Generator[None, None, None]:
         job_directory = self._proxied_manager.job_directory(job_id)
+        recoverable_submission = False
         try:
             yield
+            recoverable_submission = getattr(self._proxied_manager, "recoverable_submission", False)
             if self._proxied_manager._was_cancelled(job_id):
                 log.info("Exiting job launch, job is cancelled")
                 return
@@ -285,16 +291,36 @@ class StatefulManagerProxy(ManagerProxy):
                 if kwd in launch_config:
                     launch_kwds[kwd] = launch_config[kwd]
 
+            if recoverable_submission:
+                # Persist discoverability before calling an executor that can
+                # accept work before its returned ID reaches this process.
+                with job_directory.lock("status"):
+                    # Either cancellation wins before dispatch, or clients must
+                    # wait for the scheduler to confirm all writers stopped.
+                    if self._proxied_manager._was_cancelled(job_id):
+                        log.info("Exiting job launch, job was cancelled before dispatch")
+                        return
+                    self.active_jobs.activate_job(job_id)
+                    job_directory.store_metadata(JOB_METADATA_SUBMISSION_STARTED, True, atomic=True)
             self._proxied_manager.launch(
                 job_id, launch_config["command_line"], **launch_kwds
             )
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
-            self.active_jobs.activate_job(job_id)
+                # A scheduler can finish while the original submit response is
+                # delayed. Do not reopen that terminal attempt.
+                if not job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
+                    self.active_jobs.activate_job(job_id)
         except _StagingInterrupted:
             # Must not launch, and stays indexed so recovery stages it after the restart.
             log.info("Pulsar is shutting down, leaving job %s to preprocess on restart", job_id)
+        except SubmissionUncertain:
+            job_directory.store_metadata(JOB_FILE_PREPROCESSED, True, atomic=True)
+            job_directory.store_metadata("submission_uncertain", True, atomic=True)
+            log.exception("Retaining uncertain scheduler submission for lookup-only recovery: %s", job_id)
         except Exception as e:
+            if recoverable_submission:
+                self.active_jobs.deactivate_job(job_id)
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSING_FAILED, True)
                 job_directory.store_metadata("return_code", 1)
@@ -363,7 +389,9 @@ class StatefulManagerProxy(ManagerProxy):
             if not job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
                 job_directory.store_metadata(JOB_FILE_FINAL_STATUS, proxy_status)
                 state_change = "to_preprocessing_failed"
-        elif not job_directory.has_metadata(JOB_FILE_PREPROCESSED):
+        elif not job_directory.has_metadata(JOB_FILE_PREPROCESSED) and not job_directory.has_metadata(
+            JOB_METADATA_SUBMISSION_STARTED
+        ):
             # A job cancelled before launch never gets the marker, and clients poll until told.
             cancelled = self._proxied_manager._was_cancelled(job_id)
             proxy_status = cast("StateLiteral", status.CANCELLED if cancelled else status.PREPROCESSING)
@@ -556,9 +584,14 @@ class StatefulManagerProxy(ManagerProxy):
             ):
                 try:
                     recover_method(job_id)
+                    if getattr(self._proxied_manager, "recoverable_submission", False):
+                        self._proxied_manager.job_directory(job_id).store_metadata(JOB_FILE_PREPROCESSED, True, atomic=True)
                 except Exception:
                     log.exception("Failed to recover active job %s" % job_id)
-                    self.__handle_recovery_problem(job_id)
+                    if getattr(self._proxied_manager, "recoverable_submission", False):
+                        self._proxied_manager.job_directory(job_id).store_metadata(JOB_FILE_PREPROCESSED, True, atomic=True)
+                    else:
+                        self.__handle_recovery_problem(job_id)
 
         self.__recover_live_output()
 

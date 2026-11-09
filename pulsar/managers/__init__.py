@@ -129,6 +129,12 @@ class ManagerProxy:
     def clean(self, *args, **kwargs) -> None:
         return self._proxied_manager.clean(*args, **kwargs)
 
+    def require_collection_ack(self, *args, **kwargs) -> None:
+        return self._proxied_manager.require_collection_ack(*args, **kwargs)
+
+    def acknowledge_collection(self, *args, **kwargs) -> bool:
+        return self._proxied_manager.acknowledge_collection(*args, **kwargs)
+
     def launch(self, *args, **kwargs) -> None:
         return self._proxied_manager.launch(*args, **kwargs)
 
