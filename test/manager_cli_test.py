@@ -98,6 +98,22 @@ class CliManagerTest(BaseManagerTestCase):
         assert self.manager.get_status(self.job_id) == status.FAILED
         assert self.manager.runner_state(self.job_id) == runner_states.MEMORY_LIMIT_REACHED
 
+    def test_slurm_node_failure_preemption_and_cancel_are_reported(self):
+        for short_state, long_state, expected in (
+            ("NF", "NODE_FAIL", runner_states.NODE_FAILURE),
+            ("PR", "PREEMPTED", runner_states.PREEMPTED),
+            ("CA", "CANCELLED", runner_states.CANCELLED),
+        ):
+            self._use_plugins(*self._slurm_shell(short_state, f"JobId={EXTERNAL_ID} JobState={long_state} Reason=None\n"))
+            assert self.manager.get_status(self.job_id) == status.FAILED
+            assert self.manager.runner_state(self.job_id) == expected
+
+    def test_slurm_signal_is_passed_on(self):
+        self._use_plugins(*self._slurm_shell("F", f"JobId={EXTERNAL_ID} JobState=FAILED Reason=RaisedSignal:9(Killed)\n"))
+        assert self.manager.get_status(self.job_id) == status.FAILED
+        assert self.manager.runner_state(self.job_id) is None
+        assert self.manager.runner_state_message(self.job_id) == "Slurm reported: RaisedSignal:9(Killed)"
+
     def test_slurm_ordinary_failure_has_no_reason(self):
         self._use_plugins(*self._slurm_shell("F", f"JobId={EXTERNAL_ID} JobState=FAILED Reason=NonZeroExitCode\n"))
         assert self.manager.get_status(self.job_id) == status.FAILED

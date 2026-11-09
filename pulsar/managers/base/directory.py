@@ -40,6 +40,7 @@ JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
 JOB_FILE_RUNNER_STATE = "runner_state"
+JOB_FILE_RUNNER_STATE_MESSAGE = "runner_state_message"
 JOB_FILE_COMMAND_LINE = "command_line"
 CREATE_TMP_PATTERN = """$([ ! -e '{0}/tmp' ] || mv '{0}/tmp' '{0}'/tmp.$(date +%Y%m%d-%H%M%S) ; mkdir '{0}/tmp'; echo '{0}/tmp')"""
 PREPARE_DIRS_TEMPLATE = """for dir in {working_directory} {outputs_directory} {configs_directory}; do
@@ -149,11 +150,20 @@ class DirectoryBaseManager(BaseManager):
     def _write_command_line(self, job_id: str, command_line: str) -> None:
         self._write_job_file(job_id, JOB_FILE_COMMAND_LINE, command_line)
 
-    def _record_runner_state(self, job_id: str, runner_state: str) -> None:
-        self._job_directory(job_id).store_metadata(JOB_FILE_RUNNER_STATE, runner_state)
+    def _record_runner_state(
+        self, job_id: str, runner_state: Optional[str], message: Optional[str] = None
+    ) -> None:
+        job_directory = self._job_directory(job_id)
+        if runner_state:
+            job_directory.store_metadata(JOB_FILE_RUNNER_STATE, runner_state)
+        if message:
+            job_directory.store_metadata(JOB_FILE_RUNNER_STATE_MESSAGE, message)
 
     def runner_state(self, job_id: str) -> Optional[str]:
         return self._job_directory(job_id).load_metadata(JOB_FILE_RUNNER_STATE, None)
+
+    def runner_state_message(self, job_id: str) -> Optional[str]:
+        return self._job_directory(job_id).load_metadata(JOB_FILE_RUNNER_STATE_MESSAGE, None)
 
     def _record_cancel(self, job_id: str):
         try:

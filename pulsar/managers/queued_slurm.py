@@ -20,7 +20,7 @@ from .util import runner_states
 from .util.slurm import (
     check_memory_limit,
     NOT_FOUND,
-    slurm_job_state,
+    slurm_job_info,
 )
 
 if TYPE_CHECKING:
@@ -32,6 +32,14 @@ log = logging.getLogger(__name__)
 # How long to wait for a failed job to leave COMPLETING before reporting the
 # failure without a cause, Slurm may keep a job on a bad node there indefinitely.
 COMPLETING_TIMEOUT_SECONDS = 120
+
+SLURM_STATE_TO_RUNNER_STATE = {
+    "TIMEOUT": runner_states.WALLTIME_REACHED,
+    "OUT_OF_MEMORY": runner_states.MEMORY_LIMIT_REACHED,
+    "NODE_FAIL": runner_states.NODE_FAILURE,
+    "BOOT_FAIL": runner_states.NODE_FAILURE,
+    "PREEMPTED": runner_states.PREEMPTED,
+}
 
 
 class SlurmQueueManager(DrmaaQueueManager):
@@ -52,10 +60,11 @@ class SlurmQueueManager(DrmaaQueueManager):
         external_id = self._external_id(job_id)
         assert external_id is not None
         try:
-            slurm_state = slurm_job_state(external_id)
+            slurm_info = slurm_job_info(external_id)
         except Exception:
             log.exception("Failed to determine Slurm state of failed job %s", job_id)
             return job_status
+        slurm_state = slurm_info["JobState"]
         if slurm_state in ("COMPLETED", NOT_FOUND):
             # DRMAA loses track of jobs that exceed MinJobAge and reports them as failed.
             log.debug("Job %s was reported failed by DRMAA but Slurm state is %s, completing as successful", job_id, slurm_state)
@@ -64,8 +73,7 @@ class SlurmQueueManager(DrmaaQueueManager):
             return cast("StateLiteral", status.RUNNING)
         runner_state = self.__classify_failure(job_id, slurm_state)
         log.info("Job %s failed with Slurm state %s (runner state: %s)", job_id, slurm_state, runner_state)
-        if runner_state:
-            self._record_runner_state(job_id, runner_state)
+        self._record_runner_state(job_id, runner_state, self.__failure_message(slurm_info))
         return job_status
 
     def _deactivate_job(self, job_id: str) -> None:
@@ -80,13 +88,17 @@ class SlurmQueueManager(DrmaaQueueManager):
         return time.monotonic() - completing_since < COMPLETING_TIMEOUT_SECONDS
 
     def __classify_failure(self, job_id: str, slurm_state: str) -> Optional[str]:
-        if slurm_state == "TIMEOUT":
-            return runner_states.WALLTIME_REACHED
-        if slurm_state == "OUT_OF_MEMORY":
-            return runner_states.MEMORY_LIMIT_REACHED
-        if slurm_state == "CANCELLED" and check_memory_limit(self._job_stderr_path(job_id)):
-            return runner_states.MEMORY_LIMIT_REACHED
-        return None
+        if slurm_state == "CANCELLED":
+            # Jobs cancelled through Pulsar never get here, so this came from outside of Galaxy.
+            if check_memory_limit(self._job_stderr_path(job_id)):
+                return runner_states.MEMORY_LIMIT_REACHED
+            return runner_states.CANCELLED
+        return SLURM_STATE_TO_RUNNER_STATE.get(slurm_state)
+
+    @staticmethod
+    def __failure_message(slurm_info: Dict[str, str]) -> Optional[str]:
+        reason = slurm_info.get("Reason", "")
+        return f"Slurm reported: {reason}" if reason.startswith("RaisedSignal") else None
 
 
 __all__ = ("SlurmQueueManager",)

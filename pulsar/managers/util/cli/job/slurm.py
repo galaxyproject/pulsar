@@ -41,6 +41,10 @@ class Slurm(BaseJobExec):
         "OOM": runner_states.MEMORY_LIMIT_REACHED,
         "TO": runner_states.WALLTIME_REACHED,
         "UN": runner_states.UNKNOWN_ERROR,
+        "NF": runner_states.NODE_FAILURE,
+        "BF": runner_states.NODE_FAILURE,
+        "PR": runner_states.PREEMPTED,
+        "CA": runner_states.CANCELLED,
     }
 
     def __init__(self, **kwargs):
@@ -169,6 +173,10 @@ class Slurm(BaseJobExec):
         else:
             state = self._state_from_sacct(reason.splitlines())
         return self.slurmstate_runnerstate_map.get(state)
+
+    def parse_failure_message(self, reason, job_id):
+        match = re.search(r"\bReason=(RaisedSignal\S+)", reason)
+        return f"Slurm reported: {match.group(1)}" if match else None
 
 
 __all__ = ("Slurm",)

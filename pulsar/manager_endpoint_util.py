@@ -91,6 +91,9 @@ def __job_complete_dict(complete_status, manager, job_id):
     runner_state = manager.runner_state(job_id)
     if runner_state:
         as_dict["runner_state"] = runner_state
+    runner_state_message = manager.runner_state_message(job_id)
+    if runner_state_message:
+        as_dict["runner_state_message"] = runner_state_message
     return as_dict
 
 

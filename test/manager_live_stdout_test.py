@@ -679,6 +679,9 @@ class _StatusManager:
     def runner_state(self, job_id):
         return None
 
+    def runner_state_message(self, job_id):
+        return None
+
     def is_live_stdout_update(self, job_id):
         return self._live
 

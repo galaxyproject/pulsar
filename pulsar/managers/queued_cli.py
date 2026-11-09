@@ -120,9 +120,11 @@ class CliQueueManager(ExternalBaseManager):
             if failure_reason_command is None:
                 return
             cmd_out = shell.execute(failure_reason_command)
-            runner_state = job_interface.parse_failure_reason(cmd_out.stdout, external_id)
-            if runner_state:
-                self._record_runner_state(job_id, runner_state)
+            self._record_runner_state(
+                job_id,
+                job_interface.parse_failure_reason(cmd_out.stdout, external_id),
+                job_interface.parse_failure_message(cmd_out.stdout, external_id),
+            )
         except Exception:
             log.exception("Failed to determine why job %s failed", job_id)
 

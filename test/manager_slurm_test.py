@@ -16,6 +16,7 @@ from pulsar.managers.util.slurm import (
     MEMORY_LIMIT_EXCEEDED,
     MEMORY_LIMIT_PROBABLY_EXCEEDED,
     NOT_FOUND,
+    slurm_job_info,
     slurm_job_state,
 )
 from .test_utils import BaseManagerTestCase
@@ -68,9 +69,12 @@ class SlurmManagerTest(BaseManagerTestCase):
         return SlurmQueueManager("_default_", self.app, drmaa_session_factory_class=_StubDrmaaSessionFactory)
 
     def _status_for_slurm_state(self, slurm_state):
-        with mock.patch.object(queued_slurm, "slurm_job_state", return_value=slurm_state) as slurm_job_state_mock:
+        return self._status_for_slurm_info({"JobState": slurm_state})
+
+    def _status_for_slurm_info(self, slurm_info):
+        with mock.patch.object(queued_slurm, "slurm_job_info", return_value=slurm_info) as slurm_job_info_mock:
             job_status = self.manager.get_status(self.job_id)
-        slurm_job_state_mock.assert_called_once_with(EXTERNAL_ID)
+        slurm_job_info_mock.assert_called_once_with(EXTERNAL_ID)
         return job_status
 
     def _write_job_stderr(self, contents):
@@ -90,15 +94,30 @@ class SlurmManagerTest(BaseManagerTestCase):
         assert self._status_for_slurm_state("CANCELLED") == status.FAILED
         assert self.manager.runner_state(self.job_id) == runner_states.MEMORY_LIMIT_REACHED
 
-    def test_cancelled_without_message_has_no_reason(self):
+    def test_cancelled_outside_galaxy_is_reported_as_cancelled(self):
         self._write_job_stderr(b"tool noise\n")
         assert self._status_for_slurm_state("CANCELLED") == status.FAILED
-        assert self.manager.runner_state(self.job_id) is None
+        assert self.manager.runner_state(self.job_id) == runner_states.CANCELLED
 
-    def test_other_failures_have_no_reason(self):
-        for slurm_state in ("FAILED", "NODE_FAIL"):
-            assert self._status_for_slurm_state(slurm_state) == status.FAILED
-            assert self.manager.runner_state(self.job_id) is None
+    def test_node_failure_is_reported(self):
+        assert self._status_for_slurm_state("NODE_FAIL") == status.FAILED
+        assert self.manager.runner_state(self.job_id) == runner_states.NODE_FAILURE
+
+    def test_preemption_is_reported(self):
+        assert self._status_for_slurm_state("PREEMPTED") == status.FAILED
+        assert self.manager.runner_state(self.job_id) == runner_states.PREEMPTED
+
+    def test_ordinary_failure_has_no_reason(self):
+        slurm_info = {"JobState": "FAILED", "Reason": "NonZeroExitCode"}
+        assert self._status_for_slurm_info(slurm_info) == status.FAILED
+        assert self.manager.runner_state(self.job_id) is None
+        assert self.manager.runner_state_message(self.job_id) is None
+
+    def test_signal_is_passed_on_without_claiming_a_reason(self):
+        slurm_info = {"JobState": "FAILED", "Reason": "RaisedSignal:9(Killed)"}
+        assert self._status_for_slurm_info(slurm_info) == status.FAILED
+        assert self.manager.runner_state(self.job_id) is None
+        assert self.manager.runner_state_message(self.job_id) == "Slurm reported: RaisedSignal:9(Killed)"
 
     def test_jobs_slurm_says_finished_are_complete(self):
         for slurm_state in ("COMPLETED", NOT_FOUND):
@@ -115,13 +134,13 @@ class SlurmManagerTest(BaseManagerTestCase):
             assert self._status_for_slurm_state("COMPLETING") == status.FAILED
 
     def test_failure_to_query_slurm_still_fails_job(self):
-        with mock.patch.object(queued_slurm, "slurm_job_state", side_effect=OSError("no scontrol")):
+        with mock.patch.object(queued_slurm, "slurm_job_info", side_effect=OSError("no scontrol")):
             assert self.manager.get_status(self.job_id) == status.FAILED
         assert self.manager.runner_state(self.job_id) is None
 
     def test_cancelled_through_pulsar_does_not_consult_slurm(self):
         self.manager._record_cancel(self.job_id)
-        with mock.patch.object(queued_slurm, "slurm_job_state") as slurm_job_state_mock:
+        with mock.patch.object(queued_slurm, "slurm_job_info") as slurm_job_state_mock:
             assert self.manager.get_status(self.job_id) == status.CANCELLED
         slurm_job_state_mock.assert_not_called()
 
@@ -152,6 +171,13 @@ def test_slurm_job_state_parses_values_with_spaces():
     execute = _execute_returning("JobId=7 Comment=** time_limit (60m) min_nodes (1) ** JobState=OUT_OF_MEMORY StdIn=StdIn=/dev/null\n")
     assert slurm_job_state("7", execute=execute) == "OUT_OF_MEMORY"
     execute.assert_called_once_with(["scontrol", "-o", "show", "job", "7"])
+
+
+def test_slurm_job_info_returns_reason():
+    stdout = "JobId=5 JobState=FAILED Reason=RaisedSignal:9(Killed) ExitCode=0:9\n"
+    info = slurm_job_info("5", execute=lambda cmd: stdout)
+    assert info["JobState"] == "FAILED"
+    assert info["Reason"] == "RaisedSignal:9(Killed)"
 
 
 def test_slurm_job_state_passes_cluster():
