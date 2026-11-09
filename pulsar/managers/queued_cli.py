@@ -130,5 +130,5 @@ class CliQueueManager(ExternalBaseManager):
         shell, job_interface = self.__get_cli_plugins()
         status_command = job_interface.get_single_status(external_id)
         cmd_out = shell.execute(status_command)
-        state = job_interface.parse_single_status(cmd_out.stdout.strip(), external_id)
+        state = job_interface.parse_single_status(cmd_out.stdout.strip(), external_id, shell)
         return cast("StateLiteral", _CLI_STATE_TO_STATUS.get(state, state))

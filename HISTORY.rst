@@ -16,7 +16,8 @@ History
 * Report why a job failed to Galaxy with a ``runner_state`` in the final status
   so job resubmission conditions such as ``memory_limit_reached`` work for
   Pulsar destinations. Add a ``queued_slurm`` manager that determines this for
-  Slurm jobs; ``queued_cli`` reports it for LSF. `Issue 492`_
+  Slurm jobs; ``queued_cli`` reports it for LSF and Slurm, and the polling Kubernetes
+  client for out of memory and deadline failures. `Issue 492`_
 * Start a job resubmitted by Galaxy over a message queue from a clean job
   directory instead of ignoring it as a redelivered setup message. `Issue 492`_
 * Record preprocess and postprocess file transfer time, count, and bytes for

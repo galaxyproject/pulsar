@@ -8,6 +8,7 @@ from typing import (
 )
 
 from pulsar.managers import status as manager_status
+from pulsar.managers.util import runner_states
 from pulsar.managers.util.pykube_util import (
     ensure_pykube,
     find_job_object_by_name,
@@ -217,7 +218,28 @@ class K8sPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesK8
         else:
             status = manager_status.FAILED
 
-        return {
+        response = {
             "status": status,
             "complete": "true" if manager_status.is_job_done(status) else "false",  # Ancient John, what were you thinking?
         }
+        if status == manager_status.FAILED:
+            runner_state = self._failure_runner_state(job)
+            if runner_state:
+                response["runner_state"] = runner_state
+        return response
+
+    def _failure_runner_state(self, job) -> Optional[str]:
+        """Pulsar runs in the pod that gets killed, so only Kubernetes can say why a job failed."""
+        conditions = job.obj["status"].get("conditions", [])
+        if any(c.get("type") == "Failed" and c.get("reason") == "DeadlineExceeded" for c in conditions):
+            return runner_states.WALLTIME_REACHED
+        try:
+            pod = find_pod_object_by_name(self._pykube_client, self._k8s_job_name)
+        except Exception:
+            log.exception("Failed to find pod of failed k8s job %s", self._k8s_job_name)
+            return None
+        container_statuses = pod.obj["status"].get("containerStatuses", []) if pod else []
+        for container_status in container_statuses:
+            if container_status.get("state", {}).get("terminated", {}).get("reason") == "OOMKilled":
+                return runner_states.MEMORY_LIMIT_REACHED
+        return None

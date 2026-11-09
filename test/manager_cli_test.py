@@ -22,6 +22,11 @@ class _StubShell:
         return SimpleNamespace(stdout=self.responses[command], stderr="", returncode=0)
 
 
+class _SlurmWithoutFailureReason(Slurm):
+    def get_failure_reason(self, job_id):
+        return None
+
+
 class CliManagerTest(BaseManagerTestCase):
 
     def setUp(self):
@@ -54,7 +59,7 @@ class CliManagerTest(BaseManagerTestCase):
         assert self.manager.runner_state(self.job_id) is None
 
     def test_plugin_without_failure_reason_runs_no_extra_command(self):
-        job_interface = Slurm()
+        job_interface = _SlurmWithoutFailureReason()
         status_command = job_interface.get_single_status(EXTERNAL_ID)
         shell = _StubShell({status_command: "JOBID ST\n4321 F\n"})
         self._use_plugins(shell, job_interface)
@@ -68,3 +73,58 @@ class CliManagerTest(BaseManagerTestCase):
         self._use_plugins(shell, job_interface)
         assert self.manager.get_status(self.job_id) == status.FAILED
         assert self.manager.runner_state(self.job_id) is None
+
+    def _slurm_shell(self, short_state, failure_reason):
+        job_interface = Slurm()
+        return _StubShell(
+            {
+                job_interface.get_single_status(EXTERNAL_ID): f"JOBID ST\n{EXTERNAL_ID} {short_state}\n",
+                job_interface.get_failure_reason(EXTERNAL_ID): failure_reason,
+            }
+        ), job_interface
+
+    def test_slurm_timeout_is_reported(self):
+        self._use_plugins(*self._slurm_shell("TO", f"JobId={EXTERNAL_ID} JobState=TIMEOUT Reason=TimeLimit\n"))
+        assert self.manager.get_status(self.job_id) == status.FAILED
+        assert self.manager.runner_state(self.job_id) == runner_states.WALLTIME_REACHED
+
+    def test_slurm_out_of_memory_is_reported(self):
+        self._use_plugins(*self._slurm_shell("OOM", f"JobId={EXTERNAL_ID} JobState=OUT_OF_MEMORY Reason=OutOfMemory\n"))
+        assert self.manager.get_status(self.job_id) == status.FAILED
+        assert self.manager.runner_state(self.job_id) == runner_states.MEMORY_LIMIT_REACHED
+
+    def test_slurm_reason_falls_back_to_sacct_output(self):
+        self._use_plugins(*self._slurm_shell("OOM", f"{EXTERNAL_ID}|OUT_OF_MEMORY\n{EXTERNAL_ID}.batch|OUT_OF_MEMORY\n"))
+        assert self.manager.get_status(self.job_id) == status.FAILED
+        assert self.manager.runner_state(self.job_id) == runner_states.MEMORY_LIMIT_REACHED
+
+    def test_slurm_ordinary_failure_has_no_reason(self):
+        self._use_plugins(*self._slurm_shell("F", f"JobId={EXTERNAL_ID} JobState=FAILED Reason=NonZeroExitCode\n"))
+        assert self.manager.get_status(self.job_id) == status.FAILED
+        assert self.manager.runner_state(self.job_id) is None
+
+    def test_slurm_job_gone_from_squeue_uses_sacct(self):
+        job_interface = Slurm()
+        shell = _StubShell(
+            {
+                job_interface.get_single_status(EXTERNAL_ID): "JOBID ST\n",
+                f"sacct -o JobIDRaw,State -P -n -j {EXTERNAL_ID}": f"{EXTERNAL_ID}|TIMEOUT\n{EXTERNAL_ID}.batch|CANCELLED\n",
+                job_interface.get_failure_reason(EXTERNAL_ID): f"{EXTERNAL_ID}|TIMEOUT\n",
+            }
+        )
+        self._use_plugins(shell, job_interface)
+        assert self.manager.get_status(self.job_id) == status.FAILED
+        assert self.manager.runner_state(self.job_id) == runner_states.WALLTIME_REACHED
+
+    def test_slurm_without_accounting_completes_aged_out_job(self):
+        job_interface = Slurm()
+        command = f"sacct -o JobIDRaw,State -P -n -j {EXTERNAL_ID}"
+        shell = _StubShell({job_interface.get_single_status(EXTERNAL_ID): "JOBID ST\n", command: ""})
+        shell.execute = lambda c: SimpleNamespace(
+            stdout=shell.responses[c],
+            stderr="Slurm accounting storage is disabled\n" if c == command else "",
+            returncode=1 if c == command else 0,
+        )
+        self._use_plugins(shell, job_interface)
+        assert self.manager.get_status(self.job_id) == status.COMPLETE
+        assert job_interface.sacct_available is False
