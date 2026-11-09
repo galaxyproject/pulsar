@@ -1,11 +1,10 @@
 # A simple CLI runner for slurm that can be used when running Galaxy from a
 # non-submit host and using a Slurm cluster.
+from __future__ import annotations
+
 import re
 from logging import getLogger
-from typing import (
-    ClassVar,
-    Dict,
-)
+from typing import ClassVar
 
 from ..job import (
     BaseJobExec,
@@ -19,7 +18,7 @@ argmap = {"time": "-t", "ncpus": "-c", "partition": "-p"}
 
 
 class Slurm(BaseJobExec):
-    slurm_longjobstate_to_shortjobstate: ClassVar[Dict[str, str]] = {
+    slurm_longjobstate_to_shortjobstate: ClassVar[dict[str, str]] = {
         "BOOT_FAIL": "BF",
         "CANCELLED": "CA",
         "COMPLETED": "CD",
@@ -37,7 +36,7 @@ class Slurm(BaseJobExec):
         "TIMEOUT": "TO",
         "UNKNOWN": "UN",  # Custom for code in case one isn't available here
     }
-    slurmstate_runnerstate_map: ClassVar[Dict[str, str]] = {
+    slurmstate_runnerstate_map: ClassVar[dict[str, str]] = {
         "OOM": runner_states.MEMORY_LIMIT_REACHED,
         "TO": runner_states.WALLTIME_REACHED,
         "UN": runner_states.UNKNOWN_ERROR,
