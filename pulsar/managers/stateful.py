@@ -92,6 +92,9 @@ ACTIVE_STATUS_DIRECTORIES = {
 DEFAULT_MIN_POLLING_INTERVAL = 0.5
 DEFAULT_SEND_STDOUT = False
 
+# Seconds between checks, by a job queued for a staging slot, of whether it should stop waiting.
+DEFAULT_STAGING_SLOT_POLL_INTERVAL = 5.0
+
 
 class StatefulManagerProxy(ManagerProxy):
     """ """
@@ -114,6 +117,12 @@ class StatefulManagerProxy(ManagerProxy):
         )
         self.__postprocess_action_executor = RetryActionExecutor(
             **postprocess_retry_action_kwds
+        )
+        self.__preprocess_slots = _staging_slots(manager_options, "preprocess_max_concurrent")
+        self.__postprocess_slots = _staging_slots(manager_options, "postprocess_max_concurrent")
+        self.__shutting_down = threading.Event()
+        self.__slot_poll_interval = float(
+            manager_options.get("staging_slot_poll_interval", DEFAULT_STAGING_SLOT_POLL_INTERVAL)
         )
         self.min_polling_interval = dt.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs.from_manager(manager)
@@ -240,13 +249,16 @@ class StatefulManagerProxy(ManagerProxy):
                             ssh_key=staging_config["action_mapper"]["ssh_key"]
                         )
                 setup_config = staging_config.get("setup", [])
-                preprocess(
-                    job_directory,
-                    setup_config,
-                    self.__preprocess_action_executor,
-                    was_cancelled,
-                    object_store=self.object_store,
-                )
+                with _staging_slot(
+                    self.__preprocess_slots, "preprocess", job_id, self.__shutting_down, was_cancelled, self.__slot_poll_interval
+                ):
+                    preprocess(
+                        job_directory,
+                        setup_config,
+                        self.__preprocess_action_executor,
+                        was_cancelled,
+                        object_store=self.object_store,
+                    )
                 self.active_jobs.deactivate_job(
                     job_id, active_status=ACTIVE_STATUS_PREPROCESSING
                 )
@@ -279,6 +291,9 @@ class StatefulManagerProxy(ManagerProxy):
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSED, True)
             self.active_jobs.activate_job(job_id)
+        except _StagingInterrupted:
+            # Must not launch, and stays indexed so recovery stages it after the restart.
+            log.info("Pulsar is shutting down, leaving job %s to preprocess on restart", job_id)
         except Exception as e:
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSING_FAILED, True)
@@ -349,7 +364,9 @@ class StatefulManagerProxy(ManagerProxy):
                 job_directory.store_metadata(JOB_FILE_FINAL_STATUS, proxy_status)
                 state_change = "to_preprocessing_failed"
         elif not job_directory.has_metadata(JOB_FILE_PREPROCESSED):
-            proxy_status = cast("StateLiteral", status.PREPROCESSING)
+            # A job cancelled before launch never gets the marker, and clients poll until told.
+            cancelled = self._proxied_manager._was_cancelled(job_id)
+            proxy_status = cast("StateLiteral", status.CANCELLED if cancelled else status.PREPROCESSING)
         elif job_directory.has_metadata(JOB_FILE_FINAL_STATUS):
             proxy_status = cast(
                 "StateLiteral", job_directory.load_metadata(JOB_FILE_FINAL_STATUS)
@@ -420,9 +437,16 @@ class StatefulManagerProxy(ManagerProxy):
             was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
             try:
                 self._finish_live_output(job_id)
-                postprocess_success = postprocess(
-                    job_directory, self.__postprocess_action_executor, was_cancelled
-                )
+                with _staging_slot(
+                    self.__postprocess_slots, "postprocess", job_id, self.__shutting_down, was_cancelled, self.__slot_poll_interval
+                ):
+                    postprocess_success = postprocess(
+                        job_directory, self.__postprocess_action_executor, was_cancelled
+                    )
+            except _StagingInterrupted:
+                # No outcome to record: the job stays indexed and recovery stages it after the restart.
+                log.info("Pulsar is shutting down, leaving job %s to postprocess on restart", job_id)
+                return
             except Exception:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
             outcome_persisted = False
@@ -454,7 +478,17 @@ class StatefulManagerProxy(ManagerProxy):
 
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
+    def kill(self, job_id: str) -> None:
+        # Recorded after the proxied kill, which skips a launched job it already sees as cancelled.
+        super().kill(job_id)
+        job_directory = self._proxied_manager.job_directory(job_id)
+        if not job_directory.has_metadata(JOB_FILE_PREPROCESSED):
+            # Not every manager records a cancel for a job it has not launched yet,
+            # and without one the job would still stage its inputs and launch.
+            self._proxied_manager._record_cancel(job_id)
+
     def shutdown(self, timeout: Optional[float] = None) -> None:
+        self.__shutting_down.set()
         if self.__monitor:
             try:
                 self.__monitor.shutdown(timeout)
@@ -699,6 +733,60 @@ class ManagerMonitor:
         # Manager itself will handle state transitions when status changes,
         # just need to poll get_status
         self.stateful_manager.get_status(active_job_id)
+
+
+class _StagingInterrupted(Exception):
+    """Pulsar started shutting down while a job was queued for a staging slot."""
+
+
+def _staging_slots(
+    manager_options: Dict[str, Any], option: str
+) -> Optional[threading.BoundedSemaphore]:
+    """Build the semaphore for a ``*_max_concurrent`` option; unset is unlimited."""
+    value = manager_options.get(option)
+    if value is None:
+        return None
+    max_concurrent = int(value)
+    if max_concurrent < 1:
+        # 0 elsewhere means "run nothing" (num_concurrent_jobs), so don't guess.
+        raise ValueError(f"{option} must be at least 1, or unset for no limit, not {value!r}")
+    return threading.BoundedSemaphore(max_concurrent)
+
+
+@contextlib.contextmanager
+def _staging_slot(
+    slots: Optional[threading.BoundedSemaphore],
+    action: str,
+    job_id: str,
+    shutting_down: threading.Event,
+    was_cancelled: Callable[[], Optional[bool]],
+    poll_interval: float,
+) -> Generator[None, None, None]:
+    """Hold a staging slot for the duration of a job's transfers.
+
+    Every job still gets its own thread, so queued jobs stay tracked as
+    preprocessing/postprocessing; only the transfers themselves wait.
+
+    A cancelled job stops queueing and enters the block without a slot, since
+    staging transfers nothing once the job is cancelled. On shutdown, raises
+    :class:`_StagingInterrupted` instead of letting a queued job start.
+    """
+    if slots is None:
+        yield
+        return
+
+    acquired = slots.acquire(blocking=False)
+    if not acquired:
+        log.info("[action=%s]-[job=%s] waiting for a staging slot", action, job_id)
+    while not acquired and not shutting_down.is_set() and not was_cancelled():
+        acquired = slots.acquire(timeout=poll_interval)
+    try:
+        if shutting_down.is_set():
+            raise _StagingInterrupted()
+        yield
+    finally:
+        if acquired:
+            slots.release()
 
 
 def new_thread_for_job(

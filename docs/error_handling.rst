@@ -324,6 +324,13 @@ Configuration knobs (per-manager YAML):
 * ``preprocess_action_should_retry`` (advanced — replaces the default
   predicate; only do this if you understand which errors are safe to
   retry in your environment)
+* ``preprocess_max_concurrent`` / ``postprocess_max_concurrent`` cap how
+  many of the manager's jobs transfer at once (unset is unlimited, and a
+  value below 1 is rejected at startup).
+  They apply per manager and only to transfers Pulsar makes itself. A job
+  keeps its slot while it backs off between retries, so a cap combined with
+  long or unbounded retries lets jobs stuck on a failing endpoint hold up
+  the rest. Queued jobs are left for recovery when Pulsar shuts down.
 
 ------------------------------------------------------------------------
 8. Status-update ordering guarantees

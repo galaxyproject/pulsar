@@ -8,6 +8,11 @@ History
 ---------------------
 0.16.1.dev0
 ---------------------
+* Add ``preprocess_max_concurrent`` and ``postprocess_max_concurrent`` manager
+  options to cap how many jobs transfer inputs or outputs at once.
+  `Pull Request 569`_
+* Stop staging and launching jobs killed before launch, whichever manager runs
+  them, and report them as cancelled. `Pull Request 569`_
 * Record preprocess and postprocess file transfer time, count, and bytes for
   Galaxy's ``pulsar`` job metrics plugin. `Pull Request 518`_
 * Skip unavailable job metrics plugins in Pulsar's shared configuration. `Pull Request 518`_
@@ -792,6 +797,7 @@ History
 
 
 .. github_links
+.. _Pull Request 569: https://github.com/galaxyproject/pulsar/pull/569
 .. _Pull Request 549: https://github.com/galaxyproject/pulsar/pull/549
 .. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
 .. _Pull Request 518: https://github.com/galaxyproject/pulsar/pull/518

@@ -1,4 +1,6 @@
 """Tests for terminal status handling in :class:`StatefulManagerProxy`."""
+import os
+import subprocess
 import threading
 import time
 from contextlib import contextmanager
@@ -12,6 +14,7 @@ from pulsar.managers import (
     status,
 )
 from pulsar.managers.queued import QueueManager
+from pulsar.managers.staging import pre as staging_pre
 from pulsar.managers.stateful import StatefulManagerProxy
 from .test_utils import (
     minimal_app_for_managers,
@@ -21,6 +24,12 @@ from .test_utils import (
 TEST_JOB_ID = "4"
 # An empty staging config exercises postprocessing without external transfers.
 TEST_LAUNCH_CONFIG = {"command_line": "true", "remote_staging": {}}
+# A non-empty setup list routes the job through the preprocessing thread.
+FAST_POLLING = {"staging_slot_poll_interval": .01}
+STAGING_LAUNCH_CONFIG = {
+    "command_line": "true",
+    "remote_staging": {"setup": [{"name": "input1", "type": "input", "action": {}}]},
+}
 
 
 class _ScriptedStatusManager(QueueManager):
@@ -181,8 +190,7 @@ def test_polling_stays_postprocessing_until_failed_outcome_is_persisted():
 
 @pytest.mark.parametrize("failed_write", [stateful.JOB_FILE_POSTPROCESSED, stateful.JOB_FILE_POSTPROCESSING_FAILED])
 def test_postprocessing_publication_failure_notifies_and_remains_recoverable(failed_write):
-    app = minimal_app_for_managers()
-    try:
+    with _temporary_app() as app:
         with _proxy(app=app) as (proxy, manager):
             job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
             proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
@@ -210,13 +218,10 @@ def test_postprocessing_publication_failure_notifies_and_remains_recoverable(fai
             assert proxy.callbacks == [(status.COMPLETE, job_id)]
             assert proxy.get_status(job_id) == status.COMPLETE
             _wait_for_postprocessing_index_cleared(proxy)
-    finally:
-        rmtree(app.staging_directory, ignore_errors=True)
 
 
 def test_postprocessing_redone_after_a_failed_attempt_reports_its_new_outcome():
-    app = minimal_app_for_managers()
-    try:
+    with _temporary_app() as app:
         with _proxy(app=app) as (proxy, manager):
             job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
             proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
@@ -229,8 +234,6 @@ def test_postprocessing_redone_after_a_failed_attempt_reports_its_new_outcome():
             _wait_for_callback(proxy)
             assert proxy.callbacks == [(status.COMPLETE, job_id)]
             assert proxy.get_status(job_id) == status.COMPLETE
-    finally:
-        rmtree(app.staging_directory, ignore_errors=True)
 
 
 def test_cancelled_status_deactivates_without_notification():
@@ -266,6 +269,185 @@ def test_preprocessing_failure_is_reported_once():
         # No postprocessing or second callback is needed before launch.
         time.sleep(.1)
         assert proxy.callbacks == [(status.FAILED, job_id)]
+
+
+@pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (None, 3)])
+def test_staging_concurrency_is_capped_by_preprocess_max_concurrent(max_concurrent, expected_peak):
+    transfers = _HeldTransfers()
+    with _proxy(preprocess_max_concurrent=max_concurrent) as (proxy, manager), _held_input_staging(transfers):
+        job_ids = _launch_jobs(proxy, STAGING_LAUNCH_CONFIG, 3)
+        assert sorted(_preprocessing_job_ids(proxy)) == sorted(job_ids)
+        transfers.wait_for_started(expected_peak)
+        transfers.release.set()
+        transfers.wait_for_started(3)
+        wait_for(lambda: not _preprocessing_job_ids(proxy), "staging to finish", until=lambda done: done)
+    assert transfers.peak == expected_peak
+
+
+@pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (None, 3)])
+def test_staging_concurrency_is_capped_by_postprocess_max_concurrent(max_concurrent, expected_peak):
+    transfers = _HeldTransfers()
+    with _proxy(postprocess_max_concurrent=max_concurrent) as (proxy, manager):
+        job_ids = _launch_jobs(proxy, TEST_LAUNCH_CONFIG, 3)
+        manager.scripted_status = status.COMPLETE
+        with mock.patch.object(stateful, "postprocess", transfers):
+            for job_id in job_ids:
+                proxy.get_status(job_id)
+            transfers.wait_for_started(expected_peak)
+            assert sorted(_postprocessing_job_ids(proxy)) == sorted(job_ids)
+            transfers.release.set()
+            transfers.wait_for_started(3)
+            wait_for(lambda: len(proxy.callbacks) == 3, "terminal callbacks")
+    assert transfers.peak == expected_peak
+    assert sorted(proxy.callbacks) == sorted((status.COMPLETE, job_id) for job_id in job_ids)
+
+
+@pytest.mark.parametrize("option", ["preprocess_max_concurrent", "postprocess_max_concurrent"])
+@pytest.mark.parametrize("value", [0, -1, "0"])
+def test_staging_cap_below_one_is_rejected_at_startup(option, value):
+    with _temporary_app() as app:
+        manager = _ScriptedStatusManager("test", app, num_concurrent_jobs=0)
+        with pytest.raises(ValueError, match=option):
+            StatefulManagerProxy(manager, **{option: value})
+
+
+def test_shutdown_leaves_jobs_queued_for_preprocessing_to_recovery():
+    transfers = _HeldTransfers()
+    with _temporary_app() as app:
+        with _proxy(app=app, preprocess_max_concurrent=1, **FAST_POLLING) as (proxy, manager):
+            with _held_input_staging(transfers):
+                job_ids = _launch_jobs(proxy, STAGING_LAUNCH_CONFIG, 3)
+                transfers.wait_for_started(1)
+                waiting = [job_id for job_id in job_ids if job_id != transfers.job_ids[0]]
+
+                proxy.shutdown()
+                transfers.release.set()
+                _join_staging_threads()
+
+            assert len(transfers.job_ids) == 1
+            assert sorted(_preprocessing_job_ids(proxy)) == sorted(waiting)
+            for job_id in waiting:
+                job_directory = manager.job_directory(job_id)
+                assert not job_directory.has_metadata(stateful.JOB_FILE_PREPROCESSED)
+                assert not job_directory.has_metadata(stateful.JOB_FILE_PREPROCESSING_FAILED)
+            assert proxy.callbacks == []
+
+        recovered = _HeldTransfers()
+        recovered.release.set()
+        with _proxy(app=app) as (proxy, manager):
+            with _held_input_staging(recovered):
+                proxy.recover_active_jobs()
+                _join_staging_threads()
+            assert sorted(recovered.job_ids) == sorted(waiting)
+            for job_id in waiting:
+                assert manager.job_directory(job_id).has_metadata(stateful.JOB_FILE_PREPROCESSED)
+
+
+def test_shutdown_leaves_jobs_queued_for_postprocessing_to_recovery():
+    transfers = _HeldTransfers()
+    with _temporary_app() as app:
+        with _proxy(app=app, postprocess_max_concurrent=1, **FAST_POLLING) as (proxy, manager):
+            job_ids = _launch_jobs(proxy, TEST_LAUNCH_CONFIG, 2)
+            manager.scripted_status = status.COMPLETE
+            with mock.patch.object(stateful, "postprocess", transfers):
+                for job_id in job_ids:
+                    proxy.get_status(job_id)
+                transfers.wait_for_started(1)
+                waiting = next(job_id for job_id in job_ids if job_id != transfers.job_ids[0])
+
+                proxy.shutdown()
+                transfers.release.set()
+                _join_staging_threads()
+
+            assert len(transfers.job_ids) == 1
+            assert _postprocessing_job_ids(proxy) == [waiting]
+            job_directory = manager.job_directory(waiting)
+            assert not job_directory.has_metadata(stateful.JOB_FILE_POSTPROCESSED)
+            assert not job_directory.has_metadata(stateful.JOB_FILE_POSTPROCESSING_FAILED)
+            assert (status.FAILED, waiting) not in proxy.callbacks
+
+        with _proxy(app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, waiting)]
+            _wait_for_postprocessing_index_cleared(proxy)
+
+
+def test_job_killed_while_queued_for_a_slot_is_neither_staged_nor_launched():
+    transfers = _HeldTransfers()
+    with _proxy(preprocess_max_concurrent=1, **FAST_POLLING) as (proxy, manager):
+        with _held_input_staging(transfers):
+            job_ids = _launch_jobs(proxy, STAGING_LAUNCH_CONFIG, 2)
+            transfers.wait_for_started(1)
+            staging = transfers.job_ids[0]
+            killed = next(job_id for job_id in job_ids if job_id != staging)
+
+            proxy.kill(killed)
+
+            # Leaves the queue while the only slot is still taken.
+            wait_for(
+                lambda: _preprocessing_job_ids(proxy) == [staging],
+                "the killed job to leave the preprocessing index",
+            )
+            transfers.release.set()
+            _join_staging_threads()
+
+        assert transfers.job_ids == [staging]
+        assert not manager.job_directory(killed).has_metadata(stateful.JOB_FILE_PREPROCESSED)
+        # Clients poll until they are told the job is over.
+        assert proxy.get_status(killed) == status.CANCELLED
+        assert manager.job_directory(staging).has_metadata(stateful.JOB_FILE_PREPROCESSED)
+
+
+def test_job_killed_mid_staging_stops_and_does_not_launch():
+    transfers = _HeldTransfers()
+    two_files = {"name": "input2", "type": "input", "action": {}}
+    launch_config = {
+        **STAGING_LAUNCH_CONFIG,
+        "remote_staging": {"setup": STAGING_LAUNCH_CONFIG["remote_staging"]["setup"] + [two_files]},
+    }
+    with _proxy() as (proxy, manager), _held_input_staging(transfers):
+        job_id = _launch_jobs(proxy, launch_config, 1)[0]
+        transfers.wait_for_started(1)
+
+        proxy.kill(job_id)
+        transfers.release.set()
+        _join_staging_threads()
+
+        assert len(transfers.job_ids) == 1
+        assert not manager.job_directory(job_id).has_metadata(stateful.JOB_FILE_PREPROCESSED)
+        assert proxy.get_status(job_id) == status.CANCELLED
+
+
+def test_kill_still_reaches_a_process_launched_before_preprocessing_was_marked_done():
+    process = subprocess.Popen(["sleep", "60"])
+    try:
+        with _proxy() as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            manager._record_pid(job_id, process.pid)
+            proxy.kill(job_id)
+            assert process.wait(5) != 0
+    finally:
+        process.kill()
+
+
+def test_killing_a_finished_job_does_not_cancel_its_output_staging():
+    with _launched_job() as (proxy, manager, job_id):
+        manager._finish_execution(job_id)
+        proxy.kill(job_id)
+        assert not manager._was_cancelled(job_id)
+
+
+def test_job_arriving_after_shutdown_does_not_start_staging():
+    transfers = _HeldTransfers()
+    transfers.release.set()
+    with _proxy(preprocess_max_concurrent=1, **FAST_POLLING) as (proxy, manager), _held_input_staging(transfers):
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        proxy.shutdown()
+        proxy.preprocess_and_launch(job_id, STAGING_LAUNCH_CONFIG)
+        _join_staging_threads()
+        assert transfers.job_ids == []
+        assert _preprocessing_job_ids(proxy) == [job_id]
 
 
 def test_monitor_can_start_after_external_job_recovery():
@@ -313,8 +495,7 @@ def test_postprocessing_job_is_tracked_as_active():
 
 
 def test_recover_active_jobs_redrives_interrupted_postprocessing():
-    app = minimal_app_for_managers()
-    try:
+    with _temporary_app() as app:
         with _proxy(app=app) as (proxy, manager):
             job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
             proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
@@ -328,8 +509,6 @@ def test_recover_active_jobs_redrives_interrupted_postprocessing():
                 stateful.JOB_FILE_POSTPROCESSED
             )
             _wait_for_postprocessing_index_cleared(proxy)
-    finally:
-        rmtree(app.staging_directory, ignore_errors=True)
 
 
 def test_job_killed_between_indexes_is_not_rerun():
@@ -339,8 +518,7 @@ def test_job_killed_between_indexes_is_not_rerun():
     removes it from the launched index, so a kill lands in a window where it is
     in both. Recovering it as a launched job would re-run the tool.
     """
-    app = minimal_app_for_managers()
-    try:
+    with _temporary_app() as app:
         with _proxy(_RecordingRecoveryManager, app=app) as (proxy, manager):
             job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
             proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
@@ -353,8 +531,6 @@ def test_job_killed_between_indexes_is_not_rerun():
             assert manager.recovered == []
             assert proxy.active_jobs.active_job_ids() == []
             _wait_for_postprocessing_index_cleared(proxy)
-    finally:
-        rmtree(app.staging_directory, ignore_errors=True)
 
 
 def test_terminal_job_left_in_launched_index_is_postprocessed():
@@ -363,8 +539,7 @@ def test_terminal_job_left_in_launched_index_is_postprocessed():
     The job is only in the launched index, but its outputs still need staging -
     and the runner's recovery would re-run it.
     """
-    app = minimal_app_for_managers()
-    try:
+    with _temporary_app() as app:
         with _proxy(_RecordingRecoveryManager, app=app) as (proxy, manager):
             job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
             proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
@@ -379,13 +554,10 @@ def test_terminal_job_left_in_launched_index_is_postprocessed():
             assert proxy.callbacks == [(status.COMPLETE, job_id)]
             assert manager.recovered == []
             assert proxy.active_jobs.active_job_ids() == []
-    finally:
-        rmtree(app.staging_directory, ignore_errors=True)
 
 
 def test_interrupted_postprocessing_is_not_reported_lost():
-    app = minimal_app_for_managers()
-    try:
+    with _temporary_app() as app:
         with _proxy(app=app) as (proxy, manager):
             job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
             proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
@@ -396,12 +568,20 @@ def test_interrupted_postprocessing_is_not_reported_lost():
             _wait_for_callback(proxy)
             assert (status.LOST, job_id) not in proxy.callbacks
             assert proxy.get_status(job_id) == status.COMPLETE
+
+
+@contextmanager
+def _temporary_app():
+    """An app that can outlive one proxy, for tests that restart Pulsar over its state."""
+    app = minimal_app_for_managers()
+    try:
+        yield app
     finally:
         rmtree(app.staging_directory, ignore_errors=True)
 
 
 @contextmanager
-def _proxy(manager_class=_ScriptedStatusManager, app=None):
+def _proxy(manager_class=_ScriptedStatusManager, app=None, **proxy_options):
     """Yield a proxy, owning the app whose staging directory it uses.
 
     Pass ``app`` to build a second proxy over state a first one left behind -
@@ -411,7 +591,7 @@ def _proxy(manager_class=_ScriptedStatusManager, app=None):
     if owns_app:
         app = minimal_app_for_managers()
     manager = manager_class("test", app, num_concurrent_jobs=0)
-    proxy = _RecordingStatefulManagerProxy(manager)
+    proxy = _RecordingStatefulManagerProxy(manager, **proxy_options)
     try:
         yield proxy, manager
     finally:
@@ -467,6 +647,62 @@ def _postprocessing_failed():
         yield
 
 
+class _HeldTransfers:
+    """Holds each transfer until released, recording which jobs got that far.
+
+    Pass it as ``postprocess`` to replace that step whole, or use ``_held_input_staging``
+    to run the real ``preprocess`` with this as the file action.
+    """
+
+    def __init__(self):
+        self.release = threading.Event()
+        self.job_ids = []
+        self.peak = 0
+        self._running = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, job_directory, *args, **kwds):
+        self._hold(os.path.basename(job_directory.path))
+        return True
+
+    def write_to_path(self, path):
+        # <staging directory>/<job id>/inputs/<name>
+        self._hold(path.split(os.sep)[-3])
+
+    def _hold(self, job_id):
+        with self._lock:
+            self.job_ids.append(job_id)
+            self._running += 1
+            self.peak = max(self.peak, self._running)
+        self.release.wait(5)
+        with self._lock:
+            self._running -= 1
+
+    def wait_for_started(self, count):
+        """Wait for exactly ``count`` transfers, then check no more start."""
+        wait_for(lambda: len(self.job_ids) == count, f"{count} transfers to start")
+        time.sleep(.2)
+        assert len(self.job_ids) == count
+
+
+def _launch_jobs(proxy, launch_config, count):
+    job_ids = [proxy.setup_job(str(i), "tool1", "1.0.0") for i in range(1, count + 1)]
+    for job_id in job_ids:
+        proxy.preprocess_and_launch(job_id, launch_config)
+    return job_ids
+
+
+def _held_input_staging(transfers):
+    return mock.patch.object(staging_pre, "from_dict", return_value=transfers)
+
+
+def _join_staging_threads(timeout=5):
+    for thread in threading.enumerate():
+        if "[action=preprocess]" in thread.name or "[action=postprocess]" in thread.name:
+            thread.join(timeout)
+            assert not thread.is_alive(), f"{thread.name} did not finish"
+
+
 def _wait_for_callback(proxy, timeout=5):
     wait_for(lambda: proxy.callbacks, "a state change callback", timeout=timeout)
 
@@ -478,6 +714,10 @@ def _wait_for_postprocessing_index_cleared(proxy, timeout=5):
         until=lambda job_ids: job_ids == [],
         timeout=timeout,
     )
+
+
+def _preprocessing_job_ids(proxy):
+    return proxy.active_jobs.active_job_ids(active_status=stateful.ACTIVE_STATUS_PREPROCESSING)
 
 
 def _postprocessing_job_ids(proxy):
