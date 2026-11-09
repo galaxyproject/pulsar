@@ -118,12 +118,8 @@ class StatefulManagerProxy(ManagerProxy):
         self.__postprocess_action_executor = RetryActionExecutor(
             **postprocess_retry_action_kwds
         )
-        self.__preprocess_slots = _staging_slots(
-            manager_options.get("preprocess_max_concurrent")
-        )
-        self.__postprocess_slots = _staging_slots(
-            manager_options.get("postprocess_max_concurrent")
-        )
+        self.__preprocess_slots = _staging_slots(manager_options, "preprocess_max_concurrent")
+        self.__postprocess_slots = _staging_slots(manager_options, "postprocess_max_concurrent")
         self.__shutting_down = threading.Event()
         self.__slot_poll_interval = float(
             manager_options.get("staging_slot_poll_interval", DEFAULT_STAGING_SLOT_POLL_INTERVAL)
@@ -743,11 +739,17 @@ class _StagingInterrupted(Exception):
     """Pulsar started shutting down while a job was queued for a staging slot."""
 
 
-def _staging_slots(max_concurrent: Any) -> Optional[threading.BoundedSemaphore]:
-    """Build the semaphore for a ``*_max_concurrent`` option; unset or 0 is unlimited."""
-    max_concurrent = int(max_concurrent or 0)
-    if max_concurrent <= 0:
+def _staging_slots(
+    manager_options: Dict[str, Any], option: str
+) -> Optional[threading.BoundedSemaphore]:
+    """Build the semaphore for a ``*_max_concurrent`` option; unset is unlimited."""
+    value = manager_options.get(option)
+    if value is None:
         return None
+    max_concurrent = int(value)
+    if max_concurrent < 1:
+        # 0 elsewhere means "run nothing" (num_concurrent_jobs), so don't guess.
+        raise ValueError(f"{option} must be at least 1, or unset for no limit, not {value!r}")
     return threading.BoundedSemaphore(max_concurrent)
 
 

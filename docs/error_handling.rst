@@ -325,7 +325,8 @@ Configuration knobs (per-manager YAML):
   predicate; only do this if you understand which errors are safe to
   retry in your environment)
 * ``preprocess_max_concurrent`` / ``postprocess_max_concurrent`` cap how
-  many of the manager's jobs transfer at once (unset or 0 is unlimited).
+  many of the manager's jobs transfer at once (unset is unlimited, and a
+  value below 1 is rejected at startup).
   They apply per manager and only to transfers Pulsar makes itself. A job
   keeps its slot while it backs off between retries, so a cap combined with
   long or unbounded retries lets jobs stuck on a failing endpoint hold up

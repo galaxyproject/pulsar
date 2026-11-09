@@ -271,7 +271,7 @@ def test_preprocessing_failure_is_reported_once():
         assert proxy.callbacks == [(status.FAILED, job_id)]
 
 
-@pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (0, 3)])
+@pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (None, 3)])
 def test_staging_concurrency_is_capped_by_preprocess_max_concurrent(max_concurrent, expected_peak):
     transfers = _HeldTransfers()
     with _proxy(preprocess_max_concurrent=max_concurrent) as (proxy, manager), _held_input_staging(transfers):
@@ -284,7 +284,7 @@ def test_staging_concurrency_is_capped_by_preprocess_max_concurrent(max_concurre
     assert transfers.peak == expected_peak
 
 
-@pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (0, 3)])
+@pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (None, 3)])
 def test_staging_concurrency_is_capped_by_postprocess_max_concurrent(max_concurrent, expected_peak):
     transfers = _HeldTransfers()
     with _proxy(postprocess_max_concurrent=max_concurrent) as (proxy, manager):
@@ -300,6 +300,15 @@ def test_staging_concurrency_is_capped_by_postprocess_max_concurrent(max_concurr
             wait_for(lambda: len(proxy.callbacks) == 3, "terminal callbacks")
     assert transfers.peak == expected_peak
     assert sorted(proxy.callbacks) == sorted((status.COMPLETE, job_id) for job_id in job_ids)
+
+
+@pytest.mark.parametrize("option", ["preprocess_max_concurrent", "postprocess_max_concurrent"])
+@pytest.mark.parametrize("value", [0, -1, "0"])
+def test_staging_cap_below_one_is_rejected_at_startup(option, value):
+    with _temporary_app() as app:
+        manager = _ScriptedStatusManager("test", app, num_concurrent_jobs=0)
+        with pytest.raises(ValueError, match=option):
+            StatefulManagerProxy(manager, **{option: value})
 
 
 def test_shutdown_leaves_jobs_queued_for_preprocessing_to_recovery():
