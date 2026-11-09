@@ -428,6 +428,17 @@ def test_integration_remote_transfer(direct_test_configuration: IntegrationTestC
     )
 
 
+@integration_test
+def test_integration_remote_transfer_with_staging_caps(direct_test_configuration: IntegrationTestConfiguration):
+    run_job(
+        direct_test_configuration,
+        job_conf_props={"type": "queued_python", "preprocess_max_concurrent": "1", "postprocess_max_concurrent": "1"},
+        private_token=None,
+        local_setup=True,
+        default_file_action="remote_transfer",
+    )
+
+
 def run_job(test_configuration: IntegrationTestConfiguration, job_conf_props: Optional[Dict[str, str]] = None, **kwds):
     if "suppress_output" not in kwds:
         kwds["suppress_output"] = False
