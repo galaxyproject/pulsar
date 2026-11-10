@@ -787,22 +787,8 @@ class GlobPathMapper(BasePathMapper):
         self.file_lister = FileLister(config, root=self._root)
 
     def _root(self, path):
-        """Return the directory that ``path``, matched by the glob, is expanded within.
-
-        That is the directory holding the glob's leading literal part, e.g.
-        /data/ref for /data/ref/**/*.fa. If the first wildcard is inside a
-        directory name, as in /data/ref*/x.fa, it is the directory ``path``
-        has there, e.g. /data/refA for /data/refA/x.fa. A glob without a
-        leading directory has none.
-        """
-        literal = split(r"[*?[]", self.glob_path, maxsplit=1)[0]
-        directory = dirname(literal)
-        if not directory:
-            return None
-        remainder = relpath(path, directory).split(sep)
-        if literal.endswith(sep) or len(remainder) == 1:
-            return directory
-        return join(directory, remainder[0])
+        """Return the directory that ``path``, matched by the glob, is expanded within."""
+        return _expansion_root(split(r"[*?[]", self.glob_path, maxsplit=1)[0], path)
 
     def _path_matches(self, path):
         return path is not None and fnmatch.fnmatch(path, self.glob_path)
@@ -821,6 +807,11 @@ class RegexPathMapper(BasePathMapper):
         super().__init__(config)
         self.pattern_raw = config['path']
         self.pattern = compile(self.pattern_raw)
+        self.file_lister = FileLister(config, root=self._root)
+
+    def _root(self, path):
+        """Return the directory that ``path``, matched by the pattern, is expanded within."""
+        return _expansion_root(_regex_literal_prefix(self.pattern_raw), path)
 
     def _path_matches(self, path):
         return path is not None and self.pattern.match(path) is not None
@@ -830,6 +821,102 @@ class RegexPathMapper(BasePathMapper):
 
     def to_dict(self):
         return self._extend_base_dict(path=self.pattern_raw)
+
+
+def _expansion_root(literal, path):
+    """Return the directory ``path`` is expanded within, given the literal prefix of the pattern it matched.
+
+    That is the directory holding the literal prefix, e.g. /data/ref for
+    /data/ref/x. If the prefix ends inside a directory name, as /data/ref does
+    for /data/ref*/x.fa, it is the directory ``path`` has there, e.g.
+    /data/refA for /data/refA/x.fa. A prefix without a directory has none.
+
+    >>> _expansion_root("/data/ref/", "/data/ref/genomes/hg19.fa")
+    '/data/ref'
+    >>> _expansion_root("/data/ref", "/data/refA/x.fa")
+    '/data/refA'
+    >>> _expansion_root("/data/ref", "/data/ref.fa")
+    '/data'
+    >>> _expansion_root("hg19", "/data/hg19.fa") is None
+    True
+    """
+    directory = dirname(literal)
+    if not directory:
+        return None
+    remainder = relpath(path, directory).split(sep)
+    if literal.endswith(sep) or len(remainder) == 1:
+        return directory
+    return join(directory, remainder[0])
+
+
+REGEX_SPECIAL_CHARACTERS = set(".^$*+?{}[]|()\\")
+REGEX_QUANTIFIERS = set("*+?{")
+
+
+def _regex_literal_prefix(pattern):
+    r"""Return the literal text every match of ``pattern`` (applied with ``re.match``) starts with.
+
+    Conservative: the prefix stops at the first special character, drops a
+    character a quantifier makes optional, and is empty if the pattern has a
+    top level alternative.
+
+    >>> _regex_literal_prefix(r"/data/genomes/.*")
+    '/data/genomes/'
+    >>> _regex_literal_prefix(r"^/data/hg19\.fa")
+    '/data/hg19.fa'
+    >>> _regex_literal_prefix(r"/data/refs?/x")
+    '/data/ref'
+    >>> _regex_literal_prefix(r"/data/ref/\d+/x")
+    '/data/ref/'
+    >>> _regex_literal_prefix(r"/data/ref/(a|b)/x")
+    '/data/ref/'
+    >>> _regex_literal_prefix(r"/data/ref/.*|/etc/.*")
+    ''
+    """
+    if _has_top_level_alternative(pattern):
+        return ""
+    prefix = []
+    i = 1 if pattern.startswith("^") else 0
+    while i < len(pattern):
+        char = pattern[i]
+        if char == "\\" and i + 1 < len(pattern) and not pattern[i + 1].isalnum():
+            literal, i = pattern[i + 1], i + 2
+        elif char in REGEX_SPECIAL_CHARACTERS:
+            break
+        else:
+            literal, i = char, i + 1
+        if i < len(pattern) and pattern[i] in REGEX_QUANTIFIERS:
+            break
+        prefix.append(literal)
+    return "".join(prefix)
+
+
+def _has_top_level_alternative(pattern):
+    depth = 0
+    in_class = False
+    i = 0
+    while i < len(pattern):
+        char = pattern[i]
+        if char == "\\":
+            i += 2
+            continue
+        if in_class:
+            in_class = char != "]"
+        elif char == "[":
+            in_class = True
+            # A "]" first in the class, after an optional "^", is literal.
+            if pattern[i + 1:i + 2] == "^":
+                i += 1
+            if pattern[i + 1:i + 2] == "]":
+                i += 1
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+        elif char == "|" and depth == 0:
+            return True
+        i += 1
+    return False
 
 
 MAPPER_CLASSES = [PathTypeOnlyMapper, PrefixPathMapper, GlobPathMapper, RegexPathMapper]
@@ -875,6 +962,10 @@ class FileLister:
             if root is not None and not path_within(parent, root):
                 break
             directory = parent
+        if directory == path:
+            # The mapped path is the path itself, e.g. a prefix naming a file:
+            # there is nothing above it to expand into.
+            return {path: basename(path)}
         return {join(directory, f): f for f in directory_files(directory)}
 
 
