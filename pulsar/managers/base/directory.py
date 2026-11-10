@@ -41,14 +41,17 @@ JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
 JOB_FILE_COMMAND_LINE = "command_line"
 CREATE_TMP_PATTERN = """$([ ! -e '{0}/tmp' ] || mv '{0}/tmp' '{0}'/tmp.$(date +%Y%m%d-%H%M%S) ; mkdir '{0}/tmp'; echo '{0}/tmp')"""
-# A ``.orig`` directory only ever appears through a rename of a completed copy,
-# so a rerun never restores from a partial backup.
+# Copy working, outputs, and configs before tool execution so that these can be restored on job resubmission
+# xref https://github.com/galaxyproject/galaxy/issues/3289
+# Any existing $dir.orig is restored over $dir, so $dir.orig must only ever appear complete: the backup is copied to
+# the sibling $dir.orig.partial and renamed into place only if the copy succeeded. A $dir.orig.partial left by an
+# interrupted run is removed first, otherwise cp -R would copy into it instead of creating it.
 PREPARE_DIRS_TEMPLATE = """for dir in {working_directory} {outputs_directory} {configs_directory}; do
     if [ -d "${{dir}}.orig" ]; then
         rm -rf "$dir"; cp -R "${{dir}}.orig" "$dir"
     else
-        rm -rf "${{dir}}.orig.tmp"
-        cp -R "$dir" "${{dir}}.orig.tmp" && mv "${{dir}}.orig.tmp" "${{dir}}.orig"
+        rm -rf "${{dir}}.orig.partial" &&
+        cp -R "$dir" "${{dir}}.orig.partial" && mv "${{dir}}.orig.partial" "${{dir}}.orig"
     fi
 done
 """
