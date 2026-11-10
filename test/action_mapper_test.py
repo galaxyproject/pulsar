@@ -1,4 +1,5 @@
 import os
+import re
 
 import pytest
 from galaxy.util.bunch import Bunch
@@ -57,18 +58,32 @@ def test_root_prefix_mapper_matches_everything():
     ("prefix", "{ref}"),
     ("glob", "{ref}/*"),
     ("glob", "{ref}/genomes/hg19.fa*"),
+    ("regex", "{ref_re}/.*"),
+    ("regex", r"{ref_re}/genomes/hg19\.fa(\.fai)?"),
 ])
 def test_depth_is_clamped_to_mapped_directory(tmp_path, match_type, mapped_path):
     ref = tmp_path / "ref"
     (ref / "genomes").mkdir(parents=True)
     for path in [ref / "genomes" / "hg19.fa", ref / "genomes" / "hg19.fa.fai", tmp_path / "secret"]:
         path.write_text("x")
-    mapper = FileActionMapper(_mapped_client(
-        {"path": mapped_path.format(ref=ref), "match_type": match_type, "depth": 3, "path_types": "unstructured"}
-    ))
+    mapper = FileActionMapper(_mapped_client({
+        "path": mapped_path.format(ref=ref, ref_re=re.escape(str(ref))),
+        "match_type": match_type,
+        "depth": 3,
+        "path_types": "unstructured",
+    }))
     action = mapper.action({"path": str(ref / "genomes" / "hg19.fa")}, "unstructured")
     staged = action.unstructured_map(PathHelper(os.sep))
     assert sorted(staged) == [str(ref / "genomes" / "hg19.fa"), str(ref / "genomes" / "hg19.fa.fai")]
+
+
+def test_depth_of_prefix_naming_a_file_stages_the_file(tmp_path):
+    for name in ["hg19.fa", "hg19.fa.fai"]:
+        (tmp_path / name).write_text("x")
+    fasta = str(tmp_path / "hg19.fa")
+    mapper = FileActionMapper(_mapped_client({"path": fasta, "depth": 1, "path_types": "unstructured"}))
+    action = mapper.action({"path": fasta}, "unstructured")
+    assert action.file_lister.unstructured_map(fasta) == {fasta: "hg19.fa"}
 
 
 def test_depth_of_glob_with_wildcard_in_directory_name_stays_in_matched_directory(tmp_path):
