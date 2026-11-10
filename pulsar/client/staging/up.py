@@ -96,7 +96,8 @@ def submit_job(
     launch_kwds["dynamic_file_sources"] = client_job_description.client_outputs.dynamic_file_sources
     launch_kwds["token_endpoint"] = client.token_endpoint
     if staging_manifest_callback is not None:
-        staging_manifest_callback(file_stager.transfer_tracker.remote_transfer_paths)
+        # Once each, and a copy the callback may keep or change.
+        staging_manifest_callback(list(dict.fromkeys(file_stager.transfer_tracker.remote_transfer_paths)))
     # for pulsar modalities that skip the explicit "setup" step, give them a chance to set an external
     # id from the submission process (e.g. to TES).
     launch_response = client.launch(**launch_kwds)
