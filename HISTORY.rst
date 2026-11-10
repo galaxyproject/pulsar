@@ -39,17 +39,19 @@ History
   before launch with the source paths the remote Pulsar will fetch from the
   client's files endpoint by path (``remote_transfer`` and
   ``remote_transfer_tus`` setup actions), so the client can serve only those
-  paths.
+  paths. `Pull Request 563`_
 * Match ``prefix`` file action paths on whole path segments: ``/data/ref``
   matches ``/data/ref`` and ``/data/ref/x`` but no longer ``/data/refX``.
+  `Pull Request 563`_
 * Resolve ``..`` segments in tool directory and unstructured paths found in
   the command line and config files before staging them, and skip any that
   leave the tool directory or the mapped path. ``depth`` expansion of
-  ``prefix`` and ``glob`` file actions no longer climbs above the mapped
-  directory.
+  ``prefix``, ``glob`` and ``regex`` file actions no longer climbs above the
+  mapped directory; a ``prefix`` naming a file stages just that file.
+  `Pull Request 563`_
 * Stage unstructured paths that Galaxy maps from tool parameters to a staging
   file action instead of failing with a ``TypeError``, and stage them from
-  their normalized path, the one the file action matched.
+  their normalized path, the one the file action matched. `Pull Request 563`_
 
 
 
@@ -813,6 +815,7 @@ History
 
 .. github_links
 .. _Pull Request 569: https://github.com/galaxyproject/pulsar/pull/569
+.. _Pull Request 563: https://github.com/galaxyproject/pulsar/pull/563
 .. _Pull Request 549: https://github.com/galaxyproject/pulsar/pull/549
 .. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
 .. _Pull Request 518: https://github.com/galaxyproject/pulsar/pull/518
