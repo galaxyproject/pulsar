@@ -20,8 +20,7 @@ History
   client for out of memory and deadline failures. `Issue 492`_
 * Report node failures, preemption and jobs cancelled outside of Galaxy as their
   own ``runner_state`` values, and add a ``runner_state_message`` with details for
-  the user. Runner states are now declared with ``register_runner_state``.
-  `Issue 492`_
+  the user. `Issue 492`_
 * Start a job resubmitted by Galaxy over a message queue from a clean job
   directory instead of ignoring it as a redelivered setup message. `Issue 492`_
 * Record preprocess and postprocess file transfer time, count, and bytes for
