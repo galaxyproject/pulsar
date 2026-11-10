@@ -68,6 +68,23 @@ class PathMapperTestCase(TempDirectoryTestCase):
         assert list(unstructured_files) == [os.path.join(ref, "genome.fa")]
         assert remote_path == "/scratch/staging/1/unstructured/" + unstructured_files[os.path.join(ref, "genome.fa")]
 
+    def test_arbitrary_path_named_by_prefix_with_depth_is_staged(self):
+        fasta = os.path.join(self.temp_directory, "hg19.fa")
+        open(fasta, "w").write("x")
+        action_mapper = FileActionMapper(config={
+            "default_action": "none",
+            "paths": [{"path": fasta, "action": "transfer", "path_types": "unstructured", "depth": 1}],
+        })
+        path_mapper = PathMapper(
+            client=None,
+            remote_job_config=self.__test_remote_config(),
+            local_working_directory=self.temp_directory,
+            action_mapper=action_mapper,
+        )
+        remote_path, unstructured_files = path_mapper.check_for_arbitrary_rewrite(fasta)
+        assert list(unstructured_files) == [fasta]
+        assert remote_path == "/scratch/staging/1/unstructured/" + unstructured_files[fasta]
+
     def test_container_rewrite_applies_rewrite_action(self):
         action = Bunch(staging_needed=False, action_type="rewrite", path_rewrite=lambda helper: "/dist/cvmfs/img")
         path_mapper = self._container_path_mapper(action)
