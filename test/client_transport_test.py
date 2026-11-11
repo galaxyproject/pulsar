@@ -35,6 +35,7 @@ from pulsar.client.transport.tus import find_tus_endpoint
 from pulsar.managers.util.retry import RetryActionExecutor
 from .test_utils import (
     files_server,
+    put_file_implementations,
     server_for_test_app,
     skip_unless_module,
     temp_directory,
@@ -566,14 +567,7 @@ class _RecordingPutApp:
         return [b""]
 
 
-def _put_files():
-    implementations = [pytest.param(requests_transport.put_file, id="requests")]
-    if curl_transport.curl_available:
-        implementations.append(pytest.param(curl_transport.put_file, id="curl"))
-    return implementations
-
-
-@pytest.mark.parametrize("put_file", _put_files())
+@pytest.mark.parametrize("put_file", put_file_implementations())
 def test_put_file_sends_the_file_with_its_length_and_headers(tmp_path, put_file):
     source = tmp_path / "source"
     source.write_bytes(b"0123456789")
@@ -589,7 +583,7 @@ def test_put_file_sends_the_file_with_its_length_and_headers(tmp_path, put_file)
     assert response_headers["etag"] == '"abc123"'
 
 
-@pytest.mark.parametrize("put_file", _put_files())
+@pytest.mark.parametrize("put_file", put_file_implementations())
 def test_put_file_sends_a_byte_range(tmp_path, put_file):
     source = tmp_path / "source"
     source.write_bytes(b"0123456789")
@@ -601,7 +595,7 @@ def test_put_file_sends_a_byte_range(tmp_path, put_file):
     assert request["content_length"] == "4"
 
 
-@pytest.mark.parametrize("put_file", _put_files())
+@pytest.mark.parametrize("put_file", put_file_implementations())
 def test_put_file_sends_an_empty_file(tmp_path, put_file):
     source = tmp_path / "source"
     source.write_bytes(b"")
@@ -613,7 +607,7 @@ def test_put_file_sends_an_empty_file(tmp_path, put_file):
     assert request["content_length"] == "0"
 
 
-@pytest.mark.parametrize("put_file", _put_files())
+@pytest.mark.parametrize("put_file", put_file_implementations())
 def test_put_file_raises_with_the_status_of_a_refused_upload(tmp_path, put_file):
     source = tmp_path / "source"
     source.write_bytes(b"x")
@@ -624,7 +618,7 @@ def test_put_file_raises_with_the_status_of_a_refused_upload(tmp_path, put_file)
     assert http_status_code(exc_info.value) == 403
 
 
-@pytest.mark.parametrize("put_file", _put_files())
+@pytest.mark.parametrize("put_file", put_file_implementations())
 def test_put_file_missing_file_raises_file_not_found(put_file):
     with pytest.raises(FileNotFoundError):
         put_file("http://galaxy.test/objects/1", "/does/not/exist")

@@ -5,7 +5,9 @@ into the job's object store staging directory, with a manifest: one JSON record 
 file, naming it by a path relative to that directory. After the job, Pulsar sends
 Galaxy the records (each file's size in place of its path) and uploads each file to
 the target Galaxy answers with: a single PUT, or a multipart upload whose parts Pulsar
-PUTs and Galaxy then completes. Targets may point straight at Galaxy's object store,
+PUTs and Galaxy then completes. Completing reports the ETag each part's PUT answered
+with, or null where it answered without one (Azure's Put Block does): what to check
+is Galaxy's call. Targets may point straight at Galaxy's object store,
 so no storage credentials reach the job. A target URL relative to the targets URL is
 resolved against it, as for an HTTP redirect.
 """
