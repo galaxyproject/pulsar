@@ -35,6 +35,12 @@ History
   job after a resubmission. Add ``job_id_prefix`` (validated against GCP's job
   name rules) and ``gcp_kill_action: delete|cancel`` destination parameters.
   `Pull Request 473`_
+* Upload a job's outputs to targets Galaxy issues, such as presigned object
+  store URLs, so that no object store credentials reach the job. Job configs
+  report an ``object_store_staging_directory`` for the metadata step to write
+  the outputs to, and a launch's ``output_targets_url`` tells postprocessing
+  where to ask for the targets. Uploads are single PUTs or multipart, through a
+  new ``put_file`` transport. `Pull Request 572`_
 
 
 
@@ -797,6 +803,7 @@ History
 
 
 .. github_links
+.. _Pull Request 572: https://github.com/galaxyproject/pulsar/pull/572
 .. _Pull Request 569: https://github.com/galaxyproject/pulsar/pull/569
 .. _Pull Request 549: https://github.com/galaxyproject/pulsar/pull/549
 .. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
