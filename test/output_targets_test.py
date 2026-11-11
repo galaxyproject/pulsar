@@ -18,6 +18,10 @@ from webtest import TestApp
 
 from pulsar.managers.base import JobDirectory
 from pulsar.managers.staging import output_targets
+from pulsar.managers.staging.metrics import (
+    POSTPROCESS,
+    transfer_metrics_file_name,
+)
 from pulsar.managers.staging.output_targets import (
     MANIFEST_NAME,
     OutputStagingError,
@@ -385,9 +389,22 @@ def test_unknown_target_type_is_refused(staging_directory):
 
 
 def _job_directory(root: str, targets_url: Optional[str]) -> JobDirectory:
+    """A job launched with remote extended metadata: Galaxy expects no output files back."""
     job_directory = JobDirectory(root, "1")
     job_directory.setup()
-    remote_staging = {"output_targets_url": targets_url} if targets_url else {}
+    client_directory = os.path.join(root, "galaxy")
+    os.makedirs(os.path.join(client_directory, "metadata"))
+    remote_staging: Dict[str, Any] = {
+        "action_mapper": {"default_action": "remote_copy"},
+        "client_outputs": {
+            "working_directory": os.path.join(client_directory, "working"),
+            "metadata_directory": os.path.join(client_directory, "metadata"),
+            "job_directory": client_directory,
+            "output_files": [],
+        },
+    }
+    if targets_url:
+        remote_staging["output_targets_url"] = targets_url
     job_directory.store_metadata("launch_config", {"remote_staging": remote_staging})
     return job_directory
 
@@ -407,6 +424,19 @@ def test_postprocess_reports_failure_when_outputs_cannot_be_uploaded():
         job_directory = _job_directory(root, f"{server.application_url}/targets")
         _stage(job_directory.object_store_staging_directory(), {"a.dat": b"output"})
         assert not postprocess(job_directory, _executor(), _never_cancelled)
+
+
+def test_postprocess_metrics_count_the_outputs_uploaded_to_targets():
+    outputs = {"a.dat": b"output", "dataset_a_files/b.dat": b"its extra file"}
+    galaxy = FakeGalaxy(part_size=4)
+    with temp_directory() as root, _serve(galaxy) as server:
+        job_directory = _job_directory(root, f"{server.application_url}/targets")
+        _stage(job_directory.object_store_staging_directory(), outputs)
+        assert postprocess(job_directory, _executor(), _never_cancelled)
+        metrics_path = job_directory.calculate_path(transfer_metrics_file_name(POSTPROCESS), "metadata")
+        with open(metrics_path) as f:
+            recorded = json.load(f)
+    assert (recorded["files"], recorded["bytes"]) == (2, sum(len(content) for content in outputs.values()))
 
 
 def test_postprocess_leaves_staged_files_alone_without_a_targets_url():
