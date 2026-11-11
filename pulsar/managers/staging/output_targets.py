@@ -32,6 +32,7 @@ import requests
 from pulsar.client.transport import put_file
 
 if TYPE_CHECKING:
+    from pulsar.managers.staging.metrics import TransferMetrics
     from pulsar.managers.util.retry import RetryActionExecutor
 
 log = logging.getLogger(__name__)
@@ -51,8 +52,12 @@ def upload_outputs(
     targets_url: str,
     action_executor: "RetryActionExecutor",
     was_cancelled: Callable[[], Optional[bool]],
+    metrics: Optional["TransferMetrics"] = None,
 ) -> None:
-    """Upload the files the manifest in ``staging_directory`` lists to the targets Galaxy issues."""
+    """Upload the files the manifest in ``staging_directory`` lists to the targets Galaxy issues.
+
+    Counts each file in ``metrics`` once its upload is complete.
+    """
     if os.path.islink(staging_directory):
         raise OutputStagingError("The object store staging directory is a symlink.")
     manifest_path = os.path.join(staging_directory, MANIFEST_NAME)
@@ -72,6 +77,8 @@ def upload_outputs(
             log.info("Skipped uploading outputs, job is cancelled")
             return
         _upload(path, size, target, targets_url, action_executor)
+        if metrics is not None:
+            metrics.record_file(path)
 
 
 def _read_manifest(staging_directory: str, manifest_path: str) -> List[StagedFile]:
