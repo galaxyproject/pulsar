@@ -14,6 +14,9 @@ def test_torque_cli():
     command = job.submit("/tmp/path/test.sh")
     assert command == "qsub /tmp/path/test.sh"
 
+    command = job.submit("/tmp/path/test.sh", native_specification="-l nodes=1:ppn=4")
+    assert command == "qsub -l nodes=1:ppn=4 /tmp/path/test.sh"
+
     command = job.delete("5")
     assert command == "qdel 5"
 
@@ -46,6 +49,10 @@ def test_slurm_cli():
 
     command = job.submit("/tmp/path/test.sh")
     assert command == "sbatch /tmp/path/test.sh"
+
+    # native specification from Galaxy is passed to sbatch as is
+    command = job.submit("/tmp/path/test.sh", native_specification="--partition=milan --mem=20G -t 4-0")
+    assert command == "sbatch --partition=milan --mem=20G -t 4-0 /tmp/path/test.sh"
 
     command = job.get_status()
     assert command == '''squeue -a -o '%A %t\''''
