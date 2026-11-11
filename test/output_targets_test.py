@@ -17,6 +17,7 @@ import pytest
 from webtest import TestApp
 
 from pulsar.managers.base import JobDirectory
+from pulsar.managers.staging import output_targets
 from pulsar.managers.staging.output_targets import (
     MANIFEST_NAME,
     OutputStagingError,
@@ -25,6 +26,7 @@ from pulsar.managers.staging.output_targets import (
 from pulsar.managers.staging.post import postprocess
 from pulsar.managers.util.retry import RetryActionExecutor
 from .test_utils import (
+    put_file_implementations,
     server_for_test_app,
     temp_directory,
 )
@@ -40,8 +42,11 @@ class FakeGalaxy:
         put_status: str = "502 Bad Gateway",
         prefix: str = "",
         relative_urls: bool = False,
+        part_etags: bool = True,
     ):
         self.part_size = part_size
+        # Azure's Put Block answers without an ETag.
+        self.part_etags = part_etags
         # Galaxy may answer with URLs relative to the targets URL for uploads it handles itself.
         self.prefix = prefix
         self.relative_urls = relative_urls
@@ -79,11 +84,11 @@ class FakeGalaxy:
             if part:
                 part_number = int(part[0])
                 self.parts.setdefault(key, {})[part_number] = body
-                etag = f'"etag-{key}-{part_number}"'
+                etag = f'"etag-{key}-{part_number}"' if self.part_etags else None
             else:
                 self.objects[key] = body
                 etag = f'"etag-{key}"'
-            return _respond(start_response, "200 OK", b"", headers=[("ETag", etag)])
+            return _respond(start_response, "200 OK", b"", headers=[("ETag", etag)] if etag else [])
         if method == "POST" and path.startswith("/complete/"):
             key = path[len("/complete/"):]
             self.completions[key] = json.loads(body)["parts"]
@@ -194,6 +199,23 @@ def test_multipart_target_uploads_each_part_and_completes_with_their_etags(stagi
         {"part_number": 1, "etag": '"etag-0-1"'},
         {"part_number": 2, "etag": '"etag-0-2"'},
         {"part_number": 3, "etag": '"etag-0-3"'},
+    ]
+    assert galaxy.objects["0"] == content
+
+
+@pytest.mark.parametrize("transport_put_file", put_file_implementations())
+def test_parts_answered_without_an_etag_are_reported_without_one(staging_directory, monkeypatch, transport_put_file):
+    # Galaxy, not Pulsar, decides whether a part needs an ETag: a store that sends none can't check one.
+    monkeypatch.setattr(output_targets, "put_file", transport_put_file)
+    content = b"0123456789"
+    _stage(staging_directory, {"big.dat": content})
+    galaxy = FakeGalaxy(part_size=4, part_etags=False)
+    with _serve(galaxy) as server:
+        upload_outputs(staging_directory, f"{server.application_url}/targets", _executor(), _never_cancelled)
+    assert galaxy.completions["0"] == [
+        {"part_number": 1, "etag": None},
+        {"part_number": 2, "etag": None},
+        {"part_number": 3, "etag": None},
     ]
     assert galaxy.objects["0"] == content
 
