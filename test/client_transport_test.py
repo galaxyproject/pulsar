@@ -1,5 +1,6 @@
 import contextlib
 import os
+import threading
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest import mock
@@ -188,6 +189,36 @@ def test_get_size_follows_redirect():
         target = f"{server.application_url}?path={path}"
         with server_for_test_app(TestApp(_RedirectApp(target))) as redirector:
             assert curl_transport.get_size(redirector.application_url) == len(" Test123 ")
+
+
+class _StallingHeadApp:
+    """WSGI app that holds every HEAD request open without answering until
+    ``release`` is set, like a proxy that accepted the connection and hung."""
+
+    def __init__(self):
+        self.release = threading.Event()
+
+    def __call__(self, environ, start_response):
+        if environ["REQUEST_METHOD"] == "HEAD":
+            self.release.wait(10)
+        start_response("200 OK", [("Content-Length", "9")])
+        return [b" Test123 "]
+
+
+def test_curl_get_file_times_out_sizing_a_partial_download(tmp_path):
+    """Resuming a partial download starts with a HEAD request. A HEAD that never
+    gets an answer has to time out and be retried, not block the staging action."""
+    app = _StallingHeadApp()
+    output = tmp_path / "out"
+    output.write_bytes(b" Tes")  # partial download left by an earlier attempt
+    with server_for_test_app(TestApp(app)) as server:
+        try:
+            with mock.patch.object(curl_transport, "GET_SIZE_TIMEOUT", 0.5):
+                with pytest.raises(requests_module.Timeout) as exc_info:
+                    curl_transport.get_file(server.application_url, str(output))
+        finally:
+            app.release.set()
+    assert is_transient_http_error(exc_info.value)
 
 
 @skip_unless_module("pycurl")
