@@ -5,11 +5,13 @@ The submit-message idempotency guard: when an AMQP setup message is redelivered
 submit_job must NOT re-run the job. Once ``launch_config`` metadata is present
 on disk, the redelivered message is a no-op.
 """
+import os
 from unittest.mock import Mock
 
 import pytest
 
 from pulsar import manager_endpoint_util
+from pulsar.managers.base import JobDirectory
 
 
 class _FakeJobDirectory:
@@ -47,6 +49,9 @@ class _FakeJobDirectory:
 
     def unstructured_files_directory(self):
         return self._sub("unstructured")
+
+    def object_store_staging_directory(self):
+        return self._sub("object_store_staging")
 
 
 class _FakeActiveJobs:
@@ -260,3 +265,13 @@ def test_removed_jobs_directory_token_is_rejected():
     message = str(exc_info.value)
     assert "__PULSAR_JOBS_DIRECTORY__" in message
     assert "jobs_directory" in message
+
+
+def test_setup_reports_where_the_job_stages_outputs_for_the_object_store(tmp_path):
+    # Galaxy points the job's metadata step at this directory to stage outputs for upload.
+    manager = Mock()
+    manager.setup_job.return_value = "j1"
+    manager.job_directory.return_value = JobDirectory(str(tmp_path), "j1")
+    manager.system_properties.return_value = {}
+    job_config = manager_endpoint_util.setup_job(manager, "j1", "tool", "1.0")
+    assert job_config["object_store_staging_directory"] == os.path.join(str(tmp_path), "j1", "object_store_staging")

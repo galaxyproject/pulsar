@@ -66,6 +66,9 @@ class RemoteJobDirectory:
     def unstructured_files_directory(self):
         return self._sub_dir('unstructured')
 
+    def object_store_staging_directory(self):
+        return self._sub_dir('object_store_staging')
+
     def default_tmp_directory(self):
         return self._sub_dir('tmp')
 
