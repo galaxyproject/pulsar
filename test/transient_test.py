@@ -66,10 +66,30 @@ def test_urllib_urlerror_no_status_is_transient():
     assert is_transient_http_error(URLError("connection refused"))
 
 
+def _not_200(status):
+    return PulsarClientTransportError(code=PulsarClientTransportError.NOT_200, transport_code=status)
+
+
+def _curl_error(code):
+    return PulsarClientTransportError(transport_code=code, transport_message="curl failed")
+
+
 def test_pulsar_client_transport_error_status_classified():
-    assert is_transient_http_error(PulsarClientTransportError(transport_code=502))
-    assert is_transient_http_error(PulsarClientTransportError(transport_code=429))
-    assert not is_transient_http_error(PulsarClientTransportError(transport_code=404))
+    assert is_transient_http_error(_not_200(502))
+    assert is_transient_http_error(_not_200(429))
+    assert not is_transient_http_error(_not_200(404))
+
+
+def test_pulsar_client_transport_error_curl_codes_are_transient():
+    """The curl transport reports connection-level failures with the pycurl
+    error number as transport_code. Those are not HTTP statuses and a few of
+    them (7, 18, 28, 35, 56, 92) look like permanent client errors if read as
+    one; all are retried."""
+    for code in (7, 18, 28, 35, 56, 92):
+        assert is_transient_http_error(_curl_error(code)), code
+    assert is_transient_http_error(
+        PulsarClientTransportError(code=PulsarClientTransportError.TIMEOUT, transport_code=28)
+    )
 
 
 def test_pulsar_client_transport_error_string_codes_are_transient():
@@ -92,13 +112,14 @@ def test_socket_and_builtin_connection_errors_are_transient():
 def test_http_status_code_extracts_across_exception_shapes():
     assert http_status_code(_requests_http_error(403)) == 403
     assert http_status_code(_urllib_http_error(403)) == 403
-    assert http_status_code(PulsarClientTransportError(transport_code=403)) == 403
+    assert http_status_code(_not_200(403)) == 403
 
 
 def test_http_status_code_none_when_unavailable():
     # Connection-level / non-numeric transport codes have no HTTP status.
     assert http_status_code(ConnectionError()) is None
     assert http_status_code(PulsarClientTransportError(code=PulsarClientTransportError.TIMEOUT)) is None
+    assert http_status_code(_curl_error(92)) is None
     assert http_status_code(requests.HTTPError()) is None
 
 
