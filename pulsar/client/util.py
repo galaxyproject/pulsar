@@ -23,7 +23,9 @@ from os.path import (
     abspath,
     exists,
     join,
+    normpath,
     relpath,
+    sep,
 )
 from threading import (
     Event,
@@ -68,6 +70,44 @@ def b64encode(val, **kwargs):
 @wraps(_b64decode)
 def b64decode(val, **kwargs):
     return _b64decode(val.encode('UTF-8'), **kwargs).decode('UTF-8')
+
+
+def path_within(path, directory):
+    """Return True if ``path`` is ``directory`` or below it, comparing whole path segments.
+
+    >>> path_within("/data/ref", "/data/ref")
+    True
+    >>> path_within("/data/ref/hg19.fa", "/data/ref")
+    True
+    >>> path_within("/data/refX/hg19.fa", "/data/ref")
+    False
+    >>> path_within("/data/ref", "/")
+    True
+    """
+    return path == directory or path.startswith(directory.rstrip(sep) + sep)
+
+
+def resolve_parent_references(path):
+    """Resolve the ``..`` segments of ``path`` lexically, and return any other path unchanged.
+
+    Only a ``..`` segment can make the file the OS opens differ from the lexical
+    path, by stepping back out of a symlink. A trailing separator is kept.
+
+    >>> resolve_parent_references("/data/ref/link/../x")
+    '/data/ref/x'
+    >>> resolve_parent_references("/data/ref/sub/../lib/")
+    '/data/ref/lib/'
+    >>> resolve_parent_references("/data/ref/lib/")
+    '/data/ref/lib/'
+    >>> resolve_parent_references("/data/ref/./x")
+    '/data/ref/./x'
+    """
+    if ".." not in path.split(sep):
+        return path
+    resolved = normpath(path)
+    if path.endswith(sep) and not resolved.endswith(sep):
+        resolved += sep
+    return resolved
 
 
 def unique_path_prefix(path):

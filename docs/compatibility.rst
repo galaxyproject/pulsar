@@ -149,17 +149,23 @@ Contract: ``pulsar/web/routes.py`` routes and params; setup response; status fie
        * :ref:`tus-now-real <compat-issue-tus-now-real>`
        * :ref:`resubmit-same-id-ignored <compat-issue-resubmit-same-id-ignored>`
        * :ref:`status-stdout-capped <compat-issue-status-stdout-capped>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
    * - 
      - 
      - ``>=0.15.13,<0.16.0.dev0``
      - ``expected``
      - * :ref:`master-features-unavailable <compat-issue-master-features-unavailable>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
    * - 
      - 
      - ``>=0.15.6,<0.15.13``
      - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
        * :ref:`master-features-unavailable <compat-issue-master-features-unavailable>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
 
 
 Message Queue (AMQP)
@@ -253,17 +259,23 @@ Contract: exchange ``pulsar``; queues ``<prefix>_{setup,kill,status,status_updat
        * :ref:`amqp-durable-mismatch <compat-issue-amqp-durable-mismatch>`
        * :ref:`outbox-duplicate-final-status <compat-issue-outbox-duplicate-final-status>`
        * :ref:`status-stdout-capped <compat-issue-status-stdout-capped>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
    * - 
      - 
      - ``>=0.15.13,<0.16.0.dev0``
      - ``expected``
      - * :ref:`master-features-unavailable <compat-issue-master-features-unavailable>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
    * - 
      - 
      - ``>=0.15.6,<0.15.13``
      - ``broken``
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
        * :ref:`master-features-unavailable <compat-issue-master-features-unavailable>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
 
 
 Relay
@@ -342,12 +354,16 @@ Other axes:
      - * :ref:`relay-default-username-dropped <compat-issue-relay-default-username-dropped>`
        * :ref:`outbox-duplicate-final-status <compat-issue-outbox-duplicate-final-status>`
        * :ref:`master-features-unavailable <compat-issue-master-features-unavailable>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
    * - 
      - 
      - ``==0.15.12``
      - ``broken``
      - * :ref:`relay-topic-prefix-needs-0.15.13 <compat-issue-relay-topic-prefix-needs-0.15.13>`
        * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
 
 
 Coexecution
@@ -427,6 +443,8 @@ Backends:
      - * :ref:`collector-descriptions-version-gate <compat-issue-collector-descriptions-version-gate>`
        * :ref:`coexec-token-endpoint-ignored <compat-issue-coexec-token-endpoint-ignored>`
        * :ref:`coexec-stdio-not-separated <compat-issue-coexec-stdio-not-separated>`
+       * :ref:`job-files-manifest-needs-lib-0.16.1 <compat-issue-job-files-manifest-needs-lib-0.16.1>`
+       * :ref:`client-staging-stricter-paths <compat-issue-client-staging-stricter-paths>`
 
 
 Embedded
@@ -437,6 +455,16 @@ Pulsar runs inside Galaxy's process; always the same version. No matrix.
 
 Known Issues
 ------------
+
+.. _compat-issue-job-files-manifest-needs-lib-0.16.1:
+
+``job-files-manifest-needs-lib-0.16.1`` (conditional)
+   Galaxy's ``job_files_strict_access`` (galaxy#24646, not merged) serves job files API reads only from the ``job_files_manifest.json`` Galaxy writes from ``submit_job``'s ``staging_manifest_callback``, new in lib 0.16.1. Galaxy passes the callback for every Pulsar job, so it needs lib >= 0.16.1; with 0.16.0 every job fails with ``TypeError``. The lib builds the manifest inside Galaxy from the setup actions it sends, and servers fetch only those, so any server works. Jobs submitted before the upgrade have no manifest; with the option on, their reads are refused.
+
+.. _compat-issue-client-staging-stricter-paths:
+
+``client-staging-stricter-paths`` (conditional)
+   Lib 0.16.1 stages tool directory and unstructured paths more strictly, on the Galaxy side and whatever the server: a ``prefix`` file action matches whole path segments (``/data/ref`` no longer matches ``/data/refX``); ``depth`` stops at the mapped directory; a referenced path whose ``..`` segments leave the tool directory or the mapped path is not staged, so the job sees the local path. Data table paths Galaxy maps to a staging file action are staged instead of failing with ``TypeError``.
 
 .. _compat-issue-collector-descriptions-version-gate:
 
