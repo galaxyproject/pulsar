@@ -13,6 +13,16 @@ History
   `Pull Request 569`_
 * Stop staging and launching jobs killed before launch, whichever manager runs
   them, and report them as cancelled. `Pull Request 569`_
+* Report why a job failed to Galaxy with a ``runner_state`` in the final status
+  so job resubmission conditions such as ``memory_limit_reached`` work for
+  Pulsar destinations. Add a ``queued_slurm`` manager that determines this for
+  Slurm jobs; ``queued_cli`` reports it for LSF and Slurm, and the polling Kubernetes
+  client for out of memory and deadline failures. `Issue 492`_
+* Report node failures, preemption and jobs cancelled outside of Galaxy as their
+  own ``runner_state`` values, and add a ``runner_state_message`` with details for
+  the user. `Issue 492`_
+* Start a job resubmitted by Galaxy over a message queue from a clean job
+  directory instead of ignoring it as a redelivered setup message. `Issue 492`_
 * Record preprocess and postprocess file transfer time, count, and bytes for
   Galaxy's ``pulsar`` job metrics plugin. `Pull Request 518`_
 * Skip unavailable job metrics plugins in Pulsar's shared configuration. `Pull Request 518`_
@@ -848,6 +858,7 @@ History
 .. _Pull Request 427: https://github.com/galaxyproject/pulsar/pull/427
 .. _Pull Request 424: https://github.com/galaxyproject/pulsar/pull/424
 .. _Pull Request 379: https://github.com/galaxyproject/pulsar/pull/379
+.. _Issue 492: https://github.com/galaxyproject/pulsar/issues/492
 .. _Issue 393: https://github.com/galaxyproject/pulsar/issues/393
 .. _Issue 354: https://github.com/galaxyproject/pulsar/issues/354
 .. _Issue 158: https://github.com/galaxyproject/pulsar/issues/158

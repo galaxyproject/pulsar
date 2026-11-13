@@ -1,7 +1,14 @@
+from types import SimpleNamespace
+
 from pulsar.managers import status
 from pulsar.managers.queued_cli import _CLI_STATE_TO_STATUS
 from pulsar.managers.util.cli import factory
 from pulsar.managers.util.cli.job import job_states
+
+
+class _NoAccountingShell:
+    def execute(self, command):
+        return SimpleNamespace(stdout="", stderr="Slurm accounting storage is disabled\n", returncode=1)
 
 
 def test_torque_cli():
@@ -51,7 +58,7 @@ def test_slurm_cli():
     assert command == '''squeue -a -o '%A %t\''''
 
     command = job.get_single_status("4")
-    assert command == '''squeue -a -o '%A %t' -j 4'''
+    assert command == '''squeue -a -t all -o '%A %t' -j 4'''
 
     job_script_kwargs = job.job_script_kwargs("/tmp/1/o", "/tmp/1/e", "my_job")
     headers = job_script_kwargs["headers"]
@@ -67,10 +74,10 @@ def test_slurm_cli():
     assert status_dict["25"] == "running"
     assert "26" not in status_dict
 
-    status = job.parse_single_status("slurm_load_jobs error: Invalid job id specified", "34")
+    status = job.parse_single_status("slurm_load_jobs error: Invalid job id specified", "34", _NoAccountingShell())
     assert status == "complete"
 
-    status = job.parse_single_status("JOBID ST\n26 F\n", "26")
+    status = job.parse_single_status("JOBID ST\n26 F\n", "26", _NoAccountingShell())
     assert status == "failed"
 
 
