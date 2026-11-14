@@ -26,7 +26,12 @@ from pulsar.scripts.submit_util import (
     EXIT_FAILURE,
     EXIT_SUCCESS,
 )
-from .test_utils import files_server
+from .test_utils import (
+    files_server,
+    JobFilesApp,
+    server_for_test_app,
+    TestApp,
+)
 
 kombu = pytest.importorskip("kombu")
 
@@ -175,7 +180,9 @@ def test_no_wait_submit_unreachable_galaxy_publishes_failed_and_exits_non_zero(t
 
 @pytest.mark.timeout(60)
 def test_finish_output_staging_failure_publishes_failed_and_exits_non_zero(tmp_path):
-    with files_server("/") as server:
+    # A job files server of the test's own, not files_server(): CI points that
+    # at a standing external server, which would still accept the outputs.
+    with server_for_test_app(TestApp(JobFilesApp("/"))) as server:
         job = SequentialCoexecution(tmp_path, server.application_url)
         assert job.submit() == EXIT_SUCCESS
         job.run_tool()
