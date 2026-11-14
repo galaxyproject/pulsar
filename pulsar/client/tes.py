@@ -39,6 +39,7 @@ def tes_state_to_pulsar_status(state: Optional[TesState]) -> str:
     state = state or TesState.UNKNOWN
     state_map = {
         TesState.UNKNOWN: manager_status.FAILED,
+        TesState.QUEUED: manager_status.QUEUED,
         TesState.INITIALIZING: manager_status.PREPROCESSING,
         TesState.RUNNING: manager_status.RUNNING,
         TesState.PAUSED: manager_status.RUNNING,
@@ -58,6 +59,7 @@ def tes_state_is_complete(state: Optional[TesState]) -> bool:
     state = state or TesState.UNKNOWN
     state_map = {
         TesState.UNKNOWN: True,
+        TesState.QUEUED: False,
         TesState.INITIALIZING: False,
         TesState.RUNNING: False,
         TesState.PAUSED: False,
@@ -159,7 +161,7 @@ class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
 
 
 class TesPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesTesContainersMixin):
-    """A client that co-executes pods via GA4GH TES and depends on amqp for status updates."""
+    """A client that co-executes pods via GA4GH TES and doesn't depend on amqp for status updates."""
 
     def __init__(self, destination_params, job_id, client_manager):
         super().__init__(destination_params, job_id, client_manager)
@@ -167,7 +169,7 @@ class TesPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesTe
 
 
 class TesMessageCoexecutionJobClient(BaseMessageCoexecutionJobClient, LaunchesTesContainersMixin):
-    """A client that co-executes pods via GA4GH TES and doesn't depend on amqp for status updates."""
+    """A client that co-executes pods via GA4GH TES and depends on amqp for status updates."""
 
     def __init__(self, destination_params, job_id, client_manager):
         super().__init__(destination_params, job_id, client_manager)
