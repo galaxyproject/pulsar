@@ -29,6 +29,25 @@ EXIT_FAILURE = 1
 FAILED_STATUSES = (FAILED, LOST)
 
 
+class CoexecutionConfigBuilder(PulsarManagerConfigBuilder):
+    """App config for the short-lived Pulsar apps of a coexecution job.
+
+    Without a ``tool_dependency_dir`` a Pulsar app resolves dependencies under
+    ``dependencies`` relative to its working directory, which is ``/`` in a
+    TES or Kubernetes container, and galaxy-tool-util's Conda resolver creates
+    that directory when the app starts. On a read-only root filesystem that
+    fails before the job is staged. Containerized jobs bring their own tools,
+    and for containerless jobs the client configures ``dependency_resolution``
+    under ``/pulsar_dependencies``, so default to no dependency resolution.
+    Explicit app config and ``PULSAR_CONFIG_TOOL_DEPENDENCY_DIR`` still win.
+    """
+
+    def load(self):
+        conf = super().load()
+        conf.setdefault("tool_dependency_dir", "none")
+        return conf
+
+
 def add_common_submit_args(arg_parser):
     arg_parser.add_argument("--file", default=None)
     arg_parser.add_argument("--base64", default=None)
@@ -50,7 +69,7 @@ def run_server_for_job(args):
     would run the job again after its final status was published.
     """
     wait = args.wait
-    config_builder = PulsarManagerConfigBuilder(args)
+    config_builder = CoexecutionConfigBuilder(args)
     manager, app = manager_from_args(config_builder)
     try:
         job_config = _load_job_config(args)
@@ -82,7 +101,7 @@ def run_server_for_job_finish(args):
     because its outputs could not be staged back. Only sequential
     coexecution runs ``pulsar-finish``.
     """
-    config_builder = PulsarManagerConfigBuilder(args)
+    config_builder = CoexecutionConfigBuilder(args)
     manager, app = manager_from_args(config_builder)
     try:
         # We only need the job config so there should be an option to just

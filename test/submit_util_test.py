@@ -18,11 +18,14 @@ from pulsar.client.amqp_exchange import (
 )
 from pulsar.client.staging.models import ClientOutputs
 from pulsar.client.util import to_base64_json
+from pulsar.main import ArgumentParser
 from pulsar.scripts import (
     finish,
     submit,
 )
 from pulsar.scripts.submit_util import (
+    add_common_submit_args,
+    CoexecutionConfigBuilder,
     EXIT_FAILURE,
     EXIT_SUCCESS,
 )
@@ -211,6 +214,38 @@ def test_waiting_submit_failure_still_exits_zero(tmp_path):
     job = SequentialCoexecution(tmp_path, files_endpoint, input_action=_remote_transfer(files_endpoint))
     assert job.submit(wait=True) == EXIT_SUCCESS
     assert job.published_statuses() == ["failed"]
+
+
+@pytest.mark.timeout(60)
+def test_sequential_coexecution_writes_nothing_to_working_directory(tmp_path, monkeypatch):
+    # TES and Kubernetes start these scripts in /, often on a read-only root filesystem.
+    working_directory = tmp_path / "working_directory"
+    working_directory.mkdir()
+    monkeypatch.chdir(working_directory)
+    monkeypatch.delenv("PULSAR_CONFIG_TOOL_DEPENDENCY_DIR", raising=False)
+    with files_server("/") as server:
+        job = SequentialCoexecution(tmp_path, server.application_url)
+        assert job.submit() == EXIT_SUCCESS
+        job.run_tool()
+        assert job.finish() == EXIT_SUCCESS
+    assert job.published_statuses() == ["running", "complete"]
+    assert list(working_directory.iterdir()) == []
+
+
+@pytest.mark.parametrize("app_conf, environ, expected", [
+    ({}, {}, "none"),
+    ({"tool_dependency_dir": "/deps/app"}, {}, "/deps/app"),
+    ({}, {"PULSAR_CONFIG_TOOL_DEPENDENCY_DIR": "/deps/env"}, "/deps/env"),
+    ({"tool_dependency_dir": "/deps/app"}, {"PULSAR_CONFIG_TOOL_DEPENDENCY_DIR": "/deps/env"}, "/deps/app"),
+])
+def test_coexecution_tool_dependency_dir_default(monkeypatch, app_conf, environ, expected):
+    monkeypatch.delenv("PULSAR_CONFIG_TOOL_DEPENDENCY_DIR", raising=False)
+    for key, value in environ.items():
+        monkeypatch.setenv(key, value)
+    arg_parser = ArgumentParser()
+    add_common_submit_args(arg_parser)
+    args = arg_parser.parse_args(["--app_conf_base64", to_base64_json(app_conf)])
+    assert CoexecutionConfigBuilder(args).load()["tool_dependency_dir"] == expected
 
 
 def _unused_port():
