@@ -101,7 +101,10 @@ class SequentialCoexecution:
         return finish.main(self._script_args())
 
     def published_statuses(self):
-        statuses = []
+        return [payload["status"] for payload in self.published_payloads()]
+
+    def published_payloads(self):
+        payloads = []
         with kombu.Connection(self.message_queue_url) as connection:
             queue = self._status_queue(connection.default_channel)
             while True:
@@ -110,8 +113,8 @@ class SequentialCoexecution:
                     break
                 payload = message.decode()
                 assert payload["job_id"] == JOB_ID
-                statuses.append(payload["status"])
-        return statuses
+                payloads.append(payload)
+        return payloads
 
     def _script_args(self):
         return [
@@ -162,7 +165,12 @@ def test_no_wait_submit_unreachable_galaxy_publishes_failed_and_exits_non_zero(t
     job = SequentialCoexecution(tmp_path, files_endpoint, input_action=_remote_transfer(files_endpoint))
     assert job.submit() == EXIT_FAILURE
     assert not os.path.exists(job.command_line_path)
-    assert job.published_statuses() == ["failed"]
+    payloads = job.published_payloads()
+    assert [payload["status"] for payload in payloads] == ["failed"]
+    # Galaxy's runner reports this stderr with the failed job.
+    stderr = payloads[0]["stderr"]
+    assert stderr.startswith("Pulsar failed to stage inputs or launch the job: ")
+    assert files_endpoint.split("//")[1].rstrip("/") in stderr
 
 
 @pytest.mark.timeout(60)
