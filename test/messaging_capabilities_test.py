@@ -14,7 +14,7 @@ The publisher and collector are exercised against a real
 ``minimal_app_for_managers()`` + ``StatefulManagerProxy(QueueManager(...))``
 so contract drift in the manager interface breaks these tests.
 """
-import datetime
+import datetime as dt
 import importlib.util
 from contextlib import contextmanager
 from shutil import rmtree
@@ -142,7 +142,7 @@ def test_published_at_is_iso8601_utc():
         bind_relay.publish_manager_capabilities_to_relay(app, proxy, transport, conf={})
         payload = transport.calls[0][1]
         # Must round-trip through fromisoformat with timezone info.
-        parsed = datetime.datetime.fromisoformat(payload["published_at"])
+        parsed = dt.datetime.fromisoformat(payload["published_at"])
         assert parsed.tzinfo is not None
 
 

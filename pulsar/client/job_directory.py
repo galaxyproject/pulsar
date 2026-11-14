@@ -2,12 +2,14 @@
 """
 import os.path
 import posixpath
+import stat
 from collections import deque
 from glob import glob
 from logging import getLogger
 
 from galaxy.util import in_directory
 
+from .exceptions import UnsafePathError
 from .util import PathHelper
 
 log = getLogger(__name__)
@@ -113,11 +115,13 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
     'C:\\\\pulsar\\\\staging\\\\101\\\\cow'
     >>> get_mapped_file(r'C:\\pulsar\\staging\\101', '../cow', allow_nested_files=True, local_path_module=ntpath, mkdir=False)
     Traceback (most recent call last):
-    Exception: Attempt to read or write file outside an authorized directory.
+    pulsar.client.exceptions.UnsafePathError: Attempt to read or write file outside an authorized directory.
     """
     if not allow_nested_files:
         name = local_path_module.basename(remote_path)
         path = local_path_module.join(directory, name)
+        # The name can't climb out, but a symlink at this path could.
+        verify_is_in_directory(path, directory, local_path_module=local_path_module)
     else:
         local_rel_path = __posix_to_local_path(remote_path, local_path_module=local_path_module)
         local_path = local_path_module.join(directory, local_rel_path)
@@ -135,6 +139,9 @@ def get_mapped_file(directory, remote_path, allow_nested_files=False, local_path
         else:
             log.info(f"Glob path {path} mapped to matched file: {matches[0]}")
         path = matches[0]
+        # The pattern was checked above, but the match can lie beneath a
+        # symlinked directory that resolves elsewhere.
+        verify_is_in_directory(path, directory, local_path_module=local_path_module)
     return path
 
 
@@ -162,4 +169,21 @@ def verify_is_in_directory(path, directory, local_path_module=os.path):
     if not in_directory(path, directory, local_path_module):
         msg = "Attempt to read or write file outside an authorized directory."
         log.warning(f"{msg} Attempted path: {path}, valid directory: {directory}")
-        raise Exception(msg)
+        raise UnsafePathError(msg)
+
+
+def verify_is_not_special_file(path):
+    """Refuse to read an existing path that is neither a regular file nor a directory.
+
+    A tool can leave a FIFO, socket or device node where an output is expected;
+    reading a FIFO would block staging out indefinitely.
+    """
+    try:
+        mode = os.stat(path).st_mode
+    except (OSError, ValueError):
+        # Missing or unreadable, as os.path.exists() would report; the read reports it.
+        return
+    if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
+        msg = "Attempt to read a special file, which is neither a regular file nor a directory."
+        log.warning(f"{msg} Attempted path: {path}")
+        raise UnsafePathError(msg)

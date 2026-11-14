@@ -145,7 +145,10 @@ class LocalPulsarInterface(PulsarInterface):
             args = {}
         # If data set, should be unicode (on Python 2) or str (on Python 3).
         from pulsar.web import routes
-        from pulsar.web.framework import build_func_args
+        from pulsar.web.framework import (
+            build_func_args,
+            EMPTY_FILE,
+        )
         controller = getattr(routes, command)
         action = controller.func
         body_args = {"body": self.__build_body(data, input_path)}
@@ -154,7 +157,7 @@ class LocalPulsarInterface(PulsarInterface):
         if controller.response_type != 'file':
             return controller.body(result)
         else:
-            with open(result, 'rb') as result_file:
+            with (BytesIO() if result is EMPTY_FILE else open(result, 'rb')) as result_file:
                 copy_to_path(result_file, output_path)
 
     def __build_body(self, data, input_path):
