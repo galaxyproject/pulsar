@@ -10,11 +10,15 @@ from pulsar.main import (
     PulsarManagerConfigBuilder,
 )
 from pulsar.manager_endpoint_util import submit_job
-from pulsar.managers.status import is_job_done
+from pulsar.managers.status import (
+    is_job_done,
+    PREPROCESSING,
+)
 
 log = logging.getLogger(__name__)
 
 DEFAULT_POLL_TIME = 2
+DEFAULT_LAUNCH_POLL_TIME = 0.5
 
 
 def add_common_submit_args(arg_parser):
@@ -34,6 +38,8 @@ def run_server_for_job(args):
             log.info("Co-execution job setup, now waiting for job completion and postprocessing.")
             wait_for_job(manager, job_config)
             log.info("Leaving finish_execution and shutting down app")
+        else:
+            wait_for_launch(manager, job_config)
     except BaseException:
         if wait:
             message = "Failure submitting or waiting on job."
@@ -69,6 +75,19 @@ def wait_for_job(manager, job_config, poll_time=DEFAULT_POLL_TIME):
         status = manager.get_status(job_id)
         if is_job_done(status):
             break
+        time.sleep(poll_time)
+
+
+def wait_for_launch(manager, job_config, poll_time=DEFAULT_LAUNCH_POLL_TIME):
+    """Wait until the job has staged its inputs and launched, or failed to.
+
+    The stateful manager publishes ``running`` from ``get_status``, the first
+    time it sees the launched job running. Without a waiting submit, the app
+    shuts down while inputs are still staging, so nothing polls the job and
+    ``running`` is never published.
+    """
+    job_id = job_config.get('job_id')
+    while manager.get_status(job_id) == PREPROCESSING:
         time.sleep(poll_time)
 
 
