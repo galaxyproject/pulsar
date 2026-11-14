@@ -1,3 +1,5 @@
+from pulsar.client.coexecution import PULSAR_CONTAINER_IMAGE
+from pulsar.client.setup_handler import KNOWN_PULSAR_CONTAINER_VERSIONS
 from pulsar.client.tes_job_config import (
     parse_tes_job_params,
     tes_resources,
@@ -38,3 +40,8 @@ def test_tes_resources_from_yaml():
     assert resources.zones == ["us-west-1", "us-east-1"]
     assert resources.backend_parameters == {"moo": "cow"}
     assert resources.backend_parameters_strict is False
+
+
+def test_default_staging_image_is_published():
+    # KNOWN_PULSAR_CONTAINER_VERSIONS lists the tags on Docker Hub.
+    assert PULSAR_CONTAINER_IMAGE in KNOWN_PULSAR_CONTAINER_VERSIONS
