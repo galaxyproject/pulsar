@@ -6,6 +6,7 @@ with its own short-lived Pulsar app. Galaxy only learns a job's state from the
 status messages those apps publish.
 """
 import os
+import socket
 import subprocess
 import uuid
 
@@ -21,6 +22,10 @@ from pulsar.scripts import (
     finish,
     submit,
 )
+from pulsar.scripts.submit_util import (
+    EXIT_FAILURE,
+    EXIT_SUCCESS,
+)
 from .test_utils import files_server
 
 kombu = pytest.importorskip("kombu")
@@ -32,12 +37,12 @@ OUTPUT_NAME = "dataset_1.dat"
 class SequentialCoexecution:
     """Run a job the way a TES task's executors do, recording status messages."""
 
-    def __init__(self, tmp_path, files_endpoint, input_action=None):
+    def __init__(self, tmp_path, files_endpoint, input_action=None, message_queue_url=None):
         self.staging_directory = str(tmp_path / "staging")
         self.galaxy_working = tmp_path / "galaxy_working"
         self.galaxy_working.mkdir()
         self.key_prefix = "submit_util_test_%s" % uuid.uuid4().hex
-        self.message_queue_url = "memory://%s" % self.key_prefix
+        self.message_queue_url = message_queue_url or "memory://%s" % self.key_prefix
         self.app_conf = {
             "staging_directory": self.staging_directory,
             "persistence_directory": str(tmp_path / "persisted_data"),
@@ -75,16 +80,17 @@ class SequentialCoexecution:
             kombu.Exchange(DEFAULT_EXCHANGE_NAME, DEFAULT_EXCHANGE_TYPE, durable=True),
             routing_key="%s_status_update" % self.key_prefix,
         )
-        # Declared up front, as Galaxy's consumer would be, so no message is dropped.
-        with kombu.Connection(self.message_queue_url) as connection:
-            self._status_queue(connection.default_channel).declare()
+        if message_queue_url is None:
+            # Declared up front, as Galaxy's consumer would be, so no message is dropped.
+            with kombu.Connection(self.message_queue_url) as connection:
+                self._status_queue(connection.default_channel).declare()
 
     @property
     def galaxy_output(self):
         return self.galaxy_working / OUTPUT_NAME
 
-    def submit(self):
-        submit.main([*self._script_args(), "--no-wait"])
+    def submit(self, wait=False):
+        return submit.main([*self._script_args(), "--wait" if wait else "--no-wait"])
 
     def run_tool(self):
         with open(self.command_line_path) as fh:
@@ -92,7 +98,7 @@ class SequentialCoexecution:
         subprocess.run(command_line, shell=True, check=True)
 
     def finish(self):
-        finish.main(self._script_args())
+        return finish.main(self._script_args())
 
     def published_statuses(self):
         statuses = []
@@ -118,7 +124,7 @@ class SequentialCoexecution:
 def test_no_wait_submit_publishes_running(tmp_path):
     with files_server("/") as server:
         job = SequentialCoexecution(tmp_path, server.application_url)
-        job.submit()
+        assert job.submit() == EXIT_SUCCESS
         assert os.path.exists(job.command_line_path)
         assert job.published_statuses() == ["running"]
 
@@ -127,9 +133,9 @@ def test_no_wait_submit_publishes_running(tmp_path):
 def test_sequential_coexecution_publishes_running_then_complete(tmp_path):
     with files_server("/") as server:
         job = SequentialCoexecution(tmp_path, server.application_url)
-        job.submit()
+        assert job.submit() == EXIT_SUCCESS
         job.run_tool()
-        job.finish()
+        assert job.finish() == EXIT_SUCCESS
         assert job.published_statuses() == ["running", "complete"]
         assert job.galaxy_output.read_text() == "cow file contents\n"
 
@@ -143,6 +149,69 @@ def test_no_wait_submit_preprocessing_failure_publishes_failed_only(tmp_path):
             server.application_url,
             input_action={"action_type": "remote_copy", "source": {"path": missing_input}},
         )
-        job.submit()
+        assert job.submit() == EXIT_FAILURE
         assert not os.path.exists(job.command_line_path)
         assert job.published_statuses() == ["failed"]
+
+
+@pytest.mark.timeout(60)
+def test_no_wait_submit_unreachable_galaxy_publishes_failed_and_exits_non_zero(tmp_path):
+    # The TES task stops on a non-zero exit, rather than leaving the tool
+    # executor waiting for a command line that is never written.
+    files_endpoint = _unreachable_url()
+    job = SequentialCoexecution(tmp_path, files_endpoint, input_action=_remote_transfer(files_endpoint))
+    assert job.submit() == EXIT_FAILURE
+    assert not os.path.exists(job.command_line_path)
+    assert job.published_statuses() == ["failed"]
+
+
+@pytest.mark.timeout(60)
+def test_finish_output_staging_failure_publishes_failed_and_exits_non_zero(tmp_path):
+    with files_server("/") as server:
+        job = SequentialCoexecution(tmp_path, server.application_url)
+        assert job.submit() == EXIT_SUCCESS
+        job.run_tool()
+    # Galaxy's job files API is gone by the time outputs are staged back.
+    assert job.finish() == EXIT_FAILURE
+    assert job.published_statuses() == ["running", "failed"]
+    assert not job.galaxy_output.exists()
+
+
+@pytest.mark.timeout(60)
+def test_no_wait_submit_failure_exits_non_zero_with_unreachable_broker(tmp_path):
+    files_endpoint = _unreachable_url()
+    job = SequentialCoexecution(
+        tmp_path,
+        files_endpoint,
+        input_action=_remote_transfer(files_endpoint),
+        message_queue_url="amqp://guest:guest@127.0.0.1:%d//" % _unused_port(),
+    )
+    assert job.submit() == EXIT_FAILURE
+
+
+@pytest.mark.timeout(60)
+def test_waiting_submit_failure_still_exits_zero(tmp_path):
+    # A Kubernetes Job would replace a failed pod and run the job again.
+    files_endpoint = _unreachable_url()
+    job = SequentialCoexecution(tmp_path, files_endpoint, input_action=_remote_transfer(files_endpoint))
+    assert job.submit(wait=True) == EXIT_SUCCESS
+    assert job.published_statuses() == ["failed"]
+
+
+def _unused_port():
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+def _unreachable_url():
+    return "http://127.0.0.1:%d/" % _unused_port()
+
+
+def _remote_transfer(files_endpoint):
+    return {
+        "action_type": "remote_transfer",
+        "path": "/galaxy/files/cow",
+        "source": {"path": "/galaxy/files/cow"},
+        "url": "%sapi/jobs/%s/files?path=/galaxy/files/cow" % (files_endpoint, JOB_ID),
+    }
