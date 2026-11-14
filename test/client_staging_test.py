@@ -12,6 +12,7 @@ from pulsar.client.staging.down import ResultsCollector
 from pulsar.client.staging.models import (
     ClientJobDescription,
     ClientOutputs,
+    PulsarOutputs,
 )
 from pulsar.client.staging.up import submit_job
 from pulsar.client.test.test_common import write_config
@@ -279,3 +280,32 @@ def test_collect_output_tolerates_403_transport_error_for_workdir_output():
     )
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     assert rc._collect_output("output_workdir", action, "out1") is False
+
+
+def _collect_outputs(output_directory_contents):
+    """Collect one declared output against what the Pulsar's outputs directory holds."""
+    collected = []
+    output_collector = SimpleNamespace(collect_output=lambda rc, output_type, action, name: collected.append(action.path))
+    action_mapper = SimpleNamespace(action=lambda source, output_type: SimpleNamespace(path=source["path"]))
+    client_outputs = ClientOutputs(working_directory="/galaxy/working", output_files=["/galaxy/files/dataset_1.dat"])
+    pulsar_outputs = PulsarOutputs([], output_directory_contents, [], [])
+    failures = ResultsCollector(output_collector, action_mapper, client_outputs, pulsar_outputs).collect()
+    return collected, failures
+
+
+def test_collect_outputs_fails_an_output_written_as_a_directory():
+    # Galaxy fails the job when a local tool does this; an empty dataset in a green job is wrong.
+    collected, failures = _collect_outputs([os.path.join("dataset_1.dat", "inside.txt")])
+    assert collected == []
+    assert len(failures) == 1
+    assert isinstance(failures[0], IsADirectoryError)
+    assert str(failures[0]) == "Output dataset_1.dat is a directory, not a file"
+
+
+def test_collect_outputs_skips_a_missing_output():
+    # As on a local Galaxy runner, the dataset stays the empty file Galaxy created.
+    assert _collect_outputs(["other.dat"]) == ([], [])
+
+
+def test_collect_outputs_collects_an_output_file():
+    assert _collect_outputs(["dataset_1.dat"]) == (["/galaxy/files/dataset_1.dat"], [])

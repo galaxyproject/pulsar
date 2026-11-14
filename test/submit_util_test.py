@@ -48,7 +48,7 @@ OUTPUT_NAME = "dataset_1.dat"
 class SequentialCoexecution:
     """Run a job the way a TES task's executors do, recording status messages."""
 
-    def __init__(self, tmp_path, files_endpoint, input_action=None, message_queue_url=None):
+    def __init__(self, tmp_path, files_endpoint, input_action=None, message_queue_url=None, command_line=None):
         self.staging_directory = str(tmp_path / "staging")
         self.galaxy_working = tmp_path / "galaxy_working"
         self.galaxy_working.mkdir()
@@ -72,7 +72,7 @@ class SequentialCoexecution:
             output_files=[str(self.galaxy_output)],
         )
         self.launch_params = {
-            "command_line": f"cat '{pulsar_input}' > '{pulsar_output}'",
+            "command_line": (command_line or "cat '{input}' > '{output}'").format(input=pulsar_input, output=pulsar_output),
             "job_id": JOB_ID,
             "setup_params": {"job_id": JOB_ID},
             "setup": True,
@@ -201,6 +201,25 @@ def test_finish_output_staging_failure_publishes_failed_and_exits_non_zero(tmp_p
     stderr = payloads[-1]["stderr"]
     assert stderr.startswith("Pulsar failed to stage outputs: ")
     assert server.application_url.split("//")[1].rstrip("/") in stderr
+
+
+@pytest.mark.timeout(60)
+def test_finish_fails_an_output_written_as_a_directory(tmp_path):
+    with files_server("/") as server:
+        job = SequentialCoexecution(
+            tmp_path,
+            server.application_url,
+            command_line="rm -f '{output}' && mkdir '{output}' && cat '{input}' > '{output}/inside.txt'",
+        )
+        assert job.submit() == EXIT_SUCCESS
+        job.run_tool()
+        assert job.finish() == EXIT_FAILURE
+    payloads = job.published_payloads()
+    assert [payload["status"] for payload in payloads] == ["running", "failed"]
+    assert payloads[-1]["stderr"] == (
+        "Pulsar failed to stage outputs: Output %s is a directory, not a file\n" % OUTPUT_NAME
+    )
+    assert not job.galaxy_output.exists()
 
 
 @pytest.mark.timeout(60)
