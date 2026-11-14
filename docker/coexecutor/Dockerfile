@@ -27,11 +27,7 @@ RUN if [ "$CONDA_INIT" = "true" ]; then \
         && /pulsar_dependencies/conda/bin/conda clean --all --yes; \
     fi
 
-# pulsar-submit and pulsar-finish build a dependency manager at startup. Its
-# default tool_dependency_dir is "dependencies" relative to the working
-# directory, which is / for TES and Kubernetes executors, and galaxy-tool-util
-# creates it. On a read-only root filesystem (Funnel's default docker run
-# template) that mkdir kills the app before the job is staged. Point it at a
-# directory that already exists; app config still takes precedence.
-ENV PULSAR_CONFIG_TOOL_DEPENDENCY_DIR=/pulsar_dependencies
+# Containerless jobs use /pulsar_dependencies as their dependency base path, and
+# galaxy-tool-util creates it if missing, which fails on a read-only root
+# filesystem (Funnel's default docker run template).
 RUN mkdir -p /pulsar_dependencies
