@@ -124,6 +124,9 @@ class StatefulManagerProxy(ManagerProxy):
         self.__preprocess_slots = _staging_slots(manager_options, "preprocess_max_concurrent")
         self.__postprocess_slots = _staging_slots(manager_options, "postprocess_max_concurrent")
         self.__shutting_down = threading.Event()
+        # A staging thread records a terminal outcome, which get_status then
+        # reports, before it publishes it; shutdown waits for that publication.
+        self.__terminal_publications = _InFlight()
         self.__slot_poll_interval = float(
             manager_options.get("staging_slot_poll_interval", DEFAULT_STAGING_SLOT_POLL_INTERVAL)
         )
@@ -298,13 +301,14 @@ class StatefulManagerProxy(ManagerProxy):
             # Must not launch, and stays indexed so recovery stages it after the restart.
             log.info("Pulsar is shutting down, leaving job %s to preprocess on restart", job_id)
         except Exception as e:
-            with job_directory.lock("status"):
-                job_directory.store_metadata(
-                    JOB_FILE_PREPROCESSING_FAILED,
-                    "Pulsar failed to stage inputs or launch the job: %s\n" % e,
-                )
-                job_directory.store_metadata("return_code", 1)
-            self.__state_change_callback(status.FAILED, job_id)
+            with self.__terminal_publications.track():
+                with job_directory.lock("status"):
+                    job_directory.store_metadata(
+                        JOB_FILE_PREPROCESSING_FAILED,
+                        "Pulsar failed to stage inputs or launch the job: %s\n" % e,
+                    )
+                    job_directory.store_metadata("return_code", 1)
+                self.__state_change_callback(status.FAILED, job_id)
             log.exception("Failed job preprocessing for job %s:", job_id)
 
     def handle_failure_before_launch(self, job_id: str) -> None:
@@ -469,36 +473,37 @@ class StatefulManagerProxy(ManagerProxy):
                 log.exception("Failed to postprocess results for job id %s" % job_id)
                 postprocess_error = e
             postprocess_success = postprocess_error is None
-            outcome_persisted = False
-            try:
-                # Recorded before postprocessing is marked done, so a client polling for
-                # status never sees the job complete when its outputs could not be staged.
-                if postprocess_success:
-                    job_directory.remove_metadata(JOB_FILE_POSTPROCESSING_FAILED)
-                else:
-                    # The failed status reports this message after the tool's stderr.
-                    job_directory.store_metadata(
-                        JOB_FILE_POSTPROCESSING_FAILED,
-                        "Pulsar failed to stage outputs: %s\n" % postprocess_error,
-                    )
-                job_directory.write_file(JOB_FILE_POSTPROCESSED, "")
-                outcome_persisted = True
-            except Exception:
-                log.exception("Failed to persist postprocessing outcome for job id %s", job_id)
-                postprocess_success = False
-            try:
-                final_status = terminal_status if postprocess_success else status.FAILED
-                if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
-                    final_status = status.FAILED
-                self.__state_change_callback(final_status, job_id)
-            finally:
-                # Keep recovery possible if the outcome could not be persisted.
-                # Otherwise clear after the callback, so a crash here costs a
-                # duplicate terminal message rather than a job.
-                if outcome_persisted:
-                    self.active_jobs.deactivate_job(
-                        job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
-                    )
+            with self.__terminal_publications.track():
+                outcome_persisted = False
+                try:
+                    # Recorded before postprocessing is marked done, so a client polling for
+                    # status never sees the job complete when its outputs could not be staged.
+                    if postprocess_success:
+                        job_directory.remove_metadata(JOB_FILE_POSTPROCESSING_FAILED)
+                    else:
+                        # The failed status reports this message after the tool's stderr.
+                        job_directory.store_metadata(
+                            JOB_FILE_POSTPROCESSING_FAILED,
+                            "Pulsar failed to stage outputs: %s\n" % postprocess_error,
+                        )
+                    job_directory.write_file(JOB_FILE_POSTPROCESSED, "")
+                    outcome_persisted = True
+                except Exception:
+                    log.exception("Failed to persist postprocessing outcome for job id %s", job_id)
+                    postprocess_success = False
+                try:
+                    final_status = terminal_status if postprocess_success else status.FAILED
+                    if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
+                        final_status = status.FAILED
+                    self.__state_change_callback(final_status, job_id)
+                finally:
+                    # Keep recovery possible if the outcome could not be persisted.
+                    # Otherwise clear after the callback, so a crash here costs a
+                    # duplicate terminal message rather than a job.
+                    if outcome_persisted:
+                        self.active_jobs.deactivate_job(
+                            job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+                        )
 
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
 
@@ -522,6 +527,10 @@ class StatefulManagerProxy(ManagerProxy):
                 )
         if self._live_output is not None:
             self._live_output.shutdown(timeout)
+        # Otherwise a client that saw the terminal status, such as pulsar-finish,
+        # can shut the app down, and stop status publishing, before it is sent.
+        if not self.__terminal_publications.wait_until_idle(timeout):
+            log.warning("Shutting down manager %s before every terminal status was published", self.name)
         super().shutdown(timeout)
 
     def recover_active_jobs(self) -> None:
@@ -757,6 +766,29 @@ class ManagerMonitor:
         # Manager itself will handle state transitions when status changes,
         # just need to poll get_status
         self.stateful_manager.get_status(active_job_id)
+
+
+class _InFlight:
+    """Counts operations in progress, so another thread can wait for them to finish."""
+
+    def __init__(self) -> None:
+        self._count = 0
+        self._condition = threading.Condition()
+
+    @contextlib.contextmanager
+    def track(self) -> Generator[None, None, None]:
+        with self._condition:
+            self._count += 1
+        try:
+            yield
+        finally:
+            with self._condition:
+                self._count -= 1
+                self._condition.notify_all()
+
+    def wait_until_idle(self, timeout: Optional[float] = None) -> bool:
+        with self._condition:
+            return self._condition.wait_for(lambda: self._count == 0, timeout)
 
 
 class _StagingInterrupted(Exception):

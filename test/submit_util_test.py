@@ -8,10 +8,12 @@ status messages those apps publish.
 import os
 import socket
 import subprocess
+import time
 import uuid
 
 import pytest
 
+from pulsar import manager_endpoint_util
 from pulsar.client.amqp_exchange import (
     DEFAULT_EXCHANGE_NAME,
     DEFAULT_EXCHANGE_TYPE,
@@ -26,6 +28,7 @@ from pulsar.scripts import (
 from pulsar.scripts.submit_util import (
     add_common_submit_args,
     CoexecutionConfigBuilder,
+    DEFAULT_POLL_TIME,
     EXIT_FAILURE,
     EXIT_SUCCESS,
 )
@@ -198,6 +201,27 @@ def test_finish_output_staging_failure_publishes_failed_and_exits_non_zero(tmp_p
     stderr = payloads[-1]["stderr"]
     assert stderr.startswith("Pulsar failed to stage outputs: ")
     assert server.application_url.split("//")[1].rstrip("/") in stderr
+
+
+@pytest.mark.timeout(60)
+def test_finish_publishes_complete_even_when_publishing_is_slower_than_polling(tmp_path, monkeypatch):
+    # pulsar-finish polls every 2 s and shuts the app down as soon as it sees the job
+    # finished, while the postprocessing thread may still be building and enqueueing
+    # the terminal status. Nothing would drain a message enqueued after the shutdown.
+    real_full_status = manager_endpoint_util.full_status
+
+    def slow_full_status(manager, job_status, job_id):
+        if job_status == "complete":
+            time.sleep(DEFAULT_POLL_TIME + 1)
+        return real_full_status(manager, job_status, job_id)
+
+    monkeypatch.setattr(manager_endpoint_util, "full_status", slow_full_status)
+    with files_server("/") as server:
+        job = SequentialCoexecution(tmp_path, server.application_url)
+        assert job.submit() == EXIT_SUCCESS
+        job.run_tool()
+        assert job.finish() == EXIT_SUCCESS
+        assert job.published_statuses() == ["running", "complete"]
 
 
 @pytest.mark.timeout(60)

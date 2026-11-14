@@ -476,6 +476,22 @@ def test_killing_a_finished_job_does_not_cancel_its_output_staging():
         assert not manager._was_cancelled(job_id)
 
 
+def test_shutdown_waits_for_a_reported_postprocessing_outcome_to_be_published():
+    with _launched_job() as (proxy, manager, job_id), _slow_callback(proxy) as publishing:
+        manager.scripted_status = status.COMPLETE
+        proxy.get_status(job_id)
+        _assert_shutdown_waits_for_publication(proxy, publishing, job_id, status.COMPLETE)
+
+
+def test_shutdown_waits_for_a_reported_preprocessing_failure_to_be_published():
+    transfers = _HeldTransfers()
+    transfers.release.set()
+    with _proxy(_FailingLaunchManager) as (proxy, manager), _held_input_staging(transfers):
+        with _slow_callback(proxy) as publishing:
+            job_id = _launch_jobs(proxy, STAGING_LAUNCH_CONFIG, 1)[0]
+            _assert_shutdown_waits_for_publication(proxy, publishing, job_id, status.FAILED)
+
+
 def test_job_arriving_after_shutdown_does_not_start_staging():
     transfers = _HeldTransfers()
     transfers.release.set()
@@ -683,6 +699,38 @@ def _postprocessing_failed():
 
     with mock.patch.object(stateful, "postprocess", failed_postprocess):
         yield
+
+
+@contextmanager
+def _slow_callback(proxy, timeout=5):
+    """Hold each state change callback, as a slow publish would, until released."""
+    publishing = threading.Event()
+    publishing.release = threading.Event()
+
+    def held_callback(job_status, job_id):
+        publishing.set()
+        publishing.release.wait(timeout)
+        proxy.callbacks.append((job_status, job_id))
+
+    proxy.set_state_change_callback(held_callback, start_monitor=False)
+    try:
+        yield publishing
+    finally:
+        publishing.release.set()
+
+
+def _assert_shutdown_waits_for_publication(proxy, publishing, job_id, terminal_status):
+    assert publishing.wait(5)
+    # A client polling now, such as pulsar-finish, sees the job finished and shuts down.
+    assert proxy.get_status(job_id) == terminal_status
+    shutdown = threading.Thread(target=proxy.shutdown)
+    shutdown.start()
+    shutdown.join(.2)
+    assert shutdown.is_alive(), "shutdown did not wait for the terminal status to be published"
+    publishing.release.set()
+    shutdown.join(5)
+    assert not shutdown.is_alive()
+    assert proxy.callbacks == [(terminal_status, job_id)]
 
 
 class _HeldTransfers:
