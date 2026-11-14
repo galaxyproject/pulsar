@@ -71,7 +71,7 @@ JOB_FILE_PREPROCESSED = "preprocessed"
 JOB_FILE_PREPROCESSING_FAILED = "preprocessing_failed"
 JOB_METADATA_RUNNING = "running"
 # Failure markers holding an error message, which the failed status reports after the tool's stderr.
-FAILURE_MESSAGE_MARKERS = (JOB_FILE_PREPROCESSING_FAILED,)
+FAILURE_MESSAGE_MARKERS = (JOB_FILE_PREPROCESSING_FAILED, JOB_FILE_POSTPROCESSING_FAILED)
 
 # LOST is excluded because it can be transient while external job IDs are
 # being recovered; treating it as terminal could discard recoverable jobs.
@@ -450,7 +450,7 @@ class StatefulManagerProxy(ManagerProxy):
         self, job_id: str, terminal_status: "StateLiteral"
     ) -> None:
         def do_postprocess():
-            postprocess_success = False
+            postprocess_error: Optional[Exception] = None
             job_directory = self._proxied_manager.job_directory(job_id)
             was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
             try:
@@ -458,15 +458,17 @@ class StatefulManagerProxy(ManagerProxy):
                 with _staging_slot(
                     self.__postprocess_slots, "postprocess", job_id, self.__shutting_down, was_cancelled, self.__slot_poll_interval
                 ):
-                    postprocess_success = postprocess(
+                    postprocess(
                         job_directory, self.__postprocess_action_executor, was_cancelled
                     )
             except _StagingInterrupted:
                 # No outcome to record: the job stays indexed and recovery stages it after the restart.
                 log.info("Pulsar is shutting down, leaving job %s to postprocess on restart", job_id)
                 return
-            except Exception:
+            except Exception as e:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
+                postprocess_error = e
+            postprocess_success = postprocess_error is None
             outcome_persisted = False
             try:
                 # Recorded before postprocessing is marked done, so a client polling for
@@ -474,7 +476,11 @@ class StatefulManagerProxy(ManagerProxy):
                 if postprocess_success:
                     job_directory.remove_metadata(JOB_FILE_POSTPROCESSING_FAILED)
                 else:
-                    job_directory.store_metadata(JOB_FILE_POSTPROCESSING_FAILED, True)
+                    # The failed status reports this message after the tool's stderr.
+                    job_directory.store_metadata(
+                        JOB_FILE_POSTPROCESSING_FAILED,
+                        "Pulsar failed to stage outputs: %s\n" % postprocess_error,
+                    )
                 job_directory.write_file(JOB_FILE_POSTPROCESSED, "")
                 outcome_persisted = True
             except Exception:

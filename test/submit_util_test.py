@@ -191,8 +191,13 @@ def test_finish_output_staging_failure_publishes_failed_and_exits_non_zero(tmp_p
         job.run_tool()
     # Galaxy's job files API is gone by the time outputs are staged back.
     assert job.finish() == EXIT_FAILURE
-    assert job.published_statuses() == ["running", "failed"]
+    payloads = job.published_payloads()
+    assert [payload["status"] for payload in payloads] == ["running", "failed"]
     assert not job.galaxy_output.exists()
+    # Galaxy's runner reports this stderr with the failed job.
+    stderr = payloads[-1]["stderr"]
+    assert stderr.startswith("Pulsar failed to stage outputs: ")
+    assert server.application_url.split("//")[1].rstrip("/") in stderr
 
 
 @pytest.mark.timeout(60)

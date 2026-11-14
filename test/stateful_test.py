@@ -9,10 +9,12 @@ from unittest import mock
 
 import pytest
 
+from pulsar.manager_endpoint_util import full_status
 from pulsar.managers import (
     stateful,
     status,
 )
+from pulsar.managers.base.directory import TOOL_FILE_STANDARD_ERROR
 from pulsar.managers.queued import QueueManager
 from pulsar.managers.staging import pre as staging_pre
 from pulsar.managers.stateful import StatefulManagerProxy
@@ -26,6 +28,7 @@ TEST_JOB_ID = "4"
 TEST_LAUNCH_CONFIG = {"command_line": "true", "remote_staging": {}}
 # A non-empty setup list routes the job through the preprocessing thread.
 FAST_POLLING = {"staging_slot_poll_interval": .01}
+TEST_STAGE_OUT_ERROR = "Test failure staging outputs"
 STAGING_LAUNCH_CONFIG = {
     "command_line": "true",
     "remote_staging": {"setup": [{"name": "input1", "type": "input", "action": {}}]},
@@ -156,6 +159,38 @@ def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
             _wait_for_callback(proxy)
         assert proxy.callbacks == [(status.FAILED, job_id)]
         assert proxy.get_status(job_id) == status.FAILED
+
+
+def test_failed_status_reports_the_stage_out_error_after_the_tool_stderr():
+    with _launched_job() as (proxy, manager, job_id):
+        manager.job_directory(job_id).write_file(TOOL_FILE_STANDARD_ERROR, "tool warning")
+        manager.scripted_status = status.COMPLETE
+        with _postprocessing_failed():
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        # Galaxy's Pulsar runner shows the failed status's stderr with the failed job.
+        assert full_status(proxy, status.FAILED, job_id)["stderr"] == (
+            "tool warning\nPulsar failed to stage outputs: %s\n" % TEST_STAGE_OUT_ERROR
+        )
+
+
+def test_stage_out_error_is_dropped_once_outputs_are_staged_on_recovery():
+    with _temporary_app() as app:
+        with _proxy(app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            _interrupt_postprocessing(proxy, manager, job_id)
+            manager.job_directory(job_id).store_metadata(
+                stateful.JOB_FILE_POSTPROCESSING_FAILED, "Pulsar failed to stage outputs: earlier attempt\n"
+            )
+            assert "earlier attempt" in full_status(proxy, status.FAILED, job_id)["stderr"]
+
+        with _proxy(app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, job_id)]
+            assert full_status(proxy, status.COMPLETE, job_id)["stderr"] == ""
 
 
 def test_polling_stays_postprocessing_until_failed_outcome_is_persisted():
@@ -644,7 +679,7 @@ def _postprocessing_failed():
 
     def failed_postprocess(*args, **kwds):
         real_postprocess(*args, **kwds)
-        return False
+        raise Exception(TEST_STAGE_OUT_ERROR)
 
     with mock.patch.object(stateful, "postprocess", failed_postprocess):
         yield
