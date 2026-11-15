@@ -54,9 +54,10 @@ class CoexecutionConfigBuilder(PulsarManagerConfigBuilder):
 
 
 def add_common_submit_args(arg_parser):
-    arg_parser.add_argument("--file", default=None)
-    arg_parser.add_argument("--base64", default=None)
-    arg_parser.add_argument("--base64_zlib", default=None)
+    job_config_source = arg_parser.add_mutually_exclusive_group()
+    job_config_source.add_argument("--file", default=None)
+    job_config_source.add_argument("--base64", default=None)
+    job_config_source.add_argument("--base64_zlib", default=None)
     PulsarManagerConfigBuilder.populate_options(arg_parser)
 
 
@@ -164,12 +165,9 @@ def _load_job_config(args):
     if args.base64_zlib:
         return from_base64_zlib_json(args.base64_zlib)
     if args.base64:
-        base64_job_config = args.base64
-        job_config = from_base64_json(base64_job_config)
-    else:
-        with open(args.file) as fh:
-            job_config = json.load(fh)
-    return job_config
+        return from_base64_json(args.base64)
+    with open(args.file) as fh:
+        return json.load(fh)
 
 
 def manager_from_args(config_builder):
