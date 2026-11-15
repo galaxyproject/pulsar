@@ -52,13 +52,12 @@ def run_server_for_job(args):
     wait = args.wait
     config_builder = PulsarManagerConfigBuilder(args)
     manager, app = manager_from_args(config_builder)
-    job_status = None
     try:
         job_config = _load_job_config(args)
         submit_job(manager, job_config)
         if wait:
             log.info("Co-execution job setup, now waiting for job completion and postprocessing.")
-            job_status = wait_for_job(manager, job_config)
+            wait_for_job(manager, job_config)
             log.info("Leaving finish_execution and shutting down app")
         else:
             job_status = wait_for_launch(manager, job_config)
