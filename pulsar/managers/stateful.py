@@ -469,40 +469,46 @@ class StatefulManagerProxy(ManagerProxy):
             except Exception as e:
                 log.exception("Failed to postprocess results for job id %s" % job_id)
                 postprocess_error = e
-            postprocess_success = postprocess_error is None
-            with self.__terminal_publications.track():
-                outcome_persisted = False
-                try:
-                    # Recorded before postprocessing is marked done, so a client polling for
-                    # status never sees the job complete when its outputs could not be staged.
-                    if postprocess_success:
-                        job_directory.remove_metadata(JOB_FILE_POSTPROCESSING_FAILED)
-                    else:
-                        # The failed status reports this message after the tool's stderr.
-                        job_directory.store_metadata(
-                            JOB_FILE_POSTPROCESSING_FAILED,
-                            "Pulsar failed to stage outputs: %s\n" % postprocess_error,
-                        )
-                    job_directory.write_file(JOB_FILE_POSTPROCESSED, "")
-                    outcome_persisted = True
-                except Exception:
-                    log.exception("Failed to persist postprocessing outcome for job id %s", job_id)
-                    postprocess_success = False
-                try:
-                    final_status = terminal_status if postprocess_success else status.FAILED
-                    if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
-                        final_status = status.FAILED
-                    self.__state_change_callback(final_status, job_id)
-                finally:
-                    # Keep recovery possible if the outcome could not be persisted.
-                    # Otherwise clear after the callback, so a crash here costs a
-                    # duplicate terminal message rather than a job.
-                    if outcome_persisted:
-                        self.active_jobs.deactivate_job(
-                            job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
-                        )
+            self.__publish_postprocessing_outcome(job_directory, job_id, terminal_status, postprocess_error)
 
         new_thread_for_job(self, "postprocess", job_id, do_postprocess, daemon=False)
+
+    def __publish_postprocessing_outcome(
+        self,
+        job_directory: "JobDirectory",
+        job_id: str,
+        terminal_status: "StateLiteral",
+        postprocess_error: Optional[Exception],
+    ) -> None:
+        """Record whether the outputs were staged, then send the terminal status.
+
+        Recorded before postprocessing is marked done, so a client polling for
+        status never sees the job complete when its outputs could not be staged.
+        """
+        with self.__terminal_publications.track():
+            try:
+                if postprocess_error is None:
+                    job_directory.remove_metadata(JOB_FILE_POSTPROCESSING_FAILED)
+                else:
+                    job_directory.store_metadata(
+                        JOB_FILE_POSTPROCESSING_FAILED,
+                        "Pulsar failed to stage outputs: %s\n" % postprocess_error,
+                    )
+                job_directory.write_file(JOB_FILE_POSTPROCESSED, "")
+            except Exception:
+                log.exception("Failed to persist postprocessing outcome for job id %s", job_id)
+                # Stays indexed, so recovery stages the outputs again after a restart.
+                self.__state_change_callback(status.FAILED, job_id)
+                return
+            failed = postprocess_error is not None or job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED)
+            try:
+                self.__state_change_callback(status.FAILED if failed else terminal_status, job_id)
+            finally:
+                # Cleared after the callback, so a crash here costs a duplicate
+                # terminal message rather than a job.
+                self.active_jobs.deactivate_job(
+                    job_id, active_status=ACTIVE_STATUS_POSTPROCESSING
+                )
 
     def kill(self, job_id: str) -> None:
         # Recorded after the proxied kill, which skips a launched job it already sees as cancelled.
