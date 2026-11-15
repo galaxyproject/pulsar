@@ -195,13 +195,14 @@ class StatefulManagerProxy(ManagerProxy):
         Only true once a live update for ``job_id`` has actually been accepted
         by Galaxy. Enabling ``send_stdout_update`` is not enough: if every POST
         failed, the completion status must still carry the streams or the
-        output would be lost entirely.
+        output would be lost entirely. Never true once Pulsar has failed the
+        job either: no live update carried the message :meth:`stderr_contents`
+        adds.
         """
         if not self.send_stdout:
             return False
         try:
             job_directory = self._proxied_manager.job_directory(job_id)
-            # No live update carried the failure message stderr_contents adds.
             return load_live_output_state(job_directory)["delivered"] and not _failure_messages(job_directory)
         except Exception:
             return False
@@ -642,12 +643,13 @@ class StatefulManagerProxy(ManagerProxy):
             "Job [%s] was interrupted while postprocessing, staging outputs again"
             % job_id
         )
-        # Unconditional: the ``postprocessed`` marker is written even when
-        # staging out failed, so it cannot say whether the outputs arrived.
-        # Cleared so get_status stops reporting the old outcome, whose
-        # publication shutdown cannot wait for, until this one is recorded.
+        # Cleared so get_status reports postprocessing until this attempt records
+        # its outcome: the old one may never have been published, and shutdown
+        # cannot wait for that.
         with job_directory.lock("status"):
             job_directory.remove_metadata(JOB_FILE_POSTPROCESSED)
+        # Unconditional: the ``postprocessed`` marker is written even when
+        # staging out failed, so it cannot say whether the outputs arrived.
         self.__handle_postprocessing(job_id, terminal_status)
 
     def __handle_recovery_problem(self, job_id: str) -> None:
