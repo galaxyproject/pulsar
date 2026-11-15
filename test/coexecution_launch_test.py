@@ -95,8 +95,9 @@ def test_small_launch_message_stays_plain_base64():
 
 @pytest.mark.parametrize("n_inputs", [300, 1000])
 def test_large_launch_message_fits_in_one_argument(n_inputs):
-    (submit, _, _), remote_staging = _launch(n_inputs)
+    (submit, _, finish), remote_staging = _launch(n_inputs)
     assert max(len(arg) for arg in submit.args) <= LONGEST_ARGUMENT
+    assert max(len(arg) for arg in finish.args) <= LONGEST_ARGUMENT
     assert _staged_inputs(_job_config(submit, wait_args=True)) == [entry["name"] for entry in remote_staging["setup"]]
 
 
@@ -107,6 +108,12 @@ def test_compressed_launch_message_survives_path_normalization():
     (submit, _, _), _ = _launch(1000)
     message = submit.args[submit.args.index("--base64_zlib") + 1]
     assert "/" not in message
+
+
+def test_finish_container_gets_only_the_job_id():
+    # pulsar-finish reads the job id; pulsar-submit persisted the rest in the job directory.
+    (_, _, finish), _ = _launch(300)
+    assert _job_config(finish) == {"job_id": JOB_ID}
 
 
 def test_launch_message_too_large_even_compressed_fails_at_launch():

@@ -111,8 +111,8 @@ class SequentialCoexecution:
             command_line = fh.read()
         subprocess.run(command_line, shell=True, check=True)
 
-    def finish(self):
-        return finish.main(self._script_args())
+    def finish(self, job_id_only=False):
+        return finish.main(self._script_args(job_id_only=job_id_only))
 
     def published_statuses(self):
         return [payload["status"] for payload in self.published_payloads()]
@@ -130,8 +130,8 @@ class SequentialCoexecution:
                 payloads.append(payload)
         return payloads
 
-    def _script_args(self, compressed=False):
-        launch_params = self.launch_params
+    def _script_args(self, compressed=False, job_id_only=False):
+        launch_params = {"job_id": JOB_ID} if job_id_only else self.launch_params
         if compressed:
             # The wire format: URL-safe base64 of zlib-compressed JSON.
             message = base64.urlsafe_b64encode(zlib.compress(json.dumps(launch_params).encode())).decode()
@@ -168,7 +168,20 @@ def test_sequential_coexecution_with_compressed_launch_message(tmp_path):
         job = SequentialCoexecution(tmp_path, server.application_url)
         assert job.submit(compressed=True) == EXIT_SUCCESS
         job.run_tool()
-        assert job.finish() == EXIT_SUCCESS
+        assert job.finish(job_id_only=True) == EXIT_SUCCESS
+        assert job.published_statuses() == ["running", "complete"]
+        assert job.galaxy_output.read_text() == "cow file contents\n"
+
+
+@pytest.mark.timeout(60)
+def test_finish_needs_only_the_job_id(tmp_path):
+    # pulsar-submit persists the launch message in the job directory, so
+    # clients send pulsar-finish just the job id.
+    with files_server("/") as server:
+        job = SequentialCoexecution(tmp_path, server.application_url)
+        assert job.submit() == EXIT_SUCCESS
+        job.run_tool()
+        assert job.finish(job_id_only=True) == EXIT_SUCCESS
         assert job.published_statuses() == ["running", "complete"]
         assert job.galaxy_output.read_text() == "cow file contents\n"
 

@@ -110,8 +110,8 @@ def run_server_for_job_finish(args):
     config_builder = CoexecutionConfigBuilder(args)
     manager, app = manager_from_args(config_builder)
     try:
-        # We only need the job config so there should be an option to just
-        # send that I think.
+        # Only the job id is needed: pulsar-submit persisted the launch
+        # message in the job directory. Clients send just that.
         job_config = _load_job_config(args)
         job_id = job_config.get('job_id')
         log.info("Informing Pulsar app the target job has completed")

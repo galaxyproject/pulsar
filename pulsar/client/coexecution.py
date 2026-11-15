@@ -142,10 +142,13 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
 
         pulsar_finish_container: Optional[CoexecutionContainerCommand] = None
         if not wait_after_submission:
+            # pulsar-finish reads only the job id; pulsar-submit persisted the
+            # launch message in the job directory, on the volume they share.
+            finish_message_args = ["--base64", to_base64_json({"job_id": launch_params["job_id"]})]
             pulsar_finish_container = CoexecutionContainerCommand(
                 pulsar_container_image,
                 "pulsar-finish",
-                self._pulsar_script_args(manager_name, job_message_args, base64_app_conf),
+                self._pulsar_script_args(manager_name, finish_message_args, base64_app_conf),
                 "/",
                 None,
             )
