@@ -125,8 +125,9 @@ class ResultsCollector:
             elif self.pulsar_outputs.has_output_directory(output_file):
                 # Galaxy fails such a job when it runs locally; staging nothing
                 # back would leave an empty dataset in a successful job.
-                with self.exception_tracker():
-                    raise IsADirectoryError(f"Output {basename(output_file)} is a directory, not a file")
+                self.exception_tracker.record(
+                    IsADirectoryError(f"Output {basename(output_file)} is a directory, not a file")
+                )
 
             for galaxy_path, pulsar in self.pulsar_outputs.output_extras(output_file).items():
                 self._attempt_collect_output('output', path=galaxy_path, name=pulsar)
@@ -273,7 +274,10 @@ class DownloadExceptionTracker:
         try:
             yield
         except Exception as e:
-            self.collection_failure_exceptions.append(e)
+            self.record(e)
+
+    def record(self, exception):
+        self.collection_failure_exceptions.append(exception)
 
 
 def _clean(collection_failure_exceptions, cleanup_job, client):
