@@ -35,21 +35,21 @@ sh $path;
 echo 'ran script'"""
 
 
-def job_message_arguments(launch_params: Dict[str, Any]) -> List[str]:
-    """The pulsar-submit arguments carrying the launch message.
+def job_message_arguments(job_message: Dict[str, Any]) -> List[str]:
+    """The pulsar-submit or pulsar-finish arguments carrying a job message.
 
     A message that fits in one argument stays plain ``--base64``, which every
-    staging image reads. A longer one, about 110 inputs or more, goes
-    compressed as ``--base64_zlib``; staging images older than that option
-    reject it when parsing their arguments.
+    staging image reads. A longer one, a launch message with about 110 inputs
+    or more, goes compressed as ``--base64_zlib``; staging images older than
+    that option reject it when parsing their arguments.
     """
-    message = to_base64_json(launch_params)
+    message = to_base64_json(job_message)
     if len(message) <= MAX_ARGUMENT_LENGTH:
         return ["--base64", message]
-    compressed = to_base64_zlib_json(launch_params)
+    compressed = to_base64_zlib_json(job_message)
     if len(compressed) > MAX_ARGUMENT_LENGTH:
         raise Exception(
-            f"The launch message of job {launch_params.get('job_id')} is too large to start a container with: "
+            f"The message for job {job_message['job_id']} is too large to start a container with: "
             f"{len(compressed)} bytes compressed, and a container argument can be at most {MAX_ARGUMENT_LENGTH}."
         )
     return ["--base64_zlib", compressed]
@@ -144,7 +144,7 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
         if not wait_after_submission:
             # pulsar-finish reads only the job id; pulsar-submit persisted the
             # launch message in the job directory, on the volume they share.
-            finish_message_args = ["--base64", to_base64_json({"job_id": launch_params["job_id"]})]
+            finish_message_args = job_message_arguments({"job_id": launch_params["job_id"]})
             pulsar_finish_container = CoexecutionContainerCommand(
                 pulsar_container_image,
                 "pulsar-finish",
