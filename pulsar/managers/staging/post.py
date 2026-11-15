@@ -32,19 +32,30 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+class OutputStagingError(Exception):
+    """Some of a job's outputs could not be staged back to the client."""
+
+    def __init__(self, exceptions: List[Exception]):
+        super().__init__("; ".join(str(e) or repr(e) for e in exceptions))
+        self.exceptions = exceptions
+
+
 def postprocess(
     job_directory: "JobDirectory",
     action_executor: "RetryActionExecutor",
     was_cancelled: Callable[[], Optional[bool]],
-) -> bool:
-    # Returns True if outputs were collected.
+) -> None:
+    """Stage the job's outputs back to the client.
+
+    Raises :class:`OutputStagingError` if any output could not be staged.
+    """
     if job_directory.has_metadata("launch_config"):
         staging_config = (
             job_directory.load_metadata("launch_config").get("remote_staging") or {}
         )
     else:
         staging_config = {}
-    return __collect_outputs(
+    __collect_outputs(
         job_directory, staging_config, action_executor, was_cancelled
     )
 
@@ -54,8 +65,7 @@ def __collect_outputs(
     staging_config: Dict[str, Any],
     action_executor: "RetryActionExecutor",
     was_cancelled,
-) -> bool:
-    collected = True
+) -> None:
     if "action_mapper" in staging_config:
         file_action_mapper = action_mapper.FileActionMapper(
             config=staging_config["action_mapper"]
@@ -77,8 +87,7 @@ def __collect_outputs(
         )
         if collection_failure_exceptions:
             log.warning("Failures collecting results %s" % collection_failure_exceptions)
-            collected = False
-    return collected
+            raise OutputStagingError(collection_failure_exceptions)
 
 
 def __stage_out_transfer_metrics(
@@ -188,4 +197,4 @@ def __pulsar_outputs(job_directory: "JobDirectory") -> PulsarOutputs:
     )
 
 
-__all__ = ("postprocess", "realized_dynamic_file_sources")
+__all__ = ("OutputStagingError", "postprocess", "realized_dynamic_file_sources")

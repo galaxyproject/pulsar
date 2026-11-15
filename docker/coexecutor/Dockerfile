@@ -1,41 +1,33 @@
-FROM conda/miniconda3
+# Staging image for Pulsar coexecution (Galaxy's Kubernetes, TES and GCP Batch
+# runners). It runs pulsar-submit / pulsar-finish next to the tool container
+# and, for jobs without a tool container, the tool itself with Conda
+# dependencies. Build with `make -C docker/coexecutor all` from the repo root.
+FROM python:3.12-slim-trixie
 
-ENV PYTHONUNBUFFERED 1
-ENV DEBIAN_FRONTEND noninteractive
-ENV PULSAR_CONFIG_CONDA_PREFIX /usr/local
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# wget, gcc, pip - to build and install Pulsar.
-# bzip2 for Miniconda.
-# TODO: pycurl stuff...
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends apt-transport-https \
-    # Install CVMFS client
-    && apt-get install -y --no-install-recommends lsb-release wget \
-    && wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb \
-    && dpkg -i cvmfs-release-latest_all.deb \
-    && rm -f cvmfs-release-latest_all.deb \
-    # Install packages
-    && apt-get update \
-    && apt-get install -y --no-install-recommends gcc \
-        libcurl4-openssl-dev \
-        cvmfs cvmfs-config-default \
-        slurm-llnl slurm-drmaa-dev \
-        bzip2 \
-    # Install Pulsar Python requirements
-    && pip install --no-cache-dir -U pip \
-    && pip install --no-cache-dir drmaa wheel kombu pykube pycurl \
-            webob psutil pyyaml paramiko \
-    # Remove build deps and cleanup
-    && apt-get -y remove gcc wget lsb-release \
-    && apt-get -y autoremove \
-    && apt-get autoclean \
-    && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
-    && /usr/sbin/create-munge-key
+# Pulsar's wheel is pure Python and its dependencies ship wheels (pycurl's
+# manylinux wheel bundles libcurl) or pure Python sdists, so no compiler is
+# needed. Unlike --no-cache-dir, PIP_NO_CACHE_DIR also reaches the pip that
+# installs those sdists' build dependencies. Remote transfer staging uses
+# pycurl whenever it imports, whatever PULSAR_CURL_TRANSPORT says. Without it
+# staging falls back to requests, which reads each uploaded output fully into
+# memory and can't resume downloads.
+RUN --mount=type=bind,target=/context \
+    PIP_NO_CACHE_DIR=1 pip install "$(ls /context/pulsar_app-*.whl)[amqp,galaxy_extended_metadata]" pycurl
 
-ADD pulsar_app-*-py2.py3-none-any.whl /pulsar_app-*-py2.py3-none-any.whl
+# Containerless jobs resolve tool requirements with Conda under
+# /pulsar_dependencies/conda (see Client.get_pulsar_app_config). Installing
+# Conda here saves a download per job; pass --build-arg CONDA_INIT=false for an
+# image that is only used with tool containers.
+ARG CONDA_INIT=true
+RUN if [ "$CONDA_INIT" = "true" ]; then \
+        _pulsar-conda-init --conda_prefix=/pulsar_dependencies/conda \
+        && /pulsar_dependencies/conda/bin/conda clean --all --yes; \
+    fi
 
-RUN pip install --upgrade setuptools && pip install pyOpenSSL --upgrade && pip install cryptography --upgrade
-RUN pip install --no-cache-dir /pulsar_app-*-py2.py3-none-any.whl[galaxy_extended_metadata] && rm /pulsar_app-*-py2.py3-none-any.whl
-RUN pip install --upgrade 'importlib-metadata<5.0'
-RUN _pulsar-configure-galaxy-cvmfs
-RUN _pulsar-conda-init --conda_prefix=/pulsar_dependencies/conda
+# Containerless jobs use /pulsar_dependencies as their dependency base path, and
+# galaxy-tool-util creates it if missing, which fails on a read-only root
+# filesystem (Funnel's default docker run template).
+RUN mkdir -p /pulsar_dependencies

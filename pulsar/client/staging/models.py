@@ -281,6 +281,11 @@ class PulsarOutputs:
     def has_output_file(self, output_file):
         return basename(output_file) in self.output_directory_contents
 
+    def has_output_directory(self, output_file):
+        """Whether the tool left a non-empty directory where this output file belongs."""
+        prefix = basename(output_file) + self.path_helper.separator
+        return any(name.startswith(prefix) for name in self.output_directory_contents)
+
     def output_extras(self, output_file):
         """
         Returns dict mapping local path to remote name.

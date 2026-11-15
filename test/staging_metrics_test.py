@@ -95,7 +95,7 @@ def test_postprocess_records_and_stages_out_its_own_metrics():
                 }
             },
         )
-        assert postprocess(job_directory, RetryActionExecutor(), lambda: False)
+        postprocess(job_directory, RetryActionExecutor(), lambda: False)
 
         recorded = _recorded(job_directory, POSTPROCESS)
         assert recorded["files"] == 1
@@ -179,6 +179,6 @@ def test_postprocess_does_not_retry_its_metrics_stage_out():
             should_retry=lambda exc: True,
             errback=lambda exc, interval, description=None: retried.append(description),
         )
-        assert postprocess(job_directory, action_executor, lambda: False)
+        postprocess(job_directory, action_executor, lambda: False)
         assert os.path.exists(os.path.join(client_directory, output_name))
         assert not [d for d in retried if transfer_metrics_file_name(POSTPROCESS) in d]

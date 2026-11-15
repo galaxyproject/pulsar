@@ -2,9 +2,12 @@ import hashlib
 import json
 import os.path
 import shutil
+import zlib
 from base64 import (
     b64decode as _b64decode,
     b64encode as _b64encode,
+    urlsafe_b64decode,
+    urlsafe_b64encode,
 )
 from enum import Enum
 from errno import (
@@ -148,6 +151,20 @@ def to_base64_json(data):
 
 def from_base64_json(data):
     return json.loads(b64decode(data))
+
+
+def to_base64_zlib_json(data):
+    """URL-safe base64 of zlib-compressed JSON, about a tenth of to_base64_json's size.
+
+    URL-safe because the result travels as a container argument, and some TES
+    servers parse those as paths, collapsing ``//`` and dropping a trailing
+    ``/``. Standard base64 of compressed data contains both.
+    """
+    return urlsafe_b64encode(zlib.compress(json_dumps(data).encode("utf-8"), 9)).decode("ascii")
+
+
+def from_base64_zlib_json(data):
+    return json.loads(zlib.decompress(urlsafe_b64decode(data)))
 
 
 class PathHelper:
