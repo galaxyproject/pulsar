@@ -201,7 +201,8 @@ class StatefulManagerProxy(ManagerProxy):
             return False
         try:
             job_directory = self._proxied_manager.job_directory(job_id)
-            return load_live_output_state(job_directory)["delivered"]
+            # No live update carried the failure message stderr_contents adds.
+            return load_live_output_state(job_directory)["delivered"] and not _failure_messages(job_directory)
         except Exception:
             return False
 
@@ -333,14 +334,10 @@ class StatefulManagerProxy(ManagerProxy):
     def stderr_contents(self, job_id: str) -> bytes:
         """The tool's stderr, followed by why Pulsar failed the job, if it did."""
         stderr = self._proxied_manager.stderr_contents(job_id)
-        job_directory = self._proxied_manager.job_directory(job_id)
-        for marker in FAILURE_MESSAGE_MARKERS:
-            # Pulsar versions before the message was recorded stored ``true``.
-            failure = job_directory.load_metadata(marker)
-            if isinstance(failure, str):
-                if stderr and not stderr.endswith(b"\n"):
-                    stderr += b"\n"
-                stderr += failure.encode("utf-8")
+        for failure in _failure_messages(self._proxied_manager.job_directory(job_id)):
+            if stderr and not stderr.endswith(b"\n"):
+                stderr += b"\n"
+            stderr += failure.encode("utf-8")
         return stderr
 
     def get_status(self, job_id: str) -> "StateLiteral":
@@ -766,6 +763,13 @@ class ManagerMonitor:
         # Manager itself will handle state transitions when status changes,
         # just need to poll get_status
         self.stateful_manager.get_status(active_job_id)
+
+
+def _failure_messages(job_directory: "JobDirectory") -> List[str]:
+    """Why Pulsar failed the job, from the failure markers that hold a message."""
+    # Pulsar versions before the message was recorded stored ``true``.
+    failures = (job_directory.load_metadata(marker) for marker in FAILURE_MESSAGE_MARKERS)
+    return [failure for failure in failures if isinstance(failure, str)]
 
 
 class _InFlight:
