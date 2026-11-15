@@ -2,23 +2,20 @@
 # runners). It runs pulsar-submit / pulsar-finish next to the tool container
 # and, for jobs without a tool container, the tool itself with Conda
 # dependencies. Build with `make -C docker/coexecutor all` from the repo root.
-ARG PYTHON_IMAGE=python:3.12-slim-trixie
-FROM ${PYTHON_IMAGE}
+FROM python:3.12-slim-trixie
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_ROOT_USER_ACTION=ignore
+    PYTHONDONTWRITEBYTECODE=1
 
 # Pulsar's wheel is pure Python and its dependencies ship wheels (pycurl's
-# manylinux wheel bundles libcurl), so no compiler is needed. Remote transfer
-# staging uses pycurl whenever it imports, whatever PULSAR_CURL_TRANSPORT says.
-# Without it staging falls back to requests, which reads each uploaded output
-# fully into memory and can't resume downloads. drmaa is left out: coexecution
-# never talks to a DRM.
+# manylinux wheel bundles libcurl) or pure Python sdists, so no compiler is
+# needed. Unlike --no-cache-dir, PIP_NO_CACHE_DIR also reaches the pip that
+# installs those sdists' build dependencies. Remote transfer staging uses
+# pycurl whenever it imports, whatever PULSAR_CURL_TRANSPORT says. Without it
+# staging falls back to requests, which reads each uploaded output fully into
+# memory and can't resume downloads.
 RUN --mount=type=bind,target=/context \
-    pip install "$(ls /context/pulsar_app-*.whl)[amqp,galaxy_extended_metadata]" pycurl
+    PIP_NO_CACHE_DIR=1 pip install "$(ls /context/pulsar_app-*.whl)[amqp,galaxy_extended_metadata]" pycurl
 
 # Containerless jobs resolve tool requirements with Conda under
 # /pulsar_dependencies/conda (see Client.get_pulsar_app_config). Installing
