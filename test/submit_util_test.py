@@ -237,6 +237,8 @@ def test_sequential_coexecution_writes_nothing_to_working_directory(tmp_path, mo
     ({"tool_dependency_dir": "/deps/app"}, {}, "/deps/app"),
     ({}, {"PULSAR_CONFIG_TOOL_DEPENDENCY_DIR": "/deps/env"}, "/deps/env"),
     ({"tool_dependency_dir": "/deps/app"}, {"PULSAR_CONFIG_TOOL_DEPENDENCY_DIR": "/deps/env"}, "/deps/app"),
+    # app.yml.sample's dependency_resolution, which has no default_base_path.
+    ({"dependency_resolution": {"resolvers": [{"type": "conda", "prefix": "/deps/conda"}]}}, {}, None),
 ])
 def test_coexecution_tool_dependency_dir_default(monkeypatch, app_conf, environ, expected):
     monkeypatch.delenv("PULSAR_CONFIG_TOOL_DEPENDENCY_DIR", raising=False)
@@ -245,7 +247,7 @@ def test_coexecution_tool_dependency_dir_default(monkeypatch, app_conf, environ,
     arg_parser = ArgumentParser()
     add_common_submit_args(arg_parser)
     args = arg_parser.parse_args(["--app_conf_base64", to_base64_json(app_conf)])
-    assert CoexecutionConfigBuilder(args).load()["tool_dependency_dir"] == expected
+    assert CoexecutionConfigBuilder(args).load().get("tool_dependency_dir") == expected
 
 
 def _unused_port():

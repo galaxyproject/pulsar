@@ -37,14 +37,16 @@ class CoexecutionConfigBuilder(PulsarManagerConfigBuilder):
     TES or Kubernetes container, and galaxy-tool-util's Conda resolver creates
     that directory when the app starts. On a read-only root filesystem that
     fails before the job is staged. Containerized jobs bring their own tools,
-    and for containerless jobs the client configures ``dependency_resolution``
-    under ``/pulsar_dependencies``, so default to no dependency resolution.
-    Explicit app config and ``PULSAR_CONFIG_TOOL_DEPENDENCY_DIR`` still win.
+    so unless the app config sets ``dependency_resolution``, as the client does
+    for containerless jobs, default to no dependency resolution. A
+    ``tool_dependency_dir`` from app config or
+    ``PULSAR_CONFIG_TOOL_DEPENDENCY_DIR`` still wins.
     """
 
     def load(self):
         conf = super().load()
-        conf.setdefault("tool_dependency_dir", "none")
+        if "dependency_resolution" not in conf:
+            conf.setdefault("tool_dependency_dir", "none")
         return conf
 
 
