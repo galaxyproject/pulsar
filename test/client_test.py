@@ -28,6 +28,7 @@ from pulsar.client.gcp import (
     LaunchesGcpContainersMixin,
 )
 from pulsar.client.manager import HttpPulsarInterface
+from pulsar.client.setup_handler import KNOWN_PULSAR_CONTAINER_VERSIONS
 from pulsar.client.tes import TesPollingCoexecutionJobClient
 from pulsar.client.transport import UrllibTransport
 from pulsar.managers.util.gcp_util import GcpAlreadyExists
@@ -166,6 +167,10 @@ def test_local_setup_prefers_declared_version_over_staging_image():
     ).setup()
     assert job_config["pulsar_version"] == "0.16.0"
     assert job_config["pulsar_version_source"] == "destination"
+
+
+def test_coexecution_client_defaults_to_published_staging_image():
+    assert _gcp_client().pulsar_container_image in KNOWN_PULSAR_CONTAINER_VERSIONS
 
 
 def test_local_setup_unknown_staging_image_reports_client_version():
