@@ -3,6 +3,7 @@
 import logging
 from typing import (
     Any,
+    cast,
     Dict,
     Optional,
 )
@@ -51,26 +52,6 @@ def tes_state_to_pulsar_status(state: Optional[TesState]) -> str:
     if state not in state_map:
         log.warning(f"Unknown tes state encountered [{state}]")
         return manager_status.FAILED
-    else:
-        return state_map[state]
-
-
-def tes_state_is_complete(state: Optional[TesState]) -> bool:
-    state = state or TesState.UNKNOWN
-    state_map = {
-        TesState.UNKNOWN: True,
-        TesState.QUEUED: False,
-        TesState.INITIALIZING: False,
-        TesState.RUNNING: False,
-        TesState.PAUSED: False,
-        TesState.COMPLETE: True,
-        TesState.EXECUTOR_ERROR: True,
-        TesState.SYSTEM_ERROR: True,
-        TesState.CANCELED: True,
-    }
-    if state not in state_map:
-        log.warning(f"Unknown tes state encountered [{state}]")
-        return True
     else:
         return state_map[state]
 
@@ -148,10 +129,10 @@ class LaunchesTesContainersMixin(CoexecutionLaunchMixin):
 
     def raw_check_complete(self) -> Dict[str, Any]:
         tes_task: TesTask = self._tes_client.get_task(self._tes_task_id, "FULL")
-        tes_state = tes_task.state
+        status = cast(manager_status.StateLiteral, tes_state_to_pulsar_status(tes_task.state))
         return {
-            "status": tes_state_to_pulsar_status(tes_state),
-            "complete": "true" if tes_state_is_complete(tes_state) else "false",  # Ancient John, what were you thinking?
+            "status": status,
+            "complete": "true" if manager_status.is_job_done(status) else "false",  # Ancient John, what were you thinking?
         }
 
     @property

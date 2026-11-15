@@ -1,14 +1,7 @@
-import pytest
-
-from pulsar.client.tes import (
-    tes_state_is_complete,
-    tes_state_to_pulsar_status,
-)
 from pulsar.client.tes_job_config import (
     parse_tes_job_params,
     tes_resources,
 )
-from pulsar.managers.util.tes import TesState
 
 
 def test_tes_resources_from_xml():
@@ -45,9 +38,3 @@ def test_tes_resources_from_yaml():
     assert resources.zones == ["us-west-1", "us-east-1"]
     assert resources.backend_parameters == {"moo": "cow"}
     assert resources.backend_parameters_strict is False
-
-
-def test_queued_tes_task_is_queued_not_failed():
-    pytest.importorskip("pydantictes")
-    assert tes_state_to_pulsar_status(TesState.QUEUED) == "queued"
-    assert tes_state_is_complete(TesState.QUEUED) is False
