@@ -719,18 +719,25 @@ def _postprocessing_failed():
         yield
 
 
+class _HeldCallback:
+    """A state change callback that holds, as a slow publish would, until released."""
+
+    def __init__(self, proxy, timeout=5):
+        self.started = threading.Event()
+        self.release = threading.Event()
+        self._proxy = proxy
+        self._timeout = timeout
+
+    def __call__(self, job_status, job_id):
+        self.started.set()
+        self.release.wait(self._timeout)
+        self._proxy.callbacks.append((job_status, job_id))
+
+
 @contextmanager
-def _slow_callback(proxy, timeout=5):
-    """Hold each state change callback, as a slow publish would, until released."""
-    publishing = threading.Event()
-    publishing.release = threading.Event()
-
-    def held_callback(job_status, job_id):
-        publishing.set()
-        publishing.release.wait(timeout)
-        proxy.callbacks.append((job_status, job_id))
-
-    proxy.set_state_change_callback(held_callback, start_monitor=False)
+def _slow_callback(proxy):
+    publishing = _HeldCallback(proxy)
+    proxy.set_state_change_callback(publishing, start_monitor=False)
     try:
         yield publishing
     finally:
@@ -738,7 +745,7 @@ def _slow_callback(proxy, timeout=5):
 
 
 def _assert_shutdown_waits_for_publication(proxy, publishing, job_id, terminal_status):
-    assert publishing.wait(5)
+    assert publishing.started.wait(5)
     # A client polling now, such as pulsar-finish, sees the job finished and shuts down.
     assert proxy.get_status(job_id) == terminal_status
     shutdown = threading.Thread(target=proxy.shutdown)
