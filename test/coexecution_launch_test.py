@@ -15,15 +15,19 @@ from pulsar.client.coexecution import (
     CoexecutionLaunchMixin,
     ExecutionType,
 )
-from pulsar.main import ArgumentParser
-from pulsar.scripts.submit_util import (
-    _load_job_config,
-    add_common_submit_args,
+from pulsar.scripts import (
+    finish,
+    submit,
 )
+from pulsar.scripts.submit_util import _load_job_config
 
 LONGEST_ARGUMENT = 131071
 JOB_ID = "45"
 FILES_ENDPOINT = "http://galaxy.example.org/api/jobs/f2db41e1fa331b3e/files?job_key=0123456789abcdef"
+SCRIPTS = {
+    "pulsar-submit": (submit, "run_server_for_job"),
+    "pulsar-finish": (finish, "run_server_for_job_finish"),
+}
 
 
 class RecordingCoexecutionClient(BaseMessageCoexecutionJobClient, CoexecutionLaunchMixin):
@@ -71,49 +75,48 @@ def _remote_staging(n_inputs):
     }
 
 
-def _job_config(container, wait_args=False):
-    """Read the container's arguments as pulsar-submit (or pulsar-finish) does."""
-    parser = ArgumentParser()
-    add_common_submit_args(parser)
-    if wait_args:
-        parser.add_argument("--wait", action="store_true")
-        parser.add_argument("--no_wait", "--no-wait", dest="wait", action="store_false")
-    return _load_job_config(parser.parse_args(container.args))
+def _job_config(monkeypatch, container):
+    """Parse the container's arguments with its script's own parser and read the job message."""
+    script, runner = SCRIPTS[container.command]
+    parsed_args = []
+    monkeypatch.setattr(script, runner, parsed_args.append)
+    script.main(container.args)
+    return _load_job_config(parsed_args[0])
 
 
 def _staged_inputs(job_config):
     return [entry["name"] for entry in job_config["remote_staging"]["setup"]]
 
 
-def test_small_launch_message_stays_plain_base64():
+def test_small_launch_message_stays_plain_base64(monkeypatch):
     # Staging images without the compressed form keep working for every job that fits.
-    (submit, _, _), remote_staging = _launch(3)
-    assert "--base64" in submit.args
-    assert "--base64_zlib" not in submit.args
-    assert _staged_inputs(_job_config(submit, wait_args=True)) == [entry["name"] for entry in remote_staging["setup"]]
+    (submit_container, _, _), remote_staging = _launch(3)
+    assert "--base64" in submit_container.args
+    assert "--base64_zlib" not in submit_container.args
+    assert _staged_inputs(_job_config(monkeypatch, submit_container)) == [entry["name"] for entry in remote_staging["setup"]]
 
 
 @pytest.mark.parametrize("n_inputs", [300, 1000])
-def test_large_launch_message_fits_in_one_argument(n_inputs):
-    (submit, _, finish), remote_staging = _launch(n_inputs)
-    assert max(len(arg) for arg in submit.args) <= LONGEST_ARGUMENT
-    assert max(len(arg) for arg in finish.args) <= LONGEST_ARGUMENT
-    assert _staged_inputs(_job_config(submit, wait_args=True)) == [entry["name"] for entry in remote_staging["setup"]]
+def test_large_launch_message_fits_in_one_argument(monkeypatch, n_inputs):
+    (submit_container, _, finish_container), remote_staging = _launch(n_inputs)
+    assert max(len(arg) for arg in submit_container.args) <= LONGEST_ARGUMENT
+    assert max(len(arg) for arg in finish_container.args) <= LONGEST_ARGUMENT
+    assert _staged_inputs(_job_config(monkeypatch, submit_container)) == [entry["name"] for entry in remote_staging["setup"]]
 
 
 def test_compressed_launch_message_survives_path_normalization():
     # Some TES servers (tesp-api) parse executor arguments as paths, which
     # collapses "//" and drops a trailing "/". Standard base64 of compressed
     # data contains both; the URL-safe alphabet has no "/".
-    (submit, _, _), _ = _launch(1000)
-    message = submit.args[submit.args.index("--base64_zlib") + 1]
+    (submit_container, _, _), _ = _launch(1000)
+    message = submit_container.args[submit_container.args.index("--base64_zlib") + 1]
     assert "/" not in message
 
 
-def test_finish_container_gets_only_the_job_id():
+def test_finish_container_gets_only_the_job_id(monkeypatch):
     # pulsar-finish reads the job id; pulsar-submit persisted the rest in the job directory.
-    (_, _, finish), _ = _launch(300)
-    assert _job_config(finish) == {"job_id": JOB_ID}
+    (_, _, finish_container), _ = _launch(300)
+    assert _job_config(monkeypatch, finish_container) == {"job_id": JOB_ID}
 
 
 def test_launch_message_too_large_even_compressed_fails_at_launch():
