@@ -6,12 +6,13 @@ PULSAR_VERSION := $(shell sed -n "s/^__version__ = '\(.*\)'/\1/p" ../../pulsar/_
 IMAGE ?= galaxy/pulsar-pod-staging:$(PULSAR_VERSION)
 DOCKER_BUILD_ARGS ?=
 
+all: docker-image
+
 dist:
-	cd ../..; $(MAKE) dist; cp dist/pulsar_app-*.whl docker/coexecutor
+	$(MAKE) -C ../.. dist
+	cp ../../dist/pulsar_app-*.whl .
 
-docker-image:
+docker-image: dist
 	docker build $(DOCKER_BUILD_ARGS) -t '$(IMAGE)' .
-
-all: dist docker-image
 
 .PHONY: dist docker-image all
