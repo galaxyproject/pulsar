@@ -3,6 +3,7 @@
 import json
 import logging
 import time
+from typing import Callable
 
 from pulsar.client.util import from_base64_json
 from pulsar.main import (
@@ -13,6 +14,7 @@ from pulsar.manager_endpoint_util import submit_job
 from pulsar.managers.status import (
     is_job_done,
     PREPROCESSING,
+    StateLiteral,
 )
 
 log = logging.getLogger(__name__)
@@ -70,12 +72,8 @@ def run_server_for_job_finish(args):
 
 
 def wait_for_job(manager, job_config, poll_time=DEFAULT_POLL_TIME):
-    job_id = job_config.get('job_id')
-    while True:
-        status = manager.get_status(job_id)
-        if is_job_done(status):
-            break
-        time.sleep(poll_time)
+    """Poll until the job is done and return its final status."""
+    return _wait_for_status(manager, job_config.get('job_id'), is_job_done, poll_time)
 
 
 def wait_for_launch(manager, job_config, poll_time=DEFAULT_LAUNCH_POLL_TIME):
@@ -85,9 +83,17 @@ def wait_for_launch(manager, job_config, poll_time=DEFAULT_LAUNCH_POLL_TIME):
     time it sees the launched job running. Without a waiting submit, the app
     shuts down while inputs are still staging, so nothing polls the job and
     ``running`` is never published.
+
+    Returns the first status after preprocessing.
     """
-    job_id = job_config.get('job_id')
-    while manager.get_status(job_id) == PREPROCESSING:
+    return _wait_for_status(manager, job_config.get('job_id'), lambda status: status != PREPROCESSING, poll_time)
+
+
+def _wait_for_status(manager, job_id, until: Callable[[StateLiteral], bool], poll_time):
+    while True:
+        status = manager.get_status(job_id)
+        if until(status):
+            return status
         time.sleep(poll_time)
 
 
