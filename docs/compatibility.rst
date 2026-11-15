@@ -355,7 +355,7 @@ Coexecution
 
 Galaxy K8s/TES/GCP runners launch a pod/task with a Pulsar sidecar; no long-running server. The peer is the sidecar image, hardcoded in Galaxy as ``DEFAULT_PULSAR_CONTAINER`` (overridable per destination with ``pulsar_container_image``).
 
-Contract: ``pulsar-submit [--wait|--no-wait] --base64 <setup> --app_conf_base64 <conf>``; tool container waits on a ``command_line`` file.
+Contract: ``pulsar-submit [--wait|--no-wait] --base64 <setup> --app_conf_base64 <conf>``; tool container waits on a ``command_line`` file. A setup longer than one argument may be (131071 bytes, about 110 inputs) goes as ``--base64_zlib`` (URL-safe base64 of zlib-compressed JSON), which older staging images reject.
 
 Default Pulsar image: ``galaxy/pulsar-pod-staging:0.15.0.2`` (Pulsar 0.15.0.dev0 (49bc5bc, 2023-02)).
 

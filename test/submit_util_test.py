@@ -5,11 +5,14 @@ TES and similar sequential coexecution environments run ``pulsar-submit
 with its own short-lived Pulsar app. Galaxy only learns a job's state from the
 status messages those apps publish.
 """
+import base64
+import json
 import os
 import socket
 import subprocess
 import time
 import uuid
+import zlib
 
 import pytest
 
@@ -100,8 +103,8 @@ class SequentialCoexecution:
     def galaxy_output(self):
         return self.galaxy_working / OUTPUT_NAME
 
-    def submit(self, wait=False):
-        return submit.main([*self._script_args(), "--wait" if wait else "--no-wait"])
+    def submit(self, wait=False, compressed=False):
+        return submit.main([*self._script_args(compressed=compressed), "--wait" if wait else "--no-wait"])
 
     def run_tool(self):
         with open(self.command_line_path) as fh:
@@ -127,11 +130,15 @@ class SequentialCoexecution:
                 payloads.append(payload)
         return payloads
 
-    def _script_args(self):
-        return [
-            "--base64", to_base64_json(self.launch_params),
-            "--app_conf_base64", to_base64_json(self.app_conf),
-        ]
+    def _script_args(self, compressed=False):
+        launch_params = self.launch_params
+        if compressed:
+            # The wire format: URL-safe base64 of zlib-compressed JSON.
+            message = base64.urlsafe_b64encode(zlib.compress(json.dumps(launch_params).encode())).decode()
+            job_message = ["--base64_zlib", message]
+        else:
+            job_message = ["--base64", to_base64_json(launch_params)]
+        return [*job_message, "--app_conf_base64", to_base64_json(self.app_conf)]
 
 
 @pytest.mark.timeout(60)
@@ -148,6 +155,18 @@ def test_sequential_coexecution_publishes_running_then_complete(tmp_path):
     with files_server("/") as server:
         job = SequentialCoexecution(tmp_path, server.application_url)
         assert job.submit() == EXIT_SUCCESS
+        job.run_tool()
+        assert job.finish() == EXIT_SUCCESS
+        assert job.published_statuses() == ["running", "complete"]
+        assert job.galaxy_output.read_text() == "cow file contents\n"
+
+
+@pytest.mark.timeout(60)
+def test_sequential_coexecution_with_compressed_launch_message(tmp_path):
+    # Clients compress launch messages too long for one container argument.
+    with files_server("/") as server:
+        job = SequentialCoexecution(tmp_path, server.application_url)
+        assert job.submit(compressed=True) == EXIT_SUCCESS
         job.run_tool()
         assert job.finish() == EXIT_SUCCESS
         assert job.published_statuses() == ["running", "complete"]

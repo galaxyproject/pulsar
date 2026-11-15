@@ -1,7 +1,12 @@
 """Shared container launch behavior, independent of scheduler SDKs."""
 
 from enum import Enum
-from typing import Optional
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+)
 
 from .client import (
     BaseMessageJobClient,
@@ -12,8 +17,13 @@ from .container_job_config import CoexecutionContainerCommand
 from .util import (
     ExternalId,
     to_base64_json,
+    to_base64_zlib_json,
 )
 
+# The longest argument Linux passes to a program: MAX_ARG_STRLEN (32 pages)
+# less the terminating NUL. Container runtimes exec pulsar-submit with the
+# launch message as one argument.
+MAX_ARGUMENT_LENGTH = 32 * 4096 - 1
 PULSAR_CONTAINER_IMAGE = "galaxy/pulsar-pod-staging:0.15.0.2"
 TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE = """
 path='%s/command_line';
@@ -23,6 +33,26 @@ done;
 echo 'running script';
 sh $path;
 echo 'ran script'"""
+
+
+def job_message_arguments(launch_params: Dict[str, Any]) -> List[str]:
+    """The pulsar-submit arguments carrying the launch message.
+
+    A message that fits in one argument stays plain ``--base64``, which every
+    staging image reads. A longer one, about 110 inputs or more, goes
+    compressed as ``--base64_zlib``; staging images older than that option
+    reject it when parsing their arguments.
+    """
+    message = to_base64_json(launch_params)
+    if len(message) <= MAX_ARGUMENT_LENGTH:
+        return ["--base64", message]
+    compressed = to_base64_zlib_json(launch_params)
+    if len(compressed) > MAX_ARGUMENT_LENGTH:
+        raise Exception(
+            f"The launch message of job {launch_params.get('job_id')} is too large to start a container with: "
+            f"{len(compressed)} bytes compressed, and a container argument can be at most {MAX_ARGUMENT_LENGTH}."
+        )
+    return ["--base64_zlib", compressed]
 
 
 class ExecutionType(str, Enum):
@@ -81,7 +111,7 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
             dependencies_description=dependencies_description,
         )
 
-        base64_message = to_base64_json(launch_params)
+        job_message_args = job_message_arguments(launch_params)
         base64_app_conf = to_base64_json(pulsar_app_config)
         pulsar_container_image = self.pulsar_container_image
 
@@ -89,7 +119,7 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
         pulsar_container = CoexecutionContainerCommand(
             pulsar_container_image,
             "pulsar-submit",
-            self._pulsar_script_args(manager_name, base64_message, base64_app_conf, wait_arg=wait_arg),
+            self._pulsar_script_args(manager_name, job_message_args, base64_app_conf, wait_arg=wait_arg),
             "/",
             None,
         )
@@ -115,21 +145,21 @@ class CoexecutionLaunchMixin(BaseRemoteConfiguredJobClient):
             pulsar_finish_container = CoexecutionContainerCommand(
                 pulsar_container_image,
                 "pulsar-finish",
-                self._pulsar_script_args(manager_name, base64_message, base64_app_conf),
+                self._pulsar_script_args(manager_name, job_message_args, base64_app_conf),
                 "/",
                 None,
             )
 
         return self._launch_containers(pulsar_container, tool_container, pulsar_finish_container)
 
-    def _pulsar_script_args(self, manager_name, base64_job, base64_app_conf, wait_arg=None):
+    def _pulsar_script_args(self, manager_name, job_message_args, base64_app_conf, wait_arg=None):
         manager_args = []
         if manager_name != "_default_":
             manager_args.append("--manager")
             manager_args.append(manager_name)
         if wait_arg:
             manager_args.append(wait_arg)
-        manager_args.extend(["--base64", base64_job, "--app_conf_base64", base64_app_conf])
+        manager_args.extend([*job_message_args, "--app_conf_base64", base64_app_conf])
         return manager_args
 
     def _launch_containers(
