@@ -17,9 +17,8 @@ ENV PYTHONUNBUFFERED=1 \
 # Without it staging falls back to requests, which reads each uploaded output
 # fully into memory and can't resume downloads. drmaa is left out: coexecution
 # never talks to a DRM.
-COPY pulsar_app-*.whl /tmp/
-RUN pip install "$(ls /tmp/pulsar_app-*.whl)[amqp,galaxy_extended_metadata]" pycurl \
-    && rm /tmp/pulsar_app-*.whl
+RUN --mount=type=bind,target=/context \
+    pip install "$(ls /context/pulsar_app-*.whl)[amqp,galaxy_extended_metadata]" pycurl
 
 # Containerless jobs resolve tool requirements with Conda under
 # /pulsar_dependencies/conda (see Client.get_pulsar_app_config). Installing
