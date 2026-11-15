@@ -638,6 +638,10 @@ class StatefulManagerProxy(ManagerProxy):
         )
         # Unconditional: the ``postprocessed`` marker is written even when
         # staging out failed, so it cannot say whether the outputs arrived.
+        # Cleared so get_status stops reporting the old outcome, whose
+        # publication shutdown cannot wait for, until this one is recorded.
+        with job_directory.lock("status"):
+            job_directory.remove_metadata(JOB_FILE_POSTPROCESSED)
         self.__handle_postprocessing(job_id, terminal_status)
 
     def __handle_recovery_problem(self, job_id: str) -> None:

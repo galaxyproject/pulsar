@@ -565,6 +565,24 @@ def test_recover_active_jobs_redrives_interrupted_postprocessing():
             _wait_for_postprocessing_index_cleared(proxy)
 
 
+def test_recovery_reports_postprocessing_until_the_redone_outcome_is_published():
+    with _temporary_app() as app:
+        with _proxy(app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            _interrupt_postprocessing(proxy, manager, job_id)
+            # Killed after marking postprocessing done, before publishing the terminal status.
+            manager.job_directory(job_id).write_file(stateful.JOB_FILE_POSTPROCESSED, "")
+
+        with _proxy(app=app) as (proxy, manager), _slow_callback(proxy) as publishing:
+            with _postprocessing_held() as release:
+                proxy.recover_active_jobs()
+                # The old outcome's publication is lost, so shutdown can't wait for it.
+                assert proxy.get_status(job_id) == status.POSTPROCESSING
+                release.set()
+                _assert_shutdown_waits_for_publication(proxy, publishing, job_id, status.COMPLETE)
+
+
 def test_job_killed_between_indexes_is_not_rerun():
     """A job in both indexes is postprocessed, never handed to the runner.
 
