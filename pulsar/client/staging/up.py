@@ -68,6 +68,8 @@ def submit_job(client, client_job_description: "ClientJobDescription", job_confi
     # Somehow make the following optional.
     remote_staging["action_mapper"] = file_stager.action_mapper.to_dict()
     remote_staging["client_outputs"] = client_job_description.client_outputs.to_dict()
+    if client_job_description.output_targets_url:
+        remote_staging["output_targets_url"] = client_job_description.output_targets_url
     if remote_staging:
         launch_kwds["remote_staging"] = remote_staging
 
