@@ -53,6 +53,7 @@ from pulsar.client.job_directory import (
 from pulsar.managers import ManagerInterface
 from pulsar.managers.util.cvmfsexec import parse as parse_cvmfsexec_config
 from pulsar.managers.util.env import EnvVar
+from pulsar.managers.util.retry import RetryActionExecutor
 
 if TYPE_CHECKING:
     from threading import Lock
@@ -71,6 +72,14 @@ JOB_DIRECTORY_CONFIGS = "configs"
 JOB_DIRECTORY_TOOL_FILES = "tool_files"
 
 DEFAULT_ID_ASSIGNER = "galaxy"
+
+CLEAN_RETRY_EXECUTOR = RetryActionExecutor(
+    max_retries=2,
+    interval_start=0.2,
+    interval_step=0,
+    interval_max=0.2,
+    description="removal of a job directory",
+)
 
 ID_ASSIGNER = {
     # Generate a random id, needed if multiple
@@ -133,11 +142,16 @@ class BaseManager(ManagerInterface, ABC):
             return
 
         job_directory = self._job_directory(job_id)
-        if job_directory.exists():
-            try:
+        # Right after a kill, the thread waiting for the job's process may still write return_code and remove the
+        # pid file while rmtree runs, which makes it fail; a moment later the directory is quiet, so retry.
+        def delete() -> None:
+            if job_directory.exists():
                 job_directory.delete()
-            except Exception:
-                pass
+
+        try:
+            CLEAN_RETRY_EXECUTOR.execute(delete)
+        except Exception:
+            log.exception("Failed to remove the directory of job %s", job_id)
 
     def system_properties(self) -> Dict[str, Any]:
         return self.__system_properties
