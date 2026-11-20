@@ -580,6 +580,33 @@ def test_running_job_streams_output_without_polling_the_scheduler(poster):
         rmtree(app.staging_directory, ignore_errors=True)
 
 
+def test_failed_status_carries_a_stage_out_error_after_streams_were_delivered_live(poster):
+    app = minimal_app_for_managers()
+    try:
+        with _proxy(app) as (proxy, manager):
+            job_id, job_directory = _launch(proxy)
+            _write(job_directory, TOOL_FILE_STANDARD_ERROR, b"tool warning")
+            manager.scripted_status = status.RUNNING
+            proxy.get_status(job_id)
+            wait_for(lambda: proxy.is_live_stdout_update(job_id), "a live stderr update")
+
+            manager.scripted_status = status.COMPLETE
+            with mock.patch.object(stateful, "postprocess", side_effect=Exception("upload refused")):
+                proxy.get_status(job_id)
+                wait_for(
+                    lambda: proxy.callbacks[-1:],
+                    "a failed callback",
+                    until=lambda last: last == [(status.FAILED, job_id)],
+                )
+
+            assert poster.sent("tool_stderr") == b"tool warning"
+            assert manager_endpoint_util.full_status(proxy, status.FAILED, job_id)["stderr"] == (
+                "tool warning\nPulsar failed to stage outputs: upload refused\n"
+            )
+    finally:
+        rmtree(app.staging_directory, ignore_errors=True)
+
+
 def test_cancelled_job_stops_streaming(poster):
     app = minimal_app_for_managers()
     try:

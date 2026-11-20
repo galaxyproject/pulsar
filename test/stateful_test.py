@@ -9,10 +9,12 @@ from unittest import mock
 
 import pytest
 
+from pulsar.manager_endpoint_util import full_status
 from pulsar.managers import (
     stateful,
     status,
 )
+from pulsar.managers.base.directory import TOOL_FILE_STANDARD_ERROR
 from pulsar.managers.queued import QueueManager
 from pulsar.managers.staging import pre as staging_pre
 from pulsar.managers.stateful import StatefulManagerProxy
@@ -26,6 +28,7 @@ TEST_JOB_ID = "4"
 TEST_LAUNCH_CONFIG = {"command_line": "true", "remote_staging": {}}
 # A non-empty setup list routes the job through the preprocessing thread.
 FAST_POLLING = {"staging_slot_poll_interval": .01}
+TEST_STAGE_OUT_ERROR = "Test failure staging outputs"
 STAGING_LAUNCH_CONFIG = {
     "command_line": "true",
     "remote_staging": {"setup": [{"name": "input1", "type": "input", "action": {}}]},
@@ -158,6 +161,38 @@ def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
         assert proxy.get_status(job_id) == status.FAILED
 
 
+def test_failed_status_reports_the_stage_out_error_after_the_tool_stderr():
+    with _launched_job() as (proxy, manager, job_id):
+        manager.job_directory(job_id).write_file(TOOL_FILE_STANDARD_ERROR, "tool warning")
+        manager.scripted_status = status.COMPLETE
+        with _postprocessing_failed():
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        # Galaxy's Pulsar runner shows the failed status's stderr with the failed job.
+        assert full_status(proxy, status.FAILED, job_id)["stderr"] == (
+            "tool warning\nPulsar failed to stage outputs: %s\n" % TEST_STAGE_OUT_ERROR
+        )
+
+
+def test_stage_out_error_is_dropped_once_outputs_are_staged_on_recovery():
+    with _temporary_app() as app:
+        with _proxy(app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            _interrupt_postprocessing(proxy, manager, job_id)
+            manager.job_directory(job_id).store_metadata(
+                stateful.JOB_FILE_POSTPROCESSING_FAILED, "Pulsar failed to stage outputs: earlier attempt\n"
+            )
+            assert "earlier attempt" in full_status(proxy, status.FAILED, job_id)["stderr"]
+
+        with _proxy(app=app) as (proxy, manager):
+            proxy.recover_active_jobs()
+            _wait_for_callback(proxy)
+            assert proxy.callbacks == [(status.COMPLETE, job_id)]
+            assert full_status(proxy, status.COMPLETE, job_id)["stderr"] == ""
+
+
 def test_polling_stays_postprocessing_until_failed_outcome_is_persisted():
     with _launched_job() as (proxy, manager, job_id):
         manager.scripted_status = status.COMPLETE
@@ -269,6 +304,9 @@ def test_preprocessing_failure_is_reported_once():
         # No postprocessing or second callback is needed before launch.
         time.sleep(.1)
         assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.stderr_contents(job_id) == (
+            b"Pulsar failed to stage inputs or launch the job: Test failure launching job\n"
+        )
 
 
 @pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (None, 3)])
@@ -438,6 +476,22 @@ def test_killing_a_finished_job_does_not_cancel_its_output_staging():
         assert not manager._was_cancelled(job_id)
 
 
+def test_shutdown_waits_for_a_reported_postprocessing_outcome_to_be_published():
+    with _launched_job() as (proxy, manager, job_id), _slow_callback(proxy) as publishing:
+        manager.scripted_status = status.COMPLETE
+        proxy.get_status(job_id)
+        _assert_shutdown_waits_for_publication(proxy, publishing, job_id, status.COMPLETE)
+
+
+def test_shutdown_waits_for_a_reported_preprocessing_failure_to_be_published():
+    transfers = _HeldTransfers()
+    transfers.release.set()
+    with _proxy(_FailingLaunchManager) as (proxy, manager), _held_input_staging(transfers):
+        with _slow_callback(proxy) as publishing:
+            job_id = _launch_jobs(proxy, STAGING_LAUNCH_CONFIG, 1)[0]
+            _assert_shutdown_waits_for_publication(proxy, publishing, job_id, status.FAILED)
+
+
 def test_job_arriving_after_shutdown_does_not_start_staging():
     transfers = _HeldTransfers()
     transfers.release.set()
@@ -509,6 +563,24 @@ def test_recover_active_jobs_redrives_interrupted_postprocessing():
                 stateful.JOB_FILE_POSTPROCESSED
             )
             _wait_for_postprocessing_index_cleared(proxy)
+
+
+def test_recovery_reports_postprocessing_until_the_redone_outcome_is_published():
+    with _temporary_app() as app:
+        with _proxy(app=app) as (proxy, manager):
+            job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+            proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
+            _interrupt_postprocessing(proxy, manager, job_id)
+            # Killed after marking postprocessing done, before publishing the terminal status.
+            manager.job_directory(job_id).write_file(stateful.JOB_FILE_POSTPROCESSED, "")
+
+        with _proxy(app=app) as (proxy, manager), _slow_callback(proxy) as publishing:
+            with _postprocessing_held() as release:
+                proxy.recover_active_jobs()
+                # The old outcome's publication is lost, so shutdown can't wait for it.
+                assert proxy.get_status(job_id) == status.POSTPROCESSING
+                release.set()
+                _assert_shutdown_waits_for_publication(proxy, publishing, job_id, status.COMPLETE)
 
 
 def test_job_killed_between_indexes_is_not_rerun():
@@ -641,10 +713,49 @@ def _postprocessing_failed():
 
     def failed_postprocess(*args, **kwds):
         real_postprocess(*args, **kwds)
-        return False
+        raise Exception(TEST_STAGE_OUT_ERROR)
 
     with mock.patch.object(stateful, "postprocess", failed_postprocess):
         yield
+
+
+class _HeldCallback:
+    """A state change callback that holds, as a slow publish would, until released."""
+
+    def __init__(self, proxy, timeout=5):
+        self.started = threading.Event()
+        self.release = threading.Event()
+        self._proxy = proxy
+        self._timeout = timeout
+
+    def __call__(self, job_status, job_id):
+        self.started.set()
+        self.release.wait(self._timeout)
+        self._proxy.callbacks.append((job_status, job_id))
+
+
+@contextmanager
+def _slow_callback(proxy):
+    publishing = _HeldCallback(proxy)
+    proxy.set_state_change_callback(publishing, start_monitor=False)
+    try:
+        yield publishing
+    finally:
+        publishing.release.set()
+
+
+def _assert_shutdown_waits_for_publication(proxy, publishing, job_id, terminal_status):
+    assert publishing.started.wait(5)
+    # A client polling now, such as pulsar-finish, sees the job finished and shuts down.
+    assert proxy.get_status(job_id) == terminal_status
+    shutdown = threading.Thread(target=proxy.shutdown)
+    shutdown.start()
+    shutdown.join(.2)
+    assert shutdown.is_alive(), "shutdown did not wait for the terminal status to be published"
+    publishing.release.set()
+    shutdown.join(5)
+    assert not shutdown.is_alive()
+    assert proxy.callbacks == [(terminal_status, job_id)]
 
 
 class _HeldTransfers:
