@@ -43,6 +43,7 @@ from .transport.tus import (
 from .util import (
     copy_to_path,
     directory_files,
+    hardlink,
     unique_path_prefix,
 )
 
@@ -450,6 +451,12 @@ class CopyAction(BaseAction):
     staging = STAGING_ACTION_LOCAL
 
 
+class HardlinkAction(BaseAction):
+    """Create hardlinks on the client for files on a shared filesystem."""
+    action_type = "hardlink"
+    staging = STAGING_ACTION_LOCAL
+
+
 class RemoteCopyAction(BaseAction):
     """ This action indicates the Pulsar server should copy the file before
     execution via direct file system copy. This is like a CopyAction, but
@@ -474,6 +481,22 @@ class RemoteCopyAction(BaseAction):
             makedirs(parent_directory)
         with open(pulsar_path, "rb") as f:
             copy_to_path(f, destination)
+
+
+class RemoteHardlinkAction(BaseAction):
+    """Create hardlinks on the Pulsar server for files on a shared filesystem."""
+    action_type = "remote_hardlink"
+    staging = STAGING_ACTION_REMOTE
+
+    @classmethod
+    def from_dict(cls, action_dict):
+        return cls(source=action_dict["source"])
+
+    def write_to_path(self, path):
+        hardlink(self.path, path)
+
+    def write_from_path(self, pulsar_path):
+        hardlink(pulsar_path, self.path)
 
 
 class BaseRemoteTransferAction(BaseAction):
@@ -671,6 +694,7 @@ class MessageAction:
 
 DICTIFIABLE_ACTION_CLASSES = [
     RemoteCopyAction,
+    RemoteHardlinkAction,
     RemoteTransferAction,
     RemoteTransferTusAction,
     MessageAction,
@@ -853,7 +877,9 @@ ACTION_CLASSES: List[Type[BaseAction]] = [
     RewriteAction,
     TransferAction,
     CopyAction,
+    HardlinkAction,
     RemoteCopyAction,
+    RemoteHardlinkAction,
     RemoteTransferAction,
     RemoteTransferTusAction,
     RemoteObjectStoreCopyAction,

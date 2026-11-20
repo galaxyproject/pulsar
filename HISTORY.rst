@@ -12,6 +12,25 @@ History
 
 
 ---------------------
+0.15.17 (2026-11-20)
+---------------------
+* Add ``hardlink`` and ``remote_hardlink`` file actions to stage inputs and
+  outputs through hardlinks on the Galaxy or Pulsar side. Source and
+  destination must be on the same filesystem; link errors are reported without
+  falling back to copying, and changes to either path affect the shared file.
+  `Pull Request 584`_
+* Fix the AMQP ack manager thread crashing on its first wake-up since 0.15.16,
+  which stopped unacknowledged messages from being republished (thanks to
+  `@natefoo`_). `Pull Request 556`_
+* Retry connection-level curl failures during staging again (e.g. a download
+  truncated by a proxy, transport code 92) instead of failing the job on the
+  first attempt, a regression in 0.15.16 (thanks to `@natefoo`_).
+  `Pull Request 565`_
+* CI: run the Galaxy framework tests on Python 3.11 and install slurm-drmaa
+  from pinned Launchpad debs. `Pull Request 585`_
+
+
+---------------------
 0.16.1 (2026-11-20)
 ---------------------
 * Add ``preprocess_max_concurrent`` and ``postprocess_max_concurrent`` manager
@@ -835,6 +854,7 @@ History
 
 
 .. github_links
+.. _Pull Request 584: https://github.com/galaxyproject/pulsar/pull/584
 .. _Pull Request 585: https://github.com/galaxyproject/pulsar/pull/585
 .. _Pull Request 570: https://github.com/galaxyproject/pulsar/pull/570
 .. _Pull Request 568: https://github.com/galaxyproject/pulsar/pull/568

@@ -2,6 +2,7 @@ import hashlib
 import json
 import os.path
 import shutil
+import tempfile
 from base64 import (
     b64decode as _b64decode,
     b64encode as _b64encode,
@@ -86,6 +87,19 @@ def copy(source, destination):
         if not os.path.exists(os.path.dirname(destination)):
             os.makedirs(os.path.dirname(destination))
         shutil.copyfile(source, destination)
+
+
+def hardlink(source, destination):
+    """Link a file into place, replacing an existing destination atomically."""
+    source = os.path.realpath(source)
+    destination = os.path.abspath(destination)
+    if source == destination:
+        return
+    ensure_directory(destination)
+    with tempfile.TemporaryDirectory(dir=os.path.dirname(destination)) as temp_dir:
+        temporary_link = os.path.join(temp_dir, "link")
+        os.link(source, temporary_link)
+        os.replace(temporary_link, destination)
 
 
 def ensure_directory(file_path):
