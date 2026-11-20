@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.15.17.dev0
+0.15.17 (2026-11-20)
 ---------------------
 * Add ``hardlink`` and ``remote_hardlink`` file actions to stage inputs and
   outputs through hardlinks on the Galaxy or Pulsar side. Source and
