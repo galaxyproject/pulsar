@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.16.2.dev0
+---------------------
+
+
+
+---------------------
 0.16.1 (2026-11-20)
 ---------------------
 * Add ``preprocess_max_concurrent`` and ``postprocess_max_concurrent`` manager
