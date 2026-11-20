@@ -8,7 +8,11 @@ History
 ---------------------
 0.16.2.dev0
 ---------------------
-
+* Add ``hardlink`` and ``remote_hardlink`` file actions to stage inputs and
+  outputs through hardlinks on the Galaxy or Pulsar side (also in 0.15.17).
+  Source and destination must be on the same filesystem; link errors are
+  reported without falling back to copying, and changes to either path affect
+  the shared file. `Pull Request 584`_, `Pull Request 586`_
 
 
 ---------------------
@@ -854,6 +858,7 @@ History
 
 
 .. github_links
+.. _Pull Request 586: https://github.com/galaxyproject/pulsar/pull/586
 .. _Pull Request 584: https://github.com/galaxyproject/pulsar/pull/584
 .. _Pull Request 585: https://github.com/galaxyproject/pulsar/pull/585
 .. _Pull Request 570: https://github.com/galaxyproject/pulsar/pull/570
