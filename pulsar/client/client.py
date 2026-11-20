@@ -27,6 +27,7 @@ from .setup_handler import build as build_setup_handler
 from .util import (
     copy,
     ensure_directory,
+    hardlink,
     json_dumps,
     json_loads,
     MonitorStyle,
@@ -224,10 +225,10 @@ class JobClient(BaseJobClient):
             message = "Uploading path [%s] (action_type: [%s])"
             log.debug(message, path, action_type)
             return self._upload_file(args, contents, input_path)
-        elif action_type == 'copy':
+        elif action_type in ('copy', 'hardlink'):
             path_response = self._raw_execute('path', args)
             pulsar_path = json_loads(path_response)['path']
-            _copy(path, pulsar_path)
+            (hardlink if action_type == 'hardlink' else _copy)(path, pulsar_path)
             return {'path': pulsar_path}
 
     def fetch_output(self, path, name, working_directory, action_type, output_type):
@@ -272,9 +273,9 @@ class JobClient(BaseJobClient):
         ensure_directory(output_path)
         if action_type == 'transfer':
             self.__raw_download_output(name, self.job_id, path_type, output_path)
-        elif action_type == 'copy':
+        elif action_type in ('copy', 'hardlink'):
             pulsar_path = self._output_path(name, self.job_id, path_type)['path']
-            _copy(pulsar_path, output_path)
+            (hardlink if action_type == 'hardlink' else _copy)(pulsar_path, output_path)
 
     @parseJson()
     def _upload_file(self, args, contents, input_path):
