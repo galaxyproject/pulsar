@@ -79,7 +79,13 @@ jobs:
     - name: Run setup
       run: .ci/setup_tests.sh
     - name: Run tests
-      run: . local_env.sh; tox -e ${{ matrix.tox-env }}
+      run: |
+        . local_env.sh
+        if [ "${{ matrix.tox-env }}" = test-ci ]; then
+          tox --notest -e test-ci
+          sudo -u u1 test -x .tox/test-ci/bin/pulsar-drmaa-launch
+        fi
+        tox -e ${{ matrix.tox-env }}
       env:
         PULSAR_TEST_KEY: "test_data/testkey"
         PULSAR_TEST_EXTERNAL_JOB_FILES_URL: "http://localhost:8000"

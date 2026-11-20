@@ -124,6 +124,12 @@ def test_integration_copy(integration_test_configuration: IntegrationTestConfigu
     )
 
 
+@pytest.mark.parametrize("action_type", ["hardlink", "remote_hardlink"])
+@integration_test
+def test_integration_hardlink(integration_test_configuration: IntegrationTestConfiguration, action_type):
+    run_job(integration_test_configuration, private_token=None, default_file_action=action_type)
+
+
 @integration_test
 def test_integration_no_transfer(integration_test_configuration: IntegrationTestConfiguration):
     run_job(
