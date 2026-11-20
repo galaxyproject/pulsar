@@ -180,7 +180,11 @@ inputs, outputs, indexed reference data, etc... are staged. The default
 ``transfer`` has Galaxy initiate HTTP transfers. This makes little sense in the
 context of message queues so this should be set to ``remote_transfer``, which
 causes Pulsar to initiate the file transfers. Additional options are available
-including ``none``, ``copy``, and ``remote_copy``.
+including ``none``, ``copy``, ``remote_copy``, ``hardlink``, and
+``remote_hardlink``. The hardlink actions stage files on the client and Pulsar
+server respectively. Source and destination must be on the same filesystem,
+and changes to either linked file affect the other. Hardlink failures are
+reported rather than falling back to copying.
 
 In addition to this default - paths may be overridden based on various
 patterns to allow optimization of file transfers in production
