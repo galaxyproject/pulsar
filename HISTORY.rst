@@ -6,7 +6,7 @@ History
 .. to_doc
 
 ---------------------
-0.16.1.dev0
+0.16.1 (2026-11-20)
 ---------------------
 * Add ``preprocess_max_concurrent`` and ``postprocess_max_concurrent`` manager
   options to cap how many jobs transfer inputs or outputs at once.
