@@ -28,9 +28,11 @@ from pulsar.client.gcp import (
     LaunchesGcpContainersMixin,
 )
 from pulsar.client.manager import HttpPulsarInterface
+from pulsar.client.setup_handler import KNOWN_PULSAR_CONTAINER_VERSIONS
 from pulsar.client.tes import TesPollingCoexecutionJobClient
 from pulsar.client.transport import UrllibTransport
 from pulsar.managers.util.gcp_util import GcpAlreadyExists
+from pulsar.managers.util.tes import TesState
 
 
 def test_with_retry():
@@ -166,6 +168,10 @@ def test_local_setup_prefers_declared_version_over_staging_image():
     ).setup()
     assert job_config["pulsar_version"] == "0.16.0"
     assert job_config["pulsar_version_source"] == "destination"
+
+
+def test_coexecution_client_defaults_to_published_staging_image():
+    assert _gcp_client().pulsar_container_image in KNOWN_PULSAR_CONTAINER_VERSIONS
 
 
 def test_local_setup_unknown_staging_image_reports_client_version():
@@ -313,7 +319,8 @@ def _tes_client_stub(job_id="543", external_id=None):
 
 
 class RecordingTesClient:
-    def __init__(self):
+    def __init__(self, state=None):
+        self.state = state
         self.cancelled = []
         self.polled = []
 
@@ -322,7 +329,7 @@ class RecordingTesClient:
 
     def get_task(self, task_id, view):
         self.polled.append((task_id, view))
-        return SimpleNamespace(state=None)
+        return SimpleNamespace(state=self.state)
 
 
 def test_client_reads_external_id():
@@ -345,14 +352,24 @@ def test_tes_poll_and_cancel_use_recorded_external_id():
         "_tes_client",
         new_callable=PropertyMock,
         return_value=tes_client,
-    ), patch("pulsar.client.tes.tes_state_to_pulsar_status", return_value="running"), patch(
-        "pulsar.client.tes.tes_state_is_complete", return_value=False
-    ):
+    ), patch("pulsar.client.tes.tes_state_to_pulsar_status", return_value="running"):
         client.kill()
         client.raw_check_complete()
 
     assert tes_client.cancelled == ["tes-task-abc"]
     assert tes_client.polled == [("tes-task-abc", "FULL")]
+
+
+def test_tes_poll_reports_queued_task_as_queued():
+    pytest.importorskip("pydantictes")
+    client = _tes_client_stub()
+    with patch.object(
+        TesPollingCoexecutionJobClient,
+        "_tes_client",
+        new_callable=PropertyMock,
+        return_value=RecordingTesClient(state=TesState.QUEUED),
+    ):
+        assert client.raw_check_complete() == {"status": "queued", "complete": "false"}
 
 
 def _gcp_client(job_id="543", **destination_params):
