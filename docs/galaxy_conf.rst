@@ -217,6 +217,22 @@ server respectively. Source and destination must be on the same filesystem,
 and changes to either linked file affect the other. Hardlink failures are
 reported rather than falling back to copying.
 
+Only hardlink files that nothing writes to during the job. In practice, this
+means ``path_types: input``, which covers input datasets with their extra files
+and metadata files (for example BAM indexes). Do not use ``hardlink`` or
+``remote_hardlink`` as ``default_file_action``, or for the ``metadata``,
+``workdir``, ``jobdir`` or output path types. ``metadata`` is Galaxy's job
+metadata directory, and remote metadata writes to it. The Galaxy and Pulsar
+sides share a hardlinked file, so when the job writes to it, the copy back has
+the same source and destination and fails. The job then fails with "Failed to
+find or download one or more job outputs from remote server." although the
+tool succeeded.
+
+Keep a copying ``default_file_action`` and hardlink inputs with a
+``file_action_config`` entry for the shared filesystem's path, as in the
+``/data/galaxy`` example below. Files on other filesystems then keep the
+default action.
+
 In addition to this default - paths may be overridden based on various
 patterns to allow optimization of file transfers in production
 infrastructures where various systems mount different file stores and file
