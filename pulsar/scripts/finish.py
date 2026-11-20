@@ -14,8 +14,8 @@ def main(args=None):
     arg_parser = ArgumentParser(description=mod_docstring)
     add_common_submit_args(arg_parser)
     args = arg_parser.parse_args(args)
-    run_server_for_job_finish(args)
+    return run_server_for_job_finish(args)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
