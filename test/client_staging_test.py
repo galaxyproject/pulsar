@@ -277,7 +277,7 @@ def test_staged_tool_files_keep_executable_bit(tmp_path, file_action, interface)
     data = tool_dir / "data.txt"
     data.write_text("data\n")
     data.chmod(0o644)
-    tool = SimpleNamespace(id="tool1", version="1.0", tool_dir=str(tool_dir))
+    tool = MockTool(str(tool_dir))
     client_job_description = ClientJobDescription(
         tool=tool,
         command_line=f"{helper} < {data}",
