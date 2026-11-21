@@ -1,17 +1,25 @@
 import os
+import time
 from collections import deque
 from types import SimpleNamespace
+from unittest import mock
 
 import pytest
 import requests
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
 
+from pulsar.client import client as client_module
+from pulsar.client.client import JobClient
 from pulsar.client.exceptions import PulsarClientTransportError
-from pulsar.client.staging.down import ResultsCollector
+from pulsar.client.staging.down import (
+    finish_job,
+    ResultsCollector,
+)
 from pulsar.client.staging.models import (
     ClientJobDescription,
     ClientOutputs,
+    PulsarOutputs,
 )
 from pulsar.client.staging.up import submit_job
 from pulsar.client.test.test_common import write_config
@@ -279,3 +287,70 @@ def test_collect_output_tolerates_403_transport_error_for_workdir_output():
     )
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     assert rc._collect_output("output_workdir", action, "out1") is False
+
+
+
+def _finish_job_with_copied_workdir_output(tmp_path, source_contents, **destination_params):
+    """Collect one from_work_dir output with the copy action, as an embedded
+    runner does. Returns the collection failures and the Galaxy output path."""
+    working_directory = tmp_path / "pulsar" / "working"
+    working_directory.mkdir(parents=True)
+    if source_contents is not None:
+        (working_directory / "out.txt").write_text(source_contents)
+    output_file = tmp_path / "galaxy" / "dataset_1.dat"
+    galaxy_working_directory = tmp_path / "galaxy" / "working"
+    client = JobClient({"default_file_action": "copy", **destination_params}, "1", None)
+    client_outputs = ClientOutputs(
+        working_directory=str(galaxy_working_directory),
+        output_files=[str(output_file)],
+        work_dir_outputs=[(str(galaxy_working_directory / "out.txt"), str(output_file))],
+    )
+    pulsar_outputs = PulsarOutputs(["out.txt"], [], [], [])
+
+    def output_path(name, job_id, path_type):
+        return {"path": str(working_directory / name)}
+
+    with mock.patch.object(client, "_output_path", side_effect=output_path):
+        failures = finish_job(client, "never", True, client_outputs, pulsar_outputs)
+    return failures, output_file
+
+
+def test_collect_workdir_output_retries_until_source_is_visible(tmp_path):
+    """The handler's NFS client may not yet see a file the compute node just
+    wrote. A missing source is retried, so the output is collected rather than
+    left empty."""
+    real_copy = client_module.copy
+    attempts = []
+
+    def copy_visible_on_second_attempt(source, destination):
+        attempts.append(source)
+        if len(attempts) == 1:
+            raise FileNotFoundError(2, "No such file or directory", source)
+        real_copy(source, destination)
+
+    with mock.patch.object(client_module, "copy", side_effect=copy_visible_on_second_attempt), \
+            mock.patch.object(time, "sleep") as sleep:
+        failures, output_file = _finish_job_with_copied_workdir_output(tmp_path, "tool output")
+
+    assert failures == []
+    assert output_file.read_text() == "tool output"
+    assert len(attempts) == 2
+    sleep.assert_called_once_with(client_module.OUTPUT_COLLECTION_RETRY_SLEEP)
+
+
+def test_collect_workdir_output_never_visible_is_allowed_failure(tmp_path, caplog):
+    """A from_work_dir output still missing after all retries is a tool failure:
+    it is downgraded to a warning naming the source, not a job failure."""
+    with mock.patch.object(time, "sleep") as sleep:
+        # Galaxy's XML job configuration passes destination params as strings.
+        failures, output_file = _finish_job_with_copied_workdir_output(
+            tmp_path, None, output_collection_retries="2"
+        )
+
+    assert failures == []
+    assert not output_file.exists()
+    assert sleep.call_count == 2
+    warning = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning) == 1
+    assert str(tmp_path / "pulsar" / "working" / "out.txt") in warning[0]
+    assert str(output_file) in warning[0]
