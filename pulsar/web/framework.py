@@ -166,9 +166,15 @@ class Controller:
         pass
 
 
+# Returned by a 'file' controller to send an empty file.
+EMPTY_FILE = object()
+
+
 def file_response(path):
     resp = Response()
-    if exists(path):
+    if path is EMPTY_FILE:
+        resp.body = b""
+    elif exists(path):
         resp.app_iter = FileIterator(path)
     else:
         raise exc.HTTPNotFound("No file found with path %s." % path)
