@@ -96,16 +96,25 @@ def copy(source, destination, preserve_executable=False):
 
 
 def copy_executable_bits(source, destination):
-    """Set the execute bits of ``source`` on ``destination``.
+    """Set the execute bits of ``source`` on ``destination`` (see ``add_executable_bits``)."""
+    add_executable_bits(destination, os.stat(source).st_mode)
 
-    An execute bit is only set where ``destination`` has the matching read bit,
+
+def is_executable(path):
+    return bool(os.stat(path).st_mode & 0o111)
+
+
+def add_executable_bits(path, mode=0o111):
+    """Set the execute bits of ``mode`` on ``path``.
+
+    An execute bit is only set where ``path`` has the matching read bit,
     so the permissions the destination umask granted are never widened.
     """
-    destination_mode = stat.S_IMODE(os.stat(destination).st_mode)
-    readable_as_executable = (destination_mode & 0o444) >> 2
-    executable = os.stat(source).st_mode & readable_as_executable
-    if executable & ~destination_mode:
-        os.chmod(destination, destination_mode | executable)
+    path_mode = stat.S_IMODE(os.stat(path).st_mode)
+    readable_as_executable = (path_mode & 0o444) >> 2
+    executable = mode & readable_as_executable
+    if executable & ~path_mode:
+        os.chmod(path, path_mode | executable)
 
 
 def hardlink(source, destination):

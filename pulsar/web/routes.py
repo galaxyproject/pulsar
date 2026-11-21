@@ -2,11 +2,13 @@ import logging
 import os
 from json import loads
 
+from galaxy.util import asbool
 from webob import exc
 
 from pulsar import __version__ as pulsar_version
 from pulsar.client.action_mapper import path_type
 from pulsar.client.job_directory import verify_is_in_directory
+from pulsar.client.util import add_executable_bits
 from pulsar.manager_endpoint_util import (
     setup_job,
     status_dict,
@@ -97,10 +99,14 @@ def cancel(manager, job_id):
 
 
 @PulsarController(path="/jobs/{job_id}/files", method="POST", response_type='json')
-def upload_file(manager, type, file_cache, job_id, name, body, cache_token=None):
+def upload_file(manager, type, file_cache, job_id, name, body, cache_token=None, executable=False):
     # Input type should be one of input, config, workdir, metadata, tool, or unstructured (see action_mapper.path_type)
     path = manager.job_directory(job_id).calculate_path(name, type)
-    return _handle_upload(file_cache, path, body, cache_token=cache_token)
+    response = _handle_upload(file_cache, path, body, cache_token=cache_token)
+    # Arrives as a string over HTTP.
+    if asbool(executable):
+        add_executable_bits(path)
+    return response
 
 
 @PulsarController(path="/jobs/{job_id}/files/path", method="GET", response_type='json')

@@ -2,6 +2,7 @@ import os
 import stat
 import time
 from collections import deque
+from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest import mock
 
@@ -26,6 +27,7 @@ from pulsar.client.staging.models import (
 from pulsar.client.staging.up import submit_job
 from pulsar.client.test.test_common import write_config
 from .test_utils import (
+    server_for_test_app,
     TempDirectoryTestCase,
     test_pulsar_app,
     wait_for,
@@ -218,9 +220,15 @@ class MockClient:
         return {"path": self.put_paths.popleft()}
 
 
-def test_copied_tool_files_keep_executable_bit(tmp_path):
-    # Stage the tool directory the way Galaxy's embedded runner does with
-    # default_file_action: copy and rewrite_parameters: true.
+@pytest.mark.parametrize("file_action, interface", [
+    ("copy", "embedded"),
+    ("transfer", "embedded"),
+    ("transfer", "http"),
+    ("remote_copy", "embedded"),
+])
+def test_staged_tool_files_keep_executable_bit(tmp_path, file_action, interface):
+    # Stage the tool directory the way Galaxy's Pulsar runners do with
+    # rewrite_parameters: true.
     tool_dir = tmp_path / "tool"
     tool_dir.mkdir()
     helper = tool_dir / "helper.sh"
@@ -236,20 +244,32 @@ def test_copied_tool_files_keep_executable_bit(tmp_path):
         working_directory=str(tmp_path / "working"),
         rewrite_paths=True,
     )
-    with test_pulsar_app(web=False) as app:
-        client_manager = build_client_manager(pulsar_app=app)
-        client = client_manager.get_client({"default_file_action": "copy"}, "1")
+    with _pulsar_client(interface, {"default_file_action": file_action}) as (client, manager):
         submit_job(client, client_job_description)
-        job_directory = app.only_manager.job_directory("1")
+        job_directory = manager.job_directory("1")
 
+        # remote_copy stages the files in the background, before the command runs.
+        wait_for(client.get_status, "the job to complete", until=lambda status: status == "complete", timeout=30)
         staged_helper = job_directory.calculate_path("helper.sh", "tool")
         staged_data = job_directory.calculate_path("data.txt", "tool")
         assert os.stat(staged_helper).st_mode & stat.S_IXUSR
         assert not os.stat(staged_data).st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-        wait_for(client.get_status, "the job to complete", until=lambda status: status == "complete", timeout=30)
         assert os.path.exists(os.path.join(job_directory.working_directory(), "helper_ran"))
         client.clean()
+
+
+@contextmanager
+def _pulsar_client(interface, destination_params):
+    """Yield a client for job "1" and the Pulsar manager it talks to."""
+    if interface == "embedded":
+        with test_pulsar_app(web=False) as app:
+            client = build_client_manager(pulsar_app=app, cache=False).get_client(destination_params, "1")
+            yield client, app.only_manager
+    else:
+        with test_pulsar_app() as test_app, server_for_test_app(test_app) as server:
+            destination_params = dict(destination_params, url=server.application_url)
+            client = build_client_manager(cache=False).get_client(destination_params, "1")
+            yield client, test_app.app.pulsar_app.only_manager
 
 
 def _results_collector_with_failing_collect(exc):
