@@ -452,7 +452,10 @@ class CopyAction(BaseAction):
 
 
 class HardlinkAction(BaseAction):
-    """Create hardlinks on the client for files on a shared filesystem."""
+    """Create hardlinks on the client for files on a shared filesystem.
+
+    Use only for path types that the job does not write to, such as ``input``.
+    """
     action_type = "hardlink"
     staging = STAGING_ACTION_LOCAL
 
@@ -484,7 +487,10 @@ class RemoteCopyAction(BaseAction):
 
 
 class RemoteHardlinkAction(BaseAction):
-    """Create hardlinks on the Pulsar server for files on a shared filesystem."""
+    """Create hardlinks on the Pulsar server for files on a shared filesystem.
+
+    Use only for path types that the job does not write to, such as ``input``.
+    """
     action_type = "remote_hardlink"
     staging = STAGING_ACTION_REMOTE
 
