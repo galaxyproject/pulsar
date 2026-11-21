@@ -29,7 +29,6 @@ from .util import (
     copy,
     ensure_directory,
     hardlink,
-    is_executable,
     json_dumps,
     json_loads,
     MonitorStyle,
@@ -217,7 +216,7 @@ class JobClient(BaseJobClient):
         """
         return self._raw_execute("setup", setup_args)
 
-    def put_file(self, path, input_type, name=None, contents=None, action_type='transfer'):
+    def put_file(self, path, input_type, name=None, contents=None, action_type='transfer', executable=False):
         if not name:
             name = os.path.basename(path)
         args = {"job_id": self.job_id, "name": name, "type": input_type}
@@ -231,7 +230,7 @@ class JobClient(BaseJobClient):
                 contents = contents.encode("utf-8")
             message = "Uploading path [%s] (action_type: [%s])"
             log.debug(message, path, action_type)
-            if input_type == path_type.TOOL and input_path and is_executable(input_path):
+            if executable:
                 # Older servers ignore this argument.
                 args["executable"] = True
             return self._upload_file(args, contents, input_path)
@@ -241,8 +240,7 @@ class JobClient(BaseJobClient):
             if action_type == 'hardlink':
                 hardlink(path, pulsar_path)
             else:
-                # Tool files may be helper scripts the command runs directly.
-                _copy(path, pulsar_path, preserve_executable=input_type == path_type.TOOL)
+                _copy(path, pulsar_path, preserve_executable=executable)
             return {'path': pulsar_path}
 
     def fetch_output(self, path, name, working_directory, action_type, output_type):

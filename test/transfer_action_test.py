@@ -84,8 +84,8 @@ def test_hardlink_failure_preserves_existing_destination(tmp_path):
     assert destination.read_text() == "existing"
 
 
-@pytest.mark.parametrize("input_type, expected_mode", [("tool", 0o750), ("input", 0o640)])
-def test_copy_sets_executable_bits_only_for_tool_files(tmp_path, input_type, expected_mode):
+@pytest.mark.parametrize("executable, expected_mode", [(True, 0o750), (False, 0o640)])
+def test_copy_sets_executable_bits_only_when_requested(tmp_path, executable, expected_mode):
     source = tmp_path / "source"
     source.write_text("#!/bin/sh\n")
     source.chmod(0o755)
@@ -95,7 +95,7 @@ def test_copy_sets_executable_bits_only_for_tool_files(tmp_path, input_type, exp
     staged.chmod(0o640)
     client = JobClient({}, "job", None)
     with mock.patch.object(client, "_raw_execute", return_value='{"path": "%s"}' % staged):
-        client.put_file(str(source), input_type, action_type="copy")
+        client.put_file(str(source), "tool", action_type="copy", executable=executable)
 
     assert staged.read_text() == "#!/bin/sh\n"
     assert stat.S_IMODE(staged.stat().st_mode) == expected_mode

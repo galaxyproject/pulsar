@@ -25,6 +25,7 @@ from pulsar.client.staging.models import (
     PulsarOutputs,
 )
 from pulsar.client.staging.up import submit_job
+from pulsar.client.test.check import MockTool
 from pulsar.client.test.test_common import write_config
 from .test_utils import (
     server_for_test_app,
@@ -188,6 +189,7 @@ class MockClient:
             '/pulsar/staging/1/inputs/dataset_2.dat',
         ])
         self.put_files = []
+        self.put_executables = {}
 
     def set_action_map_config(self, config, by_path=True):
         if by_path:
@@ -215,9 +217,44 @@ class MockClient:
     def expect_command_line(self, expected_command_line):
         self.expected_command_line = expected_command_line
 
-    def put_file(self, path, type, name, contents, action_type='transfer'):
+    def put_file(self, path, type, name, contents, action_type='transfer', executable=False):
         self.put_files.append((path, type, name, contents))
+        self.put_executables[path] = executable
         return {"path": self.put_paths.popleft()}
+
+
+def test_only_executable_tool_files_staged_executable(tmp_path):
+    tool_dir = tmp_path / "tool"
+    tool_dir.mkdir()
+    helper = tool_dir / "helper.sh"
+    helper.write_text("#!/bin/sh\n")
+    helper.chmod(0o755)
+    data = tool_dir / "data.txt"
+    data.write_text("data\n")
+    data.chmod(0o644)
+    executable_input = tmp_path / "input.sh"
+    executable_input.write_text("#!/bin/sh\n")
+    executable_input.chmod(0o755)
+    tool = MockTool(str(tool_dir))
+    client = MockClient(str(tmp_path), tool)
+    client.expect_put_paths(["/pulsar/staging/1/staged"] * 3)
+    client_job_description = ClientJobDescription(
+        tool=tool,
+        command_line=f"{helper} {executable_input} < {data}",
+        input_files=[str(executable_input)],
+        working_directory=str(tmp_path / "working"),
+        dependencies_description=DependenciesDescription(requirements=[TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]),
+        env=[TEST_ENV_1],
+        rewrite_paths=True,
+    )
+    job_config = {
+        "configs_directory": "/pulsar/staging/1/configs",
+        "working_directory": "/pulsar/staging/1/working",
+        "outputs_directory": "/pulsar/staging/1/outputs",
+        "system_properties": {"separator": "/"},
+    }
+    submit_job(client, client_job_description, job_config)
+    assert client.put_executables == {str(helper): True, str(data): False, str(executable_input): False}
 
 
 @pytest.mark.parametrize("file_action, interface", [
