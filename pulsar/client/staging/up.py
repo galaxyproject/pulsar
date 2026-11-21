@@ -11,10 +11,12 @@ from os.path import (
     relpath,
 )
 from re import (
+    compile,
     escape,
     findall,
 )
 from typing import (
+    Dict,
     Optional,
     TYPE_CHECKING,
 )
@@ -126,6 +128,8 @@ class FileStager:
         self.rewrite_paths = client_job_description.rewrite_paths
         self.job_directory_files = client_job_description.job_directory_files
         self.tool_directory_required_files = client_job_description.tool_directory_required_files
+        path_rewrites = client_job_description.path_rewrites
+        self.path_rewriter = PathRewriter(path_rewrites) if path_rewrites else None
 
         # Setup job inputs, these will need to be rewritten before
         # shipping off to remote Pulsar server.
@@ -162,6 +166,10 @@ class FileStager:
             self.__initialize_config_file_renames()
             self.__initialize_version_file_rename()
 
+        # Explicit rewrites go before the legacy renames so they win over them, and
+        # after the uploads because with rewrite_paths an input is only staged if
+        # its local path is referenced.
+        self.__handle_path_rewrites()
         self.__handle_rewrites()
 
         self.__upload_rewritten_config_files()
@@ -256,7 +264,20 @@ class FileStager:
 
     def __upload_job_directory_files(self):
         for job_directory_file in self.job_directory_files:
-            self.transfer_tracker.handle_transfer_path(job_directory_file, path_type.JOBDIR)
+            contents = self.__rewritten_job_directory_file_contents(job_directory_file)
+            self.transfer_tracker.handle_transfer_path(job_directory_file, path_type.JOBDIR, contents=contents)
+
+    def __rewritten_job_directory_file_contents(self, job_directory_file):
+        # Job directory files (e.g. Galaxy's tool_script.sh) are uploaded by path
+        # unless path_rewrites changes them.
+        if not self.path_rewriter:
+            return None
+        try:
+            contents = _read(job_directory_file)
+        except UnicodeDecodeError:
+            return None
+        rewritten_contents = self.path_rewriter.rewrite(contents)
+        return rewritten_contents if rewritten_contents != contents else None
 
     def __upload_arbitrary_files(self):
         for path, name in self.arbitrary_files.items():
@@ -336,6 +357,10 @@ class FileStager:
         for config_file in self.config_files:
             remote_path = self.path_helper.remote_join(self.new_configs_directory, basename(config_file))
             self.transfer_tracker.register_rewrite(config_file, remote_path, path_type.CONFIG)
+
+    def __handle_path_rewrites(self):
+        if self.path_rewriter:
+            self.job_inputs.apply_path_rewriter(self.path_rewriter)
 
     def __handle_rewrites(self):
         """
@@ -452,6 +477,14 @@ class JobInputs:
         self.__rewrite_command_line(local_path, remote_path)
         self.__rewrite_config_files(local_path, remote_path)
 
+    def apply_path_rewriter(self, path_rewriter):
+        """
+        Rewrite job inputs with `path_rewriter` (a :class:`PathRewriter`).
+        """
+        self.command_line = path_rewriter.rewrite(self.command_line)
+        for config_file, contents in self.config_files.items():
+            self.config_files[config_file] = path_rewriter.rewrite(contents)
+
     def __rewrite_command_line(self, local_path, remote_path):
         self.command_line = self.command_line.replace(local_path, remote_path)
 
@@ -463,6 +496,29 @@ class JobInputs:
         items = [self.command_line]
         items.extend(self.config_files.values())
         return items
+
+
+class PathRewriter:
+    """
+    Replace local paths with remote paths in a single pass.
+
+    A reference that starts with a local path has that prefix replaced, the
+    longest matching local path wins, and a replacement is never rewritten
+    again.
+
+    **Parameters**
+
+    path_rewrites : dict
+        Map of local path -> remote path, must not be empty.
+    """
+
+    def __init__(self, path_rewrites: Dict[str, str]):
+        self.path_rewrites = path_rewrites
+        local_paths = sorted(path_rewrites, key=len, reverse=True)
+        self.pattern = compile("|".join(escape(local_path) for local_path in local_paths))
+
+    def rewrite(self, contents: str) -> str:
+        return self.pattern.sub(lambda match: self.path_rewrites[match.group(0)], contents)
 
 
 class TransferTracker:

@@ -14,6 +14,7 @@ from pulsar.client import (
 )
 from pulsar.client.exceptions import PulsarClientTransportError
 from pulsar.client.staging.down import ResultsCollector
+from pulsar.client.staging.up import PathRewriter
 from pulsar.client.test.test_common import write_config
 from .test_utils import TempDirectoryTestCase
 
@@ -142,6 +143,55 @@ class TestStager(TempDirectoryTestCase):
         self._submit()
         self._assert_inputs_uploaded()
 
+    def test_path_rewrites(self):
+        files_directory = os.path.dirname(self.input1)
+        extra_file = os.path.join(self.input1_files_path, "moo", "cow.txt")
+        config_file = self._write_file("config.json", '{"input": "%s", "extra": "%s"}' % (self.input2, extra_file))
+        tool_script = self._write_file("tool_script.sh", "cat %s.bai > out" % self.input1)
+        unreferenced_job_directory_file = self._write_file("unreferenced.sh", "echo hello")
+        self.client_job_description.config_files = [config_file]
+        self.client_job_description.job_directory_files = [tool_script, unreferenced_job_directory_file]
+        self.client_job_description.command_line = "run_test.exe %s %s" % (self.input1, self.input2)
+        self.client_job_description.path_rewrites = {
+            # Shorter prefix of every input, must lose against the longer keys.
+            files_directory: "/pulsar/staging/1/files",
+            self.input1: "/pulsar/staging/1/inputs/dataset_1.dat",
+            self.input1_files_path: "/pulsar/staging/1/inputs/dataset_1_files",
+            # Remote paths are not regex replacement strings.
+            self.input2: "C:\\pulsar\\staging\\1\\inputs\\dataset_2.dat",
+        }
+        self.client.expect_put_paths(["/pulsar/staging/1/unused"] * 6)
+        self.client.expect_command_line(
+            "run_test.exe /pulsar/staging/1/inputs/dataset_1.dat C:\\pulsar\\staging\\1\\inputs\\dataset_2.dat"
+        )
+        self._submit()
+        put_contents = {(path, type): contents for path, type, _, contents in self.client.put_files}
+        assert put_contents[(tool_script, "jobdir")] == "cat /pulsar/staging/1/inputs/dataset_1.dat.bai > out"
+        # Unchanged job directory files are still uploaded by path.
+        assert put_contents[(unreferenced_job_directory_file, "jobdir")] is None
+        assert put_contents[(config_file, "config")] == (
+            '{"input": "C:\\pulsar\\staging\\1\\inputs\\dataset_2.dat", '
+            '"extra": "/pulsar/staging/1/inputs/dataset_1_files/moo/cow.txt"}'
+        )
+        assert put_contents[(self.input1, "input")] is None
+        assert put_contents[(self.input2, "input")] is None
+
+    def test_path_rewrites_win_over_rewrite_paths(self):
+        self.client_job_description.rewrite_paths = True
+        command_line_template = "run_test.exe --input1=%s --input2=%s"
+        self.client_job_description.command_line = command_line_template % (self.input1, self.input2)
+        self.client_job_description.path_rewrites = {self.input1: "/explicit/dataset_1.dat"}
+        self.client.expect_command_line(command_line_template % ("/explicit/dataset_1.dat", "/pulsar/staging/1/inputs/dataset_2.dat"))
+        self._submit()
+        # Explicitly rewritten inputs still count as referenced, so are still staged.
+        self._assert_inputs_uploaded()
+
+    def _write_file(self, name, contents):
+        path = os.path.join(self.temp_directory, name)
+        with open(path, "w") as f:
+            f.write(contents)
+        return path
+
     def _assert_inputs_uploaded(self):
         # Expect both files staged
         uploaded_file1 = self.client.put_files[0]
@@ -164,6 +214,7 @@ class MockClient:
         self.action_config_path = None
         self.files_endpoint = None
         self.token_endpoint = TEST_TOKEN_ENDPOINT
+        self.prefer_local_staging = True
         self.expected_tool = tool
         self.job_id = "1234"
         self.expected_command_line = None
@@ -202,6 +253,21 @@ class MockClient:
     def put_file(self, path, type, name, contents, action_type='transfer'):
         self.put_files.append((path, type, name, contents))
         return {"path": self.put_paths.popleft()}
+
+
+def test_path_rewriter_longest_local_path_first():
+    rewriter = PathRewriter({
+        "/galaxy/files": "/pulsar/files",
+        "/galaxy/files/dataset_1.dat": "/pulsar/inputs/dataset_1.dat",
+    })
+    rewritten = rewriter.rewrite("/galaxy/files/dataset_1.dat /galaxy/files/dataset_1.dat.bai /galaxy/files/dataset_2.dat")
+    assert rewritten == "/pulsar/inputs/dataset_1.dat /pulsar/inputs/dataset_1.dat.bai /pulsar/files/dataset_2.dat"
+
+
+def test_path_rewriter_single_pass():
+    # A remote path that contains another local path is not rewritten again.
+    rewriter = PathRewriter({"/a/x": "/b/x", "/b": "/c"})
+    assert rewriter.rewrite("/a/x /b/y") == "/b/x /c/y"
 
 
 def _results_collector_with_failing_collect(exc):

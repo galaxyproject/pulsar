@@ -9,6 +9,8 @@ from os.path import (
 )
 from pathlib import Path
 from typing import (
+    Dict,
+    Optional,
     TYPE_CHECKING,
     Union,
 )
@@ -73,6 +75,13 @@ class ClientJobDescription:
     rewrite_paths : boolean
         Indicates whether paths should be rewritten in job inputs (command_line
         and config files) while staging files).
+    path_rewrites : dict
+        Explicit map of local path -> remote path. These references are
+        replaced in the command line, the config files and the job directory
+        files whatever ``rewrite_paths`` says. A reference that starts with a
+        local path (e.g. a file inside an extra files directory) has that
+        prefix replaced, the longest matching local path wins, and a
+        replacement is never rewritten again.
     """
 
     def __init__(
@@ -95,6 +104,7 @@ class ClientJobDescription:
         container=None,
         remote_pulsar_app_config=None,
         guest_ports=None,
+        path_rewrites: Optional[Dict[str, str]] = None,
     ):
         self.tool = tool
         self.command_line = command_line
@@ -112,6 +122,7 @@ class ClientJobDescription:
         self.job_directory_files = job_directory_files or []
         self.tool_directory_required_files = tool_directory_required_files
         self.rewrite_paths = rewrite_paths
+        self.path_rewrites = path_rewrites or {}
         self.arbitrary_files = arbitrary_files or {}
         self.touch_outputs = touch_outputs or []
         self.container = container

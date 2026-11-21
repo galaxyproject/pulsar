@@ -8,7 +8,11 @@ History
 ---------------------
 0.15.18.dev0
 ---------------------
-
+* Add a ``path_rewrites`` map (local path -> remote path) to
+  ``ClientJobDescription``. The client replaces these paths in the command
+  line, the config files and the job directory files when it submits the job,
+  whatever ``rewrite_paths`` says, so Galaxy can evaluate tool templates
+  against its own paths.
 
 
 ---------------------
