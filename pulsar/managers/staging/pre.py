@@ -49,7 +49,7 @@ def preprocess(
             action_executor.execute(
                 lambda action=action, path=path: action.write_to_path(path), "action[%s]" % description
             )
-            if setup_action.get("executable"):
+            if setup_action.get("executable") and not action.shares_source_inode:
                 add_executable_bits(path)
             metrics.record_file(path)
 

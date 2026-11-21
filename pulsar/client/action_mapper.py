@@ -310,6 +310,8 @@ UNSET_ACTION_KWD = "__UNSET__"
 
 class BaseAction:
     whole_directory_transfer_supported = False
+    # Staged path is the source file itself, so its mode must not be changed.
+    shares_source_inode = False
     action_spec: ClassVar[Dict[str, Any]] = {}
     action_type: str
 
@@ -458,6 +460,7 @@ class HardlinkAction(BaseAction):
     """
     action_type = "hardlink"
     staging = STAGING_ACTION_LOCAL
+    shares_source_inode = True
 
 
 class RemoteCopyAction(BaseAction):
@@ -493,6 +496,7 @@ class RemoteHardlinkAction(BaseAction):
     """
     action_type = "remote_hardlink"
     staging = STAGING_ACTION_REMOTE
+    shares_source_inode = True
 
     @classmethod
     def from_dict(cls, action_dict):
@@ -670,6 +674,7 @@ class MessageAction:
     """
     action_type = "message"
     staging = STAGING_ACTION_DEFAULT
+    shares_source_inode = False
 
     def __init__(self, contents, client=None):
         self.contents = contents

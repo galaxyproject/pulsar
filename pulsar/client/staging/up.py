@@ -545,7 +545,7 @@ class TransferTracker:
                     # TODO: consider fetching this from source so an actual input path
                     # isn't needed. At least it isn't used though.
                     name = basename(path)
-                executable = type == path_type.TOOL and is_executable(path)
+                executable = type == path_type.TOOL and not action.shares_source_inode and is_executable(path)
                 self.__add_remote_staging_input(action, name, type, executable=executable)
 
                 def get_path():

@@ -225,6 +225,8 @@ class MockClient:
     ("transfer", "embedded"),
     ("transfer", "http"),
     ("remote_copy", "embedded"),
+    ("hardlink", "embedded"),
+    ("remote_hardlink", "embedded"),
 ])
 def test_staged_tool_files_keep_executable_bit(tmp_path, file_action, interface):
     # Stage the tool directory the way Galaxy's Pulsar runners do with
@@ -233,7 +235,8 @@ def test_staged_tool_files_keep_executable_bit(tmp_path, file_action, interface)
     tool_dir.mkdir()
     helper = tool_dir / "helper.sh"
     helper.write_text("#!/bin/sh\necho ran > helper_ran\n")
-    helper.chmod(0o755)
+    # Group and others can read but not execute, so widening would show.
+    helper.chmod(0o744)
     data = tool_dir / "data.txt"
     data.write_text("data\n")
     data.chmod(0o644)
@@ -255,6 +258,8 @@ def test_staged_tool_files_keep_executable_bit(tmp_path, file_action, interface)
         assert os.stat(staged_helper).st_mode & stat.S_IXUSR
         assert not os.stat(staged_data).st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         assert os.path.exists(os.path.join(job_directory.working_directory(), "helper_ran"))
+        # Hardlink actions share the source inode, which must stay untouched.
+        assert stat.S_IMODE(helper.stat().st_mode) == 0o744
         client.clean()
 
 
