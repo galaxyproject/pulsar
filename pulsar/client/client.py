@@ -28,6 +28,7 @@ from .util import (
     copy,
     ensure_directory,
     hardlink,
+    is_executable,
     json_dumps,
     json_loads,
     MonitorStyle,
@@ -224,11 +225,18 @@ class JobClient(BaseJobClient):
                 contents = contents.encode("utf-8")
             message = "Uploading path [%s] (action_type: [%s])"
             log.debug(message, path, action_type)
+            if input_type == path_type.TOOL and input_path and is_executable(input_path):
+                # Older servers ignore this argument.
+                args["executable"] = True
             return self._upload_file(args, contents, input_path)
         elif action_type in ('copy', 'hardlink'):
             path_response = self._raw_execute('path', args)
             pulsar_path = json_loads(path_response)['path']
-            (hardlink if action_type == 'hardlink' else _copy)(path, pulsar_path)
+            if action_type == 'hardlink':
+                hardlink(path, pulsar_path)
+            else:
+                # Tool files may be helper scripts the command runs directly.
+                _copy(path, pulsar_path, preserve_executable=input_type == path_type.TOOL)
             return {'path': pulsar_path}
 
     def fetch_output(self, path, name, working_directory, action_type, output_type):
@@ -636,10 +644,10 @@ class InputCachingJobClient(JobClient):
         return self._raw_execute("file_available", {"path": path})
 
 
-def _copy(from_path, to_path):
+def _copy(from_path, to_path, preserve_executable=False):
     message = "Copying path [%s] to [%s]"
     log.debug(message, from_path, to_path)
-    copy(from_path, to_path)
+    copy(from_path, to_path, preserve_executable=preserve_executable)
 
 
 def _setup_params_from_job_config(job_config):

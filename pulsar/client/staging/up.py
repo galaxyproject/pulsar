@@ -30,6 +30,7 @@ from ..job_directory import RemoteJobDirectory
 from ..util import (
     directory_files,
     ExternalId,
+    is_executable,
     PathHelper,
 )
 
@@ -544,7 +545,8 @@ class TransferTracker:
                     # TODO: consider fetching this from source so an actual input path
                     # isn't needed. At least it isn't used though.
                     name = basename(path)
-                self.__add_remote_staging_input(action, name, type)
+                executable = type == path_type.TOOL and is_executable(path)
+                self.__add_remote_staging_input(action, name, type, executable=executable)
 
                 def get_path():
                     return job_directory.calculate_path(name, type)
@@ -558,12 +560,15 @@ class TransferTracker:
 
         # else: # No action for this file
 
-    def __add_remote_staging_input(self, action, name, type):
+    def __add_remote_staging_input(self, action, name, type, executable=False):
         input_dict = {
             "name": name,
             "type": type,
             "action": action.to_dict(),
         }
+        if executable:
+            # Older servers ignore this key.
+            input_dict["executable"] = True
         self.remote_staging_actions.append(input_dict)
 
     def __action_for_transfer(self, source, type, contents):

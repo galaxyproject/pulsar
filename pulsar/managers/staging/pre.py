@@ -11,6 +11,7 @@ from typing import (
 )
 
 from pulsar.client.action_mapper import from_dict
+from pulsar.client.util import add_executable_bits
 from .metrics import (
     PREPROCESS,
     record_transfer,
@@ -48,6 +49,8 @@ def preprocess(
             action_executor.execute(
                 lambda action=action, path=path: action.write_to_path(path), "action[%s]" % description
             )
+            if setup_action.get("executable"):
+                add_executable_bits(path)
             metrics.record_file(path)
 
 
