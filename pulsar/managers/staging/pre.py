@@ -3,6 +3,7 @@
 
 import logging
 from typing import (
+    Any,
     Callable,
     Dict,
     List,
@@ -28,7 +29,7 @@ log = logging.getLogger(__name__)
 
 def preprocess(
     job_directory: "JobDirectory",
-    setup_actions: List[Dict[str, str]],
+    setup_actions: List[Dict[str, Any]],
     action_executor: "RetryActionExecutor",
     was_cancelled: Callable[[], Optional[bool]],
     object_store: Optional["ObjectStore"] = None,
