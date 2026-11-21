@@ -217,6 +217,15 @@ server respectively. Source and destination must be on the same filesystem,
 and changes to either linked file affect the other. Hardlink failures are
 reported rather than falling back to copying.
 
+When Galaxy collects outputs with ``copy`` or ``hardlink`` from a shared
+filesystem such as NFS, the Galaxy host may briefly not see files a compute
+node just wrote, because its NFS client caches directory lookups. Galaxy
+therefore retries an output whose source is missing, waiting 2 seconds and
+re-reading the source directory before each attempt. The destination parameter
+``output_collection_retries`` sets the number of retries (default ``3``; ``0``
+disables them). A ``from_work_dir`` output that is still missing after the last
+retry is treated as a tool failure, and a warning names the file.
+
 In addition to this default - paths may be overridden based on various
 patterns to allow optimization of file transfers in production
 infrastructures where various systems mount different file stores and file

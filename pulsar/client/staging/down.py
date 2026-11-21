@@ -251,8 +251,12 @@ class ResultsCollector:
                 return False
             if _allow_collect_failure(output_type, e):
                 log.warning(
-                    "Allowed failure in postprocessing, will not force job failure but generally indicates a tool"
-                    f" failure: {e}")
+                    "Allowed failure collecting output '%s' to %s, will not force job failure but generally"
+                    " indicates a tool failure: %s",
+                    name,
+                    getattr(action, "path", action),
+                    e,
+                )
             else:
                 raise
 
