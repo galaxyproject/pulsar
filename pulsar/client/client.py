@@ -26,6 +26,7 @@ from .exceptions import OutputNotFoundException as OutputNotFoundException
 from .job_directory import RemoteJobDirectory
 from .setup_handler import build as build_setup_handler
 from .util import (
+    add_executable_bits,
     copy,
     ensure_directory,
     hardlink,
@@ -240,7 +241,9 @@ class JobClient(BaseJobClient):
             if action_type == 'hardlink':
                 hardlink(path, pulsar_path)
             else:
-                _copy(path, pulsar_path, preserve_executable=executable)
+                _copy(path, pulsar_path)
+                if executable:
+                    add_executable_bits(pulsar_path)
             return {'path': pulsar_path}
 
     def fetch_output(self, path, name, working_directory, action_type, output_type):
@@ -673,10 +676,10 @@ class InputCachingJobClient(JobClient):
         return self._raw_execute("file_available", {"path": path})
 
 
-def _copy(from_path, to_path, preserve_executable=False):
+def _copy(from_path, to_path):
     message = "Copying path [%s] to [%s]"
     log.debug(message, from_path, to_path)
-    copy(from_path, to_path, preserve_executable=preserve_executable)
+    copy(from_path, to_path)
 
 
 def _setup_params_from_job_config(job_config):

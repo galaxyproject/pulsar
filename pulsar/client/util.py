@@ -78,12 +78,9 @@ def unique_path_prefix(path):
     return m.hexdigest()
 
 
-def copy(source, destination, preserve_executable=False):
+def copy(source, destination):
     """ Copy file from source to destination if needed (skip if source
     is destination).
-
-    If ``preserve_executable`` is set, execute bits of ``source`` are set on
-    ``destination`` (see ``copy_executable_bits``).
     """
     source = os.path.abspath(source)
     destination = os.path.abspath(destination)
@@ -91,28 +88,19 @@ def copy(source, destination, preserve_executable=False):
         if not os.path.exists(os.path.dirname(destination)):
             os.makedirs(os.path.dirname(destination))
         shutil.copyfile(source, destination)
-        if preserve_executable:
-            copy_executable_bits(source, destination)
-
-
-def copy_executable_bits(source, destination):
-    """Set the execute bits of ``source`` on ``destination`` (see ``add_executable_bits``)."""
-    add_executable_bits(destination, os.stat(source).st_mode)
 
 
 def is_executable(path):
     return bool(os.stat(path).st_mode & 0o111)
 
 
-def add_executable_bits(path, mode=0o111):
-    """Set the execute bits of ``mode`` on ``path``.
+def add_executable_bits(path):
+    """Set an execute bit on ``path`` wherever it has the matching read bit.
 
-    An execute bit is only set where ``path`` has the matching read bit,
-    so the permissions the destination umask granted are never widened.
+    Never widens what the destination umask granted.
     """
     path_mode = stat.S_IMODE(os.stat(path).st_mode)
-    readable_as_executable = (path_mode & 0o444) >> 2
-    executable = mode & readable_as_executable
+    executable = (path_mode & 0o444) >> 2
     if executable & ~path_mode:
         os.chmod(path, path_mode | executable)
 
