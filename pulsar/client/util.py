@@ -2,6 +2,7 @@ import hashlib
 import json
 import os.path
 import shutil
+import stat
 import tempfile
 from base64 import (
     b64decode as _b64decode,
@@ -77,9 +78,12 @@ def unique_path_prefix(path):
     return m.hexdigest()
 
 
-def copy(source, destination):
+def copy(source, destination, preserve_executable=False):
     """ Copy file from source to destination if needed (skip if source
     is destination).
+
+    If ``preserve_executable`` is set, execute bits of ``source`` are set on
+    ``destination`` (see ``copy_executable_bits``).
     """
     source = os.path.abspath(source)
     destination = os.path.abspath(destination)
@@ -87,6 +91,21 @@ def copy(source, destination):
         if not os.path.exists(os.path.dirname(destination)):
             os.makedirs(os.path.dirname(destination))
         shutil.copyfile(source, destination)
+        if preserve_executable:
+            copy_executable_bits(source, destination)
+
+
+def copy_executable_bits(source, destination):
+    """Set the execute bits of ``source`` on ``destination``.
+
+    An execute bit is only set where ``destination`` has the matching read bit,
+    so the permissions the destination umask granted are never widened.
+    """
+    destination_mode = stat.S_IMODE(os.stat(destination).st_mode)
+    readable_as_executable = (destination_mode & 0o444) >> 2
+    executable = os.stat(source).st_mode & readable_as_executable
+    if executable & ~destination_mode:
+        os.chmod(destination, destination_mode | executable)
 
 
 def hardlink(source, destination):

@@ -1,4 +1,5 @@
 import os
+import stat
 import time
 from collections import deque
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ from galaxy.tool_util.deps.requirements import ToolRequirement
 from pulsar.client import client as client_module
 from pulsar.client.client import JobClient
 from pulsar.client.exceptions import PulsarClientTransportError
+from pulsar.client.manager import build_client_manager
 from pulsar.client.staging.down import (
     finish_job,
     ResultsCollector,
@@ -23,7 +25,11 @@ from pulsar.client.staging.models import (
 )
 from pulsar.client.staging.up import submit_job
 from pulsar.client.test.test_common import write_config
-from .test_utils import TempDirectoryTestCase
+from .test_utils import (
+    TempDirectoryTestCase,
+    test_pulsar_app,
+    wait_for,
+)
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
 TEST_REQUIREMENT_2 = ToolRequirement("test2", "1.0")
@@ -210,6 +216,40 @@ class MockClient:
     def put_file(self, path, type, name, contents, action_type='transfer'):
         self.put_files.append((path, type, name, contents))
         return {"path": self.put_paths.popleft()}
+
+
+def test_copied_tool_files_keep_executable_bit(tmp_path):
+    # Stage the tool directory the way Galaxy's embedded runner does with
+    # default_file_action: copy and rewrite_parameters: true.
+    tool_dir = tmp_path / "tool"
+    tool_dir.mkdir()
+    helper = tool_dir / "helper.sh"
+    helper.write_text("#!/bin/sh\necho ran > helper_ran\n")
+    helper.chmod(0o755)
+    data = tool_dir / "data.txt"
+    data.write_text("data\n")
+    data.chmod(0o644)
+    tool = SimpleNamespace(id="tool1", version="1.0", tool_dir=str(tool_dir))
+    client_job_description = ClientJobDescription(
+        tool=tool,
+        command_line=f"{helper} < {data}",
+        working_directory=str(tmp_path / "working"),
+        rewrite_paths=True,
+    )
+    with test_pulsar_app(web=False) as app:
+        client_manager = build_client_manager(pulsar_app=app)
+        client = client_manager.get_client({"default_file_action": "copy"}, "1")
+        submit_job(client, client_job_description)
+        job_directory = app.only_manager.job_directory("1")
+
+        staged_helper = job_directory.calculate_path("helper.sh", "tool")
+        staged_data = job_directory.calculate_path("data.txt", "tool")
+        assert os.stat(staged_helper).st_mode & stat.S_IXUSR
+        assert not os.stat(staged_data).st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        wait_for(client.get_status, "the job to complete", until=lambda status: status == "complete", timeout=30)
+        assert os.path.exists(os.path.join(job_directory.working_directory(), "helper_ran"))
+        client.clean()
 
 
 def _results_collector_with_failing_collect(exc):
