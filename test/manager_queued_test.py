@@ -1,10 +1,15 @@
-# import os
 # import time
+import os
+from functools import partial
+from pathlib import Path
 
 from pulsar.managers.queued import QueueManager
 
 # from .test_utils import BaseManagerTestCase, timed
-from .test_utils import BaseManagerTestCase
+from .test_utils import (
+    BaseManagerTestCase,
+    wait_for,
+)
 
 CANCEL_TEST_PROGRAM = """import os
 open('%s', 'w').write(str(os.getpid()))
@@ -31,6 +36,28 @@ class PythonQueuedManagerTest(BaseManagerTestCase):
 
     def test_cancel_simple(self):
         self._test_cancelling(self.manager)
+
+    def test_num_concurrent_jobs_limits_running_jobs(self):
+        manager = self.manager
+        jobs = [self._launch_timed_sleep(job_number) for job_number in ("1", "2")]
+        for job_id, _ in jobs:
+            wait_for(
+                partial(manager.get_status, job_id),
+                f"job {job_id} to complete",
+                until=lambda polled: polled == "complete",
+                timeout=15,
+            )
+        (start1, end1), (start2, end2) = (map(float, Path(timestamps).read_text().split()) for _, timestamps in jobs)
+        assert end1 <= start2 or end2 <= start1, f"jobs overlapped with num_concurrent_jobs=1: [{start1}, {end1}] and [{start2}, {end2}]"
+
+    def _launch_timed_sleep(self, job_number):
+        timestamps = os.path.join(self.staging_directory, f"timestamps_{job_number}")
+        command = self._python_to_command(
+            f"import time\nstart = time.time(); time.sleep(2)\nopen('{timestamps}', 'w').write(f'{{start}} {{time.time()}}')"
+        )
+        job_id = self.manager.setup_job(job_number, "tool1", "1.0.0")
+        self.manager.launch(job_id, command)
+        return job_id, timestamps
 
     # @timed(10)
     # def test_cancel_deeper(self):
