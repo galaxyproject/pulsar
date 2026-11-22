@@ -17,8 +17,8 @@ def main(args=None):
     arg_parser.add_argument('--no_wait', "--no-wait", dest='wait', action='store_false')
     arg_parser.set_defaults(wait=True)
     args = arg_parser.parse_args(args)
-    run_server_for_job(args)
+    return run_server_for_job(args)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
