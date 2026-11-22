@@ -269,6 +269,9 @@ def test_preprocessing_failure_is_reported_once():
         # No postprocessing or second callback is needed before launch.
         time.sleep(.1)
         assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.stderr_contents(job_id) == (
+            b"Pulsar failed to stage inputs or launch the job: Test failure launching job\n"
+        )
 
 
 @pytest.mark.parametrize("max_concurrent,expected_peak", [(1, 1), (2, 2), (None, 3)])

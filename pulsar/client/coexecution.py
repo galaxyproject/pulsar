@@ -14,7 +14,7 @@ from .util import (
     to_base64_json,
 )
 
-PULSAR_CONTAINER_IMAGE = "galaxy/pulsar-pod-staging:0.15.0.0"
+PULSAR_CONTAINER_IMAGE = "galaxy/pulsar-pod-staging:0.15.0.2"
 TOOL_EXECUTION_CONTAINER_COMMAND_TEMPLATE = """
 path='%s/command_line';
 while [ ! -e $path ];
