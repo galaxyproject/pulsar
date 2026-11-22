@@ -56,7 +56,9 @@ class Torque(BaseJobExec):
             template_pbsargs += f"#PBS {k} {v}\n"
         return {"headers": template_pbsargs}
 
-    def submit(self, script_file):
+    def submit(self, script_file, native_specification=None):
+        if native_specification:
+            return f"qsub {native_specification} {script_file}"
         return f"qsub {script_file}"
 
     def delete(self, job_id):

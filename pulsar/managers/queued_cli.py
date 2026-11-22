@@ -83,7 +83,9 @@ class CliQueueManager(ExternalBaseManager):
         job_script_kwargs.update(extra_kwargs)
         script = job_script(**job_script_kwargs)
         script_path = self._write_job_script(job_id, script)
-        submission_command = job_interface.submit(script_path)
+        submission_command = job_interface.submit(
+            script_path, native_specification=submit_params.get("native_specification")
+        )
         cmd_out = shell.execute(submission_command)
         if cmd_out.returncode != 0:
             log.warning("Failed to submit job - command was:\n%s" % submission_command)
