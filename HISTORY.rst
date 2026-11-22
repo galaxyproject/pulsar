@@ -8,7 +8,23 @@ History
 ---------------------
 0.16.3.dev0
 ---------------------
-
+* Stage inputs from URLs issued by Galaxy. An input can carry a ``url``, and
+  an extra files directory a manifest mapping each file to its URL; the
+  ``remote_transfer`` and ``remote_transfer_tus`` actions fetch from these
+  instead of building a URL from ``files_endpoint``, so inputs no longer need
+  to be on Galaxy's disk (thanks to `@nuwang`_). `Pull Request 553`_
+* Keep the execute bits of staged tool files with the ``copy``, ``transfer``
+  and remote staging actions, so tools that run a helper script from
+  ``$__tool_directory__`` under ``rewrite_parameters`` no longer fail with
+  "Permission denied". `Pull Request 588`_
+* Retry collecting a ``copy`` or ``hardlink`` output whose source is missing,
+  refreshing its directory before each retry, so outputs that another NFS
+  client just wrote are no longer collected as empty datasets. The new
+  ``output_collection_retries`` destination parameter sets the number of
+  retries (default ``3``, ``0`` disables them). `Pull Request 589`_
+* Document which path types to hardlink: only inputs, never ``metadata``,
+  ``workdir``, ``jobdir`` or outputs, and not as ``default_file_action``.
+  `Pull Request 587`_
 
 
 ---------------------
@@ -864,6 +880,10 @@ History
 
 
 .. github_links
+.. _Pull Request 589: https://github.com/galaxyproject/pulsar/pull/589
+.. _Pull Request 588: https://github.com/galaxyproject/pulsar/pull/588
+.. _Pull Request 587: https://github.com/galaxyproject/pulsar/pull/587
+.. _Pull Request 553: https://github.com/galaxyproject/pulsar/pull/553
 .. _Pull Request 586: https://github.com/galaxyproject/pulsar/pull/586
 .. _Pull Request 584: https://github.com/galaxyproject/pulsar/pull/584
 .. _Pull Request 585: https://github.com/galaxyproject/pulsar/pull/585
