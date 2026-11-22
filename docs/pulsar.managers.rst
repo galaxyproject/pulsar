@@ -38,6 +38,14 @@ pulsar.managers.queued\_condor module
    :undoc-members:
    :show-inheritance:
 
+pulsar.managers.queued\_htcondor module
+---------------------------------------
+
+.. automodule:: pulsar.managers.queued_htcondor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pulsar.managers.queued\_drmaa module
 ------------------------------------
 
