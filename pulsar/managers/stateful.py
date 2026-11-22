@@ -67,8 +67,11 @@ JOB_FILE_POSTPROCESSED = "postprocessed"
 # Recorded when postprocessing could not stage a job's outputs, before it is marked done.
 JOB_FILE_POSTPROCESSING_FAILED = "postprocessing_failed"
 JOB_FILE_PREPROCESSED = "preprocessed"
+# Recorded when preprocessing could not stage a job's inputs or launch it.
 JOB_FILE_PREPROCESSING_FAILED = "preprocessing_failed"
 JOB_METADATA_RUNNING = "running"
+# Failure markers holding an error message, which the failed status reports after the tool's stderr.
+FAILURE_MESSAGE_MARKERS = (JOB_FILE_PREPROCESSING_FAILED,)
 
 # LOST is excluded because it can be transient while external job IDs are
 # being recovered; treating it as terminal could discard recoverable jobs.
@@ -296,9 +299,11 @@ class StatefulManagerProxy(ManagerProxy):
             log.info("Pulsar is shutting down, leaving job %s to preprocess on restart", job_id)
         except Exception as e:
             with job_directory.lock("status"):
-                job_directory.store_metadata(JOB_FILE_PREPROCESSING_FAILED, True)
+                job_directory.store_metadata(
+                    JOB_FILE_PREPROCESSING_FAILED,
+                    "Pulsar failed to stage inputs or launch the job: %s\n" % e,
+                )
                 job_directory.store_metadata("return_code", 1)
-                job_directory.write_file("stderr", str(e))
             self.__state_change_callback(status.FAILED, job_id)
             log.exception("Failed job preprocessing for job %s:", job_id)
 
@@ -320,6 +325,19 @@ class StatefulManagerProxy(ManagerProxy):
             self._live_output.finish(job_id)
         except Exception:
             log.exception("Failed to finish live output updates for job %s", job_id)
+
+    def stderr_contents(self, job_id: str) -> bytes:
+        """The tool's stderr, followed by why Pulsar failed the job, if it did."""
+        stderr = self._proxied_manager.stderr_contents(job_id)
+        job_directory = self._proxied_manager.job_directory(job_id)
+        for marker in FAILURE_MESSAGE_MARKERS:
+            # Pulsar versions before the message was recorded stored ``true``.
+            failure = job_directory.load_metadata(marker)
+            if isinstance(failure, str):
+                if stderr and not stderr.endswith(b"\n"):
+                    stderr += b"\n"
+                stderr += failure.encode("utf-8")
+        return stderr
 
     def get_status(self, job_id: str) -> "StateLiteral":
         """Compute status used proxied manager and handle state transitions
