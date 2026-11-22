@@ -1,4 +1,5 @@
 import os
+import stat
 from unittest import mock
 
 import pytest
@@ -81,6 +82,24 @@ def test_hardlink_failure_preserves_existing_destination(tmp_path):
     with pytest.raises(FileNotFoundError):
         hardlink(str(tmp_path / "missing"), str(destination))
     assert destination.read_text() == "existing"
+
+
+@pytest.mark.parametrize("executable, expected_mode", [(True, 0o750), (False, 0o640)])
+def test_copy_sets_executable_bits_only_when_requested(tmp_path, executable, expected_mode):
+    source = tmp_path / "source"
+    source.write_text("#!/bin/sh\n")
+    # Owner-only execute; staging still grants it wherever the umask grants read.
+    source.chmod(0o744)
+    # copyfile keeps an existing destination's mode, standing in for a umask of 027.
+    staged = tmp_path / "staged"
+    staged.write_text("")
+    staged.chmod(0o640)
+    client = JobClient({}, "job", None)
+    with mock.patch.object(client, "_raw_execute", return_value='{"path": "%s"}' % staged):
+        client.put_file(str(source), "tool", action_type="copy", executable=executable)
+
+    assert staged.read_text() == "#!/bin/sh\n"
+    assert stat.S_IMODE(staged.stat().st_mode) == expected_mode
 
 
 def test_tus_action_rebuilt_from_launch_config_uploads_with_tus(tmp_path):

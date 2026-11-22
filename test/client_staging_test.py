@@ -1,6 +1,8 @@
 import os
+import stat
 import time
 from collections import deque
+from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest import mock
 
@@ -12,6 +14,7 @@ from galaxy.tool_util.deps.requirements import ToolRequirement
 from pulsar.client import client as client_module
 from pulsar.client.client import JobClient
 from pulsar.client.exceptions import PulsarClientTransportError
+from pulsar.client.manager import build_client_manager
 from pulsar.client.staging.down import (
     finish_job,
     ResultsCollector,
@@ -22,8 +25,14 @@ from pulsar.client.staging.models import (
     PulsarOutputs,
 )
 from pulsar.client.staging.up import submit_job
+from pulsar.client.test.check import MockTool
 from pulsar.client.test.test_common import write_config
-from .test_utils import TempDirectoryTestCase
+from .test_utils import (
+    server_for_test_app,
+    TempDirectoryTestCase,
+    test_pulsar_app,
+    wait_for,
+)
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
 TEST_REQUIREMENT_2 = ToolRequirement("test2", "1.0")
@@ -180,6 +189,7 @@ class MockClient:
             '/pulsar/staging/1/inputs/dataset_2.dat',
         ])
         self.put_files = []
+        self.put_executables = {}
 
     def set_action_map_config(self, config, by_path=True):
         if by_path:
@@ -207,9 +217,101 @@ class MockClient:
     def expect_command_line(self, expected_command_line):
         self.expected_command_line = expected_command_line
 
-    def put_file(self, path, type, name, contents, action_type='transfer'):
+    def put_file(self, path, type, name, contents, action_type='transfer', executable=False):
         self.put_files.append((path, type, name, contents))
+        self.put_executables[path] = executable
         return {"path": self.put_paths.popleft()}
+
+
+def test_only_executable_tool_files_staged_executable(tmp_path):
+    tool_dir = tmp_path / "tool"
+    tool_dir.mkdir()
+    helper = tool_dir / "helper.sh"
+    helper.write_text("#!/bin/sh\n")
+    helper.chmod(0o755)
+    data = tool_dir / "data.txt"
+    data.write_text("data\n")
+    data.chmod(0o644)
+    executable_input = tmp_path / "input.sh"
+    executable_input.write_text("#!/bin/sh\n")
+    executable_input.chmod(0o755)
+    tool = MockTool(str(tool_dir))
+    client = MockClient(str(tmp_path), tool)
+    client.expect_put_paths(["/pulsar/staging/1/staged"] * 3)
+    client_job_description = ClientJobDescription(
+        tool=tool,
+        command_line=f"{helper} {executable_input} < {data}",
+        input_files=[str(executable_input)],
+        working_directory=str(tmp_path / "working"),
+        dependencies_description=DependenciesDescription(requirements=[TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]),
+        env=[TEST_ENV_1],
+        rewrite_paths=True,
+    )
+    job_config = {
+        "configs_directory": "/pulsar/staging/1/configs",
+        "working_directory": "/pulsar/staging/1/working",
+        "outputs_directory": "/pulsar/staging/1/outputs",
+        "system_properties": {"separator": "/"},
+    }
+    submit_job(client, client_job_description, job_config)
+    assert client.put_executables == {str(helper): True, str(data): False, str(executable_input): False}
+
+
+@pytest.mark.parametrize("file_action, interface", [
+    ("copy", "embedded"),
+    ("transfer", "embedded"),
+    ("transfer", "http"),
+    ("remote_copy", "embedded"),
+    ("hardlink", "embedded"),
+    ("remote_hardlink", "embedded"),
+])
+def test_staged_tool_files_keep_executable_bit(tmp_path, file_action, interface):
+    # Stage the tool directory the way Galaxy's Pulsar runners do with
+    # rewrite_parameters: true.
+    tool_dir = tmp_path / "tool"
+    tool_dir.mkdir()
+    helper = tool_dir / "helper.sh"
+    helper.write_text("#!/bin/sh\necho ran > helper_ran\n")
+    # Group and others can read but not execute, so widening would show.
+    helper.chmod(0o744)
+    data = tool_dir / "data.txt"
+    data.write_text("data\n")
+    data.chmod(0o644)
+    tool = MockTool(str(tool_dir))
+    client_job_description = ClientJobDescription(
+        tool=tool,
+        command_line=f"{helper} < {data}",
+        working_directory=str(tmp_path / "working"),
+        rewrite_paths=True,
+    )
+    with _pulsar_client(interface, {"default_file_action": file_action}) as (client, manager):
+        submit_job(client, client_job_description)
+        job_directory = manager.job_directory("1")
+
+        # remote_copy stages the files in the background, before the command runs.
+        wait_for(client.get_status, "the job to complete", until=lambda status: status == "complete", timeout=30)
+        staged_helper = job_directory.calculate_path("helper.sh", "tool")
+        staged_data = job_directory.calculate_path("data.txt", "tool")
+        assert os.stat(staged_helper).st_mode & stat.S_IXUSR
+        assert not os.stat(staged_data).st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        assert os.path.exists(os.path.join(job_directory.working_directory(), "helper_ran"))
+        # Hardlink actions share the source inode, which must stay untouched.
+        assert stat.S_IMODE(helper.stat().st_mode) == 0o744
+        client.clean()
+
+
+@contextmanager
+def _pulsar_client(interface, destination_params):
+    """Yield a client for job "1" and the Pulsar manager it talks to."""
+    if interface == "embedded":
+        with test_pulsar_app(web=False) as app:
+            client = build_client_manager(pulsar_app=app, cache=False).get_client(destination_params, "1")
+            yield client, app.only_manager
+    else:
+        with test_pulsar_app() as test_app, server_for_test_app(test_app) as server:
+            destination_params = dict(destination_params, url=server.application_url)
+            client = build_client_manager(cache=False).get_client(destination_params, "1")
+            yield client, test_app.app.pulsar_app.only_manager
 
 
 def _results_collector_with_failing_collect(exc):

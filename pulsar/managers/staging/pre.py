@@ -3,6 +3,7 @@
 
 import logging
 from typing import (
+    Any,
     Callable,
     Dict,
     List,
@@ -11,6 +12,7 @@ from typing import (
 )
 
 from pulsar.client.action_mapper import from_dict
+from pulsar.client.util import add_executable_bits
 from .metrics import (
     PREPROCESS,
     record_transfer,
@@ -27,7 +29,7 @@ log = logging.getLogger(__name__)
 
 def preprocess(
     job_directory: "JobDirectory",
-    setup_actions: List[Dict[str, str]],
+    setup_actions: List[Dict[str, Any]],
     action_executor: "RetryActionExecutor",
     was_cancelled: Callable[[], Optional[bool]],
     object_store: Optional["ObjectStore"] = None,
@@ -48,6 +50,8 @@ def preprocess(
             action_executor.execute(
                 lambda action=action, path=path: action.write_to_path(path), "action[%s]" % description
             )
+            if setup_action.get("executable") and not action.shares_source_inode:
+                add_executable_bits(path)
             metrics.record_file(path)
 
 

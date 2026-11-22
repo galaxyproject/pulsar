@@ -30,6 +30,7 @@ from ..job_directory import RemoteJobDirectory
 from ..util import (
     directory_files,
     ExternalId,
+    is_executable,
     PathHelper,
 )
 
@@ -523,6 +524,7 @@ class TransferTracker:
         action = self.__action_for_transfer(source, type, contents)
 
         if action.staging_needed:
+            executable = self.__stage_executable(action, source, type, contents)
             local_action = action.staging_action_local
             if local_action:
                 path = source['path']
@@ -532,7 +534,9 @@ class TransferTracker:
                     log.debug(message)
                     return
 
-                response = self.client.put_file(path, type, name=name, contents=contents, action_type=action.action_type)
+                response = self.client.put_file(
+                    path, type, name=name, contents=contents, action_type=action.action_type, executable=executable
+                )
 
                 def get_path():
                     return response['path']
@@ -544,7 +548,7 @@ class TransferTracker:
                     # TODO: consider fetching this from source so an actual input path
                     # isn't needed. At least it isn't used though.
                     name = basename(path)
-                self.__add_remote_staging_input(action, name, type)
+                self.__add_remote_staging_input(action, name, type, executable=executable)
 
                 def get_path():
                     return job_directory.calculate_path(name, type)
@@ -558,12 +562,28 @@ class TransferTracker:
 
         # else: # No action for this file
 
-    def __add_remote_staging_input(self, action, name, type):
+    @staticmethod
+    def __stage_executable(action, source, type, contents):
+        """Whether the staged copy of ``source`` should get execute bits."""
+        path = source.get("path")
+        return bool(
+            type == path_type.TOOL
+            and not contents
+            and not action.shares_source_inode
+            and path is not None
+            and exists(path)
+            and is_executable(path)
+        )
+
+    def __add_remote_staging_input(self, action, name, type, executable=False):
         input_dict = {
             "name": name,
             "type": type,
             "action": action.to_dict(),
         }
+        if executable:
+            # Older servers ignore this key.
+            input_dict["executable"] = True
         self.remote_staging_actions.append(input_dict)
 
     def __action_for_transfer(self, source, type, contents):

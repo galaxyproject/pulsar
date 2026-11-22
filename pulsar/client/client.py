@@ -26,6 +26,7 @@ from .exceptions import OutputNotFoundException as OutputNotFoundException
 from .job_directory import RemoteJobDirectory
 from .setup_handler import build as build_setup_handler
 from .util import (
+    add_executable_bits,
     copy,
     ensure_directory,
     hardlink,
@@ -216,7 +217,7 @@ class JobClient(BaseJobClient):
         """
         return self._raw_execute("setup", setup_args)
 
-    def put_file(self, path, input_type, name=None, contents=None, action_type='transfer'):
+    def put_file(self, path, input_type, name=None, contents=None, action_type='transfer', executable=False):
         if not name:
             name = os.path.basename(path)
         args = {"job_id": self.job_id, "name": name, "type": input_type}
@@ -230,11 +231,19 @@ class JobClient(BaseJobClient):
                 contents = contents.encode("utf-8")
             message = "Uploading path [%s] (action_type: [%s])"
             log.debug(message, path, action_type)
+            if executable:
+                # Older servers ignore this argument.
+                args["executable"] = True
             return self._upload_file(args, contents, input_path)
         elif action_type in ('copy', 'hardlink'):
             path_response = self._raw_execute('path', args)
             pulsar_path = json_loads(path_response)['path']
-            (hardlink if action_type == 'hardlink' else _copy)(path, pulsar_path)
+            if action_type == 'hardlink':
+                hardlink(path, pulsar_path)
+            else:
+                _copy(path, pulsar_path)
+                if executable:
+                    add_executable_bits(pulsar_path)
             return {'path': pulsar_path}
 
     def fetch_output(self, path, name, working_directory, action_type, output_type):
