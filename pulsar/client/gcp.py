@@ -1,6 +1,7 @@
 """Container coexecution through Google Cloud Batch."""
 
 import logging
+import uuid
 from typing import (
     Any,
     cast,
@@ -11,12 +12,13 @@ from typing import (
 from pulsar.managers import status as manager_status
 from pulsar.managers.util.gcp_util import (
     batch_v1,
+    cancel_gcp_job,
     delete_gcp_job,
     ensure_client as ensure_gcp_client,
     gcp_client,
+    GcpAlreadyExists,
     get_gcp_job,
 )
-from pulsar.managers.util.job_name import produce_unique_k8s_job_name
 from .coexecution import (
     BaseMessageCoexecutionJobClient,
     BasePollingCoexecutionJobClient,
@@ -26,11 +28,14 @@ from .coexecution import (
 from .container_job_config import CoexecutionContainerCommand
 from .gcp_job_config import (
     container_command_to_gcp_runnable,
-    gcp_galaxy_instance_id,
+    gcp_job_id_prefix,
+    gcp_job_name,
     gcp_job_request,
     gcp_job_template,
+    gcp_kill_action,
     parse_gcp_job_params,
 )
+from .util import ExternalId
 
 log = logging.getLogger(__name__)
 
@@ -41,20 +46,23 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
     # can we do barriers here to allow sequential? It would allow separate containers for startup
     # and shutdown that don't run parallel to the job?
     execution_type = ExecutionType.PARALLEL
+    job_id_prefix: str
+    kill_action: str
 
     def default_staging_directory(self, destination_params):
         ssd_name = destination_params.get("ssd_name", "pulsar_staging")
         return f"/mnt/disks/{ssd_name}"
 
     def _setup_gcp_batch_client_properties(self, destination_params):
-        self.instance_id = gcp_galaxy_instance_id(destination_params)
+        self.job_id_prefix = gcp_job_id_prefix(destination_params)
+        self.kill_action = gcp_kill_action(destination_params)
 
     def _launch_containers(
         self,
         pulsar_submit_container: CoexecutionContainerCommand,
         tool_container: Optional[CoexecutionContainerCommand],
         pulsar_finish_container: Optional[CoexecutionContainerCommand]
-    ) -> None:
+    ) -> ExternalId:
         assert pulsar_finish_container is None
         gcp_job_params = self._gcp_job_params
         job = gcp_job_template(gcp_job_params)
@@ -85,22 +93,44 @@ class LaunchesGcpContainersMixin(CoexecutionLaunchMixin):
             runnable.container.volumes = extra_volumes
         job.task_groups[0].task_spec.runnables.append(runnable)
 
-        job_name = self._job_name
-        create_request = gcp_job_request(gcp_job_params, job, job_name)
         client = gcp_client(gcp_job_params.credentials_file)
-        job = client.create_job(create_request)
+        job_name = self._default_job_name
+        try:
+            client.create_job(gcp_job_request(gcp_job_params, job, job_name))
+        except GcpAlreadyExists:
+            # A job with this name exists already: this Galaxy job was resubmitted
+            # or a job with the same id was retained from an earlier run. Leave that
+            # job alone and launch under a unique name. Galaxy records the returned
+            # name and hands it back as external_id on later polls and kills.
+            default_job_name = job_name
+            job_name = gcp_job_name(self.job_id_prefix, self.job_id, suffix=uuid.uuid4().hex[:8])
+            log.info("GCP Batch job %s already exists, launching job %s as %s", default_job_name, self.job_id, job_name)
+            client.create_job(gcp_job_request(gcp_job_params, job, job_name))
+        return ExternalId(job_name)
 
     @property
-    def _job_name(self):
-        # currently just _k8s_job_prefix... which might be fine?
-        job_id = self.job_id
-        job_name = produce_unique_k8s_job_name(app_prefix="pulsar", job_id=job_id, instance_id=self.instance_id)
-        return job_name
+    def _default_job_name(self) -> str:
+        """The name a job is launched under unless it collides with an existing job."""
+        return gcp_job_name(self.job_id_prefix, self.job_id)
+
+    @property
+    def _job_name(self) -> str:
+        """The Batch job name to poll or kill: the one Galaxy recorded at launch, else the default."""
+        return self.external_id or self._default_job_name
 
     @property
     def _gcp_job_params(self):
         gcp_job_params = parse_gcp_job_params(self.destination_params)
         return gcp_job_params
+
+    def kill(self):
+        gcp_job_params = self._gcp_job_params
+        job_name = self._job_name
+        action = cancel_gcp_job if self.kill_action == "cancel" else delete_gcp_job
+        try:
+            action(gcp_job_params.project_id, gcp_job_params.region, job_name, gcp_job_params.credentials_file)
+        except Exception:
+            log.warning("Failed to %s GCP Batch job %s", self.kill_action, job_name, exc_info=True)
 
 
 class GcpMessageCoexecutionJobClient(BaseMessageCoexecutionJobClient, LaunchesGcpContainersMixin):
@@ -117,10 +147,6 @@ class GcpPollingCoexecutionJobClient(BasePollingCoexecutionJobClient, LaunchesGc
     def __init__(self, destination_params, job_id, client_manager):
         super().__init__(destination_params, job_id, client_manager)
         self._setup_gcp_batch_client_properties(destination_params)
-
-    def kill(self):
-        gcp_job_params = self._gcp_job_params
-        delete_gcp_job(gcp_job_params.project_id, gcp_job_params.region, self._job_name, gcp_job_params.credentials_file)
 
     def clean(self):
         pass

@@ -6,9 +6,102 @@ History
 .. to_doc
 
 ---------------------
-0.16.1.dev0
+0.16.3.dev0
 ---------------------
+
+
+
+---------------------
+0.16.2 (2026-11-20)
+---------------------
+* Add ``hardlink`` and ``remote_hardlink`` file actions to stage inputs and
+  outputs through hardlinks on the Galaxy or Pulsar side (also in 0.15.17).
+  Source and destination must be on the same filesystem; link errors are
+  reported without falling back to copying, and changes to either path affect
+  the shared file. `Pull Request 584`_, `Pull Request 586`_
+
+
+---------------------
+0.15.17 (2026-11-20)
+---------------------
+* Add ``hardlink`` and ``remote_hardlink`` file actions to stage inputs and
+  outputs through hardlinks on the Galaxy or Pulsar side. Source and
+  destination must be on the same filesystem; link errors are reported without
+  falling back to copying, and changes to either path affect the shared file.
+  `Pull Request 584`_
+* Fix the AMQP ack manager thread crashing on its first wake-up since 0.15.16,
+  which stopped unacknowledged messages from being republished (thanks to
+  `@natefoo`_). `Pull Request 556`_
+* Retry connection-level curl failures during staging again (e.g. a download
+  truncated by a proxy, transport code 92) instead of failing the job on the
+  first attempt, a regression in 0.15.16 (thanks to `@natefoo`_).
+  `Pull Request 565`_
+* CI: run the Galaxy framework tests on Python 3.11 and install slurm-drmaa
+  from pinned Launchpad debs. `Pull Request 585`_
+
+
+---------------------
+0.16.1 (2026-11-20)
+---------------------
+* Add ``preprocess_max_concurrent`` and ``postprocess_max_concurrent`` manager
+  options to cap how many jobs transfer inputs or outputs at once.
+  `Pull Request 569`_
+* Stop staging and launching jobs killed before launch, whichever manager runs
+  them, and report them as cancelled. `Pull Request 569`_
+* Report why a job failed to Galaxy with a ``runner_state`` in the final status
+  so job resubmission conditions such as ``memory_limit_reached`` work for
+  Pulsar destinations. Add a ``queued_slurm`` manager that determines this for
+  Slurm jobs; ``queued_cli`` reports it for LSF and Slurm, and the polling Kubernetes
+  client for out of memory and deadline failures. `Issue 492`_,
+  `Pull Request 570`_
+* Report node failures, preemption and jobs cancelled outside of Galaxy as their
+  own ``runner_state`` values, and add a ``runner_state_message`` with details for
+  the user. `Issue 492`_, `Pull Request 570`_
+* Start a job resubmitted by Galaxy over a message queue from a clean job
+  directory instead of ignoring it as a redelivered setup message. `Issue 492`_,
+  `Pull Request 570`_
+* Record preprocess and postprocess file transfer time, count, and bytes for
+  Galaxy's ``pulsar`` job metrics plugin. `Pull Request 518`_
+* Skip unavailable job metrics plugins in Pulsar's shared configuration. `Pull Request 518`_
 * Fix the Ruff 0.17 datetime import-alias lint failures. `Pull Request 546`_
+* Send all chunks of a ``remote_transfer_tus`` stage-out over one connection
+  instead of a new TCP and TLS connection per chunk, using a built-in tus
+  client; ``tuspy`` is no longer required. Retry a failed chunk from the
+  server's offset (``PULSAR_TUS_RETRIES``, ``PULSAR_TUS_RETRY_DELAY``) and time
+  out stalled requests (``PULSAR_TUS_TIMEOUT``). A failed TUS upload of a
+  working-directory output now fails the job instead of only logging a
+  warning. Builds on retries added to the ``tuspy`` uploader (thanks to
+  `@natefoo`_). `Pull Request 548`_, `Pull Request 549`_
+* Add a ``remote_pulsar_version`` destination parameter to declare the remote
+  Pulsar's version for ``jobs_directory`` destinations, which never contact
+  Pulsar to learn it. The version of published ``galaxy/pulsar-pod-staging``
+  images is known without it. Job configs now record where ``pulsar_version``
+  came from, so Galaxy no longer mistakes the client library's version for the
+  remote's. `Issue 135`_, `Pull Request 523`_
+* Keep Google Cloud Batch job names stable across Pulsar clients and record the
+  launched name as the job's external id, so Galaxy polls and stops the right
+  job after a resubmission. Add ``job_id_prefix`` (validated against GCP's job
+  name rules) and ``gcp_kill_action: delete|cancel`` destination parameters.
+  `Pull Request 473`_
+* Make the job script's backup of ``working/``, ``outputs/`` and ``configs/``
+  atomic, so a job killed mid-copy no longer leaves a truncated ``<dir>.orig``
+  that a rerun (resubmission or Slurm requeue) would restore over the intact
+  directory. `Pull Request 567`_
+* Report ``failed`` to clients polling for status (REST and embedded runners)
+  when postprocessing could not stage a job's outputs, instead of
+  ``complete`` (thanks to `@nuwang`_). `Pull Request 552`_
+* Fix the AMQP ack manager thread crashing on its first wake-up since 0.15.16,
+  which stopped unacknowledged messages from being republished (thanks to
+  `@natefoo`_). `Pull Request 556`_
+* Retry connection-level curl failures during staging again (e.g. a download
+  truncated by a proxy, transport code 92) instead of failing the job on the
+  first attempt, a regression in 0.15.16 (thanks to `@natefoo`_).
+  `Pull Request 565`_
+* Import kombu and amqp names from their defining modules, fixing type checking
+  against kombu 5.7. `Pull Request 568`_
+* CI: create tox's staging path before the test umask applies, run the Galaxy
+  framework tests on Python 3.11, and install slurm-drmaa from pinned
+  Launchpad debs. `Pull Request 557`_, `Pull Request 585`_
 
 
 
@@ -771,7 +864,23 @@ History
 
 
 .. github_links
+.. _Pull Request 586: https://github.com/galaxyproject/pulsar/pull/586
+.. _Pull Request 584: https://github.com/galaxyproject/pulsar/pull/584
+.. _Pull Request 585: https://github.com/galaxyproject/pulsar/pull/585
+.. _Pull Request 570: https://github.com/galaxyproject/pulsar/pull/570
+.. _Pull Request 568: https://github.com/galaxyproject/pulsar/pull/568
+.. _Pull Request 567: https://github.com/galaxyproject/pulsar/pull/567
+.. _Pull Request 565: https://github.com/galaxyproject/pulsar/pull/565
+.. _Pull Request 557: https://github.com/galaxyproject/pulsar/pull/557
+.. _Pull Request 556: https://github.com/galaxyproject/pulsar/pull/556
+.. _Pull Request 552: https://github.com/galaxyproject/pulsar/pull/552
+.. _Pull Request 548: https://github.com/galaxyproject/pulsar/pull/548
+.. _Pull Request 523: https://github.com/galaxyproject/pulsar/pull/523
+.. _Pull Request 569: https://github.com/galaxyproject/pulsar/pull/569
+.. _Pull Request 549: https://github.com/galaxyproject/pulsar/pull/549
 .. _Pull Request 546: https://github.com/galaxyproject/pulsar/pull/546
+.. _Pull Request 518: https://github.com/galaxyproject/pulsar/pull/518
+.. _Pull Request 473: https://github.com/galaxyproject/pulsar/pull/473
 .. _Pull Request 537: https://github.com/galaxyproject/pulsar/pull/537
 .. _Pull Request 543: https://github.com/galaxyproject/pulsar/pull/543
 .. _Pull Request 540: https://github.com/galaxyproject/pulsar/pull/540
@@ -818,9 +927,11 @@ History
 .. _Pull Request 427: https://github.com/galaxyproject/pulsar/pull/427
 .. _Pull Request 424: https://github.com/galaxyproject/pulsar/pull/424
 .. _Pull Request 379: https://github.com/galaxyproject/pulsar/pull/379
+.. _Issue 492: https://github.com/galaxyproject/pulsar/issues/492
 .. _Issue 393: https://github.com/galaxyproject/pulsar/issues/393
 .. _Issue 354: https://github.com/galaxyproject/pulsar/issues/354
 .. _Issue 158: https://github.com/galaxyproject/pulsar/issues/158
+.. _Issue 135: https://github.com/galaxyproject/pulsar/issues/135
 .. _Pull Request 470: https://github.com/galaxyproject/pulsar/pull/470
 .. _Pull Request 466: https://github.com/galaxyproject/pulsar/pull/466
 .. _Pull Request 464: https://github.com/galaxyproject/pulsar/pull/464

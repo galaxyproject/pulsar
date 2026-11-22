@@ -5,7 +5,6 @@ import os
 from logging import getLogger
 from tempfile import tempdir
 
-from galaxy.job_metrics import JobMetrics
 from galaxy.objectstore import build_object_store_from_config
 from galaxy.tool_util.deps import build_dependency_manager
 from galaxy.util.bunch import Bunch
@@ -15,6 +14,7 @@ from pulsar import (
     messaging,
 )
 from pulsar.cache import Cache
+from pulsar.job_metrics import build_job_metrics
 from pulsar.manager_factory import build_managers
 from pulsar.tools import ToolBox
 from pulsar.tools.authorization import get_authorizer
@@ -193,13 +193,10 @@ class PulsarApp:
         )
 
     def __setup_job_metrics(self, conf):
+        # Galaxy hands an embedded Pulsar its own, already validated, JobMetrics.
         job_metrics = conf.get("job_metrics", None)
         if job_metrics is None:
-            job_metrics_config_file = os.path.join(
-                self.config_dir,
-                conf.get("job_metrics_config_file", "job_metrics_conf.xml")
-            )
-            job_metrics = JobMetrics(job_metrics_config_file)
+            job_metrics = build_job_metrics(self.config_dir, conf)
         self.job_metrics = job_metrics
 
     @property

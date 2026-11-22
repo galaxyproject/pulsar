@@ -1,6 +1,10 @@
 import os
+import stat
+import time
 from collections import deque
+from contextlib import contextmanager
 from types import SimpleNamespace
+from unittest import mock
 from urllib.parse import urlencode
 
 import pytest
@@ -8,8 +12,14 @@ import requests
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
 
+from pulsar.client import client as client_module
+from pulsar.client.client import JobClient
 from pulsar.client.exceptions import PulsarClientTransportError
-from pulsar.client.staging.down import ResultsCollector
+from pulsar.client.manager import build_client_manager
+from pulsar.client.staging.down import (
+    finish_job,
+    ResultsCollector,
+)
 from pulsar.client.staging.inputs import (
     CLIENT_INPUT_PATH_TYPES,
     ClientInput,
@@ -18,14 +28,19 @@ from pulsar.client.staging.inputs import (
 from pulsar.client.staging.models import (
     ClientJobDescription,
     ClientOutputs,
+    PulsarOutputs,
 )
 from pulsar.client.staging.up import submit_job
+from pulsar.client.test.check import MockTool
 from pulsar.client.test.test_common import write_config
 from pulsar.managers.base import JobDirectory
 from pulsar.managers.staging.pre import preprocess
 from .test_utils import (
     files_server,
+    server_for_test_app,
     TempDirectoryTestCase,
+    test_pulsar_app,
+    wait_for,
 )
 
 TEST_REQUIREMENT_1 = ToolRequirement("test1", "1.0")
@@ -336,6 +351,7 @@ class MockClient:
             '/pulsar/staging/1/inputs/dataset_2.dat',
         ])
         self.put_files = []
+        self.put_executables = {}
 
     def set_action_map_config(self, config, by_path=True):
         if by_path:
@@ -364,9 +380,101 @@ class MockClient:
     def expect_command_line(self, expected_command_line):
         self.expected_command_line = expected_command_line
 
-    def put_file(self, path, type, name, contents, action_type='transfer'):
+    def put_file(self, path, type, name, contents, action_type='transfer', executable=False):
         self.put_files.append((path, type, name, contents))
+        self.put_executables[path] = executable
         return {"path": self.put_paths.popleft()}
+
+
+def test_only_executable_tool_files_staged_executable(tmp_path):
+    tool_dir = tmp_path / "tool"
+    tool_dir.mkdir()
+    helper = tool_dir / "helper.sh"
+    helper.write_text("#!/bin/sh\n")
+    helper.chmod(0o755)
+    data = tool_dir / "data.txt"
+    data.write_text("data\n")
+    data.chmod(0o644)
+    executable_input = tmp_path / "input.sh"
+    executable_input.write_text("#!/bin/sh\n")
+    executable_input.chmod(0o755)
+    tool = MockTool(str(tool_dir))
+    client = MockClient(str(tmp_path), tool)
+    client.expect_put_paths(["/pulsar/staging/1/staged"] * 3)
+    client_job_description = ClientJobDescription(
+        tool=tool,
+        command_line=f"{helper} {executable_input} < {data}",
+        input_files=[str(executable_input)],
+        working_directory=str(tmp_path / "working"),
+        dependencies_description=DependenciesDescription(requirements=[TEST_REQUIREMENT_1, TEST_REQUIREMENT_2]),
+        env=[TEST_ENV_1],
+        rewrite_paths=True,
+    )
+    job_config = {
+        "configs_directory": "/pulsar/staging/1/configs",
+        "working_directory": "/pulsar/staging/1/working",
+        "outputs_directory": "/pulsar/staging/1/outputs",
+        "system_properties": {"separator": "/"},
+    }
+    submit_job(client, client_job_description, job_config)
+    assert client.put_executables == {str(helper): True, str(data): False, str(executable_input): False}
+
+
+@pytest.mark.parametrize("file_action, interface", [
+    ("copy", "embedded"),
+    ("transfer", "embedded"),
+    ("transfer", "http"),
+    ("remote_copy", "embedded"),
+    ("hardlink", "embedded"),
+    ("remote_hardlink", "embedded"),
+])
+def test_staged_tool_files_keep_executable_bit(tmp_path, file_action, interface):
+    # Stage the tool directory the way Galaxy's Pulsar runners do with
+    # rewrite_parameters: true.
+    tool_dir = tmp_path / "tool"
+    tool_dir.mkdir()
+    helper = tool_dir / "helper.sh"
+    helper.write_text("#!/bin/sh\necho ran > helper_ran\n")
+    # Group and others can read but not execute, so widening would show.
+    helper.chmod(0o744)
+    data = tool_dir / "data.txt"
+    data.write_text("data\n")
+    data.chmod(0o644)
+    tool = MockTool(str(tool_dir))
+    client_job_description = ClientJobDescription(
+        tool=tool,
+        command_line=f"{helper} < {data}",
+        working_directory=str(tmp_path / "working"),
+        rewrite_paths=True,
+    )
+    with _pulsar_client(interface, {"default_file_action": file_action}) as (client, manager):
+        submit_job(client, client_job_description)
+        job_directory = manager.job_directory("1")
+
+        # remote_copy stages the files in the background, before the command runs.
+        wait_for(client.get_status, "the job to complete", until=lambda status: status == "complete", timeout=30)
+        staged_helper = job_directory.calculate_path("helper.sh", "tool")
+        staged_data = job_directory.calculate_path("data.txt", "tool")
+        assert os.stat(staged_helper).st_mode & stat.S_IXUSR
+        assert not os.stat(staged_data).st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        assert os.path.exists(os.path.join(job_directory.working_directory(), "helper_ran"))
+        # Hardlink actions share the source inode, which must stay untouched.
+        assert stat.S_IMODE(helper.stat().st_mode) == 0o744
+        client.clean()
+
+
+@contextmanager
+def _pulsar_client(interface, destination_params):
+    """Yield a client for job "1" and the Pulsar manager it talks to."""
+    if interface == "embedded":
+        with test_pulsar_app(web=False) as app:
+            client = build_client_manager(pulsar_app=app, cache=False).get_client(destination_params, "1")
+            yield client, app.only_manager
+    else:
+        with test_pulsar_app() as test_app, server_for_test_app(test_app) as server:
+            destination_params = dict(destination_params, url=server.application_url)
+            client = build_client_manager(cache=False).get_client(destination_params, "1")
+            yield client, test_app.app.pulsar_app.only_manager
 
 
 def _results_collector_with_failing_collect(exc):
@@ -426,7 +534,9 @@ def test_collect_output_reraises_transport_error_for_workdir_output():
     zero-length outputs. PulsarClientTransportError is not an OSError, so it has
     to be recognized explicitly."""
     rc = _results_collector_with_failing_collect(
-        PulsarClientTransportError(transport_code=500, transport_message="POST failed")
+        PulsarClientTransportError(
+            code=PulsarClientTransportError.NOT_200, transport_code=500, transport_message="POST failed"
+        )
     )
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     with pytest.raises(PulsarClientTransportError):
@@ -437,6 +547,75 @@ def test_collect_output_tolerates_403_transport_error_for_workdir_output():
     """The 403 carve-out is keyed on the status code, not the exception class, so
     it applies to a transport error carrying 403 just as it does to a
     requests.HTTPError."""
-    rc = _results_collector_with_failing_collect(PulsarClientTransportError(transport_code=403))
+    rc = _results_collector_with_failing_collect(
+        PulsarClientTransportError(code=PulsarClientTransportError.NOT_200, transport_code=403)
+    )
     action = SimpleNamespace(url="http://galaxy.test/api/jobs/1/files?path=/x&file_type=output")
     assert rc._collect_output("output_workdir", action, "out1") is False
+
+
+
+def _finish_job_with_copied_workdir_output(tmp_path, source_contents, **destination_params):
+    """Collect one from_work_dir output with the copy action, as an embedded
+    runner does. Returns the collection failures and the Galaxy output path."""
+    working_directory = tmp_path / "pulsar" / "working"
+    working_directory.mkdir(parents=True)
+    if source_contents is not None:
+        (working_directory / "out.txt").write_text(source_contents)
+    output_file = tmp_path / "galaxy" / "dataset_1.dat"
+    galaxy_working_directory = tmp_path / "galaxy" / "working"
+    client = JobClient({"default_file_action": "copy", **destination_params}, "1", None)
+    client_outputs = ClientOutputs(
+        working_directory=str(galaxy_working_directory),
+        output_files=[str(output_file)],
+        work_dir_outputs=[(str(galaxy_working_directory / "out.txt"), str(output_file))],
+    )
+    pulsar_outputs = PulsarOutputs(["out.txt"], [], [], [])
+
+    def output_path(name, job_id, path_type):
+        return {"path": str(working_directory / name)}
+
+    with mock.patch.object(client, "_output_path", side_effect=output_path):
+        failures = finish_job(client, "never", True, client_outputs, pulsar_outputs)
+    return failures, output_file
+
+
+def test_collect_workdir_output_retries_until_source_is_visible(tmp_path):
+    """The handler's NFS client may not yet see a file the compute node just
+    wrote. A missing source is retried, so the output is collected rather than
+    left empty."""
+    real_copy = client_module.copy
+    attempts = []
+
+    def copy_visible_on_second_attempt(source, destination):
+        attempts.append(source)
+        if len(attempts) == 1:
+            raise FileNotFoundError(2, "No such file or directory", source)
+        real_copy(source, destination)
+
+    with mock.patch.object(client_module, "copy", side_effect=copy_visible_on_second_attempt), \
+            mock.patch.object(time, "sleep") as sleep:
+        failures, output_file = _finish_job_with_copied_workdir_output(tmp_path, "tool output")
+
+    assert failures == []
+    assert output_file.read_text() == "tool output"
+    assert len(attempts) == 2
+    sleep.assert_called_once_with(client_module.OUTPUT_COLLECTION_RETRY_SLEEP)
+
+
+def test_collect_workdir_output_never_visible_is_allowed_failure(tmp_path, caplog):
+    """A from_work_dir output still missing after all retries is a tool failure:
+    it is downgraded to a warning naming the source, not a job failure."""
+    with mock.patch.object(time, "sleep") as sleep:
+        # Galaxy's XML job configuration passes destination params as strings.
+        failures, output_file = _finish_job_with_copied_workdir_output(
+            tmp_path, None, output_collection_retries="2"
+        )
+
+    assert failures == []
+    assert not output_file.exists()
+    assert sleep.call_count == 2
+    warning = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning) == 1
+    assert str(tmp_path / "pulsar" / "working" / "out.txt") in warning[0]
+    assert str(output_file) in warning[0]

@@ -67,6 +67,12 @@ update it to set ``DRMAA_LIBRARY_PATH`` to point to the correct
 Here the optional ``native_specification`` is going to depend on the underlying job
 manager.
 
+On Slurm use ``type: queued_slurm`` instead. It takes the same options and is what
+lets Galaxy's job resubmission act on ``memory_limit_reached`` and
+``walltime_reached``: DRMAA only reports that a job failed, so this manager asks
+``scontrol`` (or ``sacct``) why and reports that to Galaxy. The Slurm commands must be
+available to the Pulsar server.
+
 In addition to the default dependencies described in the installation
 documentation, a DRMAA library will need to be installed and the python
 dependency ``drmaa`` will need to be installed as well to use the

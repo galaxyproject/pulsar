@@ -2,6 +2,8 @@ import hashlib
 import json
 import os.path
 import shutil
+import stat
+import tempfile
 from base64 import (
     b64decode as _b64decode,
     b64encode as _b64encode,
@@ -86,6 +88,34 @@ def copy(source, destination):
         if not os.path.exists(os.path.dirname(destination)):
             os.makedirs(os.path.dirname(destination))
         shutil.copyfile(source, destination)
+
+
+def is_executable(path):
+    return bool(os.stat(path).st_mode & 0o111)
+
+
+def add_executable_bits(path):
+    """Set an execute bit on ``path`` wherever it has the matching read bit.
+
+    Never widens what the destination umask granted.
+    """
+    path_mode = stat.S_IMODE(os.stat(path).st_mode)
+    executable = (path_mode & 0o444) >> 2
+    if executable & ~path_mode:
+        os.chmod(path, path_mode | executable)
+
+
+def hardlink(source, destination):
+    """Link a file into place, replacing an existing destination atomically."""
+    source = os.path.realpath(source)
+    destination = os.path.abspath(destination)
+    if source == destination:
+        return
+    ensure_directory(destination)
+    with tempfile.TemporaryDirectory(dir=os.path.dirname(destination)) as temp_dir:
+        temporary_link = os.path.join(temp_dir, "link")
+        os.link(source, temporary_link)
+        os.replace(temporary_link, destination)
 
 
 def ensure_directory(file_path):
@@ -298,8 +328,11 @@ class MessageQueueUUIDStore:
                 raise KeyError(key)
             raise
 
-    def keys(self):
+    def __iter__(self):
         return iter(listdir(self.__store))
+
+    def keys(self):
+        return iter(self)
 
     def get_time(self, key):
         try:

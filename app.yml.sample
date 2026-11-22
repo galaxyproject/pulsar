@@ -9,6 +9,16 @@
 #    type: queued_python
 #    num_concurrent_jobs: 1
 #    min_polling_interval: 0.5
+#    ## Cap how many of this manager's jobs transfer inputs in (preprocess) or
+#    ## outputs out (postprocess) at the same time. Jobs past the cap wait for a
+#    ## slot; unset is unlimited, otherwise it must be at least 1. Many concurrent
+#    ## transfers can cost more throughput than they gain when the network path
+#    ## is the bottleneck. Only transfers Pulsar makes itself count, not files
+#    ## Galaxy pushes to or pulls from Pulsar's API. A job keeps its slot while
+#    ## it backs off between retries, so be careful combining a cap with long or
+#    ## unbounded retries.
+#    #preprocess_max_concurrent: 16
+#    #postprocess_max_concurrent: 16
 #    ## Run jobs under cvmfsexec (https://github.com/cvmfs/cvmfsexec) so CVMFS
 #    ## repositories are available without a system-wide /cvmfs mount. This can
 #    ## also be set/overridden per-destination from Galaxy (a `cvmfsexec` job

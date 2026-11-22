@@ -25,6 +25,12 @@ from .container_job_config import CoexecutionContainerCommand
 
 DEFAULT_GCP_WALLTIME_LIMIT = 60 * 60 * 24  # Default wall time limit in seconds
 DEFAULT_GCP_MACHINE_TYPE = "n1-standard-1"
+DEFAULT_GCP_JOB_ID_PREFIX = "pulsar"
+# https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs/create
+GCP_JOB_NAME_PATTERN = re.compile(r"^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$")
+GCP_JOB_NAME_MAX_LENGTH = 63
+GCP_KILL_ACTIONS = ("delete", "cancel")
+DEFAULT_GCP_KILL_ACTION = "delete"
 ResourceValue = Union[str, int, float]
 N2_LOCAL_SSD_COUNTS = (
     (10, [1, 2, 4, 8, 16, 24]),
@@ -358,5 +364,50 @@ def container_command_to_gcp_runnable(name: str, container: CoexecutionContainer
     return runnable
 
 
-def gcp_galaxy_instance_id(destination_params: Dict[str, str]) -> Optional[str]:
-    return destination_params.get("galaxy_instance_id")
+def gcp_job_id_prefix(destination_params: Dict[str, str]) -> str:
+    """Resolve and validate the prefix GCP Batch job names are built from.
+
+    ``job_id_prefix`` is used verbatim when set. Otherwise the historical
+    ``pulsar[-<galaxy_instance_id>]`` prefix is kept so jobs launched before an
+    upgrade are still found. The prefix is normalized to GCP's job name rules
+    (lowercase, ``[a-z0-9-]``) and must start with a letter.
+    """
+    prefix = destination_params.get("job_id_prefix")
+    if not prefix:
+        prefix = DEFAULT_GCP_JOB_ID_PREFIX
+        instance_id = destination_params.get("galaxy_instance_id")
+        if instance_id:
+            prefix = f"{prefix}-{instance_id}"
+    normalized = re.sub(r"[^a-z0-9-]+", "-", str(prefix).strip().lower()).strip("-")
+    if not GCP_JOB_NAME_PATTERN.match(normalized):
+        raise ValueError(
+            f"Invalid GCP Batch job_id_prefix {prefix!r}: must start with a letter, contain only "
+            f"lowercase letters, digits and hyphens, and be shorter than {GCP_JOB_NAME_MAX_LENGTH} characters"
+        )
+    return normalized
+
+
+def gcp_job_name(prefix: str, job_id: str, suffix: Optional[str] = None) -> str:
+    """Build ``<prefix>-<job_id>[-<suffix>]`` and check it against GCP's job name rules."""
+    job_name = f"{prefix}-{job_id}"
+    if suffix:
+        job_name = f"{job_name}-{suffix}"
+    if not GCP_JOB_NAME_PATTERN.match(job_name):
+        raise ValueError(
+            f"Invalid GCP Batch job name {job_name!r}: names must match {GCP_JOB_NAME_PATTERN.pattern} "
+            f"(at most {GCP_JOB_NAME_MAX_LENGTH} characters); shorten job_id_prefix"
+        )
+    return job_name
+
+
+def gcp_kill_action(destination_params: Dict[str, str]) -> str:
+    """What ``kill()`` does to the Batch job: ``delete`` (the default) or ``cancel``.
+
+    Cancelling stops the job's VMs but keeps the job record and its Cloud
+    Logging output, which is useful when debugging. Finished jobs are never
+    deleted by Pulsar either way.
+    """
+    action = str(destination_params.get("gcp_kill_action") or DEFAULT_GCP_KILL_ACTION).strip().lower()
+    if action not in GCP_KILL_ACTIONS:
+        raise ValueError(f"Invalid gcp_kill_action {action!r}: expected one of {', '.join(GCP_KILL_ACTIONS)}")
+    return action

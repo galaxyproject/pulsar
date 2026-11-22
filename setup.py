@@ -69,6 +69,7 @@ setup(
         'pulsar.managers.util.condor',
         'pulsar.managers.util.drmaa',
         'pulsar.managers.util.job_script',
+        'pulsar.managers.util.slurm',
         'pulsar.messaging',
         'pulsar.scripts',
         'pulsar.testing',

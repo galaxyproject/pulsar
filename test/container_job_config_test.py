@@ -3,7 +3,10 @@ import pytest
 from pulsar.client.gcp_job_config import (
     _validate_ssd_size,
     DEFAULT_GCP_WALLTIME_LIMIT,
+    gcp_job_id_prefix,
+    gcp_job_name,
     gcp_job_template,
+    gcp_kill_action,
     GcpJobParams,
     parse_gcp_job_params,
 )
@@ -230,3 +233,48 @@ def test_convert_cpu_to_milli_rejects_invalid_values(value):
 def test_convert_memory_to_mib_rejects_invalid_values(value):
     with pytest.raises(ValueError):
         convert_memory_to_mib(value)
+
+
+@pytest.mark.parametrize(("destination_params", "expected"), [
+    ({}, "pulsar"),
+    ({"galaxy_instance_id": "main"}, "pulsar-main"),
+    ({"galaxy_instance_id": "Main Site"}, "pulsar-main-site"),
+    ({"job_id_prefix": "jhu", "galaxy_instance_id": "main"}, "jhu"),
+    ({"job_id_prefix": " My_Galaxy.dev "}, "my-galaxy-dev"),
+    ({"job_id_prefix": "-galaxy-"}, "galaxy"),
+    ({"job_id_prefix": ""}, "pulsar"),
+])
+def test_gcp_job_id_prefix(destination_params, expected):
+    assert gcp_job_id_prefix(destination_params) == expected
+
+
+@pytest.mark.parametrize("prefix", ["1galaxy", "_", "a" * 64])
+def test_gcp_job_id_prefix_rejects_invalid_names(prefix):
+    with pytest.raises(ValueError, match="job_id_prefix"):
+        gcp_job_id_prefix({"job_id_prefix": prefix})
+
+
+def test_gcp_job_name():
+    assert gcp_job_name("pulsar", "42") == "pulsar-42"
+    assert gcp_job_name("pulsar", "42", suffix="0badf00d") == "pulsar-42-0badf00d"
+
+
+def test_gcp_job_name_rejects_names_over_63_characters():
+    prefix = "a" * 55
+    assert gcp_job_name(prefix, "1234567")
+    with pytest.raises(ValueError, match="63 characters"):
+        gcp_job_name(prefix, "12345678")
+
+
+@pytest.mark.parametrize(("destination_params", "expected"), [
+    ({}, "delete"),
+    ({"gcp_kill_action": "delete"}, "delete"),
+    ({"gcp_kill_action": " Cancel "}, "cancel"),
+])
+def test_gcp_kill_action(destination_params, expected):
+    assert gcp_kill_action(destination_params) == expected
+
+
+def test_gcp_kill_action_rejects_unknown_values():
+    with pytest.raises(ValueError, match="gcp_kill_action"):
+        gcp_kill_action({"gcp_kill_action": "keep"})

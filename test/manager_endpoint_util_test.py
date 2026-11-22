@@ -24,6 +24,15 @@ class _FakeJobDirectory:
     def has_metadata(self, name):
         return name in self._metadata
 
+    def load_metadata(self, name, default=None):
+        return self._metadata.get(name, default)
+
+    def store_metadata(self, name, value):
+        self._metadata[name] = value
+
+    def delete(self):
+        self._metadata.clear()
+
     def _sub(self, name):
         return "%s/%s" % (self.path, name)
 
@@ -116,6 +125,7 @@ def _completed_manager(stdout=b"tool stdout", stderr=b"tool stderr", live_stdout
     manager.job_directory.return_value = job_directory
     manager.system_properties.return_value = {"separator": "/"}
     manager.is_live_stdout_update.return_value = live_stdout_update
+    manager.runner_state.return_value = None
     return manager
 
 
@@ -131,6 +141,16 @@ def test_completed_status_preserves_short_tool_streams_and_metadata():
     assert result["metadata_directory_contents"] == ["metadata.txt"]
     assert result["outputs_directory_contents"] == ["output.txt"]
     assert result["job_directory_contents"] == ["working", "metadata", "outputs"]
+
+
+def test_failed_status_carries_runner_state():
+    manager = _completed_manager()
+    manager.runner_state.return_value = "memory_limit_reached"
+    assert manager_endpoint_util.full_status(manager, "failed", "j1")["runner_state"] == "memory_limit_reached"
+
+
+def test_status_omits_runner_state_when_unknown():
+    assert "runner_state" not in manager_endpoint_util.full_status(_completed_manager(), "failed", "j1")
 
 
 def test_completed_status_caps_tool_streams_at_64_kib_keeping_the_end():
@@ -229,6 +249,45 @@ def test_missing_job_id_does_not_short_circuit():
     except Exception:
         pass
     assert mgr.preprocess_and_launch_calls + mgr.handle_failure_calls >= 1
+
+
+def _resubmission_config(resubmission_count):
+    return _job_config(setup_params={"job_id": "j1"}, resubmission_count=resubmission_count)
+
+
+def test_resubmission_replaces_finished_attempt():
+    jd = _FakeJobDirectory(exists=True, metadata={"final_status": "failed"})
+    mgr = _FakeManager(jd)
+    manager_endpoint_util.submit_job(mgr, _resubmission_config(1))
+    assert mgr.preprocess_and_launch_calls == 1
+    assert not jd.has_metadata("final_status")
+    assert jd.load_metadata("resubmission_count") == 1
+
+
+def test_failure_to_discard_previous_attempt_fails_the_job():
+    jd = _FakeJobDirectory(exists=True, metadata={"final_status": "failed"})
+    jd.delete = Mock(side_effect=OSError("device or resource busy"))
+    mgr = _FakeManager(jd)
+    with pytest.raises(OSError):
+        manager_endpoint_util.submit_job(mgr, _resubmission_config(1))
+    assert mgr.handle_failure_calls == 1
+    assert mgr.preprocess_and_launch_calls == 0
+
+
+def test_redelivered_resubmission_is_still_ignored():
+    jd = _FakeJobDirectory(exists=True, metadata={"final_status": "failed", "resubmission_count": 1})
+    mgr = _FakeManager(jd)
+    manager_endpoint_util.submit_job(mgr, _resubmission_config(1))
+    assert mgr.preprocess_and_launch_calls == 0
+    assert jd.has_metadata("final_status")
+
+
+def test_second_resubmission_replaces_first():
+    jd = _FakeJobDirectory(exists=True, metadata={"final_status": "failed", "resubmission_count": 1})
+    mgr = _FakeManager(jd)
+    manager_endpoint_util.submit_job(mgr, _resubmission_config(2))
+    assert mgr.preprocess_and_launch_calls == 1
+    assert jd.load_metadata("resubmission_count") == 2
 
 
 def _submit_with_setup(command_line, job_directory="/staging/j1"):

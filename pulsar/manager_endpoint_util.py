@@ -26,6 +26,9 @@ REMOVED_JOBS_DIRECTORY_TOKEN = '__PULSAR_JOBS_DIRECTORY__'
 
 MAXIMUM_STATUS_STREAM_SIZE = 64 * 1024
 
+# How many times Galaxy had resubmitted a job when this job directory was set up.
+JOB_FILE_RESUBMISSION_COUNT = "resubmission_count"
+
 
 def status_dict(manager, job_id):
     job_status = manager.get_status(job_id)
@@ -85,6 +88,12 @@ def __job_complete_dict(complete_status, manager, job_id):
         "pulsar_version": pulsar_version,
         "realized_dynamic_file_sources": realized_dynamic_file_sources(job_directory)
     }
+    runner_state = manager.runner_state(job_id)
+    if runner_state:
+        as_dict["runner_state"] = runner_state
+    runner_state_message = manager.runner_state_message(job_id)
+    if runner_state_message:
+        as_dict["runner_state_message"] = runner_state_message
     return as_dict
 
 
@@ -94,14 +103,15 @@ def submit_job(manager, job_config):
     """
     # job_config is raw dictionary from JSON (from MQ or HTTP endpoint).
     job_id = job_config.get('job_id')
-    if job_id and _is_duplicate_setup(manager, job_id):
-        log.info(
-            "Ignoring duplicate setup message for job_id %s (launch_config already "
-            "persisted; this is most likely an MQ redelivery after Pulsar restart).",
-            job_id,
-        )
-        return
+    resubmission_count = job_config.get('resubmission_count', 0)
     try:
+        if job_id and _is_duplicate_setup(manager, job_id, resubmission_count):
+            log.info(
+                "Ignoring duplicate setup message for job_id %s (launch_config already "
+                "persisted; this is most likely an MQ redelivery after Pulsar restart).",
+                job_id,
+            )
+            return
         command_line = job_config.get('command_line')
 
         setup_params = job_config.get('setup_params', {})
@@ -128,6 +138,8 @@ def submit_job(manager, job_config):
             )
 
         if job_config is not None:
+            if resubmission_count:
+                manager.job_directory(job_id).store_metadata(JOB_FILE_RESUBMISSION_COUNT, resubmission_count)
             job_directory = os.path.abspath(job_config["job_directory"])
             # The absolute per-job directory. Lets the client emit a path that is
             # relative to the (runtime-unknown) job directory without embedding a
@@ -185,7 +197,7 @@ def setup_job(manager, job_id, tool_id, tool_version):
     )
 
 
-def _is_duplicate_setup(manager, job_id: str) -> bool:
+def _is_duplicate_setup(manager, job_id: str, resubmission_count: int = 0) -> bool:
     """Detect a redelivered setup message for a job that has already been launched.
 
     Setup messages can be redelivered when Pulsar restarts after acking an AMQP
@@ -198,6 +210,11 @@ def _is_duplicate_setup(manager, job_id: str) -> bool:
     it. If the prior run crashed *between* persisting ``launch_config`` and
     activating the job there is no recovery hook, so we let the redelivered
     message drive a fresh ``preprocess_and_launch``.
+
+    A resubmission from Galaxy reuses the job id but carries a higher
+    ``resubmission_count`` than the existing job directory. That is a new
+    attempt rather than a redelivery, so the previous attempt's directory
+    is discarded for it to start from.
     """
     try:
         job_directory = manager.job_directory(job_id)
@@ -205,6 +222,10 @@ def _is_duplicate_setup(manager, job_id: str) -> bool:
         # Malformed job_id from a redelivered or corrupt message body.
         return False
     if not job_directory.exists():
+        return False
+    if resubmission_count and job_directory.load_metadata(JOB_FILE_RESUBMISSION_COUNT, 0) < resubmission_count:
+        log.info("Discarding previous attempt of resubmitted job_id %s", job_id)
+        job_directory.delete()
         return False
     if job_directory.has_metadata("final_status"):
         return True

@@ -456,7 +456,7 @@ Known Issues
 .. _compat-issue-tus-now-real:
 
 ``tus-now-real`` (conditional)
-   ``remote_transfer_tus`` really uses TUS on master (1f7eb9a); servers without ``tuspy`` now fail stage-out instead of silently using POST.
+   ``remote_transfer_tus`` really uses TUS since 0.15.16 (1f7eb9a); 0.15.16 and 0.16.0 servers without ``tuspy`` fail stage-out instead of silently using POST. From 0.16.1 Pulsar has its own tus client and needs no ``tuspy``.
 
 .. _compat-issue-resubmit-same-id-ignored:
 

@@ -38,7 +38,7 @@ def http_status_code(exc):
         return exc.response.status_code
     if isinstance(exc, UrllibHTTPError):
         return exc.code
-    if isinstance(exc, PulsarClientTransportError):
+    if isinstance(exc, PulsarClientTransportError) and exc.code == PulsarClientTransportError.NOT_200:
         try:
             return int(exc.transport_code)
         except (TypeError, ValueError):
@@ -62,9 +62,6 @@ def _status_is_transient(status):
     try:
         return int(status) in TRANSIENT_HTTP_STATUS
     except (TypeError, ValueError):
-        # Non-numeric transport_code (e.g. PulsarClientTransportError.TIMEOUT
-        # string constants) — these come from connection-level failures, not
-        # HTTP responses, and are always transient.
         return True
 
 
@@ -88,7 +85,12 @@ def is_transient_http_error(exc):
     if isinstance(exc, UrllibHTTPError):
         return _status_is_transient(exc.code)
     if isinstance(exc, PulsarClientTransportError):
-        return _status_is_transient(exc.transport_code)
+        # transport_code is an HTTP status only for NOT_200. Everything else is a
+        # connection-level failure (the curl transport puts the pycurl error
+        # number there) and is always transient.
+        if exc.code == PulsarClientTransportError.NOT_200:
+            return _status_is_transient(exc.transport_code)
+        return True
 
     # urllib.error.URLError without an HTTP status is connection-level.
     if isinstance(exc, URLError):

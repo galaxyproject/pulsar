@@ -91,6 +91,37 @@ making use of the HTTP transport method:
 .. literalinclude:: files/job_conf_sample_mq_rsync.yml
    :language: yaml
 
+.. _remote_pulsar_version:
+
+Declaring the Remote Pulsar Version
+```````````````````````````````````
+
+When a Pulsar environment in Galaxy's ``job_conf.yml`` sets ``jobs_directory``
+(as message queue and relay environments typically do), Galaxy builds the job
+setup itself and never asks the remote Pulsar for its version, so its minimum
+Pulsar version checks can't be applied. To have Galaxy check against the version
+the remote Pulsar is running, set ``remote_pulsar_version`` on that same
+environment in Galaxy's ``job_conf.yml`` (nothing changes on the Pulsar side):
+
+.. code-block:: yaml
+
+    execution:
+      environments:
+        pulsar_mq:
+          runner: pulsar_mq
+          jobs_directory: /data/pulsar/staging
+          remote_pulsar_version: "0.15.16"
+
+Quote the value - YAML reads an unquoted ``0.20`` as the number ``0.2``, so
+Pulsar rejects non-string values. Update it when the remote Pulsar is upgraded.
+Without it Galaxy assumes a current Pulsar, so declare it for any remote older
+than 0.15.13 - older remotes don't understand how Galaxy describes discovered
+outputs, and those outputs are silently lost.
+
+Kubernetes, TES, and GCP Batch environments don't need it when
+``pulsar_container_image`` is a published ``galaxy/pulsar-pod-staging`` image
+(including Galaxy's default) - Pulsar knows the version each was built from.
+
 Targeting GCP Batch, Kubernetes, or TES
 ```````````````````````````````````````
 
@@ -180,7 +211,36 @@ inputs, outputs, indexed reference data, etc... are staged. The default
 ``transfer`` has Galaxy initiate HTTP transfers. This makes little sense in the
 context of message queues so this should be set to ``remote_transfer``, which
 causes Pulsar to initiate the file transfers. Additional options are available
-including ``none``, ``copy``, and ``remote_copy``.
+including ``none``, ``copy``, ``remote_copy``, ``hardlink``, and
+``remote_hardlink``. The hardlink actions stage files on the client and Pulsar
+server respectively. Source and destination must be on the same filesystem,
+and changes to either linked file affect the other. Hardlink failures are
+reported rather than falling back to copying.
+
+Only hardlink files that nothing writes to during the job. In practice, this
+means ``path_types: input``, which covers input datasets with their extra files
+and metadata files (for example BAM indexes). Do not use ``hardlink`` or
+``remote_hardlink`` as ``default_file_action``, or for the ``metadata``,
+``workdir``, ``jobdir`` or output path types. ``metadata`` is Galaxy's job
+metadata directory, and remote metadata writes to it. The Galaxy and Pulsar
+sides share a hardlinked file, so when the job writes to it, the copy back has
+the same source and destination and fails. The job then fails with "Failed to
+find or download one or more job outputs from remote server." although the
+tool succeeded.
+
+Keep a copying ``default_file_action`` and hardlink inputs with a
+``file_action_config`` entry for the shared filesystem's path, as in the
+``/data/galaxy`` example below. Files on other filesystems then keep the
+default action.
+
+When Galaxy collects outputs with ``copy`` or ``hardlink`` from a shared
+filesystem such as NFS, the Galaxy host may briefly not see files a compute
+node just wrote, because its NFS client caches directory lookups. Galaxy
+therefore retries an output whose source is missing, waiting 2 seconds and
+re-reading the source directory before each attempt. The destination parameter
+``output_collection_retries`` sets the number of retries (default ``3``; ``0``
+disables them). A ``from_work_dir`` output that is still missing after the last
+retry is treated as a tool failure, and a warning names the file.
 
 In addition to this default - paths may be overridden based on various
 patterns to allow optimization of file transfers in production

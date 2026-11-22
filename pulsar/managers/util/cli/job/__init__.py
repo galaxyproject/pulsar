@@ -68,7 +68,7 @@ class BaseJobExec(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def parse_single_status(self, status, job_id):
+    def parse_single_status(self, status, job_id, shell):
         """
         Parse the status of output from get_single_status command.
         """
@@ -82,6 +82,12 @@ class BaseJobExec(metaclass=ABCMeta):
     def parse_failure_reason(self, reason, job_id):
         """
         Parses the failure reason, assigning it against a
+        """
+        return None
+
+    def parse_failure_message(self, reason, job_id):
+        """
+        Parses details for the user out of the failure reason, if there are any.
         """
         return None
 

@@ -124,6 +124,12 @@ def test_integration_copy(integration_test_configuration: IntegrationTestConfigu
     )
 
 
+@pytest.mark.parametrize("action_type", ["hardlink", "remote_hardlink"])
+@integration_test
+def test_integration_hardlink(integration_test_configuration: IntegrationTestConfiguration, action_type):
+    run_job(integration_test_configuration, private_token=None, default_file_action=action_type)
+
+
 @integration_test
 def test_integration_no_transfer(integration_test_configuration: IntegrationTestConfiguration):
     run_job(
@@ -422,6 +428,17 @@ def test_integration_tes_mq(external_queue_test_configuration: IntegrationTestCo
 def test_integration_remote_transfer(direct_test_configuration: IntegrationTestConfiguration):
     run_job(
         direct_test_configuration,
+        private_token=None,
+        local_setup=True,
+        default_file_action="remote_transfer",
+    )
+
+
+@integration_test
+def test_integration_remote_transfer_with_staging_caps(direct_test_configuration: IntegrationTestConfiguration):
+    run_job(
+        direct_test_configuration,
+        job_conf_props={"type": "queued_python", "preprocess_max_concurrent": "1", "postprocess_max_concurrent": "1"},
         private_token=None,
         local_setup=True,
         default_file_action="remote_transfer",

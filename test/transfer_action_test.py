@@ -1,4 +1,5 @@
 import os
+import stat
 from unittest import mock
 
 import pytest
@@ -6,21 +7,26 @@ import pytest
 from pulsar.client import action_mapper
 from pulsar.client.action_mapper import (
     DICTIFIABLE_ACTION_CLASSES,
+    FileActionMapper,
     from_dict,
     MessageAction,
     RemoteCopyAction,
+    RemoteHardlinkAction,
     RemoteObjectStoreCopyAction,
     RemoteTransferAction,
     RemoteTransferTusAction,
     RsyncTransferAction,
     ScpTransferAction,
 )
+from pulsar.client.client import JobClient
+from pulsar.client.util import hardlink
 from .test_utils import files_server
 
 SOURCE = {"path": "/out.dat"}
 URL = "http://galaxy.test/api/jobs/1/files?job_key=k&path=/out.dat"
 DICTIFIABLE_ACTIONS = [
     RemoteCopyAction(SOURCE),
+    RemoteHardlinkAction(SOURCE),
     RemoteTransferAction(SOURCE, url=URL),
     RemoteTransferTusAction(SOURCE, url=URL),
     MessageAction("contents"),
@@ -43,6 +49,57 @@ def test_action_survives_being_rebuilt_from_its_dict(action):
     rebuilt = from_dict(as_dict)
     assert type(rebuilt) is type(action)
     assert rebuilt.to_dict() == action.to_dict()
+
+
+@pytest.mark.parametrize("action_type", ["hardlink", "remote_hardlink"])
+def test_hardlink_staging_in_and_out(tmp_path, action_type):
+    source = tmp_path / "source"
+    source.write_text("input")
+    staged = tmp_path / "staging" / "input"
+    output = tmp_path / "output"
+    output.write_text("old placeholder")
+    action = FileActionMapper(config={"default_action": action_type}).action({"path": str(source)}, "input")
+
+    if action_type == "remote_hardlink":
+        action = from_dict(action.to_dict())
+        action.write_to_path(str(staged))
+        from_dict(RemoteHardlinkAction({"path": str(output)}).to_dict()).write_from_path(str(staged))
+    else:
+        client = JobClient({}, "job", None)
+        with mock.patch.object(client, "_raw_execute", return_value='{"path": "%s"}' % staged):
+            client.put_file(str(source), "input", action_type=action_type)
+        with mock.patch.object(client, "_output_path", return_value={"path": str(staged)}):
+            client.fetch_output(str(output), "output", str(tmp_path), action_type, "output")
+
+    assert os.path.samefile(source, staged)
+    assert os.path.samefile(source, output)
+    assert output.read_text() == "input"
+
+
+def test_hardlink_failure_preserves_existing_destination(tmp_path):
+    destination = tmp_path / "destination"
+    destination.write_text("existing")
+    with pytest.raises(FileNotFoundError):
+        hardlink(str(tmp_path / "missing"), str(destination))
+    assert destination.read_text() == "existing"
+
+
+@pytest.mark.parametrize("executable, expected_mode", [(True, 0o750), (False, 0o640)])
+def test_copy_sets_executable_bits_only_when_requested(tmp_path, executable, expected_mode):
+    source = tmp_path / "source"
+    source.write_text("#!/bin/sh\n")
+    # Owner-only execute; staging still grants it wherever the umask grants read.
+    source.chmod(0o744)
+    # copyfile keeps an existing destination's mode, standing in for a umask of 027.
+    staged = tmp_path / "staged"
+    staged.write_text("")
+    staged.chmod(0o640)
+    client = JobClient({}, "job", None)
+    with mock.patch.object(client, "_raw_execute", return_value='{"path": "%s"}' % staged):
+        client.put_file(str(source), "tool", action_type="copy", executable=executable)
+
+    assert staged.read_text() == "#!/bin/sh\n"
+    assert stat.S_IMODE(staged.stat().st_mode) == expected_mode
 
 
 def test_tus_action_rebuilt_from_launch_config_uploads_with_tus(tmp_path):

@@ -26,6 +26,11 @@ POST_FAILED_MESSAGE = "Failed to post_file properly for url %s, remote server re
 GET_FAILED_MESSAGE = "Failed to get_file properly for url %s, remote server returned status code of %s."
 # Bounded explicitly: libcurl before 8.3 follows redirect loops forever by default.
 MAX_REDIRECTS = 5
+# Seconds to wait to connect, and between bytes of the response, when sizing a
+# partial download. Without it a server or proxy that accepts the connection but
+# never answers blocks the staging action, and the retry that would resume the
+# download never gets to run.
+GET_SIZE_TIMEOUT = 60
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +89,9 @@ def post_file(url, path):
 
 
 def get_size(url) -> int:
-    with requests.head(url, headers={"accept-encoding": "identity"}, allow_redirects=True) as response:
+    with requests.head(
+        url, headers={"accept-encoding": "identity"}, allow_redirects=True, timeout=GET_SIZE_TIMEOUT
+    ) as response:
         if response.status_code >= 299:
             log.warning("Response to HEAD request for '%s' with status code %s, cannot resume download", url, response.status_code)
             return -1

@@ -39,13 +39,21 @@ JOB_FILE_STANDARD_ERROR = os.path.join("metadata", "job_stderr")
 JOB_FILE_TOOL_ID = "tool_id"
 JOB_FILE_TOOL_VERSION = "tool_version"
 JOB_FILE_CANCELLED = "cancelled"
+JOB_FILE_RUNNER_STATE = "runner_state"
+JOB_FILE_RUNNER_STATE_MESSAGE = "runner_state_message"
 JOB_FILE_COMMAND_LINE = "command_line"
 CREATE_TMP_PATTERN = """$([ ! -e '{0}/tmp' ] || mv '{0}/tmp' '{0}'/tmp.$(date +%Y%m%d-%H%M%S) ; mkdir '{0}/tmp'; echo '{0}/tmp')"""
+# Copy working, outputs, and configs before tool execution so that these can be restored on job resubmission
+# xref https://github.com/galaxyproject/galaxy/issues/3289
+# Any existing $dir.orig is restored over $dir, so $dir.orig must only ever appear complete: the backup is copied to
+# the sibling $dir.orig.partial and renamed into place only if the copy succeeded. A $dir.orig.partial left by an
+# interrupted run is removed first, otherwise cp -R would copy into it instead of creating it.
 PREPARE_DIRS_TEMPLATE = """for dir in {working_directory} {outputs_directory} {configs_directory}; do
     if [ -d "${{dir}}.orig" ]; then
         rm -rf "$dir"; cp -R "${{dir}}.orig" "$dir"
     else
-        cp -R "$dir" "${{dir}}.orig"
+        rm -rf "${{dir}}.orig.partial" &&
+        cp -R "$dir" "${{dir}}.orig.partial" && mv "${{dir}}.orig.partial" "${{dir}}.orig"
     fi
 done
 """
@@ -147,6 +155,21 @@ class DirectoryBaseManager(BaseManager):
 
     def _write_command_line(self, job_id: str, command_line: str) -> None:
         self._write_job_file(job_id, JOB_FILE_COMMAND_LINE, command_line)
+
+    def _record_runner_state(
+        self, job_id: str, runner_state: Optional[str], message: Optional[str] = None
+    ) -> None:
+        job_directory = self._job_directory(job_id)
+        if runner_state:
+            job_directory.store_metadata(JOB_FILE_RUNNER_STATE, runner_state)
+        if message:
+            job_directory.store_metadata(JOB_FILE_RUNNER_STATE_MESSAGE, message)
+
+    def runner_state(self, job_id: str) -> Optional[str]:
+        return self._job_directory(job_id).load_metadata(JOB_FILE_RUNNER_STATE, None)
+
+    def runner_state_message(self, job_id: str) -> Optional[str]:
+        return self._job_directory(job_id).load_metadata(JOB_FILE_RUNNER_STATE_MESSAGE, None)
 
     def _record_cancel(self, job_id: str):
         try:
