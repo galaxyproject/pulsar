@@ -321,7 +321,8 @@ An output file that does not exist when Pulsar stages it out is not a
 transfer error and gets none of these retries. Pulsar re-checks it
 ``output_collection_retries`` times (default ``3``), 2 seconds apart, re-reading
 the directory so a lagging NFS client sees a file the compute node just
-wrote. A ``from_work_dir`` output still missing after that is a tool failure
+wrote. A tool that exited with a non-zero code gets no re-checks. A
+``from_work_dir`` output still missing after that is a tool failure
 and only logged. A regular output the tool did not write is not in the
 output directory listing, so Pulsar never tries to stage it out.
 

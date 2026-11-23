@@ -304,9 +304,10 @@ def test_staging_concurrency_is_capped_by_postprocess_max_concurrent(max_concurr
     assert sorted(proxy.callbacks) == sorted((status.COMPLETE, job_id) for job_id in job_ids)
 
 
-def test_missing_work_dir_output_waits_output_collection_retries():
+@pytest.mark.parametrize("return_code, expected_sleeps", [(None, 1), ("0", 1), ("104", 0)])
+def test_missing_work_dir_output_waits_output_collection_retries(return_code, expected_sleeps):
     """A from_work_dir output the tool never wrote costs only the configured NFS
-    revalidations, and the job still completes."""
+    revalidations, none when the tool exited non-zero, and the job still completes."""
     with temp_directory() as client_directory, _proxy(output_collection_retries="1") as (proxy, manager):
         galaxy_working_directory = os.path.join(client_directory, "working")
         galaxy_output = os.path.join(client_directory, "dataset_1.dat")
@@ -323,12 +324,14 @@ def test_missing_work_dir_output_waits_output_collection_retries():
         }
         job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
         proxy.preprocess_and_launch(job_id, launch_config)
+        if return_code is not None:
+            manager.job_directory(job_id).write_file("return_code", return_code)
         manager.scripted_status = status.COMPLETE
         with mock.patch.object(client_util, "time") as nfs_time:
             proxy.get_status(job_id)
             _wait_for_callback(proxy)
         assert proxy.callbacks == [(status.COMPLETE, job_id)]
-        nfs_time.sleep.assert_called_once_with(client_util.OUTPUT_COLLECTION_RETRY_SLEEP)
+        assert nfs_time.sleep.call_args_list == [mock.call(client_util.OUTPUT_COLLECTION_RETRY_SLEEP)] * expected_sleeps
         assert not os.path.exists(galaxy_output)
 
 

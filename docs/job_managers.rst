@@ -205,7 +205,8 @@ is not retried with them: the tool did not write it, or was killed before it
 could. Pulsar instead checks again ``output_collection_retries`` times (default
 ``3``; ``0`` disables the checks), waiting 2 seconds and re-reading the output's
 directory before each check, in case the Pulsar host's NFS client has not yet
-seen a file the compute node just wrote. A ``from_work_dir`` output that is
+seen a file the compute node just wrote. These checks are skipped when the
+tool exited with a non-zero code. A ``from_work_dir`` output that is
 still missing is treated as a tool failure, as with Galaxy's
 ``output_collection_retries`` destination parameter (see
 :doc:`galaxy_conf`). A regular output the tool did not write is not in the
