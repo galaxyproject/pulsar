@@ -12,7 +12,10 @@ import requests
 from galaxy.tool_util.deps.dependencies import DependenciesDescription
 from galaxy.tool_util.deps.requirements import ToolRequirement
 
-from pulsar.client import client as client_module
+from pulsar.client import (
+    client as client_module,
+    util as client_util,
+)
 from pulsar.client.client import JobClient
 from pulsar.client.exceptions import PulsarClientTransportError
 from pulsar.client.manager import build_client_manager
@@ -600,7 +603,7 @@ def test_collect_workdir_output_retries_until_source_is_visible(tmp_path):
     assert failures == []
     assert output_file.read_text() == "tool output"
     assert len(attempts) == 2
-    sleep.assert_called_once_with(client_module.OUTPUT_COLLECTION_RETRY_SLEEP)
+    sleep.assert_called_once_with(client_util.OUTPUT_COLLECTION_RETRY_SLEEP)
 
 
 def test_collect_workdir_output_never_visible_is_allowed_failure(tmp_path, caplog):
