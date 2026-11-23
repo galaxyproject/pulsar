@@ -9,6 +9,7 @@ from unittest import mock
 
 import pytest
 
+from pulsar.client import util as client_util
 from pulsar.managers import (
     stateful,
     status,
@@ -18,6 +19,7 @@ from pulsar.managers.staging import pre as staging_pre
 from pulsar.managers.stateful import StatefulManagerProxy
 from .test_utils import (
     minimal_app_for_managers,
+    temp_directory,
     wait_for,
 )
 
@@ -300,6 +302,34 @@ def test_staging_concurrency_is_capped_by_postprocess_max_concurrent(max_concurr
             wait_for(lambda: len(proxy.callbacks) == 3, "terminal callbacks")
     assert transfers.peak == expected_peak
     assert sorted(proxy.callbacks) == sorted((status.COMPLETE, job_id) for job_id in job_ids)
+
+
+def test_missing_work_dir_output_waits_output_collection_retries():
+    """A from_work_dir output the tool never wrote costs only the configured NFS
+    revalidations, and the job still completes."""
+    with temp_directory() as client_directory, _proxy(output_collection_retries="1") as (proxy, manager):
+        galaxy_working_directory = os.path.join(client_directory, "working")
+        galaxy_output = os.path.join(client_directory, "dataset_1.dat")
+        launch_config = {
+            "command_line": "true",
+            "remote_staging": {
+                "action_mapper": {"default_action": "remote_copy"},
+                "client_outputs": {
+                    "working_directory": galaxy_working_directory,
+                    "output_files": [galaxy_output],
+                    "work_dir_outputs": [[os.path.join(galaxy_working_directory, "Log.final.out"), galaxy_output]],
+                },
+            },
+        }
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        proxy.preprocess_and_launch(job_id, launch_config)
+        manager.scripted_status = status.COMPLETE
+        with mock.patch.object(client_util, "time") as nfs_time:
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.COMPLETE, job_id)]
+        nfs_time.sleep.assert_called_once_with(client_util.OUTPUT_COLLECTION_RETRY_SLEEP)
+        assert not os.path.exists(galaxy_output)
 
 
 @pytest.mark.parametrize("option", ["preprocess_max_concurrent", "postprocess_max_concurrent"])

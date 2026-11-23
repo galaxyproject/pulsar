@@ -28,7 +28,10 @@ except ImportError:
 import logging
 
 from pulsar.client.transport.transient import is_transient_http_error
-from pulsar.client.util import filter_destination_params
+from pulsar.client.util import (
+    DEFAULT_OUTPUT_COLLECTION_RETRIES,
+    filter_destination_params,
+)
 from pulsar.managers import (
     ManagerProxy,
     status,
@@ -123,6 +126,9 @@ class StatefulManagerProxy(ManagerProxy):
         self.__shutting_down = threading.Event()
         self.__slot_poll_interval = float(
             manager_options.get("staging_slot_poll_interval", DEFAULT_STAGING_SLOT_POLL_INTERVAL)
+        )
+        self.__output_collection_retries = int(
+            manager_options.get("output_collection_retries", DEFAULT_OUTPUT_COLLECTION_RETRIES)
         )
         self.min_polling_interval = dt.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs.from_manager(manager)
@@ -441,7 +447,10 @@ class StatefulManagerProxy(ManagerProxy):
                     self.__postprocess_slots, "postprocess", job_id, self.__shutting_down, was_cancelled, self.__slot_poll_interval
                 ):
                     postprocess_success = postprocess(
-                        job_directory, self.__postprocess_action_executor, was_cancelled
+                        job_directory,
+                        self.__postprocess_action_executor,
+                        was_cancelled,
+                        output_collection_retries=self.__output_collection_retries,
                     )
             except _StagingInterrupted:
                 # No outcome to record: the job stays indexed and recovery stages it after the restart.

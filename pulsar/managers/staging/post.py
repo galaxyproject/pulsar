@@ -1,6 +1,7 @@
 """
 """
 
+import errno
 import logging
 import os
 from typing import (
@@ -17,6 +18,10 @@ from pulsar.client.staging.down import ResultsCollector
 from pulsar.client.staging.models import (
     ClientOutputs,
     PulsarOutputs,
+)
+from pulsar.client.util import (
+    DEFAULT_OUTPUT_COLLECTION_RETRIES,
+    retry_missing_source,
 )
 from pulsar.managers.util.retry import RetryActionExecutor
 from .metrics import (
@@ -36,6 +41,7 @@ def postprocess(
     job_directory: "JobDirectory",
     action_executor: "RetryActionExecutor",
     was_cancelled: Callable[[], Optional[bool]],
+    output_collection_retries: int = DEFAULT_OUTPUT_COLLECTION_RETRIES,
 ) -> bool:
     # Returns True if outputs were collected.
     if job_directory.has_metadata("launch_config"):
@@ -45,7 +51,7 @@ def postprocess(
     else:
         staging_config = {}
     return __collect_outputs(
-        job_directory, staging_config, action_executor, was_cancelled
+        job_directory, staging_config, action_executor, was_cancelled, output_collection_retries
     )
 
 
@@ -54,6 +60,7 @@ def __collect_outputs(
     staging_config: Dict[str, Any],
     action_executor: "RetryActionExecutor",
     was_cancelled,
+    output_collection_retries: int,
 ) -> bool:
     collected = True
     if "action_mapper" in staging_config:
@@ -66,7 +73,7 @@ def __collect_outputs(
         pulsar_outputs = __pulsar_outputs(job_directory)
         with record_transfer(job_directory, POSTPROCESS) as metrics:
             output_collector = PulsarServerOutputCollector(
-                job_directory, action_executor, was_cancelled, metrics
+                job_directory, action_executor, was_cancelled, metrics, output_collection_retries
             )
             results_collector = ResultsCollector(
                 output_collector, file_action_mapper, client_outputs, pulsar_outputs
@@ -106,7 +113,7 @@ def __stage_out_transfer_metrics(
             return
         # No retries: the job's own retry budget must not hold up its terminal state for metrics.
         collector = PulsarServerOutputCollector(
-            job_directory, RetryActionExecutor(), was_cancelled
+            job_directory, RetryActionExecutor(), was_cancelled, output_collection_retries=0
         )
         collector.collect_output(None, "output_metadata", action, name)
     except Exception:
@@ -143,11 +150,13 @@ class PulsarServerOutputCollector:
         action_executor: "RetryActionExecutor",
         was_cancelled: Callable[[], Optional[bool]],
         metrics: Optional[TransferMetrics] = None,
+        output_collection_retries: int = DEFAULT_OUTPUT_COLLECTION_RETRIES,
     ):
         self.job_directory = job_directory
         self.action_executor = action_executor
         self.was_cancelled = was_cancelled
         self.metrics = metrics
+        self.output_collection_retries = output_collection_retries
 
     def collect_output(self, results_collector, output_type, action, name):
         def action_if_not_cancelled():
@@ -168,10 +177,26 @@ class PulsarServerOutputCollector:
             name = os.path.basename(action.path)
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
+        if action.staging_needed:
+            # A missing output is not transient: the tool did not write it, or was killed
+            # first. Retrying it with the executor's backoff only delays the job's terminal
+            # state while it holds a postprocess slot, so check here instead, giving NFS a
+            # few short revalidations to show a file the compute node just wrote. A job
+            # cancelled meanwhile stops the checks, and the executor then skips the output.
+            def require_output_unless_cancelled():
+                if not self.was_cancelled():
+                    _require_output_file(pulsar_path)
+
+            retry_missing_source(require_output_unless_cancelled, pulsar_path, self.output_collection_retries)
         description = f"staging out file {pulsar_path} via {action}"
         transferred = self.action_executor.execute(action_if_not_cancelled, description)
         if self.metrics is not None and action.staging_needed and transferred:
             self.metrics.record_file(pulsar_path)
+
+
+def _require_output_file(path: str) -> None:
+    if not os.path.exists(path):
+        raise FileNotFoundError(errno.ENOENT, "Output file does not exist", path)
 
 
 def __pulsar_outputs(job_directory: "JobDirectory") -> PulsarOutputs:
