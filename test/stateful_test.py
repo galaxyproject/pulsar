@@ -18,6 +18,7 @@ from pulsar.managers import (
 )
 from pulsar.managers.queued import QueueManager
 from pulsar.managers.staging import pre as staging_pre
+from pulsar.managers.staging.failure import output_staging_failure
 from pulsar.managers.stateful import StatefulManagerProxy
 from .test_utils import (
     minimal_app_for_managers,
@@ -191,7 +192,7 @@ def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
             _wait_for_callback(proxy)
         assert proxy.callbacks == [(status.FAILED, job_id)]
         assert proxy.get_status(job_id) == status.FAILED
-        _assert_galaxy_told(proxy, job_id, "output_staging_failed", "Failed to transfer job outputs")
+        _assert_galaxy_told(proxy, job_id, "output_staging_failed", "Failed to transfer output 'dataset_2.dat': OSError")
 
 
 def test_input_staging_failure_tells_galaxy_why():
@@ -766,7 +767,8 @@ def _postprocessing_failed():
 
     def failed_postprocess(*args, **kwds):
         real_postprocess(*args, **kwds)
-        return False
+        # What the real ``postprocess`` raises when an output could not be staged out.
+        raise output_staging_failure([("dataset_2.dat", OSError())])
 
     with mock.patch.object(stateful, "postprocess", failed_postprocess):
         yield

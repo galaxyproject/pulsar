@@ -565,7 +565,7 @@ def test_running_job_streams_output_without_polling_the_scheduler(poster):
 
             _write(job_directory, TOOL_FILE_STANDARD_OUTPUT, b"tail")
             manager.scripted_status = status.COMPLETE
-            with mock.patch.object(stateful, "postprocess", return_value=True):
+            with mock.patch.object(stateful, "postprocess"):
                 proxy.get_status(job_id)
                 wait_for(
                     lambda: proxy.callbacks[-1:],

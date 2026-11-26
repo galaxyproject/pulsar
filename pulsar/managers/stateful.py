@@ -474,9 +474,8 @@ class StatefulManagerProxy(ManagerProxy):
                 with _staging_slot(
                     self.__postprocess_slots, "postprocess", job_id, self.__shutting_down, was_cancelled, self.__slot_poll_interval
                 ):
-                    postprocess_success = postprocess(
-                        job_directory, self.__postprocess_action_executor, was_cancelled
-                    )
+                    postprocess(job_directory, self.__postprocess_action_executor, was_cancelled)
+                postprocess_success = True
             except _StagingInterrupted:
                 # No outcome to record: the job stays indexed and recovery stages it after the restart.
                 log.info("Pulsar is shutting down, leaving job %s to postprocess on restart", job_id)

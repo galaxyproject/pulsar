@@ -41,8 +41,8 @@ def postprocess(
     job_directory: "JobDirectory",
     action_executor: "RetryActionExecutor",
     was_cancelled: Callable[[], Optional[bool]],
-) -> bool:
-    """Stage out the job's outputs and return True.
+) -> None:
+    """Stage out the job's outputs.
 
     Raises ``StagingFailure``, and only that, if any output could not be staged out.
     """
@@ -53,7 +53,7 @@ def postprocess(
             )
         else:
             staging_config = {}
-        return __collect_outputs(
+        __collect_outputs(
             job_directory, staging_config, action_executor, was_cancelled
         )
 
@@ -63,7 +63,7 @@ def __collect_outputs(
     staging_config: Dict[str, Any],
     action_executor: "RetryActionExecutor",
     was_cancelled,
-) -> bool:
+) -> None:
     if "action_mapper" in staging_config:
         file_action_mapper = action_mapper.FileActionMapper(
             config=staging_config["action_mapper"]
@@ -90,7 +90,6 @@ def __collect_outputs(
                 for exc in collection_failure_exceptions
             ]
             raise output_staging_failure(failures) from collection_failure_exceptions[0]
-    return True
 
 
 def __stage_out_transfer_metrics(
