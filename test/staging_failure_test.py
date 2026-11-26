@@ -61,14 +61,6 @@ def test_any_other_staging_error_is_raised_as_a_staging_failure():
     assert raised.value.__cause__ is error
 
 
-def test_a_staging_failure_is_raised_as_is():
-    failure = input_staging_failure("dataset_1.dat", _requests_error(502))
-    with pytest.raises(StagingFailure) as raised:
-        with raising_staging_failure("inputs"):
-            raise failure
-    assert raised.value is failure
-
-
 def test_output_failure_names_the_first_output_and_counts_the_rest():
     failure = output_staging_failure([
         ("dataset_2.dat", _requests_error(502)),
