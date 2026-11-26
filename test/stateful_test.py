@@ -207,6 +207,30 @@ def test_input_staging_failure_tells_galaxy_why():
         assert galaxy_status["stderr"] == ""
 
 
+def test_job_resubmitted_after_input_staging_failure_is_staged_again():
+    # Galaxy's resubmit rule for input_staging_failed sends the job back to the same Pulsar.
+    # Over REST or embedded the submission carries no resubmission_count, so Pulsar must
+    # not take it for a redelivery of the failed attempt.
+    with _proxy() as (proxy, manager):
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        with _galaxy_responds(502):
+            manager_endpoint_util.submit_job(proxy, {"job_id": job_id, **INPUT_STAGING_LAUNCH_CONFIG})
+            _join_staging_threads()
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert _preprocessing_job_ids(proxy) == []
+
+        proxy.clean(job_id)
+        manager_endpoint_util.setup_job(proxy, job_id, "tool1", "1.0.0")
+        transfers = _HeldTransfers()
+        transfers.release.set()
+        with _held_input_staging(transfers):
+            manager_endpoint_util.submit_job(proxy, {"job_id": job_id, **INPUT_STAGING_LAUNCH_CONFIG})
+            _join_staging_threads()
+        assert transfers.job_ids == [job_id]
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.active_jobs.active_job_ids() == [job_id]
+
+
 def test_launch_failure_after_staging_inputs_is_not_an_input_staging_failure():
     transfers = _HeldTransfers()
     transfers.release.set()

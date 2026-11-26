@@ -309,6 +309,9 @@ class StatefulManagerProxy(ManagerProxy):
                     # Output of what runs the job, so the job's stderr, not the tool's.
                     with self._proxied_manager._open_job_standard_error(job_id) as job_stderr:
                         job_stderr.write(str(e))
+            # Before Galaxy hears of the failure: a job still listed as preprocessing looks
+            # like a duplicate setup message, so its resubmission would be dropped.
+            self.active_jobs.deactivate_job(job_id, active_status=ACTIVE_STATUS_PREPROCESSING)
             self.__state_change_callback(status.FAILED, job_id)
             log.exception("Failed job preprocessing for job %s:", job_id)
 
