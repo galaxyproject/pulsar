@@ -9,6 +9,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Tuple,
     TYPE_CHECKING,
 )
 
@@ -19,6 +20,10 @@ from pulsar.client.staging.models import (
     PulsarOutputs,
 )
 from pulsar.managers.util.retry import RetryActionExecutor
+from .failure import (
+    output_staging_failure,
+    raising_staging_failure,
+)
 from .metrics import (
     POSTPROCESS,
     record_transfer,
@@ -37,16 +42,20 @@ def postprocess(
     action_executor: "RetryActionExecutor",
     was_cancelled: Callable[[], Optional[bool]],
 ) -> bool:
-    # Returns True if outputs were collected.
-    if job_directory.has_metadata("launch_config"):
-        staging_config = (
-            job_directory.load_metadata("launch_config").get("remote_staging") or {}
+    """Stage out the job's outputs and return True.
+
+    Raises ``StagingFailure``, and only that, if any output could not be staged out.
+    """
+    with raising_staging_failure("outputs"):
+        if job_directory.has_metadata("launch_config"):
+            staging_config = (
+                job_directory.load_metadata("launch_config").get("remote_staging") or {}
+            )
+        else:
+            staging_config = {}
+        return __collect_outputs(
+            job_directory, staging_config, action_executor, was_cancelled
         )
-    else:
-        staging_config = {}
-    return __collect_outputs(
-        job_directory, staging_config, action_executor, was_cancelled
-    )
 
 
 def __collect_outputs(
@@ -55,7 +64,6 @@ def __collect_outputs(
     action_executor: "RetryActionExecutor",
     was_cancelled,
 ) -> bool:
-    collected = True
     if "action_mapper" in staging_config:
         file_action_mapper = action_mapper.FileActionMapper(
             config=staging_config["action_mapper"]
@@ -77,8 +85,12 @@ def __collect_outputs(
         )
         if collection_failure_exceptions:
             log.warning("Failures collecting results %s" % collection_failure_exceptions)
-            collected = False
-    return collected
+            failures = [
+                (output_collector.failed_output_name(exc), exc)
+                for exc in collection_failure_exceptions
+            ]
+            raise output_staging_failure(failures) from collection_failure_exceptions[0]
+    return True
 
 
 def __stage_out_transfer_metrics(
@@ -148,6 +160,16 @@ class PulsarServerOutputCollector:
         self.action_executor = action_executor
         self.was_cancelled = was_cancelled
         self.metrics = metrics
+        # Errors raised by transfers, with the output each was for. ``ResultsCollector``
+        # decides which fail the job, so these are only looked up, never reported as is.
+        self._transfer_errors: List[Tuple[str, BaseException]] = []
+
+    def failed_output_name(self, exc: BaseException) -> Optional[str]:
+        """Name of the output whose transfer raised ``exc``, if a transfer raised it."""
+        for name, transfer_error in self._transfer_errors:
+            if transfer_error is exc:
+                return name
+        return None
 
     def collect_output(self, results_collector, output_type, action, name):
         def action_if_not_cancelled():
@@ -169,7 +191,11 @@ class PulsarServerOutputCollector:
 
         pulsar_path = self.job_directory.calculate_path(name, output_type)
         description = f"staging out file {pulsar_path} via {action}"
-        transferred = self.action_executor.execute(action_if_not_cancelled, description)
+        try:
+            transferred = self.action_executor.execute(action_if_not_cancelled, description)
+        except Exception as e:
+            self._transfer_errors.append((name, e))
+            raise
         if self.metrics is not None and action.staging_needed and transferred:
             self.metrics.record_file(pulsar_path)
 

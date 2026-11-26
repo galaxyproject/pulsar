@@ -40,11 +40,13 @@ from pulsar.managers.live_output import (
     LiveOutputReporter,
     load_state as load_live_output_state,
 )
+from pulsar.managers.util import runner_states
 from pulsar.managers.util.retry import RetryActionExecutor
 from .staging import (
     postprocess,
     preprocess,
 )
+from .staging.failure import StagingFailure
 
 if TYPE_CHECKING:
     from pulsar.managers.base import (
@@ -295,12 +297,40 @@ class StatefulManagerProxy(ManagerProxy):
             # Must not launch, and stays indexed so recovery stages it after the restart.
             log.info("Pulsar is shutting down, leaving job %s to preprocess on restart", job_id)
         except Exception as e:
+            staging_failure = isinstance(e, StagingFailure)
+            if staging_failure:
+                # Galaxy shows the user why from the runner state. The original error, which can
+                # name the staging URL and its job key, stays chained to it, for Pulsar's log.
+                self.__record_staging_failure(job_id, runner_states.INPUT_STAGING_FAILED, str(e))
             with job_directory.lock("status"):
                 job_directory.store_metadata(JOB_FILE_PREPROCESSING_FAILED, True)
                 job_directory.store_metadata("return_code", 1)
-                job_directory.write_file("stderr", str(e))
+                if not staging_failure:
+                    # Output of what runs the job, so the job's stderr, not the tool's.
+                    with self._proxied_manager._open_job_standard_error(job_id) as job_stderr:
+                        job_stderr.write(str(e))
             self.__state_change_callback(status.FAILED, job_id)
             log.exception("Failed job preprocessing for job %s:", job_id)
+
+    def __record_staging_failure(self, job_id: str, runner_state: str, message: str) -> None:
+        """Tell Galaxy why the job failed, unless the job already recorded a reason.
+
+        A reason recorded earlier, such as the memory limit a job ran into before
+        its outputs could not be staged, says more about the failure.
+        """
+        try:
+            if not self._proxied_manager.runner_state(job_id):
+                self._proxied_manager._record_runner_state(job_id, runner_state, message)
+        except Exception:
+            log.exception("Failed to record runner state %s for job %s", runner_state, job_id)
+
+    def __clear_output_staging_failure(self, job_id: str) -> None:
+        """Forget an earlier attempt's failure to stage outputs, once a later attempt staged them."""
+        try:
+            if self._proxied_manager.runner_state(job_id) == runner_states.OUTPUT_STAGING_FAILED:
+                self._proxied_manager._clear_runner_state(job_id)
+        except Exception:
+            log.exception("Failed to clear runner state for job %s", job_id)
 
     def handle_failure_before_launch(self, job_id: str) -> None:
         self.__state_change_callback(status.FAILED, job_id)
@@ -433,6 +463,7 @@ class StatefulManagerProxy(ManagerProxy):
     ) -> None:
         def do_postprocess():
             postprocess_success = False
+            failure: Optional[Exception] = None
             job_directory = self._proxied_manager.job_directory(job_id)
             was_cancelled = partial(self._proxied_manager._was_cancelled, job_id)
             try:
@@ -447,12 +478,21 @@ class StatefulManagerProxy(ManagerProxy):
                 # No outcome to record: the job stays indexed and recovery stages it after the restart.
                 log.info("Pulsar is shutting down, leaving job %s to postprocess on restart", job_id)
                 return
-            except Exception:
+            except Exception as e:
+                failure = e
                 log.exception("Failed to postprocess results for job id %s" % job_id)
+            if postprocess_success:
+                self.__clear_output_staging_failure(job_id)
+            elif terminal_status == status.COMPLETE:
+                # A job that failed to run failed for that reason, whether or not its outputs staged.
+                # Never another error's text, which can name a staging URL and its job key.
+                message = str(failure) if isinstance(failure, StagingFailure) else "Failed to transfer job outputs"
+                self.__record_staging_failure(job_id, runner_states.OUTPUT_STAGING_FAILED, message)
             outcome_persisted = False
             try:
-                # Recorded before postprocessing is marked done, so a client polling for
-                # status never sees the job complete when its outputs could not be staged.
+                # Recorded, like the runner state above, before postprocessing is marked done, so
+                # a client polling for status never sees the job complete when its outputs could
+                # not be staged.
                 if postprocess_success:
                     job_directory.remove_metadata(JOB_FILE_POSTPROCESSING_FAILED)
                 else:

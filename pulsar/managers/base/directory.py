@@ -165,6 +165,11 @@ class DirectoryBaseManager(BaseManager):
         if message:
             job_directory.store_metadata(JOB_FILE_RUNNER_STATE_MESSAGE, message)
 
+    def _clear_runner_state(self, job_id: str) -> None:
+        job_directory = self._job_directory(job_id)
+        job_directory.remove_metadata(JOB_FILE_RUNNER_STATE)
+        job_directory.remove_metadata(JOB_FILE_RUNNER_STATE_MESSAGE)
+
     def runner_state(self, job_id: str) -> Optional[str]:
         return self._job_directory(job_id).load_metadata(JOB_FILE_RUNNER_STATE, None)
 
