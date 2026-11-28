@@ -23,7 +23,9 @@
 #    ## 2 seconds and re-reads the directory, up to this many times, in case the
 #    ## host's NFS client has not seen a file a compute node just wrote. Then the
 #    ## output counts as not produced, without the postprocess_action_* retries.
-#    ## 0 disables the wait. A tool that exited non-zero gets no wait.
+#    ## 0 disables the wait. A tool that exited non-zero gets no wait. Galaxy's
+#    ## destination parameter of the same name does not set this; it applies
+#    ## only to outputs Galaxy itself collects with copy or hardlink.
 #    #output_collection_retries: 3
 #    ## Run jobs under cvmfsexec (https://github.com/cvmfs/cvmfsexec) so CVMFS
 #    ## repositories are available without a system-wide /cvmfs mount. This can

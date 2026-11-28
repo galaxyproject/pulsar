@@ -240,7 +240,10 @@ therefore retries an output whose source is missing, waiting 2 seconds and
 re-reading the source directory before each attempt. The destination parameter
 ``output_collection_retries`` sets the number of retries (default ``3``; ``0``
 disables them). A ``from_work_dir`` output that is still missing after the last
-retry is treated as a tool failure, and a warning names the file.
+retry is treated as a tool failure, and a warning names the file. Outputs the
+Pulsar server stages out itself, such as with ``remote_transfer``, are governed
+by the Pulsar manager option of the same name instead (see
+:doc:`job_managers`).
 
 In addition to this default - paths may be overridden based on various
 patterns to allow optimization of file transfers in production
