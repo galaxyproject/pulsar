@@ -13,8 +13,27 @@ execution:
     pulsar:
       runner: pulsar
       dependency_resolution: remote
+    # Builds the command on the Pulsar side, after staging. Metadata strategy
+    # comes from Galaxy's config, so the CI matrix covers directory and extended.
+    pulsar_remote_tool_eval:
+      runner: pulsar
+      dependency_resolution: remote
+      tool_evaluation_strategy: remote
+      remote_metadata: true
+      rewrite_parameters: true
+      env:
+      # Pulsar's setup route drops preserve_galaxy_python_environment, so tools that
+      # need Galaxy's Python environment would not get it.
+      - name: PYTHONPATH
+        value: $GALAXY_LIB
     local_environment:
       runner: local
 tools:
+  # These command templates read their input or config file while Galaxy builds
+  # the command, so they need the staged Pulsar paths to exist: remote tool evaluation.
+  - id: command_reads_input_size
+    environment: pulsar_remote_tool_eval
+  - id: command_reads_configfile
+    environment: pulsar_remote_tool_eval
   - class: local
     environment: local_environment

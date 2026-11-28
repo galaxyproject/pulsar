@@ -98,12 +98,15 @@ class ResultsCollector:
                     if self._attempt_collect_output('output_workdir', path=local_output_path, name=pulsar):
                         self.downloaded_working_directory_files.append((pulsar, local_output_path))
             else:
-                if name not in self.working_directory_contents:
-                    # Could be a glob
+                if self.pulsar_outputs.working_directory_contents is not None and name not in self.working_directory_contents:
+                    # Could be a glob. Like Galaxy's job script, collect the source only
+                    # if it matches exactly one file. Otherwise leave the output in
+                    # output_files, so the file the tool wrote to its regular path is
+                    # collected instead.
                     matching = fnmatch.filter(self.working_directory_contents, name)
-                    if matching:
-                        name = matching[0]
-                        source_file = join(working_directory, name)
+                    if len(matching) != 1:
+                        continue
+                    name = matching[0]
                 pulsar = self.pulsar_outputs.path_helper.remote_name(name)
                 if self._attempt_collect_output('output_workdir', path=output_file, name=pulsar):
                     self.downloaded_working_directory_files.append((pulsar, output_file))

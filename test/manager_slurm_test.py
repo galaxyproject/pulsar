@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from unittest import mock
 
+import pytest
 from galaxy.util import commands
 
 from pulsar import manager_endpoint_util
@@ -195,10 +196,17 @@ def test_slurm_job_state_falls_back_to_sacct():
     assert slurm_job_state("7", execute=execute) == "OUT_OF_MEMORY"
 
 
-def test_slurm_job_state_not_found_without_accounting():
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "SLURM accounting storage is disabled\n",
+        "Slurm accounting storage is disabled\n",
+    ],
+)
+def test_slurm_job_state_not_found_without_accounting(stderr):
     execute = _execute_returning(
         _scontrol_error("slurm_load_jobs error: Invalid job id specified\n"),
-        _scontrol_error("SLURM accounting storage is disabled\n"),
+        _scontrol_error(stderr),
     )
     assert slurm_job_state("7", execute=execute) == NOT_FOUND
 
