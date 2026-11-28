@@ -48,6 +48,7 @@ class UrllibTransport:
                 raise PulsarClientTransportError(code=PulsarClientTransportError.TIMEOUT)
             except HTTPError as exc:
                 raise PulsarClientTransportError(
+                    code=PulsarClientTransportError.NOT_200,
                     transport_code=exc.code,
                     transport_message=exc.reason,
                 )

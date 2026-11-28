@@ -12,17 +12,28 @@ from typing import Optional
 from packaging.version import parse as parse_version
 
 try:
-    import kombu
-    import kombu.exceptions
-    from kombu import pools
+    from kombu import __version__ as kombu_version
+    from kombu.connection import Connection
+    from kombu.entity import (
+        Exchange,
+        Queue,
+    )
+    from kombu.exceptions import OperationalError
+    from kombu.messaging import Consumer
+    from kombu.pools import producers
+    KOMBU_AVAILABLE = True
 except ImportError:
-    kombu = None
+    KOMBU_AVAILABLE = False
 
 try:
-    import amqp
-    import amqp.exceptions
+    from amqp.exceptions import (
+        ConnectionForced,
+        RecoverableChannelError,
+        RecoverableConnectionError,
+    )
+    AMQP_AVAILABLE = True
 except ImportError:
-    amqp = None
+    AMQP_AVAILABLE = False
 
 log = logging.getLogger(__name__)
 
@@ -80,9 +91,9 @@ class PulsarExchange:
     ):
         """
         """
-        if not kombu:
+        if not KOMBU_AVAILABLE:
             raise Exception(KOMBU_UNAVAILABLE)
-        if not amqp:
+        if not AMQP_AVAILABLE:
             raise Exception(AMQP_UNAVAILABLE)
         # conditional imports and type checking prevent us from doing this at the module level.
         self.recoverable_exceptions = (
@@ -92,18 +103,18 @@ class PulsarExchange:
             # Needed as long as py-ampq raises plain OSError:
             # https://github.com/celery/py-amqp/blob/a92dd037712b5b7b1622f4f9d83157d095c90910/amqp/transport.py#L584
             OSError,
-            amqp.exceptions.ConnectionForced,  # e.g. connection closed on rabbitmq sigterm
-            amqp.exceptions.RecoverableConnectionError,  # connection closed
-            amqp.exceptions.RecoverableChannelError,  # publish time out
-            kombu.exceptions.OperationalError,  # ConnectionRefusedError, e.g. when getting a new connection while rabbitmq is down
+            ConnectionForced,  # e.g. connection closed on rabbitmq sigterm
+            RecoverableConnectionError,  # connection closed
+            RecoverableChannelError,  # publish time out
+            OperationalError,  # ConnectionRefusedError, e.g. when getting a new connection while rabbitmq is down
         )
-        self.__kombu_version = parse_version(kombu.__version__)
+        self.__kombu_version = parse_version(kombu_version)
         self.__url = url
         self.__manager_name = manager_name
         self.__amqp_key_prefix = amqp_key_prefix
         self.__connect_ssl = connect_ssl
         self.__durable = bool(durable)
-        self.__exchange = kombu.Exchange(
+        self.__exchange = Exchange(
             DEFAULT_EXCHANGE_NAME, DEFAULT_EXCHANGE_TYPE, durable=self.__durable,
         )
         self.__timeout = timeout
@@ -152,7 +163,7 @@ class PulsarExchange:
             heartbeat_thread = None
             try:
                 with self.connection(self.__url, **connection_kwargs) as connection:
-                    with kombu.Consumer(connection, queues=[queue], callbacks=callbacks, accept=['json']):
+                    with Consumer(connection, queues=[queue], callbacks=callbacks, accept=['json']):
                         if self.__heartbeat:
                             heartbeat_thread = self.__start_heartbeat(queue_name, connection)
                         while check and connection.connected:
@@ -243,7 +254,7 @@ class PulsarExchange:
             payload[ACK_SUBMIT_QUEUE_KEY] = name
             self.publish_uuid_store[ack_uuid] = payload
             log.debug('Requesting acknowledgement of UUID %s on queue %s', ack_uuid, ack_queue)
-        with self.connection(self.__url) as connection, pools.producers[connection].acquire(block=True) as producer:
+        with self.connection(self.__url) as connection, producers[connection].acquire(block=True) as producer:
             log.debug("%sHave producer for publishing to key %s", publish_log_prefix, key)
             publish_kwds = self.__prepare_publish_kwds(publish_log_prefix)
             producer.publish(
@@ -316,7 +327,7 @@ class PulsarExchange:
         else:
             publish_kwds = dict(self.__publish_kwds)
         if self.__kombu_version < MINIMUM_KOMBU_VERSION_PUBLISH_TIMEOUT:
-            log.warning(f"kombu version {kombu.__version__} does not support timeout argument to publish. Consider updating to 5.2.0 or newer")
+            log.warning(f"kombu version {kombu_version} does not support timeout argument to publish. Consider updating to 5.2.0 or newer")
             publish_kwds.pop("timeout", None)
         if self.__durable and "delivery_mode" not in publish_kwds:
             publish_kwds["delivery_mode"] = 2
@@ -331,11 +342,11 @@ class PulsarExchange:
     def connection(self, connection_string, **kwargs):
         if "ssl" not in kwargs:
             kwargs["ssl"] = self.__connect_ssl
-        return kombu.Connection(connection_string, **kwargs)
+        return Connection(connection_string, **kwargs)
 
     def __queue(self, name):
         queue_name = self.__queue_name(name)
-        queue = kombu.Queue(
+        queue = Queue(
             queue_name,
             self.__exchange,
             routing_key=queue_name,
