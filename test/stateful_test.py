@@ -8,13 +8,17 @@ from shutil import rmtree
 from unittest import mock
 
 import pytest
+import requests
 
+from pulsar import manager_endpoint_util
+from pulsar.client import action_mapper
 from pulsar.managers import (
     stateful,
     status,
 )
 from pulsar.managers.queued import QueueManager
 from pulsar.managers.staging import pre as staging_pre
+from pulsar.managers.staging.failure import output_staging_failure
 from pulsar.managers.stateful import StatefulManagerProxy
 from .test_utils import (
     minimal_app_for_managers,
@@ -29,6 +33,48 @@ FAST_POLLING = {"staging_slot_poll_interval": .01}
 STAGING_LAUNCH_CONFIG = {
     "command_line": "true",
     "remote_staging": {"setup": [{"name": "input1", "type": "input", "action": {}}]},
+}
+# Galaxy's job files API takes the job key in the query string of every staging URL.
+JOB_KEY = "0123456789abcdef"
+FILES_ENDPOINT = f"https://galaxy.example.org/api/jobs/1/files?job_key={JOB_KEY}"
+
+
+def _input_staging_launch_config():
+    """Stage one input through Galaxy's job files API.
+
+    A new config for each use: staging pops ``path`` from the action, so a shared one
+    would fail every later test's staging with a ``KeyError``.
+    """
+    return {
+        "command_line": "true",
+        "remote_staging": {
+            "setup": [
+                {
+                    "name": "dataset_1.dat",
+                    "type": "input",
+                    "action": {
+                        "action_type": "remote_transfer",
+                        "path": "/galaxy/files/dataset_1.dat",
+                        "source": {"path": "/galaxy/files/dataset_1.dat"},
+                        "url": f"{FILES_ENDPOINT}&path=%2Fgalaxy%2Ffiles%2Fdataset_1.dat&file_type=input",
+                    },
+                }
+            ],
+        },
+    }
+
+
+# Stage one output through Galaxy's job files API.
+OUTPUT_STAGING_LAUNCH_CONFIG = {
+    "command_line": "true",
+    "remote_staging": {
+        "action_mapper": {"default_action": "remote_transfer", "files_endpoint": FILES_ENDPOINT},
+        "client_outputs": {
+            "working_directory": "/galaxy/jobs/1/working",
+            "job_directory": "/galaxy/jobs/1",
+            "output_files": ["/galaxy/files/dataset_2.dat"],
+        },
+    },
 }
 
 
@@ -156,6 +202,126 @@ def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
             _wait_for_callback(proxy)
         assert proxy.callbacks == [(status.FAILED, job_id)]
         assert proxy.get_status(job_id) == status.FAILED
+        _assert_galaxy_told(proxy, job_id, "output_staging_failed", "Failed to transfer output 'dataset_2.dat': OSError")
+
+
+def test_input_staging_failure_tells_galaxy_why():
+    with _proxy() as (proxy, manager), _galaxy_responds(502):
+        job_id = _launch_jobs(proxy, _input_staging_launch_config(), 1)[0]
+        _join_staging_threads()
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        galaxy_status = _assert_galaxy_told(
+            proxy, job_id, "input_staging_failed", "Failed to transfer input 'dataset_1.dat': HTTP 502"
+        )
+        # The runner state carries the reason; the streams do not repeat it.
+        assert galaxy_status["job_stderr"] == ""
+        assert galaxy_status["stderr"] == ""
+
+
+def test_job_resubmitted_after_input_staging_failure_is_staged_again():
+    # Galaxy's resubmit rule for input_staging_failed sends the job back to the same Pulsar.
+    # Over REST or embedded the submission carries no resubmission_count, so Pulsar must
+    # not take it for a redelivery of the failed attempt.
+    with _proxy() as (proxy, manager):
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        with _galaxy_responds(502):
+            manager_endpoint_util.submit_job(proxy, {"job_id": job_id, **_input_staging_launch_config()})
+            _join_staging_threads()
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.runner_state_message(job_id) == "Failed to transfer input 'dataset_1.dat': HTTP 502"
+        assert _preprocessing_job_ids(proxy) == []
+
+        proxy.clean(job_id)
+        manager_endpoint_util.setup_job(proxy, job_id, "tool1", "1.0.0")
+        transfers = _HeldTransfers()
+        transfers.release.set()
+        with _held_input_staging(transfers):
+            manager_endpoint_util.submit_job(proxy, {"job_id": job_id, **_input_staging_launch_config()})
+            _join_staging_threads()
+        assert transfers.job_ids == [job_id]
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.active_jobs.active_job_ids() == [job_id]
+
+
+def test_redelivered_setup_for_a_job_whose_input_staging_failed_is_ignored():
+    # A lost ack or a consumer reconnect redelivers the setup message, resubmission count and all.
+    with _proxy() as (proxy, manager):
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        setup = {"job_id": job_id, "setup": True, **_input_staging_launch_config()}
+        with _galaxy_responds(502):
+            manager_endpoint_util.submit_job(proxy, setup)
+            _join_staging_threads()
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+
+        transfers = _HeldTransfers()
+        transfers.release.set()
+        with _held_input_staging(transfers):
+            manager_endpoint_util.submit_job(proxy, {**setup, **_input_staging_launch_config()})
+            _join_staging_threads()
+        assert transfers.job_ids == []
+        assert proxy.active_jobs.active_job_ids() == []
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+
+
+def test_launch_failure_after_staging_inputs_is_not_an_input_staging_failure():
+    transfers = _HeldTransfers()
+    transfers.release.set()
+    with _proxy(_FailingLaunchManager) as (proxy, manager), _held_input_staging(transfers):
+        job_id = _launch_jobs(proxy, STAGING_LAUNCH_CONFIG, 1)[0]
+        _join_staging_threads()
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.runner_state(job_id) is None
+        galaxy_status = manager_endpoint_util.full_status(proxy, status.FAILED, job_id)
+        assert galaxy_status["job_stderr"] == "Test failure launching job"
+
+
+def test_output_staging_failure_tells_galaxy_why():
+    with _proxy() as (proxy, manager):
+        job_id = _launch_jobs(proxy, OUTPUT_STAGING_LAUNCH_CONFIG, 1)[0]
+        job_directory = manager.job_directory(job_id)
+        with open(job_directory.calculate_path("dataset_2.dat", "output"), "w") as fh:
+            fh.write("output")
+        manager.scripted_status = status.COMPLETE
+        with _galaxy_responds(502):
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        _assert_galaxy_told(
+            proxy, job_id, "output_staging_failed", "Failed to transfer output 'dataset_2.dat': HTTP 502"
+        )
+
+
+def test_retried_output_staging_failure_reports_the_latest_attempt():
+    with _launched_job() as (proxy, manager, job_id):
+        # Left by an attempt before a restart.
+        manager._record_runner_state(job_id, "output_staging_failed", "Failed to transfer output 'dataset_2.dat': HTTP 502")
+        manager.scripted_status = status.COMPLETE
+        with _postprocessing_failed():
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        _assert_galaxy_told(proxy, job_id, "output_staging_failed", "Failed to transfer output 'dataset_2.dat': OSError")
+
+
+def test_output_staging_failure_keeps_a_different_earlier_reason():
+    # No manager records a reason for a completed job today; one that did would know more.
+    with _launched_job() as (proxy, manager, job_id):
+        manager._record_runner_state(job_id, "memory_limit_reached", "Out of memory")
+        manager.scripted_status = status.COMPLETE
+        with _postprocessing_failed():
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        _assert_galaxy_told(proxy, job_id, "memory_limit_reached", "Out of memory")
+
+
+def test_job_that_failed_to_run_is_not_an_output_staging_failure():
+    with _launched_job() as (proxy, manager, job_id):
+        manager.scripted_status = status.FAILED
+        with _postprocessing_failed():
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.runner_state(job_id) is None
 
 
 def test_polling_stays_postprocessing_until_failed_outcome_is_persisted():
@@ -227,6 +393,7 @@ def test_postprocessing_redone_after_a_failed_attempt_reports_its_new_outcome():
             proxy.preprocess_and_launch(job_id, TEST_LAUNCH_CONFIG)
             _interrupt_postprocessing(proxy, manager, job_id)
             # Killed after recording a failed attempt, before marking postprocessing done.
+            manager._record_runner_state(job_id, "output_staging_failed", "Failed to transfer job outputs")
             manager.job_directory(job_id).store_metadata(stateful.JOB_FILE_POSTPROCESSING_FAILED, True)
 
         with _proxy(app=app) as (proxy, manager):
@@ -234,6 +401,8 @@ def test_postprocessing_redone_after_a_failed_attempt_reports_its_new_outcome():
             _wait_for_callback(proxy)
             assert proxy.callbacks == [(status.COMPLETE, job_id)]
             assert proxy.get_status(job_id) == status.COMPLETE
+            assert proxy.runner_state(job_id) is None
+            assert proxy.runner_state_message(job_id) is None
 
 
 def test_cancelled_status_deactivates_without_notification():
@@ -641,10 +810,34 @@ def _postprocessing_failed():
 
     def failed_postprocess(*args, **kwds):
         real_postprocess(*args, **kwds)
-        return False
+        # What the real ``postprocess`` raises when an output could not be staged out.
+        raise output_staging_failure([("dataset_2.dat", OSError())])
 
     with mock.patch.object(stateful, "postprocess", failed_postprocess):
         yield
+
+
+@contextmanager
+def _galaxy_responds(status_code):
+    """Fail every transfer to or from Galaxy as the requests transport does, URL and all."""
+    def fail(url, path):
+        response = requests.Response()
+        response.status_code = status_code
+        response.url = url
+        raise requests.HTTPError(f"{status_code} Server Error: Bad Gateway for url: {url}", response=response)
+
+    with mock.patch.object(action_mapper, "get_file", fail), mock.patch.object(action_mapper, "post_file", fail):
+        yield
+
+
+def _assert_galaxy_told(proxy, job_id, runner_state, runner_state_message):
+    galaxy_status = manager_endpoint_util.full_status(proxy, status.FAILED, job_id)
+    assert galaxy_status["runner_state"] == runner_state
+    assert galaxy_status["runner_state_message"] == runner_state_message
+    # Nowhere Galaxy shows the user.
+    for shown in ("runner_state_message", "stdout", "stderr", "job_stdout", "job_stderr"):
+        assert JOB_KEY not in (galaxy_status[shown] or ""), shown
+    return galaxy_status
 
 
 class _HeldTransfers:

@@ -9,37 +9,37 @@ pulsar.client.staging.down module
 
 .. automodule:: pulsar.client.staging.down
    :members:
-   :undoc-members:
    :show-inheritance:
-
-pulsar.client.staging.up module
--------------------------------
-
-.. automodule:: pulsar.client.staging.up
-   :members:
    :undoc-members:
-   :show-inheritance:
 
 pulsar.client.staging.inputs module
 -----------------------------------
 
 .. automodule:: pulsar.client.staging.inputs
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pulsar.client.staging.models module
 -----------------------------------
 
 .. automodule:: pulsar.client.staging.models
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
+
+pulsar.client.staging.up module
+-------------------------------
+
+.. automodule:: pulsar.client.staging.up
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pulsar.client.staging
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
