@@ -43,3 +43,13 @@ class PulsarClientTransportError(Exception):
 
     def __str__(self):
         return self.message
+
+
+class UnsafePathError(Exception):
+    """A staged file was refused as unsafe to read or write.
+
+    Either it resolves outside its job directory (e.g. through a symlink a tool
+    left there), or it is a special file such as a FIFO, which would block
+    staging. Collecting an output that raises this always fails the job, so a
+    refused output never turns into a silently empty dataset.
+    """
