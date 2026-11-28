@@ -45,10 +45,12 @@ def sleeps():
         yield nfs_sleep, backoff_sleep
 
 
-def _store_launch_config(job_directory, client_directory):
-    """Stage outputs back with remote_copy; Galaxy expects a from_work_dir output."""
+def _store_launch_config(job_directory, client_directory, work_dir_outputs=(WORK_DIR_OUTPUT,)):
+    """Stage outputs back with remote_copy; Galaxy expects from_work_dir outputs."""
     galaxy_working_directory = os.path.join(client_directory, "working")
-    galaxy_output = os.path.join(client_directory, "dataset_1.dat")
+    galaxy_outputs = [
+        os.path.join(client_directory, f"dataset_{i}.dat") for i in range(1, len(work_dir_outputs) + 1)
+    ]
     job_directory.store_metadata(
         "launch_config",
         {
@@ -57,15 +59,16 @@ def _store_launch_config(job_directory, client_directory):
                 "client_outputs": {
                     "working_directory": galaxy_working_directory,
                     "job_directory": client_directory,
-                    "output_files": [galaxy_output],
+                    "output_files": list(galaxy_outputs),
                     "work_dir_outputs": [
-                        [os.path.join(galaxy_working_directory, WORK_DIR_OUTPUT), galaxy_output]
+                        [os.path.join(galaxy_working_directory, name), galaxy_output]
+                        for name, galaxy_output in zip(work_dir_outputs, galaxy_outputs)
                     ],
                 },
             }
         },
     )
-    return galaxy_output
+    return galaxy_outputs[0]
 
 
 def test_missing_work_dir_output_is_not_retried_by_the_backoff_executor(sleeps):
@@ -112,6 +115,41 @@ def test_work_dir_output_visible_after_nfs_revalidation_is_collected(sleeps):
         assert executor.retried == []
         with open(galaxy_output) as fh:
             assert fh.read() == "Uniquely mapped reads %"
+
+
+def test_several_missing_outputs_in_one_directory_wait_once(sleeps):
+    """Revalidating a directory once is enough: a job killed before writing its 4
+    from_work_dir outputs waits for the first, then the others fail at once."""
+    nfs_sleep, backoff_sleep = sleeps
+    with temp_directory() as client_directory, temp_job_directory() as job_directory:
+        job_directory.setup()
+        names = [f"output_{i}.qza" for i in range(4)]
+        _store_launch_config(job_directory, client_directory, names)
+        executor = _RecordingExecutor()
+
+        assert postprocess(job_directory, executor, lambda: False)
+
+        assert nfs_sleep.call_count == client_util.DEFAULT_OUTPUT_COLLECTION_RETRIES
+        assert executor.retried == []
+        backoff_sleep.assert_not_called()
+
+
+def test_missing_output_in_another_directory_still_waits(sleeps):
+    """The wait is paid once per directory: revalidating the working directory says
+    nothing about the outputs directory, so a miss there gets its own checks."""
+    nfs_sleep, _ = sleeps
+    with temp_directory() as client_directory, temp_job_directory() as job_directory:
+        job_directory.setup()
+        collector = PulsarServerOutputCollector(job_directory, _RecordingExecutor(), lambda: False)
+        work_dir_action = RemoteCopyAction({"path": os.path.join(client_directory, WORK_DIR_OUTPUT)})
+        output_action = RemoteCopyAction({"path": os.path.join(client_directory, "dataset_1.dat")})
+
+        with pytest.raises(FileNotFoundError):
+            collector.collect_output(None, "output_workdir", work_dir_action, WORK_DIR_OUTPUT)
+        with pytest.raises(FileNotFoundError):
+            collector.collect_output(None, "output", output_action, "dataset_1.dat")
+
+        assert nfs_sleep.call_count == 2 * client_util.DEFAULT_OUTPUT_COLLECTION_RETRIES
 
 
 @pytest.mark.parametrize("retries", [0, 2])

@@ -10,6 +10,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Set,
     TYPE_CHECKING,
 )
 
@@ -157,6 +158,8 @@ class PulsarServerOutputCollector:
         self.was_cancelled = was_cancelled
         self.metrics = metrics
         self.output_collection_retries = output_collection_retries
+        # Directories whose NFS view a missing output's checks already revalidated.
+        self._revalidated_directories: Set[str] = set()
 
     def collect_output(self, results_collector, output_type, action, name):
         def action_if_not_cancelled():
@@ -181,13 +184,21 @@ class PulsarServerOutputCollector:
             # A missing output is not transient: the tool did not write it, or was killed
             # first. Retrying it with the executor's backoff only delays the job's terminal
             # state while it holds a postprocess slot, so check here instead, giving NFS a
-            # few short revalidations to show a file the compute node just wrote. A job
-            # cancelled meanwhile stops the checks, and the executor then skips the output.
+            # few short revalidations to show a file the compute node just wrote. Once that
+            # has revalidated a directory, a later miss in it would find nothing new, so it
+            # fails at once. A job cancelled meanwhile stops the checks, and the executor
+            # then skips the output.
             def require_output_unless_cancelled():
                 if not self.was_cancelled():
                     _require_output_file(pulsar_path)
 
-            retry_missing_source(require_output_unless_cancelled, pulsar_path, self.output_collection_retries)
+            directory = os.path.dirname(pulsar_path)
+            retries = 0 if directory in self._revalidated_directories else self.output_collection_retries
+            try:
+                retry_missing_source(require_output_unless_cancelled, pulsar_path, retries)
+            except FileNotFoundError:
+                self._revalidated_directories.add(directory)
+                raise
         description = f"staging out file {pulsar_path} via {action}"
         transferred = self.action_executor.execute(action_if_not_cancelled, description)
         if self.metrics is not None and action.staging_needed and transferred:
