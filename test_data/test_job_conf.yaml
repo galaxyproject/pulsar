@@ -16,5 +16,13 @@ execution:
     local_environment:
       runner: local
 tools:
+  # These command templates read their input or config file while Galaxy builds
+  # the command. With rewrite_parameters (the embedded runner's default) the
+  # template sees Pulsar paths that are not staged yet; only remote tool
+  # evaluation supports them, which Galaxy's own integration tests cover.
+  - id: command_reads_input_size
+    environment: local_environment
+  - id: command_reads_configfile
+    environment: local_environment
   - class: local
     environment: local_environment
