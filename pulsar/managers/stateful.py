@@ -28,7 +28,10 @@ except ImportError:
 import logging
 
 from pulsar.client.transport.transient import is_transient_http_error
-from pulsar.client.util import filter_destination_params
+from pulsar.client.util import (
+    DEFAULT_OUTPUT_COLLECTION_RETRIES,
+    filter_destination_params,
+)
 from pulsar.managers import (
     ManagerProxy,
     status,
@@ -124,6 +127,7 @@ class StatefulManagerProxy(ManagerProxy):
         self.__slot_poll_interval = float(
             manager_options.get("staging_slot_poll_interval", DEFAULT_STAGING_SLOT_POLL_INTERVAL)
         )
+        self.__output_collection_retries = _output_collection_retries(manager_options)
         self.min_polling_interval = dt.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs.from_manager(manager)
         self.__state_change_callback = self._default_status_change_callback
@@ -440,8 +444,15 @@ class StatefulManagerProxy(ManagerProxy):
                 with _staging_slot(
                     self.__postprocess_slots, "postprocess", job_id, self.__shutting_down, was_cancelled, self.__slot_poll_interval
                 ):
+                    output_collection_retries = self.__output_collection_retries
+                    if _tool_failed(self._proxied_manager, job_id):
+                        # Missing outputs are expected; don't wait for NFS to show them.
+                        output_collection_retries = 0
                     postprocess_success = postprocess(
-                        job_directory, self.__postprocess_action_executor, was_cancelled
+                        job_directory,
+                        self.__postprocess_action_executor,
+                        was_cancelled,
+                        output_collection_retries=output_collection_retries,
                     )
             except _StagingInterrupted:
                 # No outcome to record: the job stays indexed and recovery stages it after the restart.
@@ -737,6 +748,23 @@ class ManagerMonitor:
 
 class _StagingInterrupted(Exception):
     """Pulsar started shutting down while a job was queued for a staging slot."""
+
+
+def _tool_failed(manager, job_id: str) -> bool:
+    """True only for a recorded non-zero exit code; a missing one may just be NFS lag."""
+    try:
+        return_code = manager.return_code(job_id)
+    except Exception:
+        return False
+    return isinstance(return_code, int) and return_code != 0
+
+
+def _output_collection_retries(manager_options: Dict[str, Any]) -> int:
+    value = manager_options.get("output_collection_retries", DEFAULT_OUTPUT_COLLECTION_RETRIES)
+    retries = int(value)
+    if retries < 0:
+        raise ValueError(f"output_collection_retries must be 0 or more, not {value!r}")
+    return retries
 
 
 def _staging_slots(

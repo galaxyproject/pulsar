@@ -1,9 +1,11 @@
 import hashlib
 import json
+import logging
 import os.path
 import shutil
 import stat
 import tempfile
+import time
 from base64 import (
     b64decode as _b64decode,
     b64encode as _b64encode,
@@ -33,9 +35,14 @@ from threading import (
 )
 from weakref import WeakValueDictionary
 
+log = logging.getLogger(__name__)
+
 # TODO: move to galaxy.util so it doesn't have to be duplicated
 # twice in pulsar.
 BUFFER_SIZE = 4096
+
+DEFAULT_OUTPUT_COLLECTION_RETRIES = 3
+OUTPUT_COLLECTION_RETRY_SLEEP = 2
 
 
 def copy_to_path(object, path):
@@ -116,6 +123,32 @@ def hardlink(source, destination):
         temporary_link = os.path.join(temp_dir, "link")
         os.link(source, temporary_link)
         os.replace(temporary_link, destination)
+
+
+def retry_missing_source(operation, source, retries):
+    """Run ``operation``, retrying while the local file ``source`` looks missing.
+
+    A file a compute node wrote moments ago may not be visible yet if this
+    host's NFS client cached the directory, so FileNotFoundError is retried
+    ``retries`` times before it propagates. A negative ``retries`` counts as 0,
+    so ``operation`` always runs.
+    """
+    retries = max(0, retries)
+    for attempt in range(retries + 1):
+        try:
+            return operation()
+        except FileNotFoundError:
+            if attempt == retries:
+                raise
+            log.debug("Output source [%s] not found, retrying (%d/%d)",
+                      source, attempt + 1, retries)
+            time.sleep(OUTPUT_COLLECTION_RETRY_SLEEP)
+            # Opening the directory makes the NFS client revalidate it
+            # (close-to-open), which drops cached negative lookups.
+            try:
+                os.listdir(os.path.dirname(source))
+            except OSError:
+                pass
 
 
 def ensure_directory(file_path):

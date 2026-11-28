@@ -200,6 +200,23 @@ this may be a bit counter-intuitive but is consistent with Kombu_.
     postprocess_action_interval_step: 2
     postprocess_action_interval_max: 30
 
+These retries are for transfers that fail. An output file that does not exist
+is not retried with them: the tool did not write it, or was killed before it
+could. Pulsar instead checks again ``output_collection_retries`` times (default
+``3``; ``0`` disables the checks), waiting 2 seconds and re-reading the output's
+directory before each check, in case the Pulsar host's NFS client has not yet
+seen a file the compute node just wrote. The checks run once per directory:
+after they have re-read it, a later missing output there fails at once. They
+are skipped when the tool exited with a non-zero code. A ``from_work_dir``
+output that is still missing is treated as a tool failure. A regular output the
+tool did not write is not in the output directory listing, so Pulsar never
+tries to stage it out.
+
+This manager option applies only to outputs Pulsar stages out itself, such as
+with ``remote_transfer``. Galaxy's destination parameter of the same name (see
+:doc:`galaxy_conf`) applies only to outputs Galaxy collects with ``copy`` or
+``hardlink``; setting it in Galaxy does not change Pulsar's checks.
+
 
 .. _DRMAA: http://www.drmaa.org/
 .. _Condor: http://research.cs.wisc.edu/htcondor/

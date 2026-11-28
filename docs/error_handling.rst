@@ -317,6 +317,15 @@ This is why a misconfigured Galaxy URL or a deleted dataset surfaces as a
 single fast ``failed``, while a Galaxy restart or a load-balancer hiccup
 recovers transparently after retries.
 
+An output file that does not exist when Pulsar stages it out is not a
+transfer error and gets none of these retries. Pulsar re-checks it
+``output_collection_retries`` times (default ``3``), 2 seconds apart, re-reading
+the directory so a lagging NFS client sees a file the compute node just
+wrote. A tool that exited with a non-zero code gets no re-checks. A
+``from_work_dir`` output still missing after that is a tool failure
+and only logged. A regular output the tool did not write is not in the
+output directory listing, so Pulsar never tries to stage it out.
+
 Configuration knobs (per-manager YAML):
 
 * ``preprocess_action_max_retries`` / ``postprocess_action_max_retries``
@@ -324,6 +333,8 @@ Configuration knobs (per-manager YAML):
 * ``preprocess_action_should_retry`` (advanced — replaces the default
   predicate; only do this if you understand which errors are safe to
   retry in your environment)
+* ``output_collection_retries`` - checks for a missing output file
+  before it counts as not produced (default ``3``; ``0`` disables them)
 * ``preprocess_max_concurrent`` / ``postprocess_max_concurrent`` cap how
   many of the manager's jobs transfer at once (unset is unlimited, and a
   value below 1 is rejected at startup).

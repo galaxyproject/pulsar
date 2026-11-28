@@ -2,7 +2,6 @@
 
 import logging
 import os
-import time
 from typing import (
     Any,
     Callable,
@@ -28,19 +27,19 @@ from .setup_handler import build as build_setup_handler
 from .util import (
     add_executable_bits,
     copy,
+    DEFAULT_OUTPUT_COLLECTION_RETRIES,
     ensure_directory,
     hardlink,
     json_dumps,
     json_loads,
     MonitorStyle,
+    retry_missing_source,
     to_base64_json,
 )
 
 log = logging.getLogger(__name__)
 
 CACHE_WAIT_SECONDS = 3
-DEFAULT_OUTPUT_COLLECTION_RETRIES = 3
-OUTPUT_COLLECTION_RETRY_SLEEP = 2
 CONTAINER_STAGING_DIRECTORY = "/pulsar_staging/"
 
 
@@ -291,31 +290,9 @@ class JobClient(BaseJobClient):
         elif action_type in ('copy', 'hardlink'):
             pulsar_path = self._output_path(name, self.job_id, path_type)['path']
             stage_out = hardlink if action_type == 'hardlink' else _copy
-            self._retry_missing_source(stage_out, pulsar_path, output_path)
-
-    def _retry_missing_source(self, stage_out, source, destination):
-        """Stage out a local file, retrying while the source looks missing.
-
-        A file the compute node wrote moments ago may not be visible yet if this
-        host's NFS client cached the directory, so FileNotFoundError is retried
-        ``output_collection_retries`` times before it propagates.
-        """
-        for attempt in range(self.output_collection_retries + 1):
-            try:
-                stage_out(source, destination)
-                return
-            except FileNotFoundError:
-                if attempt == self.output_collection_retries:
-                    raise
-                log.debug("Output source [%s] not found, retrying (%d/%d)",
-                          source, attempt + 1, self.output_collection_retries)
-                time.sleep(OUTPUT_COLLECTION_RETRY_SLEEP)
-                # Opening the directory makes the NFS client revalidate it
-                # (close-to-open), which drops cached negative lookups.
-                try:
-                    os.listdir(os.path.dirname(source))
-                except OSError:
-                    pass
+            retry_missing_source(
+                lambda: stage_out(pulsar_path, output_path), pulsar_path, self.output_collection_retries
+            )
 
     @parseJson()
     def _upload_file(self, args, contents, input_path):

@@ -9,6 +9,7 @@ from unittest import mock
 
 import pytest
 
+from pulsar.client import util as client_util
 from pulsar.managers import (
     stateful,
     status,
@@ -18,6 +19,7 @@ from pulsar.managers.staging import pre as staging_pre
 from pulsar.managers.stateful import StatefulManagerProxy
 from .test_utils import (
     minimal_app_for_managers,
+    temp_directory,
     wait_for,
 )
 
@@ -302,6 +304,37 @@ def test_staging_concurrency_is_capped_by_postprocess_max_concurrent(max_concurr
     assert sorted(proxy.callbacks) == sorted((status.COMPLETE, job_id) for job_id in job_ids)
 
 
+@pytest.mark.parametrize("return_code, expected_sleeps", [(None, 1), ("0", 1), ("104", 0)])
+def test_missing_work_dir_output_waits_output_collection_retries(return_code, expected_sleeps):
+    """A from_work_dir output the tool never wrote costs only the configured NFS
+    revalidations, none when the tool exited non-zero, and the job still completes."""
+    with temp_directory() as client_directory, _proxy(output_collection_retries="1") as (proxy, manager):
+        galaxy_working_directory = os.path.join(client_directory, "working")
+        galaxy_output = os.path.join(client_directory, "dataset_1.dat")
+        launch_config = {
+            "command_line": "true",
+            "remote_staging": {
+                "action_mapper": {"default_action": "remote_copy"},
+                "client_outputs": {
+                    "working_directory": galaxy_working_directory,
+                    "output_files": [galaxy_output],
+                    "work_dir_outputs": [[os.path.join(galaxy_working_directory, "Log.final.out"), galaxy_output]],
+                },
+            },
+        }
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        proxy.preprocess_and_launch(job_id, launch_config)
+        if return_code is not None:
+            manager.job_directory(job_id).write_file("return_code", return_code)
+        manager.scripted_status = status.COMPLETE
+        with mock.patch.object(client_util, "time") as nfs_time:
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        assert proxy.callbacks == [(status.COMPLETE, job_id)]
+        assert nfs_time.sleep.call_args_list == [mock.call(client_util.OUTPUT_COLLECTION_RETRY_SLEEP)] * expected_sleeps
+        assert not os.path.exists(galaxy_output)
+
+
 @pytest.mark.parametrize("option", ["preprocess_max_concurrent", "postprocess_max_concurrent"])
 @pytest.mark.parametrize("value", [0, -1, "0"])
 def test_staging_cap_below_one_is_rejected_at_startup(option, value):
@@ -309,6 +342,14 @@ def test_staging_cap_below_one_is_rejected_at_startup(option, value):
         manager = _ScriptedStatusManager("test", app, num_concurrent_jobs=0)
         with pytest.raises(ValueError, match=option):
             StatefulManagerProxy(manager, **{option: value})
+
+
+@pytest.mark.parametrize("value", [-1, "-1"])
+def test_negative_output_collection_retries_is_rejected_at_startup(value):
+    with _temporary_app() as app:
+        manager = _ScriptedStatusManager("test", app, num_concurrent_jobs=0)
+        with pytest.raises(ValueError, match="output_collection_retries"):
+            StatefulManagerProxy(manager, output_collection_retries=value)
 
 
 def test_shutdown_leaves_jobs_queued_for_preprocessing_to_recovery():
