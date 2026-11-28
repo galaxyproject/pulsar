@@ -396,13 +396,27 @@ def _run_register_with_galaxy(args, directory):
             )
         )
     else:
+        # Keep job files and persisted state beside the credentials. Without
+        # these, Pulsar falls back to paths inside its own install directory.
+        staging_directory = os.path.join(directory, "staging")
+        persistence_directory = os.path.join(directory, "persisted_data")
+        for path in (staging_directory, persistence_directory):
+            os.makedirs(path, exist_ok=True)
         contents = (
             "---\n"
             "managers:\n"
             "  {m}: {{}}\n"
             'message_queue_url: "{url}"\n'
             'message_queue_credentials_file: "{c}"\n'
-        ).format(m=manager_name, url=args.relay_url, c=credentials_path)
+            'staging_directory: "{s}"\n'
+            'persistence_directory: "{p}"\n'
+        ).format(
+            m=manager_name,
+            url=args.relay_url,
+            c=credentials_path,
+            s=staging_directory,
+            p=persistence_directory,
+        )
         with open(app_yaml_path, "w") as fh:
             fh.write(contents)
         print(" - {path} written (manager.name='{m}').".format(path=app_yaml_path, m=manager_name))
