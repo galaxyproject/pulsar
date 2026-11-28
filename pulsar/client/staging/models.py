@@ -69,6 +69,9 @@ class ClientJobDescription:
     rewrite_paths : boolean
         Indicates whether paths should be rewritten in job inputs (command_line
         and config files) while staging files).
+    output_targets_url : str
+        Galaxy URL issuing upload targets for the outputs the job stages in its
+        object store staging directory; uploaded after the job when set.
     """
 
     def __init__(
@@ -91,6 +94,7 @@ class ClientJobDescription:
         container=None,
         remote_pulsar_app_config=None,
         guest_ports=None,
+        output_targets_url=None,
     ):
         self.tool = tool
         self.command_line = command_line
@@ -113,6 +117,7 @@ class ClientJobDescription:
         self.container = container
         self.guest_ports = guest_ports
         self.remote_pulsar_app_config = remote_pulsar_app_config
+        self.output_targets_url = output_targets_url
 
     @property
     def input_files(self):

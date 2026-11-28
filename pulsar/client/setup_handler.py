@@ -161,6 +161,7 @@ def build_job_config(
     configs_directory = job_directory.configs_directory()
     tools_directory = job_directory.tool_files_directory()
     unstructured_files_directory = job_directory.unstructured_files_directory()
+    object_store_staging_directory = job_directory.object_store_staging_directory()
     sep = system_properties.get("sep", os.sep)
     job_config = {
         "job_directory": job_directory.path,
@@ -171,6 +172,7 @@ def build_job_config(
         "tools_directory": tools_directory,
         "inputs_directory": inputs_directory,
         "unstructured_files_directory": unstructured_files_directory,
+        "object_store_staging_directory": object_store_staging_directory,
         # Poorly named legacy attribute. Drop at some point.
         "path_separator": sep,
         "job_id": job_id,

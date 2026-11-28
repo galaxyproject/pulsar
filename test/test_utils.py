@@ -51,6 +51,10 @@ from simplejobfiles.app import JobFilesApp
 from webtest import TestApp
 from webtest.http import StopableWSGIServer
 
+from pulsar.client.transport import (
+    curl as curl_transport,
+    requests as requests_transport,
+)
 from pulsar.managers.base import JobDirectory
 from pulsar.managers.util import drmaa
 from pulsar.tools import ToolBox
@@ -136,6 +140,14 @@ class TestManager:
 def temp_job_directory():
     with temp_directory(prefix="job_") as directory:
         yield JobDirectory(directory, "1")
+
+
+def put_file_implementations():
+    """``put_file`` of each transport available here, as pytest parameters."""
+    implementations = [pytest.param(requests_transport.put_file, id="requests")]
+    if curl_transport.curl_available:
+        implementations.append(pytest.param(curl_transport.put_file, id="curl"))
+    return implementations
 
 
 @contextmanager

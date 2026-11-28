@@ -18,6 +18,7 @@ from pulsar.client.staging.models import (
     ClientOutputs,
     PulsarOutputs,
 )
+from pulsar.managers.staging.output_targets import upload_outputs
 from pulsar.managers.util.retry import RetryActionExecutor
 from .metrics import (
     POSTPROCESS,
@@ -65,6 +66,19 @@ def __collect_outputs(
         )
         pulsar_outputs = __pulsar_outputs(job_directory)
         with record_transfer(job_directory, POSTPROCESS) as metrics:
+            output_targets_url = staging_config.get("output_targets_url")
+            if output_targets_url:
+                try:
+                    upload_outputs(
+                        job_directory.object_store_staging_directory(),
+                        output_targets_url,
+                        action_executor,
+                        was_cancelled,
+                        metrics,
+                    )
+                except Exception:
+                    log.exception("Failed to upload outputs to the targets Galaxy issued")
+                    collected = False
             output_collector = PulsarServerOutputCollector(
                 job_directory, action_executor, was_cancelled, metrics
             )

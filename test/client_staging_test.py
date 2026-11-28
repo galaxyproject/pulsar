@@ -88,6 +88,17 @@ class TestStager(TempDirectoryTestCase):
         open(self.input2, "wb").write(b"6789")
         return [self.input1, self.input2]
 
+    def test_launch_carries_the_output_targets_url_galaxy_issued(self):
+        self.client_job_description.output_targets_url = "https://galaxy.example/api/jobs/1/staging/output_targets?sig=x"
+        self._submit()
+        assert self.client.launched_remote_staging["output_targets_url"] == (
+            "https://galaxy.example/api/jobs/1/staging/output_targets?sig=x"
+        )
+
+    def test_launch_carries_no_output_targets_url_by_default(self):
+        self._submit()
+        assert "output_targets_url" not in self.client.launched_remote_staging
+
     def test_tool_file_rewrite(self):
         self.client_job_description.rewrite_paths = True
         tool_dir = os.path.abspath(self.tool.tool_dir)
@@ -352,6 +363,7 @@ class MockClient:
         ])
         self.put_files = []
         self.put_executables = {}
+        self.launched_remote_staging = None
 
     def set_action_map_config(self, config, by_path=True):
         if by_path:

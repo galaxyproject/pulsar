@@ -8,6 +8,12 @@ History
 ---------------------
 0.16.4.dev0
 ---------------------
+* Upload a job's outputs to targets Galaxy issues, such as presigned object
+  store URLs, so that no object store credentials reach the job. Job configs
+  report an ``object_store_staging_directory`` for the metadata step to write
+  the outputs to, and a launch's ``output_targets_url`` tells postprocessing
+  where to ask for the targets. Uploads are single PUTs or multipart, through a
+  new ``put_file`` transport. `Pull Request 572`_
 
 
 
@@ -886,6 +892,7 @@ History
 
 
 .. github_links
+.. _Pull Request 572: https://github.com/galaxyproject/pulsar/pull/572
 .. _Pull Request 589: https://github.com/galaxyproject/pulsar/pull/589
 .. _Pull Request 588: https://github.com/galaxyproject/pulsar/pull/588
 .. _Pull Request 587: https://github.com/galaxyproject/pulsar/pull/587
