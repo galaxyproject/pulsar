@@ -558,9 +558,10 @@ def test_collect_output_tolerates_403_transport_error_for_workdir_output():
 
 
 
-def _finish_job_with_copied_workdir_output(tmp_path, source_contents, **destination_params):
+def _finish_job_with_copied_workdir_output(tmp_path, source_contents, listed=True, **destination_params):
     """Collect one from_work_dir output with the copy action, as an embedded
-    runner does. Returns the collection failures and the Galaxy output path."""
+    runner does. ``listed`` says whether Pulsar's working directory listing
+    shows the source. Returns the collection failures and the Galaxy output path."""
     working_directory = tmp_path / "pulsar" / "working"
     working_directory.mkdir(parents=True)
     if source_contents is not None:
@@ -573,7 +574,7 @@ def _finish_job_with_copied_workdir_output(tmp_path, source_contents, **destinat
         output_files=[str(output_file)],
         work_dir_outputs=[(str(galaxy_working_directory / "out.txt"), str(output_file))],
     )
-    pulsar_outputs = PulsarOutputs(["out.txt"], [], [], [])
+    pulsar_outputs = PulsarOutputs(["out.txt"] if listed else [], [], [], [])
 
     def output_path(name, job_id, path_type):
         return {"path": str(working_directory / name)}
@@ -604,6 +605,20 @@ def test_collect_workdir_output_retries_until_source_is_visible(tmp_path):
     assert output_file.read_text() == "tool output"
     assert len(attempts) == 2
     sleep.assert_called_once_with(client_util.OUTPUT_COLLECTION_RETRY_SLEEP)
+
+
+def test_collect_workdir_output_missing_from_listing_is_still_retried(tmp_path):
+    """The listing Pulsar returns can miss a file NFS has not shown yet. An exact
+    from_work_dir name absent from it is still attempted, and so retried; only a
+    glob needs a match in the listing."""
+    with mock.patch.object(time, "sleep") as sleep:
+        failures, output_file = _finish_job_with_copied_workdir_output(
+            tmp_path, None, listed=False, output_collection_retries="2"
+        )
+
+    assert failures == []
+    assert not output_file.exists()
+    assert sleep.call_count == 2
 
 
 def test_collect_workdir_output_never_visible_is_allowed_failure(tmp_path, caplog):

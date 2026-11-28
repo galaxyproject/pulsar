@@ -1,5 +1,6 @@
 """Code run on the client side for unstaging complete Pulsar jobs."""
 import fnmatch
+import glob
 from contextlib import contextmanager
 from json import loads
 from logging import getLogger
@@ -16,6 +17,10 @@ from ..transport.transient import (
 )
 
 log = getLogger(__name__)
+
+
+def _is_glob(name):
+    return glob.escape(name) != name
 
 
 def finish_job(client, cleanup_job, job_completed_normally, client_outputs, pulsar_outputs):
@@ -98,11 +103,17 @@ class ResultsCollector:
                     if self._attempt_collect_output('output_workdir', path=local_output_path, name=pulsar):
                         self.downloaded_working_directory_files.append((pulsar, local_output_path))
             else:
-                if self.pulsar_outputs.working_directory_contents is not None and name not in self.working_directory_contents:
-                    # Could be a glob. Like Galaxy's job script, collect the source only
-                    # if it matches exactly one file. Otherwise leave the output in
-                    # output_files, so the file the tool wrote to its regular path is
-                    # collected instead.
+                if (
+                    self.pulsar_outputs.working_directory_contents is not None
+                    and name not in self.working_directory_contents
+                    and _is_glob(name)
+                ):
+                    # Like Galaxy's job script, collect a glob only if it matches
+                    # exactly one file. Otherwise leave the output in output_files,
+                    # so the file the tool wrote to its regular path is collected
+                    # instead. An exact name missing from the listing is still
+                    # attempted: NFS may not have shown it yet, and collection
+                    # re-checks a missing source before giving up.
                     matching = fnmatch.filter(self.working_directory_contents, name)
                     if len(matching) != 1:
                         continue
