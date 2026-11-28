@@ -290,4 +290,16 @@ is replaced by the Pulsar server with the absolute per-job directory.
     rewrites staged config file contents, where the token is currently left
     unresolved - a known limitation rather than an intended restriction.
 
+When Pulsar cannot stage a job's files it tells Galaxy why, as a runner state
+that Galaxy's job resubmission can act on:
+
+* ``input_staging_failed``: an input could not be transferred to Pulsar. The
+  tool never ran.
+* ``output_staging_failed``: the tool ran, but its outputs could not be
+  transferred back. Resubmitting the job runs the tool again.
+
+Galaxy shows the user a short message with the file and the HTTP status, for
+example ``Failed to transfer output 'dataset_2.dat': HTTP 502``. Transient
+errors, such as a 502 from Galaxy's job files API, are worth resubmitting on.
+
 .. _app.yml.sample: https://github.com/galaxyproject/pulsar/blob/master/app.yml.sample

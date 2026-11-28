@@ -37,24 +37,34 @@ STAGING_LAUNCH_CONFIG = {
 # Galaxy's job files API takes the job key in the query string of every staging URL.
 JOB_KEY = "0123456789abcdef"
 FILES_ENDPOINT = f"https://galaxy.example.org/api/jobs/1/files?job_key={JOB_KEY}"
-# Stage one input, or one output, through Galaxy's job files API.
-INPUT_STAGING_LAUNCH_CONFIG = {
-    "command_line": "true",
-    "remote_staging": {
-        "setup": [
-            {
-                "name": "dataset_1.dat",
-                "type": "input",
-                "action": {
-                    "action_type": "remote_transfer",
-                    "path": "/galaxy/files/dataset_1.dat",
-                    "source": {"path": "/galaxy/files/dataset_1.dat"},
-                    "url": f"{FILES_ENDPOINT}&path=%2Fgalaxy%2Ffiles%2Fdataset_1.dat&file_type=input",
-                },
-            }
-        ],
-    },
-}
+
+
+def _input_staging_launch_config():
+    """Stage one input through Galaxy's job files API.
+
+    A new config for each use: staging pops ``path`` from the action, so a shared one
+    would fail every later test's staging with a ``KeyError``.
+    """
+    return {
+        "command_line": "true",
+        "remote_staging": {
+            "setup": [
+                {
+                    "name": "dataset_1.dat",
+                    "type": "input",
+                    "action": {
+                        "action_type": "remote_transfer",
+                        "path": "/galaxy/files/dataset_1.dat",
+                        "source": {"path": "/galaxy/files/dataset_1.dat"},
+                        "url": f"{FILES_ENDPOINT}&path=%2Fgalaxy%2Ffiles%2Fdataset_1.dat&file_type=input",
+                    },
+                }
+            ],
+        },
+    }
+
+
+# Stage one output through Galaxy's job files API.
 OUTPUT_STAGING_LAUNCH_CONFIG = {
     "command_line": "true",
     "remote_staging": {
@@ -197,7 +207,7 @@ def test_failed_postprocessing_is_reported_to_clients_polling_for_status():
 
 def test_input_staging_failure_tells_galaxy_why():
     with _proxy() as (proxy, manager), _galaxy_responds(502):
-        job_id = _launch_jobs(proxy, INPUT_STAGING_LAUNCH_CONFIG, 1)[0]
+        job_id = _launch_jobs(proxy, _input_staging_launch_config(), 1)[0]
         _join_staging_threads()
         assert proxy.callbacks == [(status.FAILED, job_id)]
         galaxy_status = _assert_galaxy_told(
@@ -215,9 +225,10 @@ def test_job_resubmitted_after_input_staging_failure_is_staged_again():
     with _proxy() as (proxy, manager):
         job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
         with _galaxy_responds(502):
-            manager_endpoint_util.submit_job(proxy, {"job_id": job_id, **INPUT_STAGING_LAUNCH_CONFIG})
+            manager_endpoint_util.submit_job(proxy, {"job_id": job_id, **_input_staging_launch_config()})
             _join_staging_threads()
         assert proxy.callbacks == [(status.FAILED, job_id)]
+        assert proxy.runner_state_message(job_id) == "Failed to transfer input 'dataset_1.dat': HTTP 502"
         assert _preprocessing_job_ids(proxy) == []
 
         proxy.clean(job_id)
@@ -225,11 +236,31 @@ def test_job_resubmitted_after_input_staging_failure_is_staged_again():
         transfers = _HeldTransfers()
         transfers.release.set()
         with _held_input_staging(transfers):
-            manager_endpoint_util.submit_job(proxy, {"job_id": job_id, **INPUT_STAGING_LAUNCH_CONFIG})
+            manager_endpoint_util.submit_job(proxy, {"job_id": job_id, **_input_staging_launch_config()})
             _join_staging_threads()
         assert transfers.job_ids == [job_id]
         assert proxy.callbacks == [(status.FAILED, job_id)]
         assert proxy.active_jobs.active_job_ids() == [job_id]
+
+
+def test_redelivered_setup_for_a_job_whose_input_staging_failed_is_ignored():
+    # A lost ack or a consumer reconnect redelivers the setup message, resubmission count and all.
+    with _proxy() as (proxy, manager):
+        job_id = proxy.setup_job(TEST_JOB_ID, "tool1", "1.0.0")
+        setup = {"job_id": job_id, "setup": True, **_input_staging_launch_config()}
+        with _galaxy_responds(502):
+            manager_endpoint_util.submit_job(proxy, setup)
+            _join_staging_threads()
+        assert proxy.callbacks == [(status.FAILED, job_id)]
+
+        transfers = _HeldTransfers()
+        transfers.release.set()
+        with _held_input_staging(transfers):
+            manager_endpoint_util.submit_job(proxy, {**setup, **_input_staging_launch_config()})
+            _join_staging_threads()
+        assert transfers.job_ids == []
+        assert proxy.active_jobs.active_job_ids() == []
+        assert proxy.callbacks == [(status.FAILED, job_id)]
 
 
 def test_launch_failure_after_staging_inputs_is_not_an_input_staging_failure():
@@ -260,7 +291,19 @@ def test_output_staging_failure_tells_galaxy_why():
         )
 
 
-def test_output_staging_failure_keeps_an_earlier_reason():
+def test_retried_output_staging_failure_reports_the_latest_attempt():
+    with _launched_job() as (proxy, manager, job_id):
+        # Left by an attempt before a restart.
+        manager._record_runner_state(job_id, "output_staging_failed", "Failed to transfer output 'dataset_2.dat': HTTP 502")
+        manager.scripted_status = status.COMPLETE
+        with _postprocessing_failed():
+            proxy.get_status(job_id)
+            _wait_for_callback(proxy)
+        _assert_galaxy_told(proxy, job_id, "output_staging_failed", "Failed to transfer output 'dataset_2.dat': OSError")
+
+
+def test_output_staging_failure_keeps_a_different_earlier_reason():
+    # No manager records a reason for a completed job today; one that did would know more.
     with _launched_job() as (proxy, manager, job_id):
         manager._record_runner_state(job_id, "memory_limit_reached", "Out of memory")
         manager.scripted_status = status.COMPLETE

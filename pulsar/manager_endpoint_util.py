@@ -16,7 +16,10 @@ from pulsar.managers import (
 )
 from pulsar.managers.base import shrink_stream
 from pulsar.managers.staging import realized_dynamic_file_sources
-from pulsar.managers.stateful import ACTIVE_STATUS_PREPROCESSING
+from pulsar.managers.stateful import (
+    ACTIVE_STATUS_PREPROCESSING,
+    JOB_FILE_PREPROCESSING_FAILED,
+)
 
 log = logging.getLogger(__name__)
 
@@ -215,6 +218,11 @@ def _is_duplicate_setup(manager, job_id: str, resubmission_count: int = 0) -> bo
     ``resubmission_count`` than the existing job directory. That is a new
     attempt rather than a redelivery, so the previous attempt's directory
     is discarded for it to start from.
+
+    A job whose preprocessing failed is done too, although nothing polls it to a
+    terminal status: it left the preprocessing index and never entered the launched
+    one. Without this a redelivered setup message would stage and launch the tool
+    for a job Galaxy was already told failed.
     """
     try:
         job_directory = manager.job_directory(job_id)
@@ -228,6 +236,8 @@ def _is_duplicate_setup(manager, job_id: str, resubmission_count: int = 0) -> bo
         job_directory.delete()
         return False
     if job_directory.has_metadata("final_status"):
+        return True
+    if job_directory.has_metadata(JOB_FILE_PREPROCESSING_FAILED):
         return True
     active_jobs = manager.active_jobs
     try:

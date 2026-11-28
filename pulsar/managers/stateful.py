@@ -316,13 +316,16 @@ class StatefulManagerProxy(ManagerProxy):
             log.exception("Failed job preprocessing for job %s:", job_id)
 
     def __record_staging_failure(self, job_id: str, runner_state: str, message: str) -> None:
-        """Tell Galaxy why the job failed, unless the job already recorded a reason.
+        """Tell Galaxy why the job failed, unless the job already recorded another reason.
 
-        A reason recorded earlier, such as the memory limit a job ran into before
-        its outputs could not be staged, says more about the failure.
+        Only a retried postprocessing attempt finds a state already recorded today, and
+        that is the same state, so its message is replaced with the latest attempt's.
+        No manager records a reason for a job that completed, but one that did would
+        know more about the failure than a staging error, so a different state is kept.
         """
         try:
-            if not self._proxied_manager.runner_state(job_id):
+            recorded = self._proxied_manager.runner_state(job_id)
+            if not recorded or recorded == runner_state:
                 self._proxied_manager._record_runner_state(job_id, runner_state, message)
         except Exception:
             log.exception("Failed to record runner state %s for job %s", runner_state, job_id)
