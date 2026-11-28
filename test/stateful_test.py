@@ -344,6 +344,14 @@ def test_staging_cap_below_one_is_rejected_at_startup(option, value):
             StatefulManagerProxy(manager, **{option: value})
 
 
+@pytest.mark.parametrize("value", [-1, "-1"])
+def test_negative_output_collection_retries_is_rejected_at_startup(value):
+    with _temporary_app() as app:
+        manager = _ScriptedStatusManager("test", app, num_concurrent_jobs=0)
+        with pytest.raises(ValueError, match="output_collection_retries"):
+            StatefulManagerProxy(manager, output_collection_retries=value)
+
+
 def test_shutdown_leaves_jobs_queued_for_preprocessing_to_recovery():
     transfers = _HeldTransfers()
     with _temporary_app() as app:

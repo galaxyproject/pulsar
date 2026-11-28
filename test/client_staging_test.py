@@ -622,3 +622,16 @@ def test_collect_workdir_output_never_visible_is_allowed_failure(tmp_path, caplo
     assert len(warning) == 1
     assert str(tmp_path / "pulsar" / "working" / "out.txt") in warning[0]
     assert str(output_file) in warning[0]
+
+
+def test_collect_workdir_output_with_negative_retries_is_still_copied(tmp_path):
+    """A negative output_collection_retries counts as no retries; the output is
+    still copied rather than silently skipped."""
+    with mock.patch.object(time, "sleep") as sleep:
+        failures, output_file = _finish_job_with_copied_workdir_output(
+            tmp_path, "tool output", output_collection_retries="-1"
+        )
+
+    assert failures == []
+    assert output_file.read_text() == "tool output"
+    sleep.assert_not_called()

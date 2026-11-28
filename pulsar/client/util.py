@@ -130,8 +130,10 @@ def retry_missing_source(operation, source, retries):
 
     A file a compute node wrote moments ago may not be visible yet if this
     host's NFS client cached the directory, so FileNotFoundError is retried
-    ``retries`` times before it propagates.
+    ``retries`` times before it propagates. A negative ``retries`` counts as 0,
+    so ``operation`` always runs.
     """
+    retries = max(0, retries)
     for attempt in range(retries + 1):
         try:
             return operation()

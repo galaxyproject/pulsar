@@ -127,9 +127,7 @@ class StatefulManagerProxy(ManagerProxy):
         self.__slot_poll_interval = float(
             manager_options.get("staging_slot_poll_interval", DEFAULT_STAGING_SLOT_POLL_INTERVAL)
         )
-        self.__output_collection_retries = int(
-            manager_options.get("output_collection_retries", DEFAULT_OUTPUT_COLLECTION_RETRIES)
-        )
+        self.__output_collection_retries = _output_collection_retries(manager_options)
         self.min_polling_interval = dt.timedelta(0, min_polling_interval)
         self.active_jobs = ActiveJobs.from_manager(manager)
         self.__state_change_callback = self._default_status_change_callback
@@ -759,6 +757,14 @@ def _tool_failed(manager, job_id: str) -> bool:
     except Exception:
         return False
     return isinstance(return_code, int) and return_code != 0
+
+
+def _output_collection_retries(manager_options: Dict[str, Any]) -> int:
+    value = manager_options.get("output_collection_retries", DEFAULT_OUTPUT_COLLECTION_RETRIES)
+    retries = int(value)
+    if retries < 0:
+        raise ValueError(f"output_collection_retries must be 0 or more, not {value!r}")
+    return retries
 
 
 def _staging_slots(
