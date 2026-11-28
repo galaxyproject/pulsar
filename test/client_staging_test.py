@@ -753,3 +753,55 @@ def test_staging_manifest_omits_remote_transfers_from_source_urls(tmp_path, acti
     )
     assert [action["name"] for action in tracker.remote_staging_actions] == ["by_path.dat", "by_url.dat"]
     assert tracker.remote_transfer_paths == [str(by_path)]
+
+
+@pytest.mark.parametrize(
+    "stray_files, write_output, expected",
+    [
+        # No match: the output the tool wrote to its regular path is kept.
+        (0, True, "written to output\n"),
+        # Exactly one match: it replaces the tool's output.
+        (1, True, "stray 0\n"),
+        # Several matches: ambiguous, the tool's output is kept.
+        (2, True, "written to output\n"),
+        # No match and no output written: nothing to collect, no failure.
+        (0, False, None),
+    ],
+)
+def test_collect_globbed_workdir_output_needs_exactly_one_match(tmp_path, stray_files, write_output, expected):
+    """A from_work_dir source is copied over the output only if it matches exactly
+    one file, as Galaxy's job script does. Otherwise the output the tool wrote
+    itself is collected from the outputs directory."""
+    pulsar_directory = tmp_path / "pulsar"
+    working_directory = pulsar_directory / "working"
+    outputs_directory = pulsar_directory / "outputs"
+    working_directory.mkdir(parents=True)
+    outputs_directory.mkdir()
+    for i in range(stray_files):
+        (working_directory / f"stray.{i}.txt").write_text(f"stray {i}\n")
+    if write_output:
+        (outputs_directory / "dataset_1.dat").write_text("written to output\n")
+    output_file = tmp_path / "galaxy" / "dataset_1.dat"
+    galaxy_working_directory = tmp_path / "galaxy" / "working"
+    client = JobClient({"default_file_action": "copy"}, "1", None)
+    client_outputs = ClientOutputs(
+        working_directory=str(galaxy_working_directory),
+        output_files=[str(output_file)],
+        work_dir_outputs=[(str(galaxy_working_directory / "stray.*.txt"), str(output_file))],
+    )
+    pulsar_outputs = PulsarOutputs(
+        sorted(os.listdir(working_directory)), sorted(os.listdir(outputs_directory)), [], []
+    )
+
+    def output_path(name, job_id, path_type):
+        directory = outputs_directory if path_type == "output" else working_directory
+        return {"path": str(directory / name)}
+
+    with mock.patch.object(client, "_output_path", side_effect=output_path):
+        failures = finish_job(client, "never", True, client_outputs, pulsar_outputs)
+
+    assert failures == []
+    if expected is None:
+        assert not output_file.exists()
+    else:
+        assert output_file.read_text() == expected
